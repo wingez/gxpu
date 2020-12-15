@@ -1,0 +1,9 @@
+
+
+
+def main(test:int, test2:bool, test3:str):
+    test4:int = 5
+
+
+    test:bool = call_simething(test2,test4)
+
