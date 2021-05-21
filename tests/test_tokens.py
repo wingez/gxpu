@@ -20,22 +20,59 @@ def test_indentation():
         token.get_indentation('  \ttemp')
 
 
+def test_to_token():
+    assert token.to_token('(') == token.TokenLeftParenthesis()
+    assert token.to_token(')') == token.TokenRightParenthesis()
+
+    assert token.to_token('test') == token.TokenIdentifier('test')
+
+
+def tokenize(items):
+    return [token.to_token(item) for item in items]
+
+
 def test_parse_line():
     # Comments
     assert token.parse_line('#') == []
-    assert token.parse_line('test#') == ['test']
+    assert token.parse_line('test#') == [token.to_token('test')]
 
     # Regular worlds
-    assert token.parse_line('test') == ['test']
-    assert token.parse_line('test hest') == ['test', 'hest']
+    assert token.parse_line('test') == tokenize(['test'])
+    assert token.parse_line('test hest') == tokenize(['test', 'hest'])
 
     # Function statement
-    assert token.parse_line('def main(test:int, test2:bool, test3:str):') == [
-
+    assert token.parse_line('def main(test:int, test2:bool, test3:str):') == tokenize([
         'def', 'main', '(', 'test', ':', 'int', ',', 'test2', ':', 'bool', ',', 'test3', ':', 'str', ')', ':'
+    ])
+    assert token.parse_line('def main(test:int, test2:bool, test3:str):') == [
+        token.TokenKeywordDef(),
+        token.TokenIdentifier('main'),
+        token.TokenLeftParenthesis(),
+
+        token.TokenIdentifier('test'),
+        token.TokenColon(),
+        token.TokenIdentifier('int'),
+        token.TokenComma(),
+
+        token.TokenIdentifier('test2'),
+        token.TokenColon(),
+        token.TokenIdentifier('bool'),
+        token.TokenComma(),
+
+        token.TokenIdentifier('test3'),
+        token.TokenColon(),
+        token.TokenIdentifier('str'),
+
+        token.TokenRightParenthesis(),
+        token.TokenColon()
+
+        # 'def', 'main', '(', 'test', ':', 'int', ',', 'test2', ':', 'bool', ',', 'test3', ':', 'str', ')', ':'
     ]
 
-    assert token.parse_line('a:int = 5') == ['a', ':', 'int', '=', '5']
-    assert token.parse_line('a = 5+10') == ['a', '=', '5', '+', '10']
-    assert token.parse_line('if a+b>10:') == ['if', 'a', '+', 'b', '>', '10', ':']
-    assert token.parse_line('if a>=10:') == ['if', 'a', '>=', '10', ':']
+    assert token.parse_line('test3') == [token.TokenIdentifier('test3')]
+    assert token.parse_line('456') == [token.TokenNumericConstant(456)]
+
+    assert token.parse_line('a:int = 5') == tokenize(['a', ':', 'int', '=', '5'])
+    assert token.parse_line('a = 5+10') == tokenize(['a', '=', '5', '+', '10'])
+    assert token.parse_line('if a+b>10:') == tokenize(['if', 'a', '+', 'b', '>', '10', ':'])
+    # assert token.parse_line('if a>=10:') == ['if', 'a', '>=', '10', ':']

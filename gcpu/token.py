@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Tuple, List
 
 DELIMITERS = [' ', '#', '(', ')', ',', ':', '+', '-', '=', '<', '>']
@@ -8,6 +9,7 @@ class InvalidSyntaxError(Exception):
     pass
 
 
+@dataclass
 class Token:
     pass
 
@@ -16,8 +18,99 @@ class Block:
     pass
 
 
+@dataclass
+class TokenLeftParenthesis(Token):
+    pass
+
+
+@dataclass
+class TokenRightParenthesis(Token):
+    pass
+
+
+@dataclass()
+class TokenComma(Token):
+    pass
+
+
+@dataclass
+class TokenColon(Token):
+    pass
+
+
+@dataclass()
+class TokenEquals(Token):
+    pass
+
+
+@dataclass()
+class TokenKeywordDef(Token):
+    pass
+
+
+@dataclass()
+class TokenIdentifier(Token):
+    def __init__(self, target):
+        self.target: str = target
+
+
+@dataclass()
+class TokenNumericConstant(Token):
+    def __init__(self, value: int):
+        self.value: int = value
+
+
+@dataclass()
+class TokenPlusSign(Token):
+    pass
+
+
+@dataclass()
+class TokenGreaterSign(Token):
+    pass
+
+
 def tokenize():
     pass
+
+
+def to_token(text: str) -> Token:
+    # sanity check
+    if ' ' in text:
+        raise InvalidSyntaxError()
+
+    if text == '(':
+        return TokenLeftParenthesis()
+    if text == ')':
+        return TokenRightParenthesis()
+    if text == ':':
+        return TokenColon()
+    if text == ',':
+        return TokenComma()
+    if text == '=':
+        return TokenEquals()
+    if text == '+':
+        return TokenPlusSign()
+    if text == '>':
+        return TokenGreaterSign()
+
+    if text in TOKENS:
+        raise InvalidSyntaxError("We should not reach this")
+
+    # sanity check
+    if not text.isalnum():
+        assert False
+
+    if text.isnumeric():
+        return TokenNumericConstant(int(text))
+
+    if text == 'def':
+        return TokenKeywordDef()
+
+    return TokenIdentifier(text)
+
+    # we should not reach this
+    # assert False
 
 
 def parse_line(line) -> List[Token]:
@@ -27,7 +120,7 @@ def parse_line(line) -> List[Token]:
     :return:
     """
 
-    result = []
+    result: List[Token] = []
 
     current = ''
 
@@ -36,7 +129,7 @@ def parse_line(line) -> List[Token]:
         if symbol in DELIMITERS:
 
             if current:
-                result.append(current)
+                result.append(to_token(current))
 
             current = ''
 
@@ -51,12 +144,12 @@ def parse_line(line) -> List[Token]:
         current += symbol
 
         if current in TOKENS:
-            result.append(current)
+            result.append(to_token(current))
             current = ''
 
     if len(current) > 0:
         # current could be empty if last symbol was an delimiter
-        result.append(current)
+        result.append(to_token(current))
 
     return result
 
