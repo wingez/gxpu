@@ -1,32 +1,43 @@
 import subprocess
-from typing import List
+from typing import List, Dict
 from pathlib import Path
 
 from . import ast
 
 
+class CompileError(Exception):
+    pass
+
+
 class AssemblyFunction:
     def __init__(self):
         self.result: List[str] = []
+        self.register_mapping: Dict[str, str] = {}
+        self.available_registers = ['r3', 'r2']
 
     def generate(self, line: str):
         self.result.append(line)
 
+    def get_register_to_use(self, indentifier):
+        if len(self.available_registers) == 0:
+            return CompileError('No register to use')
+        register = self.available_registers.pop()
+        self.register_mapping[indentifier] = register
+        return register
+
     def compile_and_run(self, nodes: List[ast.AstNode]):
-        assert len(nodes) == 1
+        for node in nodes:
 
-        node = nodes[0]
+            if isinstance(node, ast.AssignmentNode):
+                register = self.get_register_to_use(node.target)
+                self.generate(f'mov {register}, #{node.value}')
+            elif isinstance(node, ast.PrintNode):
+                register_to_print = self.register_mapping[node.target]
+                self.generate(f'mov r0,{register_to_print}')
+                self.generate(f'bl print_r0')
 
-        assert isinstance(node, ast.AssignmentNode)
-
-        available_registers = ['r3', 'r2']
-
-        register = available_registers.pop()
-
-        self.generate(f'mov {register}, #{node.value}')
-
-        self.generate(f'mov r0, {register}')
-        self.generate(f'bl print_r0')
+            else:
+                raise CompileError(f"Dont know how to parse: {node}")
 
 
 def compile_and_run(nodes):
