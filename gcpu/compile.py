@@ -5,31 +5,33 @@ from pathlib import Path
 from . import ast
 
 
-class AssemblyCode:
+class AssemblyFunction:
     def __init__(self):
         self.result: List[str] = []
 
     def generate(self, line: str):
         self.result.append(line)
 
+    def compile_and_run(self, nodes: List[ast.AstNode]):
+        assert len(nodes) == 1
 
-def compile_ast(nodes: List[ast.AstNode]):
-    assert len(nodes) == 1
+        node = nodes[0]
 
-    node = nodes[0]
+        assert isinstance(node, ast.AssignmentNode)
 
-    assert isinstance(node, ast.AssignmentNode)
+        available_registers = ['r3', 'r2']
 
-    available_registers = ['r3', 'r2', 'r1', 'r0']
+        register = available_registers.pop()
 
-    code_output = AssemblyCode()
+        self.generate(f'mov {register}, #{node.value}')
 
-    register = available_registers.pop()
+        self.generate(f'mov r0, {register}')
+        self.generate(f'bl print_r0')
 
-    code_output.generate(f'mov {register}, #{node.value}')
 
-    code_output.generate(f'mov {register}, r0')
-    code_output.generate(f'bl print_r0')
+def compile_and_run(nodes):
+    compiler = AssemblyFunction()
+    compiler.compile_and_run(nodes)
 
     base_dir = Path(__file__).parent
 
@@ -37,7 +39,7 @@ def compile_ast(nodes: List[ast.AstNode]):
     output_file = base_dir / 'asm32'
 
     function_output = ''
-    for line in code_output.result:
+    for line in compiler.result:
         function_output += line + '\n'
 
     with open(file, mode='w+') as f:

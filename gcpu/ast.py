@@ -15,6 +15,11 @@ class AssignmentNode(AstNode):
         self.value = value
 
 
+class PrintNode(AstNode):
+    def __init__(self, target: str):
+        self.target = target
+
+
 class ParserError(Exception):
     pass
 
@@ -33,14 +38,23 @@ class Parser:
     def restore(self, checkpoint):
         self._index = checkpoint
 
+    def has_more_to_parse(self) -> bool:
+        return self._index < len(self._token)
+
     def parse(self) -> List[AstNode]:
         result: List[AstNode] = []
 
-        first_token = self.peek()
-        if isinstance(first_token, token.TokenIdentifier):
-            if tok := self.try_parse_assignment():
-                result.append(tok)
+        while self.has_more_to_parse():
+            first_token = self.peek()
+            if isinstance(first_token, token.TokenIdentifier):
+                if tok := self.try_parse_assignment():
+                    result.append(tok)
+                    continue
+                if tok := self.try_parse_print():
+                    result.append(tok)
+                    continue
 
+            raise ParserError(f'Dont know how to parse: {first_token}')
         return result
 
     def consume(self) -> token.Token:
@@ -65,6 +79,23 @@ class Parser:
             value_token = self.consume_type(token.TokenNumericConstant)
         except ParserError:
             self.restore(checkpoint)
-            return None
+            return
 
         return AssignmentNode(target_token.target, value_token.value)
+
+    def try_parse_print(self) -> Optional[AstNode]:
+        checkpoint = self.savepoint()
+
+        try:
+            should_be_print_token = self.consume_type(token.TokenIdentifier)
+            if not should_be_print_token.target == 'print':
+                self.restore(checkpoint)
+                return
+            self.consume_type(token.TokenLeftParenthesis)
+            target = self.consume_type(token.TokenIdentifier)
+            self.consume_type(token.TokenRightParenthesis)
+        except ParserError:
+            self.restore(checkpoint)
+            return
+
+        return PrintNode(target.target)

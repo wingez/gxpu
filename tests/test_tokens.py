@@ -76,3 +76,8 @@ def test_parse_line():
     assert token.parse_line('a = 5+10') == tokenize(['a', '=', '5', '+', '10'])
     assert token.parse_line('if a+b>10:') == tokenize(['if', 'a', '+', 'b', '>', '10', ':'])
     # assert token.parse_line('if a>=10:') == ['if', 'a', '>=', '10', ':']
+
+    assert token.parse_line('print(test)') == [
+        token.TokenIdentifier('print'), token.TokenLeftParenthesis(),
+        token.TokenIdentifier('test'), token.TokenRightParenthesis()
+    ]

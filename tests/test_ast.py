@@ -11,3 +11,6 @@ def test_basic():
     assert node.value == 4
     assert node.target == 'test'
 
+    node, *_ = ast.Parser(token.parse_line('print(name)')).parse()
+    assert isinstance(node, ast.PrintNode)
+    assert node.target == 'name'
