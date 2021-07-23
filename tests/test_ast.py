@@ -1,4 +1,5 @@
 from gcpu import ast, token
+from gcpu.constant import Constant
 
 
 def test_basic():
@@ -8,7 +9,7 @@ def test_basic():
     assert len(nodes) == 1
     node = nodes[0]
     assert isinstance(node, ast.AssignmentNode)
-    assert node.value == 4
+    assert node.value == Constant(4)
     assert node.target == 'test'
 
     node, *_ = ast.Parser(token.parse_line('print(name)')).parse()

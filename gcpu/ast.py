@@ -1,23 +1,34 @@
-from typing import List, Optional, Type, Tuple, TypeVar, Generic
+from typing import List, Optional, Type, TypeVar
 
 from . import token
+from .constant import Constant
+from .runner import Runner
+from .scope import Scope
 
 T = TypeVar('T', bound=token.Token, covariant=True)
 
 
 class AstNode:
-    pass
+    def execute(self, scope: Scope, runner: Runner):
+        pass
 
 
 class AssignmentNode(AstNode):
-    def __init__(self, target: str, value: int):
+    def __init__(self, target: str, value: Constant):
         self.target = target
         self.value = value
+
+    def execute(self, scope: Scope, runner: Runner):
+        scope.set(self.target, self.value)
 
 
 class PrintNode(AstNode):
     def __init__(self, target: str):
         self.target = target
+
+    def execute(self, scope: Scope, runner: Runner):
+        value = scope.get(self.target)
+        runner.print(value)
 
 
 class ParserError(Exception):
@@ -81,7 +92,8 @@ class Parser:
             self.restore(checkpoint)
             return None
 
-        return AssignmentNode(target_token.target, value_token.value)
+        constant = Constant(value_token.value)
+        return AssignmentNode(target_token.target, constant)
 
     def try_parse_print(self) -> Optional[AstNode]:
         checkpoint = self.savepoint()
@@ -99,3 +111,8 @@ class Parser:
             return None
 
         return PrintNode(target.target)
+
+
+def execute(nodes: List[AstNode], runner: Runner, scope: Scope):
+    for node in nodes:
+        node.execute(scope, runner)
