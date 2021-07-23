@@ -11,33 +11,46 @@ class CompileError(Exception):
 
 class AssemblyFunction:
     def __init__(self):
-        self.result: List[str] = []
-        self.register_mapping: Dict[str, str] = {}
-        self.available_registers = ['r3', 'r2']
+        self._function_body: List[str] = []
+        self._current_stack_size = 0
 
-    def generate(self, line: str):
-        self.result.append(line)
+        self.register_stack_mapping: Dict[str, int] = {}
 
-    def get_register_to_use(self, indentifier):
-        if len(self.available_registers) == 0:
-            return CompileError('No register to use')
-        register = self.available_registers.pop()
-        self.register_mapping[indentifier] = register
-        return register
+    def body_generate(self, line: str):
+        self._function_body.append(line)
+
+    def generate_header(self) -> List[str]:
+        return [
+            'mov r10, sp',
+        ]
 
     def compile_and_run(self, nodes: List[ast.AstNode]):
+
         for node in nodes:
 
             if isinstance(node, ast.AssignmentNode):
-                register = self.get_register_to_use(node.target)
-                self.generate(f'mov {register}, #{node.value}')
+
+                if node.target not in self.register_stack_mapping:
+                    self._current_stack_size += 4
+                    self.register_stack_mapping[node.target] = self._current_stack_size
+
+                offset = -self.register_stack_mapping[node.target]
+
+                self.body_generate(f'mov r0, #{node.value}')
+                self.body_generate(f'str r0, [r10], #{offset}')
+
             elif isinstance(node, ast.PrintNode):
-                register_to_print = self.register_mapping[node.target]
-                self.generate(f'mov r0,{register_to_print}')
-                self.generate(f'bl print_r0')
+                offset = -self.register_stack_mapping[node.target]
+                self.body_generate(f'ldr r0, [r10], #{offset}')
+                self.body_generate(f'bl print_r0')
 
             else:
                 raise CompileError(f"Dont know how to parse: {node}")
+
+        self.body_generate(f'bl exit')
+
+    def get_body(self):
+        return self.generate_header() + self._function_body
 
 
 def compile_and_run(nodes):
@@ -50,7 +63,7 @@ def compile_and_run(nodes):
     output_file = base_dir / 'asm32'
 
     function_output = ''
-    for line in compiler.result:
+    for line in compiler.get_body():
         function_output += line + '\n'
 
     with open(file, mode='w+') as f:
@@ -68,7 +81,16 @@ def compile_and_run(nodes):
     .global _start
 
     _start:
+    /*ldr sp, =stack_upper*/
+    
     {function_output}
+    
+    mov r0, #'H'
+    push {{r0}}
+    mov r0, #'G'
+    pop {{r0}}
+    bl print_r0
+    
     bl exit
 
     mov r0, #'H'
@@ -95,6 +117,12 @@ def compile_and_run(nodes):
     mov r0,#0
     mov r7,#1
     svc #0
+    
+    .ALIGN 4
+    stack_lower: .SPACE 1000
+    stack_upper=.
+    
+    
             """)
 
     subprocess.run(

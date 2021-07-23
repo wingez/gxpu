@@ -79,7 +79,7 @@ class Parser:
             value_token = self.consume_type(token.TokenNumericConstant)
         except ParserError:
             self.restore(checkpoint)
-            return
+            return None
 
         return AssignmentNode(target_token.target, value_token.value)
 
@@ -90,12 +90,12 @@ class Parser:
             should_be_print_token = self.consume_type(token.TokenIdentifier)
             if not should_be_print_token.target == 'print':
                 self.restore(checkpoint)
-                return
+                return None
             self.consume_type(token.TokenLeftParenthesis)
             target = self.consume_type(token.TokenIdentifier)
             self.consume_type(token.TokenRightParenthesis)
         except ParserError:
             self.restore(checkpoint)
-            return
+            return None
 
         return PrintNode(target.target)
