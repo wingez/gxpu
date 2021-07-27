@@ -36,7 +36,7 @@ class AssemblyFunction:
 
                 offset = -self.register_stack_mapping[node.target]
 
-                self.body_generate(f'mov r0, #{node.value}')
+                self.body_generate(f'mov r0, #{node.value_node}')
                 self.body_generate(f'str r0, [r10], #{offset}')
 
             elif isinstance(node, ast.PrintNode):

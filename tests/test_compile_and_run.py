@@ -21,3 +21,7 @@ def compile_and_run_get_output(*lines):
 def test_basic_print():
     assert compile_and_run_get_output('test=68',
                                       'print(test)') == '68\n'
+
+#
+# def test_addition():
+#     assert compile_and_run_get_output('test=10+5', 'print(test)') == '15\n'
