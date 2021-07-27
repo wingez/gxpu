@@ -1,0 +1,1 @@
+class InterpreterError(Exception): pass

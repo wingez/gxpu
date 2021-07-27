@@ -9,7 +9,7 @@ def test_basic():
     assert len(nodes) == 1
     node = nodes[0]
     assert isinstance(node, ast.AssignmentNode)
-    assert node.value == Constant(4)
+    assert node.value_node == Constant(4)
     assert node.target == 'test'
 
     node, *_ = ast.Parser(token.parse_line('print(name)')).parse()
