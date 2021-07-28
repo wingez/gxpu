@@ -1,74 +1,50 @@
+from __future__ import annotations
+from contextlib import contextmanager
+from dataclasses import dataclass
 from typing import List, Optional, Type, TypeVar
 
 from . import token
-from .constant import Constant
-from .intepreter import InterpreterError
-from .runner import Runner
-from .scope import Scope
 
 T = TypeVar('T', bound=token.Token, covariant=True)
 
-execution_result = Optional[Constant]
 
-
-class AstNode:
-    def execute(self, scope: Scope, runner: Runner) -> execution_result:
-        pass
-
-
-V = TypeVar('V', bound=AstNode, covariant=True)
+@dataclass
+class AstNode: pass
 
 
 class ValueProviderNode(AstNode):
-    def execute(self, scope: Scope, runner: Runner) -> Constant:
-        pass
+    pass
 
 
-class AssignmentNode(AstNode):
-    def __init__(self, target: str, value: ValueProviderNode):
+@dataclass
+class AssignConstantNode(AstNode):
+    def __init__(self, target: str, value: ConstantNode):
         self.target = target
         self.value_node = value
 
-    def execute(self, scope: Scope, runner: Runner) -> execution_result:
-        constant = self.value_node.execute(scope, runner)
-        scope.set(self.target, constant)
-        return None
 
-
+@dataclass
 class PrintNode(AstNode):
-    def __init__(self, target: str):
+    def __init__(self, target: ConstantNode):
         self.target = target
 
-    def execute(self, scope: Scope, runner: Runner) -> execution_result:
-        value = scope.get(self.target)
-        runner.print(value)
-        return None
 
-
+@dataclass
 class IdentifierNode(AstNode):
     def __init__(self, identifier: str):
         self.identifier = identifier
 
 
+@dataclass
 class ConstantNode(ValueProviderNode):
-    def __init__(self, value: Constant):
+    def __init__(self, value: int):
         self.value = value
-
-    def execute(self, scope: Scope, runner: Runner) -> Constant:
-        return self.value
 
 
 class AdditionNode(ValueProviderNode):
     def __init__(self, left: AstNode, right: AstNode):
         self.left = left
         self.right = right
-
-    def execute(self, scope: Scope, runner: Runner):
-        left_executed, right_executed = self.left.execute(scope, runner), self.right.execute(scope, runner)
-        if not (isinstance(left_executed, Constant) and isinstance(right_executed, Constant)):
-            raise InterpreterError('Operation not supported')
-
-        return Constant(left_executed.value + right_executed.value)
 
 
 class ParserError(Exception):
@@ -96,33 +72,22 @@ class Parser:
         result: List[AstNode] = []
 
         while self.has_more_to_parse():
-            node:AstNode = self.parse_next()
+            node: AstNode = self.parse_next()
             result.append(node)
 
         return result
 
-    def parse_next(self, node_type: Type[V] = None) -> V:
+    def parse_next(self) -> AstNode:
 
-        def node_filter(node: AstNode) -> bool:
-            if node_type is None:
-                return True
-            return isinstance(node, node_type)
-
-        first_token = self.peek()
-
-        if isinstance(first_token, token.TokenNumericConstant):
-            return ConstantNode(Constant(first_token.value))
-
-        if isinstance(first_token, token.TokenIdentifier):
-            if (tok := self.try_parse_assignment()) and node_filter(tok):
-                return tok
-            if (tok := self.try_parse_print()) and node_filter(tok):
-                return tok
-
-        if (tok := self.try_parse_addition()) and node_filter(tok):
+        if tok := self.try_parse_assignment():
             return tok
+        if tok := self.try_parse_print():
+            return tok
+        #
+        # if (tok := self.try_parse_addition()) and node_filter(tok):
+        #     return tok
 
-        raise ParserError(f'Dont know how to parse: {first_token}')
+        raise ParserError(f'Dont know how to parse: {self.peek()}')
 
     def consume(self) -> token.Token:
         current = self._token[self._index]
@@ -137,45 +102,59 @@ class Parser:
 
         return current
 
+    @contextmanager
+    def _restore_on_error(self):
+        line = self.savepoint()
+        try:
+            yield
+        except ParserError as e:
+            self.restore(line)
+            raise e
+
+    def parse_value_provider(self) -> ValueProviderNode:
+        constant = self.consume_type(token.TokenNumericConstant)
+        if not isinstance(self.peek(), token.ExpressionSeparator):
+            raise ParserError()
+        return ConstantNode(constant.value)
+
     def try_parse_constant(self) -> Optional[AstNode]:
-        checkpoint = self.savepoint()
 
         try:
-            numeric_token = self.consume_type(token.TokenNumericConstant)
-            return ConstantNode(Constant(numeric_token.value))
+            with self._restore_on_error():
+                numeric_token = self.consume_type(token.TokenNumericConstant)
+                return ConstantNode(numeric_token.value)
         except ParserError:
-            self.restore(checkpoint)
             return None
 
     def try_parse_assignment(self) -> Optional[AstNode]:
-        checkpoint = self.savepoint()
 
         try:
-            target_token: token.TokenIdentifier = self.consume_type(token.TokenIdentifier)
-            self.consume_type(token.TokenEquals)
-            value_node = self.parse_next(ValueProviderNode)
+            with self._restore_on_error():
+                target_token: token.TokenIdentifier = self.consume_type(token.TokenIdentifier)
+                self.consume_type(token.TokenEquals)
+                value_node = self.parse_value_provider()
+                self.consume_type(token.TokenEOL)
+                if isinstance(value_node, ConstantNode):
+                    return AssignConstantNode(target_token.target, value_node)
+                raise ParserError
         except ParserError:
-            self.restore(checkpoint)
             return None
-
-        return AssignmentNode(target_token.target, value_node)
 
     def try_parse_print(self) -> Optional[AstNode]:
-        checkpoint = self.savepoint()
 
         try:
-            should_be_print_token = self.consume_type(token.TokenIdentifier)
-            if not should_be_print_token.target == 'print':
-                self.restore(checkpoint)
-                return None
-            self.consume_type(token.TokenLeftParenthesis)
-            target = self.consume_type(token.TokenIdentifier)
-            self.consume_type(token.TokenRightParenthesis)
-        except ParserError:
-            self.restore(checkpoint)
-            return None
+            with self._restore_on_error():
+                self.consume_type(token.TokenKeywordPrint)
+                self.consume_type(token.TokenLeftParenthesis)
+                target = self.parse_value_provider()
+                self.consume_type(token.TokenRightParenthesis)
+                self.consume_type(token.TokenEOL)
 
-        return PrintNode(target.target)
+                if isinstance(target, ConstantNode):
+                    return PrintNode(target)
+                raise ParserError()
+        except ParserError:
+            return None
 
     def try_parse_addition(self) -> Optional[AstNode]:
         checkpoint = self.savepoint()
@@ -190,8 +169,3 @@ class Parser:
         except ParserError:
             self.restore(checkpoint)
             return None
-
-
-def execute(nodes: List[AstNode], runner: Runner, scope: Scope):
-    for node in nodes:
-        node.execute(scope, runner)
