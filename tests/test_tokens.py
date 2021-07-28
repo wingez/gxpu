@@ -2,6 +2,8 @@ from gcpu import token
 
 import pytest
 
+EOL = [token.TokenEOL()]
+
 
 def test_indentation():
     assert token.get_indentation('test') == (0, 'test')
@@ -28,13 +30,13 @@ def test_to_token():
 
 
 def tokenize(items):
-    return [token.to_token(item) for item in items]
+    return [token.to_token(item) for item in items] + EOL
 
 
 def test_parse_line():
     # Comments
-    assert token.parse_line('#') == []
-    assert token.parse_line('test#') == [token.to_token('test')]
+    assert token.parse_line('#') == EOL
+    assert token.parse_line('test#') == [token.to_token('test')] + EOL
 
     # Regular worlds
     assert token.parse_line('test') == tokenize(['test'])
@@ -64,13 +66,14 @@ def test_parse_line():
         token.TokenIdentifier('str'),
 
         token.TokenRightParenthesis(),
-        token.TokenColon()
+        token.TokenColon(),
 
+        token.TokenEOL(),
         # 'def', 'main', '(', 'test', ':', 'int', ',', 'test2', ':', 'bool', ',', 'test3', ':', 'str', ')', ':'
     ]
 
-    assert token.parse_line('test3') == [token.TokenIdentifier('test3')]
-    assert token.parse_line('456') == [token.TokenNumericConstant(456)]
+    assert token.parse_line('test3') == [token.TokenIdentifier('test3')] + EOL
+    assert token.parse_line('456') == [token.TokenNumericConstant(456)] + EOL
 
     assert token.parse_line('a:int = 5') == tokenize(['a', ':', 'int', '=', '5'])
     assert token.parse_line('a = 5+10') == tokenize(['a', '=', '5', '+', '10'])
@@ -79,5 +82,6 @@ def test_parse_line():
 
     assert token.parse_line('print(test)') == [
         token.TokenIdentifier('print'), token.TokenLeftParenthesis(),
-        token.TokenIdentifier('test'), token.TokenRightParenthesis()
+        token.TokenIdentifier('test'), token.TokenRightParenthesis(),
+        token.TokenEOL(),
     ]
