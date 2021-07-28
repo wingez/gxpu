@@ -2,6 +2,7 @@ import pytest
 
 from gcpu.emulator import InstructionSet, Instruction, AUTO_INDEX_ASSIGMENT, RegisterInstructionError, \
     InstructionBuilderError
+from gcpu.assembler import assemble_mnemonic
 
 
 def test_auto_id():
@@ -64,3 +65,19 @@ def test_build():
         i.build(a=6)
     with pytest.raises(InstructionBuilderError):
         i.build(a=6, b=4, c=10)
+
+
+def test_assemble_mnemonic():
+    i = InstructionSet()
+    i.add_instruction(Instruction('test', emulate=None, id=0))
+    i.add_instruction(Instruction('test #ins #tmp', emulate=None, id=2))
+    i.add_instruction(Instruction('test #ins', emulate=None, id=1))
+
+    assert assemble_mnemonic(i, 'test') == [0]
+    assert assemble_mnemonic(i, 'test #4') == [1, 4]
+
+    with pytest.raises(InstructionBuilderError):
+        assert assemble_mnemonic(i, 'test 4')
+
+    assert assemble_mnemonic(i, 'test #5 #6') == [2, 5, 6]
+    assert assemble_mnemonic(i, 'test    #5   #6   ') == [2, 5, 6]

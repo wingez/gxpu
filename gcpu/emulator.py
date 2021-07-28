@@ -10,6 +10,8 @@ from gcpu import utils
 MEMORY_SIZE = 2 ** 7
 AUTO_INDEX_ASSIGMENT = -1
 
+MNEMONIC_DELIMITERS = [' ', ',']
+
 
 class EmulatorRuntimeError(Exception): pass
 
@@ -37,7 +39,7 @@ class Instruction:
     doc_str: str = ''
 
     def __post_init__(self):
-        words = utils.split_many(self.mnemonic, [' ', ','])
+        words = utils.split_many(self.mnemonic, MNEMONIC_DELIMITERS)
 
         if not self.name:
             self.name = words[0]
@@ -77,11 +79,11 @@ class InstructionSet:
 
     def __init__(self, max_size: int = 256):
         self._max_size = max_size
-        self._instruction_by_index: Dict[int, Instruction] = {}
+        self.instruction_by_index: Dict[int, Instruction] = {}
 
     def _next_vacant_index(self):
         for i in range(self._max_size):
-            if i not in self._instruction_by_index:
+            if i not in self.instruction_by_index:
                 return i
 
         raise ValueError('Maximum number of instructions reached')
@@ -91,12 +93,12 @@ class InstructionSet:
         if instruction.id == AUTO_INDEX_ASSIGMENT:
             instruction.id = self._next_vacant_index()
 
-        if instruction.id in self._instruction_by_index:
+        if instruction.id in self.instruction_by_index:
             raise ValueError(f'An instruction with if {instruction.id} already exists')
         if instruction.id >= self._max_size:
             raise ValueError(f'Instruction already at max capacity')
 
-        self._instruction_by_index[instruction.id] = instruction
+        self.instruction_by_index[instruction.id] = instruction
 
     def create_instruction(self, mnemonic: str, index: int = AUTO_INDEX_ASSIGMENT, name: str = None) -> Callable[
         [Callable], Instruction]:
@@ -118,9 +120,11 @@ class InstructionSet:
         return decorator
 
     def __getitem__(self, item: int) -> Instruction:
-        if item not in self._instruction_by_index:
+        if item not in self.instruction_by_index:
             raise InvalidInstructionError(item)
-        return self._instruction_by_index[item]
+        return self.instruction_by_index[item]
+
+
 
 
 class Emulator:
