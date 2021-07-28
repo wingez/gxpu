@@ -1,5 +1,4 @@
 from gcpu import ast, token
-from gcpu.constant import Constant
 
 
 def test_basic():
