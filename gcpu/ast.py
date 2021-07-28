@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import List, Optional, Type, TypeVar
 
-from . import token
+from gcpu import token
 
 T = TypeVar('T', bound=token.Token, covariant=True)
 
