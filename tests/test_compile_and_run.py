@@ -8,16 +8,16 @@ from io import StringIO
 import pytest
 
 
-def parse_run_check_output(text, *output):
+def run_text_check_output(text, *output):
     file = StringIO(text)
 
     tokens = token.parse_file(file)
 
     nodes = ast.Parser(tokens).parse()
-    compile_and_run_check_output(nodes, *output)
+    run_nodes_check_output(nodes, *output)
 
 
-def compile_and_run_check_output(nodes, *output):
+def run_nodes_check_output(nodes, *output):
     if len(output) > 0 and isinstance(output[0], bytes):
         expected = output[0]
     else:
@@ -34,13 +34,13 @@ def compile_and_run_check_output(nodes, *output):
 
 
 def test_empty_program():
-    compile_and_run_check_output([], b'')
+    run_nodes_check_output([], b'')
 
 
 def test_print_constant():
     nodes = [ast.PrintNode(ast.ConstantNode(5))]
 
-    compile_and_run_check_output(nodes, 5)
+    run_nodes_check_output(nodes, 5)
 
 
 def test_print_variable():
@@ -48,7 +48,7 @@ def test_print_variable():
         ast.AssignNode('var', ast.ConstantNode(4)),
         ast.PrintNode(ast.IdentifierNode('var'))
     ]
-    compile_and_run_check_output(nodes, 4)
+    run_nodes_check_output(nodes, 4)
 
 
 def test_print_many_variables():
@@ -58,7 +58,7 @@ def test_print_many_variables():
         ast.PrintNode(ast.IdentifierNode('var1')),
         ast.PrintNode(ast.IdentifierNode('var2')),
     ]
-    compile_and_run_check_output(nodes, 5, 8)
+    run_nodes_check_output(nodes, 5, 8)
 
 
 def test_reassign_variable():
@@ -68,7 +68,7 @@ def test_reassign_variable():
     var1 = 5
     print(var1)
     """
-    parse_run_check_output(content, 3, 5)
+    run_text_check_output(content, 3, 5)
 
 
 def test_variable_move():
@@ -77,7 +77,7 @@ def test_variable_move():
         ast.AssignNode('var2', ast.IdentifierNode('var1')),
         ast.PrintNode(ast.IdentifierNode('var2')),
     ]
-    compile_and_run_check_output(nodes, 2)
+    run_nodes_check_output(nodes, 2)
 
     content = """
     var1 = 2
@@ -87,7 +87,7 @@ def test_variable_move():
     print(var2)
     print(var1)
     """
-    parse_run_check_output(content, 2, 1)
+    run_text_check_output(content, 2, 1)
 
 
 def test_invalid_variable_name():
@@ -97,4 +97,4 @@ def test_invalid_variable_name():
         ast.PrintNode(ast.IdentifierNode('var2')),
     ]
     with pytest.raises(CompileError):
-        compile_and_run_check_output(nodes, 2)
+        run_nodes_check_output(nodes, 2)

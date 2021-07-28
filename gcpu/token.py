@@ -59,15 +59,16 @@ class TokenNumericConstant(Token):
         self.value: int = value
 
 
-class TokenPlusSign(Token):
-    pass
+class TokenSingleOperation(Token): pass
+
+
+class TokenPlusSign(TokenSingleOperation): pass
+
+
+class TokenMinusSign(TokenSingleOperation): pass
 
 
 class TokenGreaterSign(Token):
-    pass
-
-
-def tokenize():
     pass
 
 
@@ -88,6 +89,8 @@ def to_token(text: str) -> Token:
         return TokenEquals()
     if text == '+':
         return TokenPlusSign()
+    if text == '-':
+        return TokenMinusSign()
     if text == '>':
         return TokenGreaterSign()
 

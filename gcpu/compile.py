@@ -43,6 +43,26 @@ class Compiler:
             if name not in self.frame_variables_offsets:
                 raise CompileError(f'No variable with name {name}')
             self.generate(default_config.lda_fp_offset.build(offset=self.frame_variables_offsets[name]))
+        elif isinstance(node, ast.OperationNode):
+            self.put_value_node_in_a_register(node.left)
+
+            if isinstance(node, ast.AdditionNode) and isinstance(node.right, ast.ConstantNode):
+                self.generate(default_config.adda.build(val=node.right.value))
+            elif isinstance(node, ast.AdditionNode) and isinstance(node.right, ast.IdentifierNode):
+                self.generate(default_config.adda_fp_offset.build(
+                    offset=self.frame_variables_offsets[node.right.identifier]))
+
+            elif isinstance(node, ast.SubtractionNode) and isinstance(node.right, ast.ConstantNode):
+                self.generate(default_config.suba.build(val=node.right.value))
+            elif isinstance(node, ast.SubtractionNode) and isinstance(node.right, ast.IdentifierNode):
+                self.generate(default_config.suba_fp_offset.build(
+                    offset=self.frame_variables_offsets[node.right.identifier]))
+
+
+            else:
+                raise CompileError(' not supported yet')
+
+
         else:
             raise CompileError('not supported yet')
 

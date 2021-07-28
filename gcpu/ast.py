@@ -42,10 +42,15 @@ class ConstantNode(ValueProviderNode):
 
 
 @dataclass
-class AdditionNode(ValueProviderNode):
-    def __init__(self, left: AstNode, right: AstNode):
-        self.left = left
-        self.right = right
+class OperationNode(ValueProviderNode):
+    left: ValueProviderNode
+    right: ValueProviderNode
+
+
+class AdditionNode(OperationNode): pass
+
+
+class SubtractionNode(OperationNode): pass
 
 
 class ParserError(Exception):
@@ -116,17 +121,35 @@ class Parser:
 
     def parse_value_provider(self) -> ValueProviderNode:
         tok = self.consume()
+        first_result: ValueProviderNode
         if isinstance(tok, token.TokenNumericConstant):
-            result = ConstantNode(tok.value)
+            first_result = ConstantNode(tok.value)
         elif isinstance(tok, token.TokenIdentifier):
-            result = IdentifierNode(tok.target)
+            first_result = IdentifierNode(tok.target)
         else:
             raise ParserError(f"Cannot parse to value provider: {tok}")
 
-        if not isinstance(self.peek(), token.ExpressionSeparator):
-            raise ParserError('Expected expression separator')
+        next_token = self.peek()
 
-        return result
+        if isinstance(next_token, token.ExpressionSeparator):
+            return first_result
+
+        if isinstance(next_token, token.TokenSingleOperation):
+            self.consume()
+
+            second_result = self.parse_value_provider()
+            if not isinstance(second_result, (IdentifierNode, ConstantNode)):
+                raise ParserError('Operation too complex')
+
+            if isinstance(next_token, token.TokenPlusSign):
+                return AdditionNode(left=first_result, right=second_result)
+            elif isinstance(next_token, token.TokenMinusSign):
+                return SubtractionNode(left=first_result, right=second_result)
+
+            else:
+                raise ParserError(f'Dont know how to parse {next_token}')
+
+        raise ParserError(f'{next_token} was not expected')
 
     def try_parse_assignment(self) -> Optional[AstNode]:
 
@@ -153,3 +176,8 @@ class Parser:
                 return PrintNode(target)
         except ParserError:
             return None
+
+
+def parse(tokens: List[token.Token]) -> List[AstNode]:
+    p = Parser(tokens)
+    return p.parse()

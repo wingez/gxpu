@@ -4,14 +4,14 @@ from gcpu import ast, token
 def test_basic():
     tokens = [token.TokenIdentifier('test'), token.TokenEquals(), token.TokenNumericConstant(4), token.TokenEOL()]
 
-    nodes = ast.Parser(tokens).parse()
+    nodes = ast.parse(tokens)
     assert len(nodes) == 1
     node = nodes[0]
     assert isinstance(node, ast.AssignNode)
     assert node.value_node == ast.ConstantNode(4)
     assert node.target == 'test'
 
-    node, *_ = ast.Parser(token.parse_line('print(5)')).parse()
+    node, *_ = ast.parse(token.parse_line('print(5)'))
     assert isinstance(node, ast.PrintNode)
     assert node.target == ast.ConstantNode(5)
 
@@ -20,4 +20,4 @@ def test_many_eol():
     tokens = [token.TokenEOL(), token.TokenEOL(), token.TokenIdentifier('test'), token.TokenEquals(),
               token.TokenNumericConstant(5), token.TokenEOL()]
 
-    assert ast.Parser(tokens).parse() == [ast.AssignNode('test', ast.ConstantNode(5))]
+    assert ast.parse(tokens) == [ast.AssignNode('test', ast.ConstantNode(5))]
