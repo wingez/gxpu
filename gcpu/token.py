@@ -14,58 +14,50 @@ class Token:
     pass
 
 
-class Block:
+class ExpressionSeparator(Token): pass
+
+
+class TokenEOL(ExpressionSeparator): pass
+
+
+class TokenLeftParenthesis(Token):    pass
+
+
+class TokenRightParenthesis(Token):    pass
+
+
+class TokenComma(ExpressionSeparator):
     pass
 
 
-@dataclass
-class TokenLeftParenthesis(Token):
-    pass
-
-
-@dataclass
-class TokenRightParenthesis(Token):
-    pass
-
-
-@dataclass()
-class TokenComma(Token):
-    pass
-
-
-@dataclass
 class TokenColon(Token):
     pass
 
 
-@dataclass()
 class TokenEquals(Token):
     pass
 
 
-@dataclass()
 class TokenKeywordDef(Token):
     pass
 
 
-@dataclass()
+@dataclass
 class TokenIdentifier(Token):
     def __init__(self, target):
         self.target: str = target
 
 
-@dataclass()
+@dataclass
 class TokenNumericConstant(Token):
     def __init__(self, value: int):
         self.value: int = value
 
 
-@dataclass()
 class TokenPlusSign(Token):
     pass
 
 
-@dataclass()
 class TokenGreaterSign(Token):
     pass
 
@@ -150,6 +142,8 @@ def parse_line(line) -> List[Token]:
     if len(current) > 0:
         # current could be empty if last symbol was an delimiter
         result.append(to_token(current))
+
+    result.append(TokenEOL())
 
     return result
 
