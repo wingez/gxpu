@@ -20,10 +20,10 @@ class ExpressionSeparator(Token): pass
 class TokenEOL(ExpressionSeparator): pass
 
 
-class TokenLeftParenthesis(Token):    pass
+class TokenLeftParenthesis(ExpressionSeparator):    pass
 
 
-class TokenRightParenthesis(Token):    pass
+class TokenRightParenthesis(ExpressionSeparator):    pass
 
 
 class TokenComma(ExpressionSeparator):
@@ -39,6 +39,10 @@ class TokenEquals(Token):
 
 
 class TokenKeywordDef(Token):
+    pass
+
+
+class TokenKeywordPrint(Token):
     pass
 
 
@@ -98,6 +102,8 @@ def to_token(text: str) -> Token:
 
     if text == 'def':
         return TokenKeywordDef()
+    if text == 'print':
+        return TokenKeywordPrint()
 
     return TokenIdentifier(text)
 
