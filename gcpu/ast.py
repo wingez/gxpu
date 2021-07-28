@@ -41,6 +41,7 @@ class ConstantNode(ValueProviderNode):
         self.value = value
 
 
+@dataclass
 class AdditionNode(ValueProviderNode):
     def __init__(self, left: AstNode, right: AstNode):
         self.left = left

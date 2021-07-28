@@ -120,9 +120,9 @@ class InstructionSet:
 
 class Emulator:
 
-    def __init__(self, instruction_set: InstructionSet, output: BytesIO):
+    def __init__(self, instruction_set: InstructionSet):
 
-        self._output_stream = output
+        self._output_stream = BytesIO()
         self._instruction_set = instruction_set
 
         self._memory: List[int] = [0] * MEMORY_SIZE

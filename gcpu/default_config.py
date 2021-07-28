@@ -6,10 +6,9 @@ instructions = InstructionSet()
 
 
 class DefaultEmulator(Emulator):
-    def __init__(self, output: BytesIO):
+    def __init__(self):
         super(DefaultEmulator, self).__init__(
             instruction_set=instructions,
-            output=output,
         )
 
 

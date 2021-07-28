@@ -1,4 +1,3 @@
-from io import BytesIO
 
 from gcpu import emulator
 
@@ -34,7 +33,7 @@ def instruction_set():
 def test_memory_access(monkeypatch, instruction_set):
     monkeypatch.setattr(emulator, 'MEMORY_SIZE', 4)
 
-    e = emulator.Emulator(instruction_set, BytesIO())
+    e = emulator.Emulator(instruction_set)
     assert len(e._memory) == 4
 
     # check memory to large
@@ -56,7 +55,7 @@ def test_memory_access(monkeypatch, instruction_set):
 
 def test_pc(monkeypatch, instruction_set):
     monkeypatch.setattr(emulator, 'MEMORY_SIZE', 4)
-    e = emulator.Emulator(instruction_set, BytesIO())
+    e = emulator.Emulator(instruction_set)
     e.set_all_memory([0, 1, 2, 3])
     assert e._pc == 0
     for i in range(4):
@@ -67,7 +66,7 @@ def test_pc(monkeypatch, instruction_set):
 
 @pytest.mark.skipif(True, reason='not implemented yet')
 def test_pc_loop_around(instruction_set):
-    e = emulator.Emulator(instruction_set, BytesIO())
+    e = emulator.Emulator(instruction_set)
 
     for i in range(emulator.MEMORY_SIZE + 10):
         e._get_and_inc_pc()
@@ -75,7 +74,7 @@ def test_pc_loop_around(instruction_set):
 
 @pytest.mark.skipif(True, reason='not implemented yet')
 def test_a_loop_around(instruction_set):
-    e = emulator.Emulator(instruction_set, BytesIO())
+    e = emulator.Emulator(instruction_set)
 
     # broken atm
     for i in range(emulator.MEMORY_SIZE + 10):
@@ -83,8 +82,7 @@ def test_a_loop_around(instruction_set):
 
 
 def test_execution_cycles_exceeded(instruction_set):
-    output = BytesIO()
-    e = emulator.Emulator(instruction_set, output)
+    e = emulator.Emulator(instruction_set)
 
     # Exit
     e.set_all_memory([
@@ -104,9 +102,7 @@ def test_execution_cycles_exceeded(instruction_set):
 
 
 def test_execution():
-    output = BytesIO()
-
-    e = default_config.DefaultEmulator(output)
+    e = default_config.DefaultEmulator()
 
     def build_and_run(instructions):
         r = []
