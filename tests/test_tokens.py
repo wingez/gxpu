@@ -1,3 +1,5 @@
+from io import StringIO
+
 from gcpu import token
 
 import pytest
@@ -85,3 +87,24 @@ def test_parse_line():
         token.TokenIdentifier('test'), token.TokenRightParenthesis(),
         token.TokenEOL(),
     ]
+
+
+def test_parse_from_file(tmp_path):
+    baseline = [
+        token.TokenEOL(),
+        token.TokenIdentifier('var'), token.TokenEquals(), token.TokenNumericConstant(5), token.TokenEOL(),
+        token.TokenKeywordPrint(), token.TokenLeftParenthesis(), token.TokenNumericConstant(5),
+        token.TokenRightParenthesis(), token.TokenEOL(),
+        token.TokenEOL()]
+
+    file_content = """
+    var = 5
+    print(5)
+    """
+
+    assert token.parse_file(StringIO(file_content)) == baseline
+
+    p = tmp_path / 'test_me.txt'
+    p.write_text(file_content)
+    with open(p, mode='r') as f:
+        assert token.parse_file(f) == baseline

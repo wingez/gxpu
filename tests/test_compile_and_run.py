@@ -3,7 +3,18 @@ from gcpu.compile import CompileError
 
 from gcpu.default_config import DefaultEmulator
 
+from io import StringIO
+
 import pytest
+
+
+def parse_run_check_output(text, *output):
+    file = StringIO(text)
+
+    tokens = token.parse_file(file)
+
+    nodes = ast.Parser(tokens).parse()
+    compile_and_run_check_output(nodes, *output)
 
 
 def compile_and_run_check_output(nodes, *output):
@@ -50,6 +61,16 @@ def test_print_many_variables():
     compile_and_run_check_output(nodes, 5, 8)
 
 
+def test_reassign_variable():
+    content = """
+    var1 = 3
+    print(var1)
+    var1 = 5
+    print(var1)
+    """
+    parse_run_check_output(content, 3, 5)
+
+
 def test_variable_move():
     nodes = [
         ast.AssignNode('var1', ast.ConstantNode(2)),
@@ -57,6 +78,16 @@ def test_variable_move():
         ast.PrintNode(ast.IdentifierNode('var2')),
     ]
     compile_and_run_check_output(nodes, 2)
+
+    content = """
+    var1 = 2
+    var2 = var1
+    var1 = 1
+    
+    print(var2)
+    print(var1)
+    """
+    parse_run_check_output(content, 2, 1)
 
 
 def test_invalid_variable_name():

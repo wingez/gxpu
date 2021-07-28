@@ -73,8 +73,13 @@ class Parser:
         result: List[AstNode] = []
 
         while self.has_more_to_parse():
-            node: AstNode = self.parse_next()
-            result.append(node)
+
+            # filter empty line
+            if isinstance(self.peek(), token.TokenEOL):
+                self.consume()
+            else:
+                node: AstNode = self.parse_next()
+                result.append(node)
 
         return result
 
@@ -110,19 +115,18 @@ class Parser:
             raise e
 
     def parse_value_provider(self) -> ValueProviderNode:
-        constant = self.consume_type(token.TokenNumericConstant)
+        tok = self.consume()
+        if isinstance(tok, token.TokenNumericConstant):
+            result = ConstantNode(tok.value)
+        elif isinstance(tok, token.TokenIdentifier):
+            result = IdentifierNode(tok.target)
+        else:
+            raise ParserError(f"Cannot parse to value provider: {tok}")
+
         if not isinstance(self.peek(), token.ExpressionSeparator):
-            raise ParserError()
-        return ConstantNode(constant.value)
+            raise ParserError('Expected expression separator')
 
-    def try_parse_constant(self) -> Optional[AstNode]:
-
-        try:
-            with self._restore_on_error():
-                numeric_token = self.consume_type(token.TokenNumericConstant)
-                return ConstantNode(numeric_token.value)
-        except ParserError:
-            return None
+        return result
 
     def try_parse_assignment(self) -> Optional[AstNode]:
 

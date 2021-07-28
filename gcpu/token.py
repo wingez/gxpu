@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Tuple, List
+from typing import TextIO
 
 DELIMITERS = [' ', '#', '(', ')', ',', ':', '+', '-', '=', '<', '>']
 TOKENS = ['(', ')', ',', ':', '=', '-', '+', '<', '>']
@@ -107,8 +108,14 @@ def to_token(text: str) -> Token:
 
     return TokenIdentifier(text)
 
-    # we should not reach this
-    # assert False
+
+def parse_file(file: TextIO) -> List[Token]:
+    result = []
+    for line in file:
+        line = line.strip('\n')
+        result.extend(parse_line(line))
+
+    return result
 
 
 def parse_line(line) -> List[Token]:

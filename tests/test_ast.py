@@ -14,3 +14,10 @@ def test_basic():
     node, *_ = ast.Parser(token.parse_line('print(5)')).parse()
     assert isinstance(node, ast.PrintNode)
     assert node.target == ast.ConstantNode(5)
+
+
+def test_many_eol():
+    tokens = [token.TokenEOL(), token.TokenEOL(), token.TokenIdentifier('test'), token.TokenEquals(),
+              token.TokenNumericConstant(5), token.TokenEOL()]
+
+    assert ast.Parser(tokens).parse() == [ast.AssignNode('test', ast.ConstantNode(5))]
