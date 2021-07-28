@@ -8,7 +8,7 @@ def test_basic():
     nodes = ast.Parser(tokens).parse()
     assert len(nodes) == 1
     node = nodes[0]
-    assert isinstance(node, ast.AssignConstantNode)
+    assert isinstance(node, ast.AssignNode)
     assert node.value_node == ast.ConstantNode(4)
     assert node.target == 'test'
 

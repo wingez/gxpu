@@ -1,4 +1,3 @@
-
 from gcpu import emulator
 
 import pytest
@@ -114,10 +113,10 @@ def test_execution():
         e.run()
         return e.get_output()
 
-    assert build_and_run([default_config._print.build(),
-                          default_config._exit.build()]) == bytes([0])
+    assert build_and_run([default_config.print.build(),
+                          default_config.exit.build()]) == bytes([0])
 
-    assert build_and_run([default_config._print.build(),
+    assert build_and_run([default_config.print.build(),
                           default_config.lda.build(val=10),
-                          default_config._print.build(),
-                          default_config._exit.build()]) == bytes([0, 10])
+                          default_config.print.build(),
+                          default_config.exit.build()]) == bytes([0, 10])

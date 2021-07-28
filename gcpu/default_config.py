@@ -18,12 +18,12 @@ def invalid(emulator):
 
 
 @instructions.create_instruction('exit')
-def _exit(emulator):
+def exit(emulator):
     return True
 
 
 @instructions.create_instruction('print')
-def _print(emulator):
+def print(emulator):
     emulator.print(emulator._a)
     return False
 

@@ -17,15 +17,15 @@ class ValueProviderNode(AstNode):
 
 
 @dataclass
-class AssignConstantNode(AstNode):
-    def __init__(self, target: str, value: ConstantNode):
+class AssignNode(AstNode):
+    def __init__(self, target: str, value: ValueProviderNode):
         self.target = target
         self.value_node = value
 
 
 @dataclass
 class PrintNode(AstNode):
-    def __init__(self, target: ConstantNode):
+    def __init__(self, target: ValueProviderNode):
         self.target = target
 
 
@@ -84,9 +84,6 @@ class Parser:
             return tok
         if tok := self.try_parse_print():
             return tok
-        #
-        # if (tok := self.try_parse_addition()) and node_filter(tok):
-        #     return tok
 
         raise ParserError(f'Dont know how to parse: {self.peek()}')
 
@@ -135,9 +132,7 @@ class Parser:
                 self.consume_type(token.TokenEquals)
                 value_node = self.parse_value_provider()
                 self.consume_type(token.TokenEOL)
-                if isinstance(value_node, ConstantNode):
-                    return AssignConstantNode(target_token.target, value_node)
-                raise ParserError
+                return AssignNode(target_token.target, value_node)
         except ParserError:
             return None
 
@@ -151,22 +146,6 @@ class Parser:
                 self.consume_type(token.TokenRightParenthesis)
                 self.consume_type(token.TokenEOL)
 
-                if isinstance(target, ConstantNode):
-                    return PrintNode(target)
-                raise ParserError()
+                return PrintNode(target)
         except ParserError:
-            return None
-
-    def try_parse_addition(self) -> Optional[AstNode]:
-        checkpoint = self.savepoint()
-
-        try:
-            left_operand = self.parse_next(ConstantNode)
-            self.consume_type(token.TokenPlusSign)
-            right_operand = self.parse_next(ConstantNode)
-
-            return AdditionNode(left_operand, right_operand)
-
-        except ParserError:
-            self.restore(checkpoint)
             return None

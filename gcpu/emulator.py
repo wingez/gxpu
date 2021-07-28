@@ -3,7 +3,7 @@ from __future__ import annotations
 import sys
 from dataclasses import dataclass, field
 from io import BytesIO
-from typing import List, BinaryIO, Callable, Dict
+from typing import List, Callable, Dict
 
 from gcpu import utils
 

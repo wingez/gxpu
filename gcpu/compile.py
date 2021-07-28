@@ -1,6 +1,4 @@
-import subprocess
-from typing import List, Dict
-from pathlib import Path
+from typing import List
 
 from gcpu import ast, default_config
 
@@ -11,19 +9,30 @@ class CompileError(Exception):
 
 class AssemblyFunction:
     def __init__(self):
-        self._function_body: List[str] = []
-        self._current_stack_size = 0
+        self.code: List[int] = []
 
-        self.register_stack_mapping: Dict[str, int] = {}
+
+class Compiler:
+    def __init__(self):
+
+        self.current_function = AssemblyFunction()
+
+    def generate(self, code: List[int]):
+        self.current_function.code.extend(code)
+
+    def put_value_node_in_a_register(self, node: ast.ValueProviderNode):
+        if isinstance(node, ast.ConstantNode):
+            self.generate(default_config.lda.build(val=node.value))
+        else:
+            raise CompileError('not supported yet')
 
     def build_function(self, nodes: List[ast.AstNode]) -> List[int]:
-        result = []
         for node in nodes:
             if isinstance(node, ast.PrintNode):
-                result.extend(default_config.lda.build(val=node.target.value))
-                result.extend(default_config._print.build())
+                self.put_value_node_in_a_register(node.target)
+                self.generate(default_config.print.build())
             else:
                 raise CompileError(f'node of type {node} not supported yet')
 
-        result.extend(default_config._exit.build())
-        return result
+        self.generate(default_config.exit.build())
+        return self.current_function.code
