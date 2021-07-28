@@ -30,7 +30,7 @@ class PrintNode(AstNode):
 
 
 @dataclass
-class IdentifierNode(AstNode):
+class IdentifierNode(ValueProviderNode):
     def __init__(self, identifier: str):
         self.identifier = identifier
 

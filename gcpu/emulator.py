@@ -67,6 +67,11 @@ class Instruction:
             raise InstructionBuilderError(f'Instruction {self.mnemonic} does not take variables {kwargs}')
         return result
 
+    def get_position_of_variable(self, variable: str) -> int:
+        if variable not in self.variable_order:
+            raise InstructionBuilderError(f'Variable {variable} not part of this instruction')
+        return self.variable_order.index(variable)
+
 
 class InstructionSet:
 
@@ -126,26 +131,28 @@ class Emulator:
         self._instruction_set = instruction_set
 
         self._memory: List[int] = [0] * MEMORY_SIZE
-        self._a = 0
-        self._pc = 0
+        self.a = 0
+        self.pc = 0
+        self.fp = 0
 
         self.reset()
 
     def reset(self):
-        self._a = 0
-        self._pc = 0
+        self.a = 0
+        self.pc = 0
+        self.fp = 0
 
     def clear_memory(self):
         for i in range(MEMORY_SIZE):
             self._memory[i] = 0
 
     @property
-    def _a_upper(self) -> int:
-        return (self._a & 0xff00) >> 8
+    def a_upper(self) -> int:
+        return (self.a & 0xff00) >> 8
 
     @property
-    def _a_lower(self) -> int:
-        return self._a & 0x00ff
+    def a_lower(self) -> int:
+        return self.a & 0x00ff
 
     def set_all_memory(self, contents: List[int]):
         if len(contents) > MEMORY_SIZE:
@@ -157,14 +164,19 @@ class Emulator:
         for index, val in enumerate(contents):
             self._memory[index] = val
 
+    def set_memory_at(self, position: int, value: int):
+        if position >= MEMORY_SIZE:
+            raise EmulatorRuntimeError(f'Trying to access memory at {hex(position)} which is outside memory range')
+        self._memory[position] = value
+
     def get_memory_at(self, position: int) -> int:
         if position >= MEMORY_SIZE:
             raise EmulatorRuntimeError(f'Trying to access memory at {hex(position)} which is outside memory range')
         return self._memory[position]
 
-    def _get_and_inc_pc(self) -> int:
-        val = self.get_memory_at(self._pc)
-        self._pc += 1
+    def get_and_inc_pc(self) -> int:
+        val = self.get_memory_at(self.pc)
+        self.pc += 1
         return val
 
     def print(self, byte: int):
@@ -183,7 +195,7 @@ class Emulator:
         Runs a single instruction, return True if the instruction indicated the program should terminate, False otherwise
         :return:
         """
-        ins = self._instruction_set[self._get_and_inc_pc()]
+        ins = self._instruction_set[self.get_and_inc_pc()]
         return ins.emulate(self)  # type: ignore
 
     def run(self, max_clock_cycles: int = 1_000):

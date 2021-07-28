@@ -24,11 +24,30 @@ def exit(emulator):
 
 @instructions.create_instruction('print')
 def print(emulator):
-    emulator.print(emulator._a)
+    emulator.print(emulator.a)
     return False
 
 
 @instructions.create_instruction('LDA #val')
 def lda(emulator):
-    emulator._a = emulator._get_and_inc_pc()
+    emulator.a = emulator.get_and_inc_pc()
     return False
+
+
+@instructions.create_instruction('LDFP #val')
+def ldfp(emulator):
+    emulator.fp = emulator.get_and_inc_pc()
+    return False
+
+
+@instructions.create_instruction('LDA FP, #offset')
+def lda_fp_offset(emulator):
+    offset = emulator.get_and_inc_pc()
+    emulator.a = emulator.get_memory_at(emulator.fp + offset)
+    return False
+
+
+@instructions.create_instruction('STA FP, #offset')
+def sta_fp_offset(emulator):
+    offset = emulator.get_and_inc_pc()
+    emulator.set_memory_at(emulator.fp + offset, emulator.a_lower)

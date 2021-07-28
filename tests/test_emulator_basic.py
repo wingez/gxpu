@@ -20,11 +20,11 @@ def instruction_set():
 
     @i.create_instruction('print', index=2)
     def _print(emulator):
-        emulator.print(emulator._a)
+        emulator.print(emulator.a)
 
     @i.create_instruction('LDA #val', index=3)
     def lda(emulator):
-        emulator._a = emulator._get_and_inc_pc()
+        emulator.a = emulator.get_and_inc_pc()
 
     return i
 
@@ -56,11 +56,11 @@ def test_pc(monkeypatch, instruction_set):
     monkeypatch.setattr(emulator, 'MEMORY_SIZE', 4)
     e = emulator.Emulator(instruction_set)
     e.set_all_memory([0, 1, 2, 3])
-    assert e._pc == 0
+    assert e.pc == 0
     for i in range(4):
-        assert e._get_and_inc_pc() == i
+        assert e.get_and_inc_pc() == i
     with pytest.raises(emulator.EmulatorRuntimeError):
-        e._get_and_inc_pc()
+        e.get_and_inc_pc()
 
 
 @pytest.mark.skipif(True, reason='not implemented yet')
@@ -68,7 +68,7 @@ def test_pc_loop_around(instruction_set):
     e = emulator.Emulator(instruction_set)
 
     for i in range(emulator.MEMORY_SIZE + 10):
-        e._get_and_inc_pc()
+        e.get_and_inc_pc()
 
 
 @pytest.mark.skipif(True, reason='not implemented yet')
@@ -77,7 +77,7 @@ def test_a_loop_around(instruction_set):
 
     # broken atm
     for i in range(emulator.MEMORY_SIZE + 10):
-        e._get_and_inc_pc()
+        e.get_and_inc_pc()
 
 
 def test_execution_cycles_exceeded(instruction_set):
