@@ -4,6 +4,8 @@ from gcpu import token
 
 import pytest
 
+from gcpu.token import InvalidSyntaxError
+
 EOL = [token.TokenEOL()]
 
 
@@ -22,6 +24,53 @@ def test_indentation():
 
     with pytest.raises(token.InvalidSyntaxError):
         token.get_indentation('  \ttemp')
+
+
+def test_indentation_token():
+    var = token.TokenIdentifier('var')
+    print = token.TokenKeywordPrint()
+    newblock = token.TokenBeginBlock()
+    endblock = token.TokenEndBlock()
+    const = token.TokenNumericConstant(5)
+    eol = EOL[0]
+    assert token.parse_file(StringIO("""
+    var
+    print
+    
+    """)) == [var, eol, print, eol]
+
+    assert token.parse_file(StringIO("""
+    var
+      print
+    
+    """)) == [var, eol, newblock, print, eol]
+
+    assert token.parse_file(StringIO("""
+        var
+          print
+        5
+        """)) == [var, eol, newblock, print, eol, endblock, const, eol]
+
+    with pytest.raises(InvalidSyntaxError) as e:
+        assert token.parse_line(StringIO("""
+        var
+            print
+        """))
+
+    assert token.parse_file(StringIO("""
+    print
+      print
+        print
+    
+    var
+    """)) == [
+        print, eol,
+        newblock, print, eol,
+        newblock, print, eol,
+
+        endblock, endblock,
+        var, eol
+    ]
 
 
 def test_to_token():
@@ -91,11 +140,10 @@ def test_parse_line():
 
 def test_parse_from_file(tmp_path):
     baseline = [
-        token.TokenEOL(),
         token.TokenIdentifier('var'), token.TokenEquals(), token.TokenNumericConstant(5), token.TokenEOL(),
         token.TokenKeywordPrint(), token.TokenLeftParenthesis(), token.TokenNumericConstant(5),
         token.TokenRightParenthesis(), token.TokenEOL(),
-        token.TokenEOL()]
+    ]
 
     file_content = """
     var = 5

@@ -47,6 +47,12 @@ class TokenKeywordPrint(Token):
     pass
 
 
+class TokenBeginBlock(Token): pass
+
+
+class TokenEndBlock(Token): pass
+
+
 @dataclass
 class TokenIdentifier(Token):
     def __init__(self, target):
@@ -113,9 +119,29 @@ def to_token(text: str) -> Token:
 
 
 def parse_file(file: TextIO) -> List[Token]:
-    result = []
-    for line in file:
-        line = line.strip('\n')
+    result:List[Token] = []
+
+    current_indentation: int = -1
+
+    for line_to_parse in file:
+        line_to_parse = line_to_parse.strip('\n')
+        if not line_to_parse.strip(' \t'):
+            continue
+
+        indentation, line = get_indentation(line_to_parse)
+
+        if current_indentation != -1:
+
+            if indentation > current_indentation:
+                if indentation != current_indentation + 1:
+                    raise InvalidSyntaxError('Cannot increment indentation by more than 1 step')
+                result.append(TokenBeginBlock())
+            elif indentation < current_indentation:
+                for i in range(indentation, current_indentation):
+                    result.append(TokenEndBlock())
+
+        current_indentation = indentation
+
         result.extend(parse_line(line))
 
     return result
