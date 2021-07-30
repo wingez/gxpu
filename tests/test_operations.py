@@ -18,7 +18,7 @@ def test_parse_too_complex():
 
 
 def test_parse_with_identifier():
-    assert ast.parse(token.parse_line('print(2+test)')) == [ast.PrintNode(
+    assert ast.parse_expressions(token.parse_line('print(2+test)')) == [ast.PrintNode(
         ast.AdditionNode(left=ast.ConstantNode(2), right=ast.IdentifierNode('test')))]
 
 

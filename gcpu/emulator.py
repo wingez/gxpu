@@ -4,6 +4,7 @@ import sys
 from dataclasses import dataclass, field
 from io import BytesIO
 from typing import List, Callable, Dict
+import itertools as it
 
 from gcpu import utils
 
@@ -101,7 +102,7 @@ class InstructionSet:
         self.instruction_by_index[instruction.id] = instruction
 
     def create_instruction(self, mnemonic: str, index: int = AUTO_INDEX_ASSIGMENT, name: str = None) -> Callable[
-        [Callable], Instruction]:
+        [Callable[[Emulator], bool]], Instruction]:
         def decorator(func: Callable[[Emulator], bool]) -> Instruction:
             instruction_name = name if name is not None else func.__name__
             instruction_doc = func.__doc__ if func.__doc__ else 'missing'
@@ -125,8 +126,6 @@ class InstructionSet:
         return self.instruction_by_index[item]
 
 
-
-
 class Emulator:
 
     def __init__(self, instruction_set: InstructionSet):
@@ -138,6 +137,7 @@ class Emulator:
         self.a = 0
         self.pc = 0
         self.fp = 0
+        self.sp = 0
 
         self.reset()
 
@@ -145,6 +145,7 @@ class Emulator:
         self.a = 0
         self.pc = 0
         self.fp = 0
+        self.sp = 0
 
     def clear_memory(self):
         for i in range(MEMORY_SIZE):
@@ -186,6 +187,14 @@ class Emulator:
     def print(self, byte: int):
         self._output_stream.write(byte.to_bytes(1, sys.byteorder))
         self._output_stream.flush()
+
+    def push(self, byte: int):
+        self.set_memory_at(self.sp, byte)
+        self.sp += 1
+
+    def pop(self) -> int:
+        self.sp -= 1
+        return self.get_memory_at(self.sp)
 
     def get_output(self, clear: bool = True) -> bytes:
         result = self._output_stream.getvalue()

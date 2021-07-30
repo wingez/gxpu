@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from gcpu import ast, default_config
 
 FP_START = 'fp_start'
+MAIN_FUNCTION_ADDR = 'main_function_addr'
 
 
 class CompileError(Exception):
@@ -13,50 +14,48 @@ class CompileError(Exception):
 @dataclass
 class AssemblyFunction:
     code: List[int] = field(default_factory=list)
+    frame_variables_offsets: Dict[str, int] = field(default_factory=dict)
 
 
 class Compiler:
     def __init__(self):
-
         self.resulting_code: List[int] = []
+        self.current_function = AssemblyFunction()
+        self.main_function_index = 0
 
-        self.global_variables = {FP_START: 0}
         self.indices_to_replace: Dict[int, str] = {}
-        self.frame_variables_offsets: Dict[str, int] = {}
         self.frame_size = 0
 
     @property
     def current_program_length(self):
         return len(self.resulting_code)
 
-    def generate(self, code: List[int]):
-        for item in code:
-            if isinstance(item, str):
-                self.indices_to_replace[self.current_program_length] = item
-            self.resulting_code.append(item)
+    def generate_current_function(self, code: List[int]):
+        self.current_function.code.extend(code)
 
     def put_value_node_in_a_register(self, node: ast.ValueProviderNode):
         if isinstance(node, ast.ConstantNode):
-            self.generate(default_config.lda.build(val=node.value))
+            self.generate_current_function(default_config.lda.build(val=node.value))
         elif isinstance(node, ast.IdentifierNode):
             name = node.identifier
-            if name not in self.frame_variables_offsets:
+            if name not in self.current_function.frame_variables_offsets:
                 raise CompileError(f'No variable with name {name}')
-            self.generate(default_config.lda_fp_offset.build(offset=self.frame_variables_offsets[name]))
+            self.generate_current_function(
+                default_config.lda_fp_offset.build(offset=self.current_function.frame_variables_offsets[name]))
         elif isinstance(node, ast.OperationNode):
             self.put_value_node_in_a_register(node.left)
 
             if isinstance(node, ast.AdditionNode) and isinstance(node.right, ast.ConstantNode):
-                self.generate(default_config.adda.build(val=node.right.value))
+                self.generate_current_function(default_config.adda.build(val=node.right.value))
             elif isinstance(node, ast.AdditionNode) and isinstance(node.right, ast.IdentifierNode):
-                self.generate(default_config.adda_fp_offset.build(
-                    offset=self.frame_variables_offsets[node.right.identifier]))
+                self.generate_current_function(default_config.adda_fp_offset.build(
+                    offset=self.current_function.frame_variables_offsets[node.right.identifier]))
 
             elif isinstance(node, ast.SubtractionNode) and isinstance(node.right, ast.ConstantNode):
-                self.generate(default_config.suba.build(val=node.right.value))
+                self.generate_current_function(default_config.suba.build(val=node.right.value))
             elif isinstance(node, ast.SubtractionNode) and isinstance(node.right, ast.IdentifierNode):
-                self.generate(default_config.suba_fp_offset.build(
-                    offset=self.frame_variables_offsets[node.right.identifier]))
+                self.generate_current_function(default_config.suba_fp_offset.build(
+                    offset=self.current_function.frame_variables_offsets[node.right.identifier]))
 
 
             else:
@@ -67,39 +66,64 @@ class Compiler:
             raise CompileError('not supported yet')
 
     def put_header(self):
-        self.generate(
-            default_config.ldfp.build(val=FP_START)
-        )
 
-    def build_function(self, nodes: List[ast.AstNode]) -> List[int]:
+        def generate(code: List[int]):
+            for item in code:
+                if isinstance(item, str):
+                    self.indices_to_replace[self.current_program_length] = item
+                self.resulting_code.append(item)
+
+        generate(default_config.ldfp.build(val=FP_START))
+        generate(default_config.ldsp.build(val=FP_START))
+        generate(default_config.call_addr.build(addr=MAIN_FUNCTION_ADDR))
+        generate(default_config.exit.build())
+
+    def build_function(self, function_node: ast.FunctionNode) -> List[int]:
 
         self.put_header()
 
-        for node in nodes:
-            if isinstance(node, ast.PrintNode):
-                self.put_value_node_in_a_register(node.target)
-                self.generate(default_config.print.build())
-            elif isinstance(node, ast.AssignNode):
-                name = node.target
-                if name not in self.frame_variables_offsets:
-                    self.frame_variables_offsets[name] = self.frame_size
+        self.current_function = AssemblyFunction()
+
+        for expression_node in function_node.body:
+            if isinstance(expression_node, ast.PrintNode):
+                self.put_value_node_in_a_register(expression_node.target)
+                self.generate_current_function(default_config.print.build())
+            elif isinstance(expression_node, ast.AssignNode):
+                name = expression_node.target
+                if name not in self.current_function.frame_variables_offsets:
+                    self.current_function.frame_variables_offsets[name] = self.frame_size
                     self.frame_size += 1
-                self.put_value_node_in_a_register(node.value_node)
-                self.generate(default_config.sta_fp_offset.build(offset=self.frame_variables_offsets[name]))
+                self.put_value_node_in_a_register(expression_node.value_node)
+                self.generate_current_function(
+                    default_config.sta_fp_offset.build(offset=self.current_function.frame_variables_offsets[name]))
             else:
-                raise CompileError(f'node of type {node} not supported yet')
+                raise CompileError(f'node of type {expression_node} not supported yet')
 
-        self.generate(default_config.exit.build())
+        self.generate_current_function(default_config.ret.build())
 
+        if function_node.name == 'main':
+            self.main_function_index = self.current_program_length
+
+        self.resulting_code.extend(self.current_function.code)
         # We are done generating code here
-        self.global_variables[FP_START] = self.current_program_length
 
         self.replace_indices()
         return self.resulting_code
 
+    def build_single_main_function(self, nodes: List[ast.expressions_types]) -> List[int]:
+        node = ast.FunctionNode(name='main', body=nodes)
+        return self.build_function(node)
+
     def replace_indices(self):
         for index, name in self.indices_to_replace.items():
-            offset = self.global_variables.get(name, None)
-            if offset is None:
-                raise CompileError(f'No variable {name!r} found')
+            offset: int
+            if name == MAIN_FUNCTION_ADDR:
+                if self.main_function_index == 0:
+                    raise CompileError('No main-function provided')
+                offset = self.main_function_index
+            elif name == FP_START:
+                offset = self.current_program_length
+            else:
+                raise CompileError(f'Unknown variable {name}')
+
             self.resulting_code[index] = offset

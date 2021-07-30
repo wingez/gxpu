@@ -1,7 +1,7 @@
 from __future__ import annotations
 from contextlib import contextmanager
-from dataclasses import dataclass
-from typing import List, Optional, Type, TypeVar
+from dataclasses import dataclass, field
+from typing import List, Optional, Type, TypeVar, Union
 
 from gcpu import token
 
@@ -47,6 +47,15 @@ class OperationNode(ValueProviderNode):
     right: ValueProviderNode
 
 
+expressions_types = Union[AssignNode, PrintNode]
+
+
+@dataclass
+class FunctionNode(ValueProviderNode):
+    name: str
+    body: List[expressions_types] = field(default_factory=list)
+
+
 class AdditionNode(OperationNode): pass
 
 
@@ -57,12 +66,18 @@ class ParserError(Exception):
     pass
 
 
+class NoMoreTokens(ParserError): pass
+
+
 class Parser:
     def __init__(self, tokens: List[token.Token]):
         self._token = tokens
         self._index = 0
 
     def peek(self) -> token.Token:
+        if self._index >= len(self._token):
+            raise NoMoreTokens("End of token-list reached")
+
         return self._token[self._index]
 
     def savepoint(self):
@@ -83,16 +98,37 @@ class Parser:
             if isinstance(self.peek(), token.TokenEOL):
                 self.consume()
             else:
-                node: AstNode = self.parse_next()
-                result.append(node)
+
+                node = self.try_parse_function()
+                if node is not None:
+                    result.append(node)
+                    continue
+
+                raise ParserError('Could not parse')
 
         return result
 
-    def parse_next(self) -> AstNode:
+    def parse_expressions_until_endblock(self) -> List[expressions_types]:
+        expressions = []
 
-        if tok := self.try_parse_assignment():
+        while not isinstance(self.peek(), token.TokenEndBlock):
+            if isinstance(self.peek(), token.TokenEOL):
+                self.consume()
+                continue
+
+            new_expression = self.parse_expression()
+            expressions.append(new_expression)
+
+        return expressions
+
+    def parse_expression(self) -> expressions_types:
+        tok: Optional[expressions_types]
+
+        tok = self.try_parse_assignment()
+        if tok is not None:
             return tok
-        if tok := self.try_parse_print():
+        tok = self.try_parse_print()
+        if tok is not None:
             return tok
 
         raise ParserError(f'Dont know how to parse: {self.peek()}')
@@ -151,7 +187,29 @@ class Parser:
 
         raise ParserError(f'{next_token} was not expected')
 
-    def try_parse_assignment(self) -> Optional[AstNode]:
+    def try_parse_function(self) -> Optional[FunctionNode]:
+        try:
+            with self._restore_on_error():
+                return self.parse_function_statement()
+        except ParserError:
+            return None
+
+    def parse_function_statement(self) -> FunctionNode:
+        self.consume_type(token.TokenKeywordDef)
+        name_node = self.consume_type(token.TokenIdentifier)
+        self.consume_type(token.TokenLeftParenthesis)
+        self.consume_type(token.TokenRightParenthesis)
+        self.consume_type(token.TokenColon)
+        self.consume_type(token.TokenEOL)
+        self.consume_type(token.TokenBeginBlock)
+
+        expressions = self.parse_expressions_until_endblock()
+
+        self.consume_type(token.TokenEndBlock)
+
+        return FunctionNode(name_node.target, expressions)
+
+    def try_parse_assignment(self) -> Optional[AssignNode]:
 
         try:
             with self._restore_on_error():
@@ -163,7 +221,7 @@ class Parser:
         except ParserError:
             return None
 
-    def try_parse_print(self) -> Optional[AstNode]:
+    def try_parse_print(self) -> Optional[PrintNode]:
 
         try:
             with self._restore_on_error():
@@ -181,3 +239,8 @@ class Parser:
 def parse(tokens: List[token.Token]) -> List[AstNode]:
     p = Parser(tokens)
     return p.parse()
+
+
+def parse_expressions(tokens: List[token.Token]) -> List[expressions_types]:
+    p = Parser(tokens + [token.TokenEndBlock()])
+    return p.parse_expressions_until_endblock()

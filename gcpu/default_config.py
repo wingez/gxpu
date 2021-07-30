@@ -17,12 +17,12 @@ def invalid(emulator):
     raise InvalidInstructionError()
 
 
-@instructions.create_instruction('exit')
+@instructions.create_instruction('EXIT')
 def exit(emulator):
     return True
 
 
-@instructions.create_instruction('print')
+@instructions.create_instruction('OUT')
 def print(emulator):
     emulator.print(emulator.a)
     return False
@@ -40,6 +40,12 @@ def ldfp(emulator):
     return False
 
 
+@instructions.create_instruction('LDSP #val')
+def ldsp(emulator):
+    emulator.sp = emulator.get_and_inc_pc()
+    return False
+
+
 @instructions.create_instruction('LDA FP, #offset')
 def lda_fp_offset(emulator):
     offset = emulator.get_and_inc_pc()
@@ -51,27 +57,54 @@ def lda_fp_offset(emulator):
 def sta_fp_offset(emulator):
     offset = emulator.get_and_inc_pc()
     emulator.set_memory_at(emulator.fp + offset, emulator.a_lower)
+    return False
 
 
 @instructions.create_instruction('ADDA #val')
 def adda(emulator):
     val = emulator.get_and_inc_pc()
     emulator.a += val
+    return False
 
 
 @instructions.create_instruction('ADDA FP, #offset')
 def adda_fp_offset(emulator):
     offset = emulator.get_and_inc_pc()
     emulator.a += emulator.get_memory_at(emulator.fp + offset)
+    return False
 
 
 @instructions.create_instruction('SUBA #val')
 def suba(emulator):
     val = emulator.get_and_inc_pc()
     emulator.a -= val
+    return False
 
 
 @instructions.create_instruction('SUBA FP, #offset')
 def suba_fp_offset(emulator):
     offset = emulator.get_and_inc_pc()
     emulator.a -= emulator.get_memory_at(emulator.fp + offset)
+    return False
+
+
+@instructions.create_instruction('CALL #addr')
+def call_addr(emulator):
+    addr = emulator.get_and_inc_pc()
+    emulator.push(emulator.fp)
+    emulator.push(emulator.pc)
+
+    emulator.fp = emulator.sp
+
+    emulator.pc = addr
+    return False
+
+
+@instructions.create_instruction('RET')
+def ret(emulator):
+    emulator.sp = emulator.fp
+
+    emulator.pc = emulator.pop()
+    emulator.fp = emulator.pop()
+
+    return False

@@ -1,7 +1,8 @@
-from gcpu import emulator
+from io import StringIO
 
 import pytest
 
+from gcpu import emulator, assembler
 from gcpu.emulator import InstructionSet, InvalidInstructionError
 from gcpu import default_config
 
@@ -120,3 +121,54 @@ def test_execution():
                           default_config.lda.build(val=10),
                           default_config.print.build(),
                           default_config.exit.build()]) == bytes([0, 10])
+
+
+def test_call():
+    program = """
+    LDSP #25
+    LDFP #25
+    
+    CALL #7
+    invalid
+    EXIT
+    
+    """
+    assembled = assembler.assemble_mnemonic_file(default_config.instructions, StringIO(program))
+
+    e = default_config.DefaultEmulator()
+    e.set_all_memory(assembled)
+    e.run()
+
+    assert e.get_memory_at(25) == 25
+    assert e.get_memory_at(26) == 6
+    assert e.fp == 27
+    assert e.sp == 27
+
+
+def test_call_and_ret():
+    program = """
+    LDSP #25
+    LDFP #25
+    
+    LDA #1
+    OUT
+    
+    CALL #13
+    LDA #3
+    OUT
+    EXIT
+    
+    LDA #2
+    OUT
+    RET
+    
+    """
+
+    assembled = assembler.assemble_mnemonic_file(default_config.instructions, StringIO(program))
+    e = default_config.DefaultEmulator()
+    e.set_all_memory(assembled)
+    e.run()
+
+    assert e.get_output() == bytes([1, 2, 3])
+    assert e.fp == 25
+    assert e.sp == 25

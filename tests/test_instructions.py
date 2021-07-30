@@ -81,3 +81,5 @@ def test_assemble_mnemonic():
 
     assert assemble_mnemonic(i, 'test #5 #6') == [2, 5, 6]
     assert assemble_mnemonic(i, 'test    #5   #6   ') == [2, 5, 6]
+
+    assert assemble_mnemonic(i, '   ') == []

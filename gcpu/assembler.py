@@ -5,6 +5,11 @@ from gcpu.emulator import InstructionSet, MNEMONIC_DELIMITERS, InstructionBuilde
 
 
 def assemble_mnemonic(instruction_set: InstructionSet, mnemonic: str) -> List[int]:
+    mnemonic = mnemonic.strip(' ')
+
+    if mnemonic == '':
+        return []
+
     def parse_variable(text: str) -> int:
         return int(text)
 
@@ -35,5 +40,6 @@ def assemble_mnemonic(instruction_set: InstructionSet, mnemonic: str) -> List[in
 def assemble_mnemonic_file(instruction_set: InstructionSet, file: TextIO) -> List[int]:
     result = []
     for line in file:
+        line = line.strip('\n')
         result.extend(assemble_mnemonic(instruction_set, line))
     return result

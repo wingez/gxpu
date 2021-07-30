@@ -13,7 +13,7 @@ def run_text_check_output(text, *output):
 
     tokens = token.parse_file(file)
 
-    nodes = ast.Parser(tokens).parse()
+    nodes = ast.parse_expressions(tokens)
     run_nodes_check_output(nodes, *output)
 
 
@@ -26,7 +26,7 @@ def run_nodes_check_output(nodes, *output):
     e = DefaultEmulator()
     c = compile.Compiler()
 
-    code = c.build_function(nodes)
+    code = c.build_single_main_function(nodes)
 
     e.set_all_memory(code)
     e.run()
@@ -98,3 +98,9 @@ def test_invalid_variable_name():
     ]
     with pytest.raises(CompileError):
         run_nodes_check_output(nodes, 2)
+
+def test_call_function():
+    pass
+
+
+
