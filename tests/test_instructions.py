@@ -83,3 +83,13 @@ def test_assemble_mnemonic():
     assert assemble_mnemonic(i, 'test    #5   #6   ') == [2, 5, 6]
 
     assert assemble_mnemonic(i, '   ') == []
+
+
+def test_assemble_mnemonic_case_invariance():
+    i = InstructionSet()
+    i.add_instruction(Instruction('test #ins', emulate=None, id=1))
+    i.add_instruction(Instruction('TEst2 #ins', emulate=None, id=2))
+
+    assert assemble_mnemonic(i, 'test #0') == [1, 0]
+    assert assemble_mnemonic(i, 'TesT #0') == [1, 0]
+    assert assemble_mnemonic(i, 'test2 #0') == [2, 0]

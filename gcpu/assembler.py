@@ -28,7 +28,7 @@ def assemble_mnemonic(instruction_set: InstructionSet, mnemonic: str) -> List[in
         for template_word, mnem_word in zip(template_split, mnem_split):
             if '#' in template_word and '#' in mnem_word:
                 variables[template_word[1:]] = parse_variable(mnem_word[1:])
-            elif not template_word == mnem_word:
+            elif not template_word.lower() == mnem_word.lower():
                 break
         else:
             # All found!
