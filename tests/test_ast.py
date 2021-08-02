@@ -59,7 +59,7 @@ def test_parse_function():
 def test_parse_function_with_single_parameter():
     assert ast.Parser(get_func_tokens("param1")).parse_function_statement() == \
            ast.FunctionNode(name='test',
-                            parameters=['param1'],
+                            arguments=['param1'],
                             body=[ast.PrintNode(
                                 ast.ConstantNode(
                                     5))])
@@ -69,6 +69,22 @@ def test_parse_function_with_multiple_parameters():
     assert ast.Parser(get_func_tokens("param1", "param2", "param3")).parse_function_statement() == \
            ast.FunctionNode(
                name='test',
-               parameters=["param1", "param2",
-                           "param3"], body=[
+               arguments=["param1", "param2",
+                          "param3"], body=[
                    ast.PrintNode(ast.ConstantNode(5))])
+
+
+def test_call_no_parameters():
+    assert ast.Parser(token.parse_line("func()")).try_parse_function_call() == ast.CallNode('func', parameters=[])
+
+
+def test_call_parameters():
+    assert ast.Parser(token.parse_line("func(5)")).try_parse_function_call() == ast.CallNode('func', parameters=[
+        ast.ConstantNode(5)])
+
+    assert ast.Parser(token.parse_line("func(5,10,test)")).try_parse_function_call() == \
+           ast.CallNode('func', parameters=[
+               ast.ConstantNode(5),
+               ast.ConstantNode(10),
+               ast.IdentifierNode('test')
+           ])

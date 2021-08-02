@@ -44,6 +44,7 @@ class ConstantNode(ValueProviderNode):
 @dataclass
 class CallNode(AstNode):
     target_name: str
+    parameters: List[ValueProviderNode] = field(default_factory=list)
 
 
 @dataclass
@@ -58,7 +59,7 @@ expressions_types = Union[AssignNode, PrintNode, CallNode]
 @dataclass
 class FunctionNode(ValueProviderNode):
     name: str
-    parameters: List[str] = field(default_factory=list)
+    arguments: List[str] = field(default_factory=list)
     body: List[expressions_types] = field(default_factory=list)
 
 
@@ -86,6 +87,9 @@ class Parser:
 
         return self._token[self._index]
 
+    def peek_is(self, token_type: Type[token.Token]) -> bool:
+        return isinstance(self.peek(), token_type)
+
     def savepoint(self):
         return self._index
 
@@ -101,7 +105,7 @@ class Parser:
         while self.has_more_to_parse():
 
             # filter empty line
-            if isinstance(self.peek(), token.TokenEOL):
+            if self.peek_is(token.TokenEOL):
                 self.consume()
             else:
 
@@ -117,8 +121,8 @@ class Parser:
     def parse_expressions_until_endblock(self) -> List[expressions_types]:
         expressions = []
 
-        while not isinstance(self.peek(), token.TokenEndBlock):
-            if isinstance(self.peek(), token.TokenEOL):
+        while not self.peek_is(token.TokenEndBlock):
+            if self.peek_is(token.TokenEOL):
                 self.consume()
                 continue
 
@@ -210,21 +214,15 @@ class Parser:
 
         parameter_names = []
 
-        while True:
-            # Take care of case with no arguments
-            if isinstance(self.peek(), token.TokenRightParenthesis):
-                self.consume()
-                break
+        while not self.peek_is(token.TokenRightParenthesis):
+
             target_node = self.consume_type(token.TokenIdentifier)
             parameter_names.append(target_node.target)
 
-            separator_node = self.consume_type(token.ExpressionSeparator)
-            if isinstance(separator_node, token.TokenComma):
-                continue
-            elif isinstance(separator_node, token.TokenRightParenthesis):
-                break
-            else:
-                raise ParserError('Expected "," or ")"')
+            if self.peek_is(token.TokenComma):
+                self.consume()
+
+        self.consume()
 
         self.consume_type(token.TokenColon)
         self.consume_type(token.TokenEOL)
@@ -234,7 +232,7 @@ class Parser:
 
         self.consume_type(token.TokenEndBlock)
 
-        return FunctionNode(name_node.target, parameters=parameter_names, body=expressions)
+        return FunctionNode(name_node.target, arguments=parameter_names, body=expressions)
 
     def try_parse_assignment(self) -> Optional[AssignNode]:
 
@@ -262,15 +260,31 @@ class Parser:
         except ParserError:
             return None
 
+    def parse_function_call(self) -> CallNode:
+        target_node = self.consume_type(token.TokenIdentifier)
+        self.consume_type(token.TokenLeftParenthesis)
+
+        parameters = []
+
+        while not self.peek_is(token.TokenRightParenthesis):
+
+            param_value = self.parse_value_provider()
+            parameters.append(param_value)
+
+            if self.peek_is(token.TokenComma):
+                self.consume()
+
+        self.consume()
+
+        self.consume_type(token.TokenEOL)
+
+        return CallNode(target_node.target, parameters=parameters)
+
     def try_parse_function_call(self) -> Optional[CallNode]:
         try:
             with self._restore_on_error():
-                target_node = self.consume_type(token.TokenIdentifier)
-                self.consume_type(token.TokenLeftParenthesis)
-                self.consume_type(token.TokenRightParenthesis)
-                self.consume_type(token.TokenEOL)
+                return self.parse_function_call()
 
-                return CallNode(target_node.target)
         except ParserError:
             return None
 
