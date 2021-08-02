@@ -119,9 +119,10 @@ def to_token(text: str) -> Token:
 
 
 def parse_file(file: TextIO) -> List[Token]:
-    result:List[Token] = []
+    result: List[Token] = []
 
     current_indentation: int = -1
+    base_indentation = 0
 
     for line_to_parse in file:
         line_to_parse = line_to_parse.strip('\n')
@@ -130,7 +131,9 @@ def parse_file(file: TextIO) -> List[Token]:
 
         indentation, line = get_indentation(line_to_parse)
 
-        if current_indentation != -1:
+        if current_indentation == -1:
+            base_indentation = indentation
+        else:
 
             if indentation > current_indentation:
                 if indentation != current_indentation + 1:
@@ -144,6 +147,9 @@ def parse_file(file: TextIO) -> List[Token]:
 
         result.extend(parse_line(line))
 
+    if current_indentation != -1:
+        for _ in range(current_indentation - base_indentation):
+            result.append(TokenEndBlock())
     return result
 
 

@@ -43,7 +43,7 @@ def test_indentation_token():
     var
       print
     
-    """)) == [var, eol, newblock, print, eol]
+    """)) == [var, eol, newblock, print, eol, endblock]
 
     assert token.parse_file(StringIO("""
         var
@@ -156,3 +156,20 @@ def test_parse_from_file(tmp_path):
     p.write_text(file_content)
     with open(p, mode='r') as f:
         assert token.parse_file(f) == baseline
+
+
+def test_add_leave_block_on_eof():
+    content = """
+    test
+      print
+   
+   """
+
+    expected = [
+        token.TokenIdentifier('test'), token.TokenEOL(),
+        token.TokenBeginBlock(), token.TokenKeywordPrint(), token.TokenEOL(),
+        token.TokenEndBlock()
+    ]
+
+    actual = token.parse_file(StringIO(content))
+    assert actual == expected
