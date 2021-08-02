@@ -58,6 +58,7 @@ expressions_types = Union[AssignNode, PrintNode, CallNode]
 @dataclass
 class FunctionNode(ValueProviderNode):
     name: str
+    parameters: List[str] = field(default_factory=list)
     body: List[expressions_types] = field(default_factory=list)
 
 
@@ -206,7 +207,25 @@ class Parser:
         self.consume_type(token.TokenKeywordDef)
         name_node = self.consume_type(token.TokenIdentifier)
         self.consume_type(token.TokenLeftParenthesis)
-        self.consume_type(token.TokenRightParenthesis)
+
+        parameter_names = []
+
+        while True:
+            # Take care of case with no arguments
+            if isinstance(self.peek(), token.TokenRightParenthesis):
+                self.consume()
+                break
+            target_node = self.consume_type(token.TokenIdentifier)
+            parameter_names.append(target_node.target)
+
+            separator_node = self.consume_type(token.ExpressionSeparator)
+            if isinstance(separator_node, token.TokenComma):
+                continue
+            elif isinstance(separator_node, token.TokenRightParenthesis):
+                break
+            else:
+                raise ParserError('Expected "," or ")"')
+
         self.consume_type(token.TokenColon)
         self.consume_type(token.TokenEOL)
         self.consume_type(token.TokenBeginBlock)
@@ -215,7 +234,7 @@ class Parser:
 
         self.consume_type(token.TokenEndBlock)
 
-        return FunctionNode(name_node.target, expressions)
+        return FunctionNode(name_node.target, parameters=parameter_names, body=expressions)
 
     def try_parse_assignment(self) -> Optional[AssignNode]:
 

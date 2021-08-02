@@ -32,19 +32,43 @@ def test_expression():
             .parse_expression()
 
 
+def get_func_tokens(*parameters):
+    tokens = [token.TokenKeywordDef(), token.TokenIdentifier('test'), token.TokenLeftParenthesis(), ]
+
+    num_params = len(parameters)
+    for index, param in enumerate(parameters):
+        tokens.append(token.TokenIdentifier(param))
+        if index != num_params:
+            tokens.append(token.TokenComma())
+
+    tokens.extend([token.TokenRightParenthesis(), token.TokenColon(), token.TokenEOL(), token.TokenBeginBlock(),
+                   token.TokenKeywordPrint(), token.TokenLeftParenthesis(), token.TokenNumericConstant(5),
+                   token.TokenRightParenthesis(), token.TokenEOL(),
+                   token.TokenEndBlock(),
+
+                   ])
+    return tokens
+
+
 def test_parse_function():
-    tokens = [token.TokenKeywordDef(), token.TokenIdentifier('test'), token.TokenLeftParenthesis(),
-              token.TokenRightParenthesis(), token.TokenColon(), token.TokenEOL(), token.TokenBeginBlock(),
-              token.TokenKeywordPrint(), token.TokenLeftParenthesis(), token.TokenNumericConstant(5),
-              token.TokenRightParenthesis(), token.TokenEOL(),
-              token.TokenEndBlock(),
-
-              ]
-
+    tokens = get_func_tokens()
     node = ast.Parser(tokens).parse_function_statement()
     assert node == ast.FunctionNode(name='test', body=[ast.PrintNode(ast.ConstantNode(5))])
 
 
-@pytest.mark.skipif(True, reason='not implemented yet')
-def test_parse_function_arguments():
-    pass
+def test_parse_function_with_single_parameter():
+    assert ast.Parser(get_func_tokens("param1")).parse_function_statement() == \
+           ast.FunctionNode(name='test',
+                            parameters=['param1'],
+                            body=[ast.PrintNode(
+                                ast.ConstantNode(
+                                    5))])
+
+
+def test_parse_function_with_multiple_parameters():
+    assert ast.Parser(get_func_tokens("param1", "param2", "param3")).parse_function_statement() == \
+           ast.FunctionNode(
+               name='test',
+               parameters=["param1", "param2",
+                           "param3"], body=[
+                   ast.PrintNode(ast.ConstantNode(5))])
