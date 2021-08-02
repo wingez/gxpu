@@ -42,12 +42,17 @@ class ConstantNode(ValueProviderNode):
 
 
 @dataclass
+class CallNode(AstNode):
+    target_name: str
+
+
+@dataclass
 class OperationNode(ValueProviderNode):
     left: ValueProviderNode
     right: ValueProviderNode
 
 
-expressions_types = Union[AssignNode, PrintNode]
+expressions_types = Union[AssignNode, PrintNode, CallNode]
 
 
 @dataclass
@@ -89,8 +94,8 @@ class Parser:
     def has_more_to_parse(self) -> bool:
         return self._index < len(self._token)
 
-    def parse(self) -> List[AstNode]:
-        result: List[AstNode] = []
+    def parse(self) -> List[FunctionNode]:
+        result: List[FunctionNode] = []
 
         while self.has_more_to_parse():
 
@@ -128,6 +133,9 @@ class Parser:
         if tok is not None:
             return tok
         tok = self.try_parse_print()
+        if tok is not None:
+            return tok
+        tok = self.try_parse_function_call()
         if tok is not None:
             return tok
 
@@ -235,8 +243,20 @@ class Parser:
         except ParserError:
             return None
 
+    def try_parse_function_call(self) -> Optional[CallNode]:
+        try:
+            with self._restore_on_error():
+                target_node = self.consume_type(token.TokenIdentifier)
+                self.consume_type(token.TokenLeftParenthesis)
+                self.consume_type(token.TokenRightParenthesis)
+                self.consume_type(token.TokenEOL)
 
-def parse(tokens: List[token.Token]) -> List[AstNode]:
+                return CallNode(target_node.target)
+        except ParserError:
+            return None
+
+
+def parse(tokens: List[token.Token]) -> List[FunctionNode]:
     p = Parser(tokens)
     return p.parse()
 

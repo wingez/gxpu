@@ -3,7 +3,7 @@ from io import StringIO
 import pytest
 
 from gcpu import token, ast
-from tests.test_compile_and_run import run_text_check_output
+from tests.test_compile_and_run import run_function_body_text_check_output
 
 
 def test_parse_basic():
@@ -27,8 +27,8 @@ def test_run_addition():
     var1 = 5+10
     print(var1)
     """
-    run_text_check_output(file_content, 15)
-    run_text_check_output("""
+    run_function_body_text_check_output(file_content, 15)
+    run_function_body_text_check_output("""
     var1=6
     print(6+var1)
     
@@ -45,4 +45,4 @@ def test_mixed_operations(first, second, operator):
     print({first} {operator} {second})
     """
     expected = eval(f"{first} {operator} {second}", globals(), {'var1': 12, 'var2': 20})
-    run_text_check_output(content, expected)
+    run_function_body_text_check_output(content, expected)
