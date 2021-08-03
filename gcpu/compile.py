@@ -48,6 +48,10 @@ class Compiler:
     def current_program_length(self) -> int:
         return len(self.resulting_code)
 
+    @property
+    def current_generating_position(self) -> int:
+        return self.current_program_length + len(self.current_function.code)
+
     def generate_current_function(self, code: List[int]):
         self.current_function.code.extend(code)
 
@@ -106,50 +110,60 @@ class Compiler:
         generate(default_config.call_addr.build(addr=MAIN_FUNCTION_ADDR))
         generate(default_config.exit.build())
 
+    def build_statement_node(self, statement_node: ast.StatementNode):
+        if isinstance(statement_node, ast.PrintNode):
+            self.put_value_node_in_a_register(statement_node.target)
+            self.generate_current_function(default_config.print.build())
+        elif isinstance(statement_node, ast.AssignNode):
+            name = statement_node.target
+            if name not in self.current_function.frame_variables_offsets:
+                self.current_function.frame_variables_offsets[name] = self.current_function.frame_size
+                self.current_function.frame_size += 1
+            self.put_value_node_in_a_register(statement_node.value_node)
+            self.generate_current_function(
+                default_config.sta_fp_offset.build(offset=self.current_function.frame_variables_offsets[name]))
+
+        elif isinstance(statement_node, ast.WhileNode):
+            start_of_block_index = self.current_generating_position
+            for node in statement_node.body:
+                self.build_statement_node(node)
+            self.generate_current_function(default_config.jump.build(addr=start_of_block_index))
+
+        elif isinstance(statement_node, ast.CallNode):
+            function_name = statement_node.target_name
+            if function_name not in self.functions:
+                raise CompileError(f'No function with name: {function_name}')
+            function = self.functions[function_name]
+            if not len(statement_node.parameters) == function.num_arguments:
+                raise CompileError(f'Function {function_name} expected {function.num_arguments} args')
+
+            # TODO: function return size
+            self.generate_current_function(default_config.addsp.build(val=0))
+
+            # place arguments
+            for value_node in statement_node.parameters:
+                self.put_value_node_in_a_register(value_node)
+                self.generate_current_function(default_config.push_a.build())
+
+            self.generate_current_function(
+                default_config.call_addr.build(addr=self.functions[function_name].memory_address))
+
+            # TODO: + function return size
+            self.generate_current_function(default_config.sub_sp.build(val=0 + function.num_arguments))
+
+
+        else:
+            raise CompileError(f'node of type {statement_node} not supported yet')
+
     def build_function(self, function_node: ast.FunctionNode) -> AssemblyFunction:
 
-        self.current_function = AssemblyFunction(name=function_node.name, args=function_node.arguments)
+        self.current_function = AssemblyFunction(name=function_node.name, args=function_node.arguments,
+                                                 memory_address=self.current_program_length)
         index_of_frame_size = len(self.current_function.code) + 1 + default_config.addsp.get_position_of_variable('val')
         self.generate_current_function(default_config.addsp.build(val=0))
 
-        for expression_node in function_node.body:
-            if isinstance(expression_node, ast.PrintNode):
-                self.put_value_node_in_a_register(expression_node.target)
-                self.generate_current_function(default_config.print.build())
-            elif isinstance(expression_node, ast.AssignNode):
-                name = expression_node.target
-                if name not in self.current_function.frame_variables_offsets:
-                    self.current_function.frame_variables_offsets[name] = self.current_function.frame_size
-                    self.current_function.frame_size += 1
-                self.put_value_node_in_a_register(expression_node.value_node)
-                self.generate_current_function(
-                    default_config.sta_fp_offset.build(offset=self.current_function.frame_variables_offsets[name]))
-
-            elif isinstance(expression_node, ast.CallNode):
-                function_name = expression_node.target_name
-                if function_name not in self.functions:
-                    raise CompileError(f'No function with name: {function_name}')
-                function = self.functions[function_name]
-                if not len(expression_node.parameters) == function.num_arguments:
-                    raise CompileError(f'Function {function_name} expected {function.num_arguments} args')
-
-                # TODO: function return size
-                self.generate_current_function(default_config.addsp.build(val=0))
-
-                # place arguments
-                for value_node in expression_node.parameters:
-                    self.put_value_node_in_a_register(value_node)
-                    self.generate_current_function(default_config.push_a.build())
-
-                self.generate_current_function(
-                    default_config.call_addr.build(addr=self.functions[function_name].memory_address))
-
-                # TODO: + function return size
-                self.generate_current_function(default_config.sub_sp.build(val=0 + function.num_arguments))
-
-
-            else:
-                raise CompileError(f'node of type {expression_node} not supported yet')
+        for statement_node in function_node.body:
+            self.build_statement_node(statement_node)
 
         self.generate_current_function(default_config.ret.build())
 
@@ -164,7 +178,6 @@ class Compiler:
         for node in function_nodes:
             if isinstance(node, ast.FunctionNode):
                 function = self.build_function(node)
-                function.memory_address = self.current_program_length
 
                 if function.name in self.functions:
                     raise CompileError(f'Function {function.name} already declared')
@@ -178,8 +191,8 @@ class Compiler:
         self.replace_indices()
         return self.resulting_code
 
-    def build_single_main_function(self, nodes: List[ast.expressions_types]) -> List[int]:
-        node = ast.FunctionNode(name='main', body=nodes)
+    def build_single_main_function(self, nodes: List[ast.StatementNode]) -> List[int]:
+        node = ast.FunctionNode(name='main', body=nodes, arguments=[])
         return self.build_program([node])
 
     def replace_indices(self):

@@ -1,4 +1,4 @@
-from gcpu import ast, token, compile
+from gcpu import ast, token, compile, emulator
 from gcpu.compile import CompileError
 
 from gcpu.default_config import DefaultEmulator
@@ -192,3 +192,14 @@ def test_call_function_consecutive_many_parameters():
       test(1,1,2)  
     """
     run_program_text(program, 6, 4)
+
+
+def test_while():
+    program = """
+    def main():
+      while:
+        print(5)
+    
+    """
+    with pytest.raises(emulator.ExecutionCyclesExceededError):
+        run_program_text(program)

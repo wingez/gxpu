@@ -16,15 +16,19 @@ class ValueProviderNode(AstNode):
     pass
 
 
+class StatementNode(AstNode):
+    pass
+
+
 @dataclass
-class AssignNode(AstNode):
+class AssignNode(StatementNode):
     def __init__(self, target: str, value: ValueProviderNode):
         self.target = target
         self.value_node = value
 
 
 @dataclass
-class PrintNode(AstNode):
+class PrintNode(StatementNode):
     def __init__(self, target: ValueProviderNode):
         self.target = target
 
@@ -42,7 +46,7 @@ class ConstantNode(ValueProviderNode):
 
 
 @dataclass
-class CallNode(AstNode):
+class CallNode(StatementNode):
     target_name: str
     parameters: List[ValueProviderNode] = field(default_factory=list)
 
@@ -53,14 +57,16 @@ class OperationNode(ValueProviderNode):
     right: ValueProviderNode
 
 
-expressions_types = Union[AssignNode, PrintNode, CallNode]
-
-
 @dataclass
 class FunctionNode(ValueProviderNode):
     name: str
-    arguments: List[str] = field(default_factory=list)
-    body: List[expressions_types] = field(default_factory=list)
+    arguments: List[str]
+    body: List[StatementNode]
+
+
+@dataclass
+class WhileNode(StatementNode):
+    body: List[StatementNode]
 
 
 class AdditionNode(OperationNode): pass
@@ -118,7 +124,7 @@ class Parser:
 
         return result
 
-    def parse_expressions_until_endblock(self) -> List[expressions_types]:
+    def parse_statements_until_endblock(self) -> List[StatementNode]:
         expressions = []
 
         while not self.peek_is(token.TokenEndBlock):
@@ -126,13 +132,15 @@ class Parser:
                 self.consume()
                 continue
 
-            new_expression = self.parse_expression()
-            expressions.append(new_expression)
+            new_statement = self.parse_statement()
+            expressions.append(new_statement)
+
+        self.consume_type(token.TokenEndBlock)
 
         return expressions
 
-    def parse_expression(self) -> expressions_types:
-        tok: Optional[expressions_types]
+    def parse_statement(self) -> StatementNode:
+        tok: Optional[StatementNode]
 
         tok = self.try_parse_assignment()
         if tok is not None:
@@ -141,6 +149,9 @@ class Parser:
         if tok is not None:
             return tok
         tok = self.try_parse_function_call()
+        if tok is not None:
+            return tok
+        tok = self.try_parse_while_statement()
         if tok is not None:
             return tok
 
@@ -203,11 +214,11 @@ class Parser:
     def try_parse_function(self) -> Optional[FunctionNode]:
         try:
             with self._restore_on_error():
-                return self.parse_function_statement()
+                return self.parse_function_definition()
         except ParserError:
             return None
 
-    def parse_function_statement(self) -> FunctionNode:
+    def parse_function_definition(self) -> FunctionNode:
         self.consume_type(token.TokenKeywordDef)
         name_node = self.consume_type(token.TokenIdentifier)
         self.consume_type(token.TokenLeftParenthesis)
@@ -228,11 +239,26 @@ class Parser:
         self.consume_type(token.TokenEOL)
         self.consume_type(token.TokenBeginBlock)
 
-        expressions = self.parse_expressions_until_endblock()
+        statements = self.parse_statements_until_endblock()
 
-        self.consume_type(token.TokenEndBlock)
+        return FunctionNode(name_node.target, arguments=parameter_names, body=statements)
 
-        return FunctionNode(name_node.target, arguments=parameter_names, body=expressions)
+    def parse_while_statement(self) -> WhileNode:
+        self.consume_type(token.TokenKeywordWhile)
+        self.consume_type(token.TokenColon)
+        self.consume_type(token.TokenEOL)
+        self.consume_type(token.TokenBeginBlock)
+
+        statements = self.parse_statements_until_endblock()
+
+        return WhileNode(statements)
+
+    def try_parse_while_statement(self) -> Optional[WhileNode]:
+        try:
+            with self._restore_on_error():
+                return self.parse_while_statement()
+        except ParserError:
+            return None
 
     def try_parse_assignment(self) -> Optional[AssignNode]:
 
@@ -294,6 +320,6 @@ def parse(tokens: List[token.Token]) -> List[FunctionNode]:
     return p.parse()
 
 
-def parse_expressions(tokens: List[token.Token]) -> List[expressions_types]:
+def parse_expressions(tokens: List[token.Token]) -> List[StatementNode]:
     p = Parser(tokens + [token.TokenEndBlock()])
-    return p.parse_expressions_until_endblock()
+    return p.parse_statements_until_endblock()

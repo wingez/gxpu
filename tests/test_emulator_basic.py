@@ -193,3 +193,17 @@ def test_jump():
     e.set_all_memory(assembled)
     e.run()
     assert e.get_output() == bytes([5, 5])
+
+
+def test_jump_loop_infinite():
+    program = """
+    lda #5
+    
+    jmp #0
+    exit
+    """
+    assembled = assembler.assemble_mnemonic_file(default_config.instructions, StringIO(program))
+    e = default_config.DefaultEmulator()
+    e.set_all_memory(assembled)
+    with pytest.raises(emulator.ExecutionCyclesExceededError):
+        e.run()

@@ -1,3 +1,5 @@
+from io import StringIO
+
 import pytest
 
 from gcpu import ast, token
@@ -17,19 +19,19 @@ def test_many_eol():
 def test_expression():
     tokens = [token.TokenIdentifier('test'), token.TokenEquals(), token.TokenNumericConstant(4), token.TokenEOL()]
 
-    node = ast.Parser(tokens).parse_expression()
+    node = ast.Parser(tokens).parse_statement()
     assert isinstance(node, ast.AssignNode)
     assert node.value_node == ast.ConstantNode(4)
     assert node.target == 'test'
 
-    node = ast.Parser(token.parse_line('print(5)')).parse_expression()
+    node = ast.Parser(token.parse_line('print(5)')).parse_statement()
     assert isinstance(node, ast.PrintNode)
     assert node.target == ast.ConstantNode(5)
 
     with pytest.raises(ast.ParserError):
         # test no eol
         ast.Parser([token.TokenIdentifier('test'), token.TokenEquals(), token.TokenNumericConstant(4)]) \
-            .parse_expression()
+            .parse_statement()
 
 
 def get_func_tokens(*parameters):
@@ -52,12 +54,12 @@ def get_func_tokens(*parameters):
 
 def test_parse_function():
     tokens = get_func_tokens()
-    node = ast.Parser(tokens).parse_function_statement()
-    assert node == ast.FunctionNode(name='test', body=[ast.PrintNode(ast.ConstantNode(5))])
+    node = ast.Parser(tokens).parse_function_definition()
+    assert node == ast.FunctionNode(name='test', body=[ast.PrintNode(ast.ConstantNode(5))], arguments=[])
 
 
 def test_parse_function_with_single_parameter():
-    assert ast.Parser(get_func_tokens("param1")).parse_function_statement() == \
+    assert ast.Parser(get_func_tokens("param1")).parse_function_definition() == \
            ast.FunctionNode(name='test',
                             arguments=['param1'],
                             body=[ast.PrintNode(
@@ -66,7 +68,7 @@ def test_parse_function_with_single_parameter():
 
 
 def test_parse_function_with_multiple_parameters():
-    assert ast.Parser(get_func_tokens("param1", "param2", "param3")).parse_function_statement() == \
+    assert ast.Parser(get_func_tokens("param1", "param2", "param3")).parse_function_definition() == \
            ast.FunctionNode(
                name='test',
                arguments=["param1", "param2",
@@ -75,16 +77,27 @@ def test_parse_function_with_multiple_parameters():
 
 
 def test_call_no_parameters():
-    assert ast.Parser(token.parse_line("func()")).try_parse_function_call() == ast.CallNode('func', parameters=[])
+    assert ast.Parser(token.parse_line("func()")).parse_function_call() == ast.CallNode('func', parameters=[])
 
 
 def test_call_parameters():
-    assert ast.Parser(token.parse_line("func(5)")).try_parse_function_call() == ast.CallNode('func', parameters=[
+    assert ast.Parser(token.parse_line("func(5)")).parse_function_call() == ast.CallNode('func', parameters=[
         ast.ConstantNode(5)])
 
-    assert ast.Parser(token.parse_line("func(5,10,test)")).try_parse_function_call() == \
+    assert ast.Parser(token.parse_line("func(5,10,test)")).parse_function_call() == \
            ast.CallNode('func', parameters=[
                ast.ConstantNode(5),
                ast.ConstantNode(10),
                ast.IdentifierNode('test')
            ])
+
+
+def test_while():
+    code = """
+    while:
+      print(5)
+    
+    """
+
+    assert ast.Parser(token.parse_file(StringIO(code))).parse_while_statement() == \
+           ast.WhileNode(body=[ast.PrintNode(ast.ConstantNode(5))])

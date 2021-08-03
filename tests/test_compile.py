@@ -50,16 +50,45 @@ def test_function_arguments():
     ret
 
     """
-    expected_compiled = assembler.assemble_mnemonic_file(default_config.instructions, StringIO(expected))
-    c = compile.Compiler()
-    output = c.build_program([ast.FunctionNode(name='test', arguments=['arg2'], body=[]),
-                              ast.FunctionNode(name='main', arguments=[],
-                                               body=[ast.CallNode('test', [ast.ConstantNode(5)])])
-                              ])
-
-    assert expected_compiled == output
+    compiled_should_match_assembled([ast.FunctionNode(name='test', arguments=['arg2'], body=[]),
+                                     ast.FunctionNode(name='main', arguments=[],
+                                                      body=[ast.CallNode('test', [ast.ConstantNode(5)])])
+                                     ], expected)
 
 
 def test_assembly_parameter_offset():
     f = compile.AssemblyFunction(name='func', args=['param1', 'param2'])
     assert f.frame_variables_offsets == {'param1': -4, 'param2': -3}
+
+
+def compiled_should_match_assembled(nodes, expected_assembly):
+    expected_compiled = assembler.assemble_mnemonic_file(default_config.instructions, StringIO(expected_assembly))
+    c = compile.Compiler()
+    output = c.build_program(nodes)
+
+    assert output == expected_compiled
+
+
+def test_compile_while():
+    expected = """
+    ldfp #15
+    ldsp #15
+
+    call #7
+    exit
+    
+    addsp #0
+    lda #5
+    out
+    jmp #9
+    ret             
+    
+    
+    """
+
+    compiled_should_match_assembled([ast.FunctionNode(name='main', arguments=[], body=[
+        ast.WhileNode([
+            ast.PrintNode(ast.ConstantNode(5))
+
+        ])
+    ])], expected)

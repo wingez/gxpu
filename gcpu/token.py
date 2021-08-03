@@ -47,6 +47,10 @@ class TokenKeywordPrint(Token):
     pass
 
 
+class TokenKeywordWhile(Token):
+    pass
+
+
 class TokenBeginBlock(Token): pass
 
 
@@ -114,6 +118,8 @@ def to_token(text: str) -> Token:
         return TokenKeywordDef()
     if text == 'print':
         return TokenKeywordPrint()
+    if text == 'while':
+        return TokenKeywordWhile()
 
     return TokenIdentifier(text)
 
