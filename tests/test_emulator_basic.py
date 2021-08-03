@@ -172,3 +172,23 @@ def test_call_and_ret():
     assert e.get_output() == bytes([1, 2, 3])
     assert e.fp == 25
     assert e.sp == 25
+
+
+def test_jump():
+    program = """
+    
+    lda #5
+    out
+    jmp #7
+    lda #7
+    
+    out
+    exit
+    
+    """
+
+    assembled = assembler.assemble_mnemonic_file(default_config.instructions, StringIO(program))
+    e = default_config.DefaultEmulator()
+    e.set_all_memory(assembled)
+    e.run()
+    assert e.get_output() == bytes([5, 5])

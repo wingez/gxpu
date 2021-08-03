@@ -148,3 +148,10 @@ def sub_sp(emulator):
     val = emulator.get_and_inc_pc()
     emulator.sp -= val
     return False
+
+
+@instructions.create_instruction('JMP #addr')
+def jump(emulator):
+    addr = emulator.get_memory_at(emulator.pc)
+    emulator.pc = addr
+    return False
