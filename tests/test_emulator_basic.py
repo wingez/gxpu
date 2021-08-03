@@ -3,7 +3,8 @@ from io import StringIO
 import pytest
 
 from gcpu import emulator, assembler
-from gcpu.emulator import InstructionSet, InvalidInstructionError
+from gcpu.emulator import InvalidInstructionError
+from gcpu.instructions import InstructionSet
 from gcpu import default_config
 
 

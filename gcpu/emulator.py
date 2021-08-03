@@ -1,17 +1,13 @@
 from __future__ import annotations
 
 import sys
-from dataclasses import dataclass, field
 from io import BytesIO
-from typing import List, Callable, Dict
-import itertools as it
+from typing import List, Dict
 
 from gcpu import utils
+from gcpu.instructions import InstructionSet
 
 MEMORY_SIZE = 2 ** 7
-AUTO_INDEX_ASSIGMENT = -1
-
-MNEMONIC_DELIMITERS = [' ', ',', '-']
 
 
 class EmulatorRuntimeError(Exception): pass
@@ -21,109 +17,6 @@ class ExecutionCyclesExceededError(EmulatorRuntimeError): pass
 
 
 class InvalidInstructionError(EmulatorRuntimeError): pass
-
-
-class RegisterInstructionError(Exception): pass
-
-
-class InstructionBuilderError(Exception): pass
-
-
-@dataclass
-class Instruction:
-    mnemonic: str
-
-    emulate: Callable[[Emulator], bool]
-    variable_order: List[str] = field(default_factory=list)
-    id: int = AUTO_INDEX_ASSIGMENT
-    name: str = ''
-    doc_str: str = ''
-
-    def __post_init__(self):
-        words = utils.split_many(self.mnemonic, MNEMONIC_DELIMITERS)
-
-        if not self.name:
-            self.name = words[0]
-
-        variables = [var.lstrip('#') for var in words if var.startswith('#')]
-
-        if self.variable_order:
-            # Check so the user provided all necessary variables
-            if set(self.variable_order) != set(variables):
-                raise RegisterInstructionError(f'Variables_order should contain: {repr(set(variables))}')
-        else:
-            self.variable_order = variables
-
-    @property
-    def size(self):
-        # 1 for id and add one for each variable
-        return 1 + len(self.variable_order)
-
-    def build(self, **kwargs: int):
-        result = [self.id]
-        for variable_name in self.variable_order:
-            if variable_name not in kwargs:
-                raise InstructionBuilderError(f'A variable with name {variable_name} is required')
-            var = kwargs.pop(variable_name)
-            result.append(var)
-        if kwargs:
-            raise InstructionBuilderError(f'Instruction {self.mnemonic} does not take variables {kwargs}')
-        return result
-
-    def get_position_of_variable(self, variable: str) -> int:
-        if variable not in self.variable_order:
-            raise InstructionBuilderError(f'Variable {variable} not part of this instruction')
-        return self.variable_order.index(variable)
-
-
-class InstructionSet:
-
-    def __init__(self, max_size: int = 256):
-        self._max_size = max_size
-        self.instruction_by_index: Dict[int, Instruction] = {}
-
-    def _next_vacant_index(self):
-        for i in range(self._max_size):
-            if i not in self.instruction_by_index:
-                return i
-
-        raise ValueError('Maximum number of instructions reached')
-
-    def add_instruction(self, instruction: Instruction):
-        # assign id
-        if instruction.id == AUTO_INDEX_ASSIGMENT:
-            instruction.id = self._next_vacant_index()
-
-        if instruction.id in self.instruction_by_index:
-            raise ValueError(f'An instruction with if {instruction.id} already exists')
-        if instruction.id >= self._max_size:
-            raise ValueError(f'Instruction already at max capacity')
-
-        self.instruction_by_index[instruction.id] = instruction
-
-    def create_instruction(self, mnemonic: str, index: int = AUTO_INDEX_ASSIGMENT, name: str = None) -> Callable[
-        [Callable[[Emulator], bool]], Instruction]:
-        def decorator(func: Callable[[Emulator], bool]) -> Instruction:
-            instruction_name = name if name is not None else func.__name__
-            instruction_doc = func.__doc__ if func.__doc__ else 'missing'
-
-            result = Instruction(
-                mnemonic,
-                name=instruction_name,
-                doc_str=instruction_doc,
-                id=index,
-                emulate=func
-            )
-
-            self.add_instruction(result)
-            return result
-
-        return decorator
-
-    def __getitem__(self, item: int) -> Instruction:
-        if item not in self.instruction_by_index:
-            raise InvalidInstructionError(item)
-        return self.instruction_by_index[item]
 
 
 class Emulator:

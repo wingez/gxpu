@@ -1,7 +1,7 @@
 import pytest
 
-from gcpu.emulator import InstructionSet, Instruction, AUTO_INDEX_ASSIGMENT, RegisterInstructionError, \
-    InstructionBuilderError
+from gcpu.instructions import AUTO_INDEX_ASSIGMENT, RegisterInstructionError, InstructionBuilderError, Instruction, \
+    InstructionSet
 from gcpu.assembler import assemble_mnemonic, disassemble
 
 
@@ -121,3 +121,26 @@ def test_disassemble():
     ]
 
     assert disassemble(i, code) == expected
+
+
+def test_print_instructions(capsys):
+    i = InstructionSet()
+    i.add_instruction(Instruction('test', emulate=None, id=0, group='group1'))
+    i.add_instruction(Instruction('test #ins #tmp', emulate=None, id=1, group='group2'))
+    i.add_instruction(Instruction('test #ins', emulate=None, id=2, group='group1'))
+    i.print_all_instructions()
+    captured = capsys.readouterr()
+    assert captured.out == "Group: group1\n" \
+                           "  0: test\n" \
+                           "  2: test #ins\n" \
+                           "Group: group2\n" \
+                           "  1: test #ins #tmp\n"
+
+
+def test_print_instructions_no_group_provided(capsys):
+    # Test no group set
+    i = InstructionSet()
+    i.add_instruction(Instruction('test', emulate=None, id=5, ))
+    i.print_all_instructions()
+    assert capsys.readouterr().out == "Group: not set\n" \
+                                      "  5: test\n"

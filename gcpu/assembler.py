@@ -1,7 +1,7 @@
 from typing import List, TextIO
 
 from gcpu import utils
-from gcpu.emulator import InstructionSet, MNEMONIC_DELIMITERS, InstructionBuilderError
+from gcpu.instructions import MNEMONIC_DELIMITERS, InstructionBuilderError, InstructionSet
 
 
 def assemble_mnemonic(instruction_set: InstructionSet, mnemonic: str) -> List[int]:
@@ -13,7 +13,7 @@ def assemble_mnemonic(instruction_set: InstructionSet, mnemonic: str) -> List[in
     def parse_variable(text: str) -> int:
         return int(text)
 
-    for instr in instruction_set.instruction_by_index.values():
+    for instr in instruction_set.get_instructions():
 
         variables = {}
 
@@ -51,7 +51,7 @@ def disassemble(instruction_set: InstructionSet, code: List[int]) -> List[str]:
 
     while index < len(code):
         instruction_id = code[index]
-        instr = instruction_set.instruction_by_index[instruction_id]
+        instr = instruction_set[instruction_id]
 
         out = instr.mnemonic
 
