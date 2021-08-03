@@ -43,3 +43,23 @@ def assemble_mnemonic_file(instruction_set: InstructionSet, file: TextIO) -> Lis
         line = line.strip('\n')
         result.extend(assemble_mnemonic(instruction_set, line))
     return result
+
+
+def disassemble(instruction_set: InstructionSet, code: List[int]) -> List[str]:
+    index = 0
+    result = []
+
+    while index < len(code):
+        instruction_id = code[index]
+        instr = instruction_set.instruction_by_index[instruction_id]
+
+        out = instr.mnemonic
+
+        for param in instr.variable_order:
+            val = code[index + 1 + instr.get_position_of_variable(param)]
+            out = out.replace(f'#{param}', f'#{val}')
+
+        index += instr.size
+        result.append(out)
+
+    return result

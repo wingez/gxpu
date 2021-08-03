@@ -46,6 +46,10 @@ def run_program_text(text, *output):
     c = compile.Compiler()
     code = c.build_program(nodes)
 
+    from gcpu import default_config, assembler
+
+    a = assembler.disassemble(default_config.instructions, code)
+
     run_code_check_output(code, *output)
 
 
@@ -132,3 +136,63 @@ def test_call_function():
     """
 
     run_program_text(program, 5, 10, 3)
+
+
+def test_call_function_with_single_parameter():
+    program = """
+    def test(val):
+      print(val)
+    
+    
+    def main():
+      test(5)
+      print(1)
+    
+    """
+    run_program_text(program, 5, 1)
+
+
+def test_call_function_many_parameters():
+    program = """
+    def test(param1,param2):
+      print(param2)
+      print(param1)
+      
+    def main():
+      print(5)
+      test(10,6)
+      print(7)
+    
+    """
+    run_program_text(program, 5, 6, 10, 7)
+
+
+def test_call_function_parameter_variable():
+    program = """
+    def test(arg):
+      print(arg)
+      
+    def test2(arg):
+      test(arg+5)
+      
+    def main():
+      v = 5
+      test(v)
+      test2(10)
+      test2(v)
+    
+    """
+    run_program_text(program, 5, 15, 10)
+
+
+def test_call_function_consecutive_many_parameters():
+    program = """
+    def test(arg1,arg2,arg3):
+      v = arg1+arg2
+      print(v+arg3)
+      
+    def main():
+      test(1,2,3)
+      test(1,1,2)  
+    """
+    run_program_text(program, 6, 4)

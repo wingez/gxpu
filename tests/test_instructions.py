@@ -60,6 +60,9 @@ def test_build():
     i = Instruction('test #a, #b', emulate=None, variable_order=['b', 'a'], id=7)
     assert i.build(a=2, b=3) == [7, 3, 2]
 
+    i = Instruction('test -#a', emulate=None)
+    assert i.variable_order == ['a']
+
     i = Instruction('test #a, #b', emulate=None, id=8)
     with pytest.raises(InstructionBuilderError):
         i.build(a=6)
@@ -93,3 +96,5 @@ def test_assemble_mnemonic_case_invariance():
     assert assemble_mnemonic(i, 'test #0') == [1, 0]
     assert assemble_mnemonic(i, 'TesT #0') == [1, 0]
     assert assemble_mnemonic(i, 'test2 #0') == [2, 0]
+
+

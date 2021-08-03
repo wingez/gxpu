@@ -11,7 +11,7 @@ from gcpu import utils
 MEMORY_SIZE = 2 ** 7
 AUTO_INDEX_ASSIGMENT = -1
 
-MNEMONIC_DELIMITERS = [' ', ',']
+MNEMONIC_DELIMITERS = [' ', ',', '-']
 
 
 class EmulatorRuntimeError(Exception): pass
