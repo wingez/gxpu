@@ -1,7 +1,7 @@
 from __future__ import annotations
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import List, Optional, Type, TypeVar, Union
+from typing import List, Optional, Type, TypeVar, Union, Callable
 
 from gcpu import token
 
@@ -114,11 +114,11 @@ class Parser:
             if self.peek_is(token.TokenEOL):
                 self.consume()
             else:
-
-                node = self.try_parse_function()
-                if node is not None:
-                    result.append(node)
+                try:
+                    result.append(self.parse_function_definition())
                     continue
+                except ParserError:
+                    pass
 
                 raise ParserError('Could not parse')
 
@@ -140,19 +140,24 @@ class Parser:
         return expressions
 
     def parse_statement(self) -> StatementNode:
+
+        def try_parse(func: Callable[[], StatementNode]) -> Optional[StatementNode]:
+            line = self.savepoint()
+            try:
+                return func()
+            except ParserError as e:
+                self.restore(line)
+                return None
+
         tok: Optional[StatementNode]
 
-        tok = self.try_parse_assignment()
-        if tok is not None:
+        if tok := try_parse(self.parse_assignment):
             return tok
-        tok = self.try_parse_print()
-        if tok is not None:
+        if tok := try_parse(self.parse_print):
             return tok
-        tok = self.try_parse_function_call()
-        if tok is not None:
+        if tok := try_parse(self.parse_function_call):
             return tok
-        tok = self.try_parse_while_statement()
-        if tok is not None:
+        if tok := try_parse(self.parse_while_statement):
             return tok
 
         raise ParserError(f'Dont know how to parse: {self.peek()}')
@@ -169,15 +174,6 @@ class Parser:
             raise ParserError()
 
         return current
-
-    @contextmanager
-    def _restore_on_error(self):
-        line = self.savepoint()
-        try:
-            yield
-        except ParserError as e:
-            self.restore(line)
-            raise e
 
     def parse_value_provider(self) -> ValueProviderNode:
         tok = self.consume()
@@ -210,13 +206,6 @@ class Parser:
                 raise ParserError(f'Dont know how to parse {next_token}')
 
         raise ParserError(f'{next_token} was not expected')
-
-    def try_parse_function(self) -> Optional[FunctionNode]:
-        try:
-            with self._restore_on_error():
-                return self.parse_function_definition()
-        except ParserError:
-            return None
 
     def parse_function_definition(self) -> FunctionNode:
         self.consume_type(token.TokenKeywordDef)
@@ -253,38 +242,21 @@ class Parser:
 
         return WhileNode(statements)
 
-    def try_parse_while_statement(self) -> Optional[WhileNode]:
-        try:
-            with self._restore_on_error():
-                return self.parse_while_statement()
-        except ParserError:
-            return None
+    def parse_assignment(self) -> AssignNode:
+        target_token: token.TokenIdentifier = self.consume_type(token.TokenIdentifier)
+        self.consume_type(token.TokenEquals)
+        value_node = self.parse_value_provider()
+        self.consume_type(token.TokenEOL)
+        return AssignNode(target_token.target, value_node)
 
-    def try_parse_assignment(self) -> Optional[AssignNode]:
+    def parse_print(self) -> PrintNode:
+        self.consume_type(token.TokenKeywordPrint)
+        self.consume_type(token.TokenLeftParenthesis)
+        target = self.parse_value_provider()
+        self.consume_type(token.TokenRightParenthesis)
+        self.consume_type(token.TokenEOL)
 
-        try:
-            with self._restore_on_error():
-                target_token: token.TokenIdentifier = self.consume_type(token.TokenIdentifier)
-                self.consume_type(token.TokenEquals)
-                value_node = self.parse_value_provider()
-                self.consume_type(token.TokenEOL)
-                return AssignNode(target_token.target, value_node)
-        except ParserError:
-            return None
-
-    def try_parse_print(self) -> Optional[PrintNode]:
-
-        try:
-            with self._restore_on_error():
-                self.consume_type(token.TokenKeywordPrint)
-                self.consume_type(token.TokenLeftParenthesis)
-                target = self.parse_value_provider()
-                self.consume_type(token.TokenRightParenthesis)
-                self.consume_type(token.TokenEOL)
-
-                return PrintNode(target)
-        except ParserError:
-            return None
+        return PrintNode(target)
 
     def parse_function_call(self) -> CallNode:
         target_node = self.consume_type(token.TokenIdentifier)
@@ -305,14 +277,6 @@ class Parser:
         self.consume_type(token.TokenEOL)
 
         return CallNode(target_node.target, parameters=parameters)
-
-    def try_parse_function_call(self) -> Optional[CallNode]:
-        try:
-            with self._restore_on_error():
-                return self.parse_function_call()
-
-        except ParserError:
-            return None
 
 
 def parse(tokens: List[token.Token]) -> List[FunctionNode]:
