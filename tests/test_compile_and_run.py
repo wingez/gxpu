@@ -46,10 +46,6 @@ def run_program_text(text, *output):
     c = compile.Compiler()
     code = c.build_program(nodes)
 
-    from gcpu import default_config, assembler
-
-    a = assembler.disassemble(default_config.instructions, code)
-
     run_code_check_output(code, *output)
 
 

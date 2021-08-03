@@ -2,7 +2,7 @@ import pytest
 
 from gcpu.emulator import InstructionSet, Instruction, AUTO_INDEX_ASSIGMENT, RegisterInstructionError, \
     InstructionBuilderError
-from gcpu.assembler import assemble_mnemonic
+from gcpu.assembler import assemble_mnemonic, disassemble
 
 
 def test_auto_id():
@@ -98,3 +98,26 @@ def test_assemble_mnemonic_case_invariance():
     assert assemble_mnemonic(i, 'test2 #0') == [2, 0]
 
 
+def test_disassemble():
+    i = InstructionSet()
+    i.add_instruction(Instruction('test #ins', emulate=None, id=1))
+    i.add_instruction(Instruction('TEst2 #ins #asd', emulate=None, id=2))
+    i.add_instruction(Instruction('second', emulate=None, id=3))
+
+    code = [
+        1, 15,
+        3,
+        3,
+        2, 6, 3,
+        1, 14
+    ]
+
+    expected = [
+        'test #15',
+        'second',
+        'second',
+        'TEst2 #6 #3',
+        'test #14',
+    ]
+
+    assert disassemble(i, code) == expected
