@@ -94,10 +94,10 @@ def test_call_parameters():
 
 def test_while():
     code = """
-    while:
+    while 1:
       print(5)
     
     """
 
     assert ast.Parser(token.parse_file(StringIO(code))).parse_while_statement() == \
-           ast.WhileNode(body=[ast.PrintNode(ast.ConstantNode(5))])
+           ast.WhileNode(condition=ast.ConstantNode(1), body=[ast.PrintNode(ast.ConstantNode(5))])

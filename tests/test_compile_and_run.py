@@ -87,6 +87,17 @@ def test_reassign_variable():
     run_function_body_text_check_output(content, 3, 5)
 
 
+def test_variable_increment():
+    content = """
+    var = 3
+    print(var)
+    var=var+1
+    print(var)
+    
+    """
+    run_function_body_text_check_output(content, 3, 4)
+
+
 def test_variable_move():
     nodes = [
         ast.AssignNode('var1', ast.ConstantNode(2)),
@@ -197,9 +208,21 @@ def test_call_function_consecutive_many_parameters():
 def test_while():
     program = """
     def main():
-      while:
+      while 1:
         print(5)
     
     """
     with pytest.raises(emulator.ExecutionCyclesExceededError):
         run_program_text(program)
+
+
+def test_while_decrement():
+    body = """
+    var=5
+    while var:
+      print(var)
+      var=var-1
+    
+    
+    """
+    run_function_body_text_check_output(body, 5, 4, 3, 2, 1)

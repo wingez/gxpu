@@ -66,6 +66,7 @@ class FunctionNode(ValueProviderNode):
 
 @dataclass
 class WhileNode(StatementNode):
+    condition: ValueProviderNode
     body: List[StatementNode]
 
 
@@ -234,13 +235,16 @@ class Parser:
 
     def parse_while_statement(self) -> WhileNode:
         self.consume_type(token.TokenKeywordWhile)
+
+        condition = self.parse_value_provider()
+
         self.consume_type(token.TokenColon)
         self.consume_type(token.TokenEOL)
         self.consume_type(token.TokenBeginBlock)
 
         statements = self.parse_statements_until_endblock()
 
-        return WhileNode(statements)
+        return WhileNode(condition, statements)
 
     def parse_assignment(self) -> AssignNode:
         target_token: token.TokenIdentifier = self.consume_type(token.TokenIdentifier)

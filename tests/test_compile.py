@@ -71,13 +71,16 @@ def compiled_should_match_assembled(nodes, expected_assembly):
 
 def test_compile_while():
     expected = """
-    ldfp #15
-    ldsp #15
+    ldfp #20
+    ldsp #20
 
     call #7
     exit
     
     addsp #0
+    lda #1
+    tsta
+    jmpz #19
     lda #5
     out
     jmp #9
@@ -87,8 +90,7 @@ def test_compile_while():
     """
 
     compiled_should_match_assembled([ast.FunctionNode(name='main', arguments=[], body=[
-        ast.WhileNode([
-            ast.PrintNode(ast.ConstantNode(5))
-
-        ])
+        ast.WhileNode(
+            condition=ast.ConstantNode(1),
+            body=[ast.PrintNode(ast.ConstantNode(5))])
     ])], expected)
