@@ -57,10 +57,11 @@ class OperationNode(ValueProviderNode):
 
 
 @dataclass
-class FunctionNode(ValueProviderNode):
+class FunctionNode(AstNode):
     name: str
     arguments: List[str]
     body: List[StatementNode]
+    return_type: str = ''
 
 
 @dataclass
@@ -234,12 +235,16 @@ class Parser:
         self.consume()
 
         self.consume_type(token.TokenColon)
+        return_type = ''
+        if not self.peek_is(token.TokenEOL):
+            return_type = self.consume_type(token.TokenIdentifier).target
+
         self.consume_type(token.TokenEOL)
         self.consume_type(token.TokenBeginBlock)
 
         statements = self.parse_statements_until_endblock()
 
-        return FunctionNode(name_node.target, arguments=parameter_names, body=statements)
+        return FunctionNode(name_node.target, arguments=parameter_names, body=statements, return_type=return_type)
 
     def parse_while_statement(self) -> WhileNode:
         self.consume_type(token.TokenKeywordWhile)

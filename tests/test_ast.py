@@ -76,6 +76,18 @@ def test_parse_function_with_multiple_parameters():
                    ast.PrintNode(ast.ConstantNode(5))])
 
 
+def test_function_return_type():
+    program = """
+    def test():byte
+      print(5)
+    """
+    assert ast.Parser(token.parse_file(StringIO(program))).parse_function_definition() == \
+           ast.FunctionNode(
+               name='test',
+               arguments=[], return_type='byte', body=[
+                   ast.PrintNode(ast.ConstantNode(5))])
+
+
 def test_call_no_parameters():
     assert ast.Parser(token.parse_line("func()")).parse_function_call() == ast.CallNode('func', parameters=[])
 
