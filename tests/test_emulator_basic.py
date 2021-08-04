@@ -124,6 +124,14 @@ def test_execution():
                           default_config.exit.build()]) == bytes([0, 10])
 
 
+def assemble_load_emulator(code):
+    assembled = assembler.assemble_mnemonic_file(default_config.instructions, StringIO(code))
+
+    e = default_config.DefaultEmulator()
+    e.set_all_memory(assembled)
+    return e
+
+
 def test_call():
     program = """
     LDSP #25
@@ -134,10 +142,7 @@ def test_call():
     EXIT
     
     """
-    assembled = assembler.assemble_mnemonic_file(default_config.instructions, StringIO(program))
-
-    e = default_config.DefaultEmulator()
-    e.set_all_memory(assembled)
+    e = assemble_load_emulator(program)
     e.run()
 
     assert e.get_memory_at(25) == 25
@@ -165,9 +170,7 @@ def test_call_and_ret():
     
     """
 
-    assembled = assembler.assemble_mnemonic_file(default_config.instructions, StringIO(program))
-    e = default_config.DefaultEmulator()
-    e.set_all_memory(assembled)
+    e = assemble_load_emulator(program)
     e.run()
 
     assert e.get_output() == bytes([1, 2, 3])
@@ -187,10 +190,8 @@ def test_jump():
     exit
     
     """
+    e = assemble_load_emulator(program)
 
-    assembled = assembler.assemble_mnemonic_file(default_config.instructions, StringIO(program))
-    e = default_config.DefaultEmulator()
-    e.set_all_memory(assembled)
     e.run()
     assert e.get_output() == bytes([5, 5])
 
@@ -202,8 +203,43 @@ def test_jump_loop_infinite():
     jmp #0
     exit
     """
-    assembled = assembler.assemble_mnemonic_file(default_config.instructions, StringIO(program))
-    e = default_config.DefaultEmulator()
-    e.set_all_memory(assembled)
+    e = assemble_load_emulator(program)
+
     with pytest.raises(emulator.ExecutionCyclesExceededError):
         e.run()
+
+
+def test_zero_flag():
+    program = """
+    lda #1
+    tsta
+    exit
+    """
+    e = assemble_load_emulator(program)
+    e.run()
+    assert e.zero_flag == False
+    e = assemble_load_emulator("""
+    lda #0
+    tsta
+    exit
+    """)
+    e.run()
+    assert e.zero_flag == True
+
+
+def test_jump_if_zero():
+    program = """
+    lda #1
+    tsta
+    jmpz #6
+    out
+    lda #0
+    tsta
+    jmpz #12
+    out
+    
+    exit
+    """
+    e = assemble_load_emulator(program)
+    e.run()
+    assert e.get_output() == bytes([1])

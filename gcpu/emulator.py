@@ -31,6 +31,7 @@ class Emulator:
         self.pc = 0
         self.fp = 0
         self.sp = 0
+        self.zero_flag = False
 
         self.reset()
 
@@ -39,6 +40,7 @@ class Emulator:
         self.pc = 0
         self.fp = 0
         self.sp = 0
+        self.zero_flag = False
 
     def clear_memory(self):
         for i in range(MEMORY_SIZE):

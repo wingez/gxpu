@@ -164,5 +164,17 @@ def jump(emulator):
     return False
 
 
+@instructions.create_instruction('TSTA', group=CONTROL)
+def test_a(emulator):
+    emulator.zero_flag = emulator.a == 0
+
+
+@instructions.create_instruction('JMPZ #addr', group=CONTROL)
+def jump_if_zero(emulator):
+    addr = emulator.get_and_inc_pc()
+    if emulator.zero_flag:
+        emulator.pc = addr
+
+
 if __name__ == '__main__':
     instructions.print_all_instructions()
