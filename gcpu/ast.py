@@ -1,7 +1,6 @@
 from __future__ import annotations
-from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import List, Optional, Type, TypeVar, Union, Callable
+from typing import List, Optional, Type, TypeVar, Callable
 
 from gcpu import token
 
@@ -146,7 +145,7 @@ class Parser:
             line = self.savepoint()
             try:
                 return func()
-            except ParserError as e:
+            except ParserError:
                 self.restore(line)
                 return None
 

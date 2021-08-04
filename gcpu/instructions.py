@@ -86,7 +86,7 @@ class InstructionSet:
         if instruction.id in self._instruction_by_index:
             raise ValueError(f'An instruction with if {instruction.id} already exists')
         if instruction.id >= self._max_size:
-            raise ValueError(f'Instruction already at max capacity')
+            raise ValueError('Instruction already at max capacity')
 
         self._instruction_by_index[instruction.id] = instruction
 

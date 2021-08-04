@@ -21,10 +21,10 @@ class ExpressionSeparator(Token): pass
 class TokenEOL(ExpressionSeparator): pass
 
 
-class TokenLeftParenthesis(ExpressionSeparator):    pass
+class TokenLeftParenthesis(ExpressionSeparator): pass
 
 
-class TokenRightParenthesis(ExpressionSeparator):    pass
+class TokenRightParenthesis(ExpressionSeparator): pass
 
 
 class TokenComma(ExpressionSeparator):

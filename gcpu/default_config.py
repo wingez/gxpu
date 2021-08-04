@@ -1,5 +1,3 @@
-from io import BytesIO
-
 from gcpu.emulator import Emulator, InvalidInstructionError
 from gcpu.instructions import InstructionSet
 

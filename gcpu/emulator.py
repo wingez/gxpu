@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import sys
 from io import BytesIO
-from typing import List, Dict
+from typing import List
 
-from gcpu import utils
 from gcpu.instructions import InstructionSet
 
 MEMORY_SIZE = 2 ** 7
