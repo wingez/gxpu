@@ -57,7 +57,7 @@ def test_function_arguments():
 
 
 def test_assembly_parameter_offset():
-    f = compile.AssemblyFunction(name='func', args=['param1', 'param2'])
+    f = compile.AssemblyFunction(compiler=None, name='func', args=['param1', 'param2'])
     assert f.frame_variables_offsets == {'param1': -4, 'param2': -3}
 
 
@@ -95,8 +95,9 @@ def test_compile_while():
             body=[ast.PrintNode(ast.ConstantNode(5))])
     ])], expected)
 
+
 def test_compile_if():
-    expected="""
+    expected = """
     ldfp #23
     ldsp #23
 
@@ -116,7 +117,7 @@ def test_compile_if():
     ret
     """
 
-    compiled_should_match_assembled([ast.FunctionNode(name='main', arguments=[],body=[
+    compiled_should_match_assembled([ast.FunctionNode(name='main', arguments=[], body=[
         ast.IfNode(
             condition=ast.ConstantNode(1),
             body=[ast.PrintNode(ast.ConstantNode(5))],
