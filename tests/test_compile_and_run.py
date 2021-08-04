@@ -259,3 +259,17 @@ def test_if_nested():
     """
     run_function_body_text_check_output(body, 8, 3, 2, 8, 1)
 
+
+def test_if_else():
+    body = """
+    a=5
+    while a:
+      if a-3:
+        print(0)
+      else:
+        print(1)
+      a=a-1
+    
+    
+    """
+    run_function_body_text_check_output(body, 0, 0, 1, 0, 0)

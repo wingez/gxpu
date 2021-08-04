@@ -94,3 +94,58 @@ def test_compile_while():
             condition=ast.ConstantNode(1),
             body=[ast.PrintNode(ast.ConstantNode(5))])
     ])], expected)
+
+def test_compile_if():
+    expected="""
+    ldfp #23
+    ldsp #23
+
+    call #7
+    exit
+    
+    addsp #0
+    lda #1
+    tsta
+    jmpz #19
+    lda #5
+    out
+    jmp #22
+    lda #4
+    out
+    
+    ret
+    """
+
+    compiled_should_match_assembled([ast.FunctionNode(name='main', arguments=[],body=[
+        ast.IfNode(
+            condition=ast.ConstantNode(1),
+            body=[ast.PrintNode(ast.ConstantNode(5))],
+            else_body=[ast.PrintNode(ast.ConstantNode(4))]
+        )
+
+    ])], expected)
+
+    expected = """
+        ldfp #18
+        ldsp #18
+
+        call #7
+        exit
+
+        addsp #0
+        lda #1
+        tsta
+        jmpz #17
+        lda #5
+        out
+
+        ret
+        """
+
+    compiled_should_match_assembled([ast.FunctionNode(name='main', arguments=[], body=[
+        ast.IfNode(
+            condition=ast.ConstantNode(1),
+            body=[ast.PrintNode(ast.ConstantNode(5))],
+        )
+
+    ])], expected)

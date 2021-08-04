@@ -126,15 +126,27 @@ class Compiler:
                 default_config.sta_fp_offset.build(offset=self.current_function.frame_variables_offsets[name]))
 
         elif isinstance(statement_node, ast.IfNode):
+            has_else = bool(statement_node.else_body)
             self.put_value_node_in_a_register(statement_node.condition)
             self.generate_current_function(default_config.test_a.build())
-            to_put_exit_address = self.current_function.current_size + 1 + default_config.jump_if_zero.get_position_of_variable(
+            to_put_false_condition_address = self.current_function.current_size + 1 + default_config.jump_if_zero.get_position_of_variable(
                 'addr')
             self.generate_current_function(default_config.jump_if_zero.build(addr=0))
             for node in statement_node.body:
                 self.build_statement_node(node)
 
-            self.current_function.code[to_put_exit_address] = self.current_generating_position
+            to_put_end_address = 0
+            if has_else:
+                to_put_end_address = self.current_function.current_size + 1 + default_config.jump.get_position_of_variable(
+                    'addr')
+                self.generate_current_function(default_config.jump.build(addr=0))
+
+            self.current_function.code[to_put_false_condition_address] = self.current_generating_position
+
+            if has_else:
+                for node in statement_node.else_body:
+                    self.build_statement_node(node)
+                self.current_function.code[to_put_end_address] = self.current_generating_position
 
         elif isinstance(statement_node, ast.WhileNode):
             start_of_block_index = self.current_generating_position
