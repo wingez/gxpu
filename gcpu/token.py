@@ -51,6 +51,9 @@ class TokenKeywordWhile(Token):
     pass
 
 
+class TokenKeywordIf(Token): pass
+
+
 class TokenBeginBlock(Token): pass
 
 
@@ -120,6 +123,8 @@ def to_token(text: str) -> Token:
         return TokenKeywordPrint()
     if text == 'while':
         return TokenKeywordWhile()
+    if text == 'if':
+        return TokenKeywordIf()
 
     return TokenIdentifier(text)
 

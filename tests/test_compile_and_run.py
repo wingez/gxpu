@@ -226,3 +226,36 @@ def test_while_decrement():
     
     """
     run_function_body_text_check_output(body, 5, 4, 3, 2, 1)
+
+
+def test_if():
+    body = """
+    if 0:
+      print(0)
+    if 1:
+      print(1)
+    """
+    run_function_body_text_check_output(body, 1)
+
+
+def test_if_nested():
+    body = """
+    if 1:
+      print(1)
+      if 0:
+        print(0)
+      print(2)
+    """
+    run_function_body_text_check_output(body, 1, 2)
+
+    body = """
+    a=3
+    while a:
+      if a-2:
+        print(8)
+      print(a)
+      a=a-1
+    
+    """
+    run_function_body_text_check_output(body, 8, 3, 2, 8, 1)
+

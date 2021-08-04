@@ -101,3 +101,13 @@ def test_while():
 
     assert ast.Parser(token.parse_file(StringIO(code))).parse_while_statement() == \
            ast.WhileNode(condition=ast.ConstantNode(1), body=[ast.PrintNode(ast.ConstantNode(5))])
+
+def test_if():
+    code = """
+        if 1:
+          print(5)
+
+        """
+
+    assert ast.Parser(token.parse_file(StringIO(code))).parse_if_statement() == \
+           ast.IfNode(condition=ast.ConstantNode(1), body=[ast.PrintNode(ast.ConstantNode(5))])

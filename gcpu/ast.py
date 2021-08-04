@@ -69,6 +69,12 @@ class WhileNode(StatementNode):
     body: List[StatementNode]
 
 
+@dataclass
+class IfNode(StatementNode):
+    condition: ValueProviderNode
+    body: List[StatementNode]
+
+
 class AdditionNode(OperationNode): pass
 
 
@@ -159,6 +165,8 @@ class Parser:
             return tok
         if tok := try_parse(self.parse_while_statement):
             return tok
+        if tok := try_parse(self.parse_if_statement):
+            return tok
 
         raise ParserError(f'Dont know how to parse: {self.peek()}')
 
@@ -244,6 +252,18 @@ class Parser:
         statements = self.parse_statements_until_endblock()
 
         return WhileNode(condition, statements)
+
+    def parse_if_statement(self) -> IfNode:
+        self.consume_type(token.TokenKeywordIf)
+
+        condition = self.parse_value_provider()
+
+        self.consume_type(token.TokenColon)
+        self.consume_type(token.TokenEOL)
+        self.consume_type(token.TokenBeginBlock)
+
+        statements = self.parse_statements_until_endblock()
+        return IfNode(condition=condition, body=statements)
 
     def parse_assignment(self) -> AssignNode:
         target_token: token.TokenIdentifier = self.consume_type(token.TokenIdentifier)
