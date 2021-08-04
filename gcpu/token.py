@@ -31,7 +31,7 @@ class TokenComma(ExpressionSeparator):
     pass
 
 
-class TokenColon(Token):
+class TokenColon(ExpressionSeparator):
     pass
 
 
