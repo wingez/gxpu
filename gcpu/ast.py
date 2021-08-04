@@ -73,6 +73,7 @@ class WhileNode(StatementNode):
 class IfNode(StatementNode):
     condition: ValueProviderNode
     body: List[StatementNode]
+    else_body: List[StatementNode] = field(default_factory=list)
 
 
 class AdditionNode(OperationNode): pass
@@ -263,7 +264,16 @@ class Parser:
         self.consume_type(token.TokenBeginBlock)
 
         statements = self.parse_statements_until_endblock()
-        return IfNode(condition=condition, body=statements)
+        else_statements = []
+
+        if self.has_more_to_parse() and self.peek_is(token.TokenElse):
+            self.consume()
+            self.consume_type(token.TokenColon)
+            self.consume_type(token.TokenEOL)
+            self.consume_type(token.TokenBeginBlock)
+            else_statements = self.parse_statements_until_endblock()
+
+        return IfNode(condition=condition, body=statements, else_body=else_statements)
 
     def parse_assignment(self) -> AssignNode:
         target_token: token.TokenIdentifier = self.consume_type(token.TokenIdentifier)
