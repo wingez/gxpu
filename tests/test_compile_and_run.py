@@ -273,3 +273,43 @@ def test_if_else():
     
     """
     run_function_body_text_check_output(body, 0, 0, 1, 0, 0)
+
+
+def test_call_return():
+    program = """
+    def test():byte
+      return 5
+      
+    def main():
+      a=test()
+      print(a)
+    
+    """
+    run_program_text(program, 5)
+
+
+def test_call_return_parameters():
+    program = """
+    def add(val1,val2):byte
+      return val1+val2
+      
+    def main():
+      print(add(1,2))
+      print(add(0,0))
+    
+    """
+    run_program_text(program, 3, 0)
+
+    program = """
+    def add2(val1,val2):byte
+      return val1+val2
+    
+    def add3(v1,v2,v3):byte
+      return add2(v1,add2(v2,v3))
+    
+    def main():
+      print(add3(1,2,4))
+      print(add3(5,6,7))
+      print(add3(1,0,0))
+    """
+    run_program_text(program, 7, 18, 1)

@@ -5,7 +5,7 @@ import itertools as it
 from gcpu import utils
 
 AUTO_INDEX_ASSIGMENT = -1
-MNEMONIC_DELIMITERS = [' ', ',', '-']
+MNEMONIC_DELIMITERS = [' ', ',']
 
 # Should take an emulator as argument but to avoid circular import
 FUNCTION_EMULATE = Callable[[Any], bool]
@@ -34,7 +34,7 @@ class Instruction:
         if not self.name:
             self.name = words[0]
 
-        variables = [var.lstrip('#') for var in words if var.startswith('#')]
+        variables = [var.lstrip('#-') for var in words if '#' in var]
 
         if self.variable_order:
             # Check so the user provided all necessary variables

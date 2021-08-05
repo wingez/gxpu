@@ -54,7 +54,10 @@ class TokenKeywordWhile(Token):
 class TokenKeywordIf(Token): pass
 
 
-class TokenElse(Token): pass
+class TokenKeywordElse(Token): pass
+
+
+class TokenKeywordReturn(Token): pass
 
 
 class TokenBeginBlock(Token): pass
@@ -129,7 +132,9 @@ def to_token(text: str) -> Token:
     if text == 'if':
         return TokenKeywordIf()
     if text == 'else':
-        return TokenElse()
+        return TokenKeywordElse()
+    if text == 'return':
+        return TokenKeywordReturn()
 
     return TokenIdentifier(text)
 

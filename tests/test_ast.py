@@ -88,6 +88,14 @@ def test_function_return_type():
                    ast.PrintNode(ast.ConstantNode(5))])
 
 
+def test_return():
+    assert ast.Parser(token.parse_line('return')).parse_return_statement() == \
+           ast.ReturnNode()
+
+    assert ast.Parser(token.parse_line('return 5+a')).parse_return_statement() == \
+           ast.ReturnNode(ast.AdditionNode(left=ast.ConstantNode(5), right=ast.IdentifierNode('a')))
+
+
 def test_call_no_parameters():
     assert ast.Parser(token.parse_line("func()")).parse_function_call() == ast.CallNode('func', parameters=[])
 
@@ -102,6 +110,12 @@ def test_call_parameters():
                ast.ConstantNode(10),
                ast.IdentifierNode('test')
            ])
+
+
+def test_assign_call():
+    assert ast.Parser(token.parse_line("a=test()")).parse_assignment() == ast.AssignNode(
+        target='a', value=ast.CallNode('test', [])
+    )
 
 
 def test_while():

@@ -72,6 +72,13 @@ def sta_fp_offset(emulator):
     return False
 
 
+@instructions.create_instruction('STA FP, -#offset', group=LOAD_STORE)
+def sta_fp_offset_negative(emulator):
+    offset = emulator.get_and_inc_pc()
+    emulator.set_memory_at(emulator.fp - offset, emulator.a_lower)
+    return False
+
+
 @instructions.create_instruction('ADDA #val', group=OPERATION)
 def adda(emulator):
     val = emulator.get_and_inc_pc()
@@ -145,6 +152,12 @@ def ret(emulator):
 @instructions.create_instruction('PUSHA', group=STACK)
 def push_a(emulator):
     emulator.push(emulator.a)
+    return False
+
+
+@instructions.create_instruction('POPA', group=STACK)
+def pop_a(emulator):
+    emulator.a = emulator.pop()
     return False
 
 

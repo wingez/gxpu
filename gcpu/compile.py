@@ -13,8 +13,23 @@ class CompileError(Exception):
 
 
 @dataclass
+class DataType:
+    name: str
+    size: int
+
+
+void = DataType('void', 0)
+
+primitive_types = [
+    DataType('byte', 1),
+    void,
+]
+
+
+@dataclass
 class AssemblyFunction:
     compiler: Compiler
+    return_type: DataType
     frame_variables_offsets: Dict[str, int] = field(default_factory=dict)
     frame_size: int = 0
     name: str = ''
@@ -22,6 +37,8 @@ class AssemblyFunction:
     memory_address: int = 0
 
     def __post_init__(self):
+        self.frame_variables_offsets[
+            'return'] = 0 - SP_STACK_SIZE - FP_STACK_SIZE - self.num_arguments - self.return_type.size
         for index, arg in enumerate(self.args):
             self.frame_variables_offsets[arg] = 0 - SP_STACK_SIZE - FP_STACK_SIZE - self.num_arguments + index
 
@@ -79,29 +96,42 @@ class AssemblyFunction:
                                       to_put_jump_to_exit)
 
         elif isinstance(statement_node, ast.CallNode):
-            function_name = statement_node.target_name
-            if function_name not in self.compiler.functions:
-                raise CompileError(f'No function with name: {function_name}')
-            function = self.compiler.functions[function_name]
-            if not len(statement_node.parameters) == function.num_arguments:
-                raise CompileError(f'Function {function_name} expected {function.num_arguments} args')
+            function = self.call_func(statement_node)
 
-            # TODO: function return size
-            self.compiler.put_code(default_config.addsp.build(val=0))
+            self.compiler.put_code(default_config.sub_sp.build(val=function.return_type.size + function.num_arguments))
 
-            # place arguments
-            for value_node in statement_node.parameters:
-                self.put_value_node_in_a_register(value_node)
-                self.compiler.put_code(default_config.push_a.build())
+        elif isinstance(statement_node, ast.ReturnNode):
 
-            self.compiler.put_code(
-                default_config.call_addr.build(addr=self.compiler.functions[function_name].memory_address))
+            if statement_node.value:
+                assert self.return_type.size == 1
+                self.put_value_node_in_a_register(statement_node.value)
+                self.compiler.put_code(
+                    default_config.sta_fp_offset_negative.build(offset=-self.frame_variables_offsets['return']))
 
-            # TODO: + function return size
-            self.compiler.put_code(default_config.sub_sp.build(val=0 + function.num_arguments))
+            self.compiler.put_code(default_config.ret.build())
 
         else:
             raise CompileError(f'node of type {statement_node} not supported yet')
+
+    def call_func(self, node: ast.CallNode) -> AssemblyFunction:
+        function_name = node.target_name
+        if function_name not in self.compiler.functions:
+            raise CompileError(f'No function with name: {function_name}')
+        function = self.compiler.functions[function_name]
+        if not len(node.parameters) == function.num_arguments:
+            raise CompileError(f'Function {function_name} expected {function.num_arguments} args')
+
+        self.compiler.put_code(default_config.addsp.build(val=function.return_type.size))
+
+        # place arguments
+        for value_node in node.parameters:
+            self.put_value_node_in_a_register(value_node)
+            self.compiler.put_code(default_config.push_a.build())
+
+        self.compiler.put_code(
+            default_config.call_addr.build(addr=self.compiler.functions[function_name].memory_address))
+
+        return function
 
     def put_value_node_in_a_register(self, node: ast.ValueProviderNode):
         if isinstance(node, ast.ConstantNode):
@@ -140,6 +170,12 @@ class AssemblyFunction:
             else:
                 raise CompileError(' not supported yet')
 
+        elif isinstance(node, ast.CallNode):
+            func = self.call_func(node)
+            assert func.return_type == self.compiler.types['byte']
+            self.compiler.put_code(default_config.sub_sp.build(val=func.num_arguments))
+            self.compiler.put_code(default_config.pop_a.build())
+
         else:
             raise CompileError('not supported yet')
 
@@ -157,6 +193,7 @@ class Compiler:
     def __init__(self):
         self.resulting_code: List[int] = []
         self.functions: Dict[str, AssemblyFunction] = {}
+        self.types: Dict[str, DataType] = {d.name: d for d in primitive_types}
 
     @property
     def current_size(self) -> int:
@@ -176,7 +213,12 @@ class Compiler:
 
     def build_new_function(self, function_node: ast.FunctionNode) -> AssemblyFunction:
 
-        function = AssemblyFunction(compiler=self, name=function_node.name, args=function_node.arguments,
+        return_type_name = function_node.return_type if function_node.return_type else 'void'
+        if return_type_name not in self.types:
+            raise CompileError(f'No known type {function_node.return_type}')
+
+        function = AssemblyFunction(compiler=self, return_type=self.types[return_type_name], name=function_node.name,
+                                    args=function_node.arguments,
                                     memory_address=self.current_size)
 
         if function.name in self.functions:

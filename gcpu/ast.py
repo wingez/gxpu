@@ -45,7 +45,7 @@ class ConstantNode(ValueProviderNode):
 
 
 @dataclass
-class CallNode(StatementNode):
+class CallNode(StatementNode, ValueProviderNode):
     target_name: str
     parameters: List[ValueProviderNode] = field(default_factory=list)
 
@@ -75,6 +75,11 @@ class IfNode(StatementNode):
     condition: ValueProviderNode
     body: List[StatementNode]
     else_body: List[StatementNode] = field(default_factory=list)
+
+
+@dataclass
+class ReturnNode(StatementNode):
+    value: Optional[ValueProviderNode] = None
 
 
 class AdditionNode(OperationNode): pass
@@ -169,6 +174,8 @@ class Parser:
             return tok
         if tok := try_parse(self.parse_if_statement):
             return tok
+        if tok := try_parse(self.parse_return_statement):
+            return tok
 
         raise ParserError(f'Dont know how to parse: {self.peek()}')
 
@@ -186,14 +193,18 @@ class Parser:
         return current
 
     def parse_value_provider(self) -> ValueProviderNode:
-        tok = self.consume()
         first_result: ValueProviderNode
-        if isinstance(tok, token.TokenNumericConstant):
-            first_result = ConstantNode(tok.value)
-        elif isinstance(tok, token.TokenIdentifier):
-            first_result = IdentifierNode(tok.target)
+        if self.peek_is(token.TokenNumericConstant):
+            first_result = ConstantNode(self.consume_type(token.TokenNumericConstant).value)
+        elif self.peek_is(token.TokenIdentifier):
+            savepoint = self.savepoint()
+            try:
+                first_result = self.parse_function_call(should_consume_eol=False)
+            except ParserError:
+                self.restore(savepoint)
+                first_result = IdentifierNode(self.consume_type(token.TokenIdentifier).target)
         else:
-            raise ParserError(f"Cannot parse to value provider: {tok}")
+            raise ParserError(f"Cannot parse to value provider: {self.peek()}")
 
         next_token = self.peek()
 
@@ -271,7 +282,7 @@ class Parser:
         statements = self.parse_statements_until_endblock()
         else_statements = []
 
-        if self.has_more_to_parse() and self.peek_is(token.TokenElse):
+        if self.has_more_to_parse() and self.peek_is(token.TokenKeywordElse):
             self.consume()
             self.consume_type(token.TokenColon)
             self.consume_type(token.TokenEOL)
@@ -296,7 +307,7 @@ class Parser:
 
         return PrintNode(target)
 
-    def parse_function_call(self) -> CallNode:
+    def parse_function_call(self, should_consume_eol: bool = True) -> CallNode:
         target_node = self.consume_type(token.TokenIdentifier)
         self.consume_type(token.TokenLeftParenthesis)
 
@@ -312,9 +323,19 @@ class Parser:
 
         self.consume()
 
-        self.consume_type(token.TokenEOL)
+        if should_consume_eol:
+            self.consume_type(token.TokenEOL)
 
         return CallNode(target_node.target, parameters=parameters)
+
+    def parse_return_statement(self) -> ReturnNode:
+        self.consume_type(token.TokenKeywordReturn)
+
+        value = None
+        if not self.peek_is(token.TokenEOL):
+            value = self.parse_value_provider()
+        self.consume_type(token.TokenEOL)
+        return ReturnNode(value)
 
 
 def parse(tokens: List[token.Token]) -> List[FunctionNode]:

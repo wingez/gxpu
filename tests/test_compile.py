@@ -57,8 +57,8 @@ def test_function_arguments():
 
 
 def test_assembly_parameter_offset():
-    f = compile.AssemblyFunction(compiler=None, name='func', args=['param1', 'param2'])
-    assert f.frame_variables_offsets == {'param1': -4, 'param2': -3}
+    f = compile.AssemblyFunction(compiler=None, return_type=compile.void, name='func', args=['param1', 'param2'])
+    assert f.frame_variables_offsets == {'param1': -4, 'param2': -3, 'return': -4}
 
 
 def compiled_should_match_assembled(nodes, expected_assembly):
@@ -148,5 +148,29 @@ def test_compile_if():
             condition=ast.ConstantNode(1),
             body=[ast.PrintNode(ast.ConstantNode(5))],
         )
+
+    ])], expected)
+
+
+def test_return_byte():
+    expected = """
+           ldfp #18
+           ldsp #18
+
+           call #7
+           exit
+           
+           addsp #0
+           lda #5
+           out
+           lda #10
+           STA FP, -#3
+           ret
+           ret
+           """
+
+    compiled_should_match_assembled([ast.FunctionNode(name='main', arguments=[], return_type='byte', body=[
+        ast.PrintNode(ast.ConstantNode(5)),
+        ast.ReturnNode(ast.ConstantNode(10)),
 
     ])], expected)
