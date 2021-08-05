@@ -20,6 +20,7 @@ def assemble_mnemonic(instruction_set: InstructionSet, mnemonic: str) -> List[in
         template_split = utils.split_many(instr.mnemonic, MNEMONIC_DELIMITERS)
         mnem_split = utils.split_many(mnemonic, MNEMONIC_DELIMITERS)
         # Filter extra spaces
+        template_split = [word for word in template_split if len(word) > 0]
         mnem_split = [word for word in mnem_split if len(word) > 0]
 
         if len(template_split) != len(mnem_split):
@@ -27,7 +28,14 @@ def assemble_mnemonic(instruction_set: InstructionSet, mnemonic: str) -> List[in
 
         for template_word, mnem_word in zip(template_split, mnem_split):
             if '#' in template_word and '#' in mnem_word:
-                variables[template_word[1:]] = parse_variable(mnem_word[1:])
+
+                index_of = template_word.index('#')
+                if index_of != mnem_word.index('#'):
+                    break
+                if not template_word.lower()[:index_of] == mnem_word.lower()[:index_of]:
+                    break
+
+                variables[template_word[index_of + 1:]] = parse_variable(mnem_word[index_of + 1:])
             elif not template_word.lower() == mnem_word.lower():
                 break
         else:

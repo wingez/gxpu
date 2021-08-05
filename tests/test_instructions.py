@@ -98,6 +98,15 @@ def test_assemble_mnemonic_case_invariance():
     assert assemble_mnemonic(i, 'test2 #0') == [2, 0]
 
 
+def test_assemble_negative_symbol():
+    i = InstructionSet()
+    i.add_instruction(Instruction('sta fp, #offset', emulate=None, id=1))
+    i.add_instruction(Instruction('sta fp, -#offset', emulate=None, id=2))
+
+    assert assemble_mnemonic(i, 'sta fp, #5') == [1, 5]
+    assert assemble_mnemonic(i, 'sta fp, -#10') == [2, 10]
+
+
 def test_disassemble():
     i = InstructionSet()
     i.add_instruction(Instruction('test #ins', emulate=None, id=1))
