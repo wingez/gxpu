@@ -7,6 +7,7 @@ from gcpu import token
 T = TypeVar('T', bound=token.Token, covariant=True)
 
 VOID_TYPE_NAME = 'void'
+BYTE_TYPE_NAME = 'byte'
 
 
 @dataclass
@@ -22,8 +23,15 @@ class StatementNode(AstNode):
 
 
 @dataclass
+class PrimitiveAssignTarget:
+    name: str
+    type: str = BYTE_TYPE_NAME
+    explicit_new: bool = False
+
+
+@dataclass
 class AssignNode(StatementNode):
-    def __init__(self, target: str, value: ValueProviderNode):
+    def __init__(self, target: PrimitiveAssignTarget, value: ValueProviderNode):
         self.target = target
         self.value_node = value
 
@@ -61,9 +69,15 @@ class OperationNode(ValueProviderNode):
 @dataclass
 class FunctionNode(AstNode):
     name: str
-    arguments: List[str]
+    arguments: List[PrimitiveAssignTarget]
     body: List[StatementNode]
     return_type: str = VOID_TYPE_NAME
+
+
+@dataclass
+class StructNode(AstNode):
+    name: str
+    members: List[PrimitiveAssignTarget]
 
 
 @dataclass
@@ -108,8 +122,11 @@ class Parser:
 
         return self._token[self._index]
 
-    def peek_is(self, token_type: Type[token.Token]) -> bool:
-        return isinstance(self.peek(), token_type)
+    def peek_is(self, token_type: Type[token.Token], consume_match: bool = False) -> bool:
+        result = isinstance(self.peek(), token_type)
+        if consume_match and result:
+            self.consume()
+        return result
 
     def savepoint(self):
         return self._index
@@ -235,17 +252,13 @@ class Parser:
         name_node = self.consume_type(token.TokenIdentifier)
         self.consume_type(token.TokenLeftParenthesis)
 
-        parameter_names = []
+        parameters = []
 
-        while not self.peek_is(token.TokenRightParenthesis):
+        while not self.peek_is(token.TokenRightParenthesis, consume_match=True):
+            member = self.parse_primitive_member_declaration()
+            parameters.append(member)
 
-            target_node = self.consume_type(token.TokenIdentifier)
-            parameter_names.append(target_node.target)
-
-            if self.peek_is(token.TokenComma):
-                self.consume()
-
-        self.consume()
+            self.peek_is(token.TokenComma, consume_match=True)
 
         self.consume_type(token.TokenColon)
         return_type = VOID_TYPE_NAME
@@ -257,7 +270,7 @@ class Parser:
 
         statements = self.parse_statements_until_endblock()
 
-        return FunctionNode(name_node.target, arguments=parameter_names, body=statements, return_type=return_type)
+        return FunctionNode(name_node.target, arguments=parameters, body=statements, return_type=return_type)
 
     def parse_while_statement(self) -> WhileNode:
         self.consume_type(token.TokenKeywordWhile)
@@ -293,12 +306,26 @@ class Parser:
 
         return IfNode(condition=condition, body=statements, else_body=else_statements)
 
+    def parse_primitive_member_declaration(self) -> PrimitiveAssignTarget:
+        """
+        Parses 'val:type' or 'val' or 'val:new type'
+        :return:
+        """
+        target_token = self.consume_type(token.TokenIdentifier)
+        if self.peek_is(token.TokenColon, consume_match=True):
+            explicit_new = self.peek_is(token.TokenKeywordNew, consume_match=True)
+            type_node = self.consume_type(token.TokenIdentifier)
+
+            return PrimitiveAssignTarget(target_token.target, type=type_node.target, explicit_new=explicit_new)
+
+        return PrimitiveAssignTarget(name=target_token.target)
+
     def parse_assignment(self) -> AssignNode:
-        target_token: token.TokenIdentifier = self.consume_type(token.TokenIdentifier)
+        assignment = self.parse_primitive_member_declaration()
         self.consume_type(token.TokenEquals)
         value_node = self.parse_value_provider()
         self.consume_type(token.TokenEOL)
-        return AssignNode(target_token.target, value_node)
+        return AssignNode(assignment, value_node)
 
     def parse_print(self) -> PrintNode:
         self.consume_type(token.TokenKeywordPrint)
@@ -338,6 +365,28 @@ class Parser:
             value = self.parse_value_provider()
         self.consume_type(token.TokenEOL)
         return ReturnNode(value)
+
+    def parse_struct(self) -> StructNode:
+        self.consume_type(token.TokenKeywordStruct)
+        name_node = self.consume_type(token.TokenIdentifier)
+
+        self.consume_type(token.TokenColon)
+        self.consume_type(token.TokenEOL)
+        self.consume_type(token.TokenBeginBlock)
+
+        members = []
+
+        while not self.peek_is(token.TokenEndBlock):
+            if self.peek_is(token.TokenEOL):
+                self.consume()
+                continue
+
+            member = self.parse_primitive_member_declaration()
+            members.append(member)
+
+        self.consume_type(token.TokenEndBlock)
+
+        return StructNode(name=name_node.target, members=members)
 
 
 def parse(tokens: List[token.Token]) -> List[FunctionNode]:

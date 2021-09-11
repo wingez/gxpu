@@ -22,7 +22,7 @@ def test_expression():
     node = ast.Parser(tokens).parse_statement()
     assert isinstance(node, ast.AssignNode)
     assert node.value_node == ast.ConstantNode(4)
-    assert node.target == 'test'
+    assert node.target == ast.PrimitiveAssignTarget(name='test')
 
     node = ast.Parser(token.parse_line('print(5)')).parse_statement()
     assert isinstance(node, ast.PrintNode)
@@ -61,7 +61,7 @@ def test_parse_function():
 def test_parse_function_with_single_parameter():
     assert ast.Parser(get_func_tokens("param1")).parse_function_definition() == \
            ast.FunctionNode(name='test',
-                            arguments=['param1'],
+                            arguments=[ast.PrimitiveAssignTarget('param1')],
                             body=[ast.PrintNode(
                                 ast.ConstantNode(
                                     5))])
@@ -71,8 +71,11 @@ def test_parse_function_with_multiple_parameters():
     assert ast.Parser(get_func_tokens("param1", "param2", "param3")).parse_function_definition() == \
            ast.FunctionNode(
                name='test',
-               arguments=["param1", "param2",
-                          "param3"], body=[
+               arguments=[
+                   ast.PrimitiveAssignTarget("param1"),
+                   ast.PrimitiveAssignTarget("param2"),
+                   ast.PrimitiveAssignTarget("param3")
+               ], body=[
                    ast.PrintNode(ast.ConstantNode(5))])
 
 
@@ -152,3 +155,36 @@ def test_if_else():
            ast.IfNode(condition=ast.IdentifierNode('a'),
                       body=[ast.PrintNode(ast.ConstantNode(1))],
                       else_body=[ast.PrintNode(ast.ConstantNode(0))])
+
+
+def test_struct():
+    code = """
+    struct tmp:
+      member1
+      member2
+    """
+
+    assert ast.Parser(token.parse_file(StringIO(code))).parse_struct() == \
+           ast.StructNode(name='tmp', members=[
+               ast.PrimitiveAssignTarget(name='member1', type='byte'),
+               ast.PrimitiveAssignTarget(name='member2', type='byte')])
+
+    code = """
+    struct tmp:
+      member1:byte
+      member2:int
+    
+    """
+    assert ast.Parser(token.parse_file(StringIO(code))).parse_struct() == \
+           ast.StructNode(name='tmp', members=[
+               ast.PrimitiveAssignTarget(name='member1', type='byte'),
+               ast.PrimitiveAssignTarget(name='member2', type='int')])
+
+    code = """
+    struct test:
+      member1:new int
+    """
+    assert ast.Parser(token.parse_file(StringIO(code))).parse_struct() == \
+           ast.StructNode(name='test', members=[
+               ast.PrimitiveAssignTarget(name='member1', type='int', explicit_new=True)
+           ])

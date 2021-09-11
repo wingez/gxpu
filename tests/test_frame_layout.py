@@ -35,7 +35,7 @@ def test_param():
     assert layout.size_of_vars == 0
     assert layout.size_of_parameters == 1
 
-    assert layout.identifiers == {'test': 2}
+    assert layout.identifiers == {'test': compile.StructDataField('test', 2, compile.byte)}
 
 
 def test_var():
@@ -47,7 +47,7 @@ def test_var():
     assert layout.total_size == 3
     assert layout.size_of_parameters == 0
     assert layout.size_of_vars == 1
-    assert layout.identifiers == {'var': 0}
+    assert layout.identifiers == {'var': compile.StructDataField('var', 0, compile.byte)}
 
 
 def test_if():
@@ -58,7 +58,7 @@ def test_if():
     """)
 
     assert layout.total_size == 3
-    assert layout.identifiers == {'var': 0}
+    assert layout.identifiers == {'var': compile.StructDataField('var', 0, compile.byte)}
 
 
 def test_print():
@@ -70,10 +70,13 @@ def test_print():
 
     assert layout.total_size == 4
     assert layout.size_of_vars == layout.size_of_parameters == 1
-    assert layout.identifiers == {'var': 0, 'var2': 3}
+    assert layout.identifiers == {
+        'var': compile.StructDataField('var', 0, compile.byte),
+        'var2': compile.StructDataField('var2', 3, compile.byte),
+    }
     assert layout.get_description() == [
-        "0: var",
-        "3: var2"
+        "0: var: byte",
+        "3: var2: byte"
     ]
 
 
@@ -88,4 +91,4 @@ def test_return_data():
     assert layout.size_of_vars == layout.size_of_parameters == 1
     assert layout.size_of_ret == 1
     assert layout.size_of_parameters == 1
-    assert layout.identifiers['result'] == 4
+    assert layout.identifiers['result'] == compile.StructDataField('result', 4, compile.byte)
