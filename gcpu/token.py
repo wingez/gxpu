@@ -60,6 +60,12 @@ class TokenKeywordElse(Token): pass
 class TokenKeywordReturn(Token): pass
 
 
+class TokenKeywordStruct(Token): pass
+
+
+class TokenKeywordNew(Token): pass
+
+
 class TokenBeginBlock(Token): pass
 
 
@@ -135,6 +141,10 @@ def to_token(text: str) -> Token:
         return TokenKeywordElse()
     if text == 'return':
         return TokenKeywordReturn()
+    if text == 'struct':
+        return TokenKeywordStruct()
+    if text == 'new':
+        return TokenKeywordNew()
 
     return TokenIdentifier(text)
 
