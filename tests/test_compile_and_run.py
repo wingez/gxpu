@@ -63,7 +63,7 @@ def test_print_constant():
 
 def test_print_variable():
     nodes = [
-        ast.AssignNode(ast.PrimitiveAssignTarget('var'), ast.ConstantNode(4)),
+        ast.AssignNode(ast.AssignTarget('var'), ast.ConstantNode(4)),
         ast.PrintNode(ast.IdentifierNode('var'))
     ]
     run_expression_nodes_check_output(nodes, 4)
@@ -71,8 +71,8 @@ def test_print_variable():
 
 def test_print_many_variables():
     nodes = [
-        ast.AssignNode(ast.PrimitiveAssignTarget('var1'), ast.ConstantNode(5)),
-        ast.AssignNode(ast.PrimitiveAssignTarget('var2'), ast.ConstantNode(8)),
+        ast.AssignNode(ast.AssignTarget('var1'), ast.ConstantNode(5)),
+        ast.AssignNode(ast.AssignTarget('var2'), ast.ConstantNode(8)),
         ast.PrintNode(ast.IdentifierNode('var1')),
         ast.PrintNode(ast.IdentifierNode('var2')),
     ]
@@ -102,8 +102,8 @@ def test_variable_increment():
 
 def test_variable_move():
     nodes = [
-        ast.AssignNode(ast.PrimitiveAssignTarget('var1'), ast.ConstantNode(2)),
-        ast.AssignNode(ast.PrimitiveAssignTarget('var2'), ast.IdentifierNode('var1')),
+        ast.AssignNode(ast.AssignTarget('var1'), ast.ConstantNode(2)),
+        ast.AssignNode(ast.AssignTarget('var2'), ast.IdentifierNode('var1')),
         ast.PrintNode(ast.IdentifierNode('var2')),
     ]
     run_expression_nodes_check_output(nodes, 2)
@@ -121,8 +121,8 @@ def test_variable_move():
 
 def test_invalid_variable_name():
     nodes = [
-        ast.AssignNode(ast.PrimitiveAssignTarget('var1'), ast.ConstantNode(2)),
-        ast.AssignNode(ast.PrimitiveAssignTarget('var2'), ast.IdentifierNode('var 1')),
+        ast.AssignNode(ast.AssignTarget('var1'), ast.ConstantNode(2)),
+        ast.AssignNode(ast.AssignTarget('var2'), ast.IdentifierNode('var 1')),
         ast.PrintNode(ast.IdentifierNode('var2')),
     ]
     with pytest.raises(CompileError):

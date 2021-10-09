@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from typing import Tuple, List
 from typing import TextIO
 
-DELIMITERS = [' ', '#', '(', ')', ',', ':', '+', '-', '=', '<', '>']
-TOKENS = ['(', ')', ',', ':', '=', '-', '+', '<', '>']
+DELIMITERS = [' ', '#', '(', ')', ',', ':', '+', '-', '=', '<', '>', '.']
+TOKENS = ['(', ')', ',', ':', '=', '-', '+', '<', '>', '.']
 
 
 class InvalidSyntaxError(Exception):
@@ -36,6 +36,10 @@ class TokenColon(ExpressionSeparator):
 
 
 class TokenEquals(Token):
+    pass
+
+
+class TokenDot(Token):
     pass
 
 
@@ -118,6 +122,8 @@ def to_token(text: str) -> Token:
         return TokenMinusSign()
     if text == '>':
         return TokenGreaterSign()
+    if text == '.':
+        return TokenDot()
 
     if text in TOKENS:
         raise InvalidSyntaxError("We should not reach this")

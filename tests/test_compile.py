@@ -66,7 +66,7 @@ def test_function_arguments():
 
     """
     compiled_should_match_assembled(
-        [ast.FunctionNode(name='test', arguments=[ast.PrimitiveAssignTarget('arg2')], body=[]),
+        [ast.FunctionNode(name='test', arguments=[ast.AssignTarget('arg2')], body=[]),
          ast.FunctionNode(name='main', arguments=[],
                           body=[ast.CallNode('test', [ast.ConstantNode(5)])])
          ], expected)
@@ -202,7 +202,7 @@ def test_return_byte():
     compiled_should_match_assembled([
         ast.FunctionNode(name='test', arguments=[], return_type='byte', body=[
             ast.PrintNode(ast.ConstantNode(5)),
-            ast.AssignNode(target=ast.PrimitiveAssignTarget('result'), value=ast.ConstantNode(10)),
+            ast.AssignNode(target=ast.AssignTarget('result'), value=ast.ConstantNode(10)),
             ast.ReturnNode(),
         ]),
         ast.FunctionNode(name='main', arguments=[], body=[
@@ -246,11 +246,11 @@ def test_return_byte_and_assign():
 
     compiled_should_match_assembled([
         ast.FunctionNode(name='test', arguments=[], return_type='byte', body=[
-            ast.AssignNode(target=ast.PrimitiveAssignTarget('result'), value=ast.ConstantNode(10)),
+            ast.AssignNode(target=ast.AssignTarget('result'), value=ast.ConstantNode(10)),
             ast.ReturnNode(),
         ]),
         ast.FunctionNode(name='main', arguments=[], body=[
-            ast.AssignNode(target=ast.PrimitiveAssignTarget('test'), value=ast.CallNode('test', parameters=[])),
+            ast.AssignNode(target=ast.AssignTarget('test'), value=ast.CallNode('test', parameters=[])),
             ast.PrintNode(target=ast.IdentifierNode('test'))
         ]),
     ], expected)
@@ -259,14 +259,29 @@ def test_return_byte_and_assign():
 def test_build_struct():
     with pytest.raises(compile.CompileError) as e:
         c = compile.Compiler()
-        c.build_struct(ast.StructNode('test', members=[ast.PrimitiveAssignTarget('target', type='invalid')]))
+        c.build_struct(ast.StructNode('test', members=[ast.AssignTarget('target', type='invalid')]))
     assert 'No type with name' in str(e)
 
-    s = c.build_struct(ast.StructNode('test', members=[ast.PrimitiveAssignTarget('field1', type='byte')]))
+    s = c.build_struct(ast.StructNode('test', members=[ast.AssignTarget('field1', type='byte')]))
     assert s.name == 'test'
     assert s.size == 1
 
-    s = c.build_struct(ast.StructNode('test', members=[ast.PrimitiveAssignTarget('field1', type='byte'),
-                                                       ast.PrimitiveAssignTarget('field2', type='byte')]))
+    s = c.build_struct(ast.StructNode('test', members=[ast.AssignTarget('field1', type='byte'),
+                                                       ast.AssignTarget('field2', type='byte')]))
     assert s.name == 'test'
     assert s.size == 2
+
+
+def test_compile_struct():
+    expected = """
+    ldfp #255
+    ldsp #255
+    
+    call #7
+    exit
+    
+    ldfp sp
+    
+    
+    
+    """
