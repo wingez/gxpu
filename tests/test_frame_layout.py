@@ -75,3 +75,17 @@ def test_print():
         "0: var",
         "3: var2"
     ]
+
+
+def test_return_data():
+    layout = get_layout("""
+    def test1(var2): byte
+      if 5:
+        var=1
+    """)
+
+    assert layout.total_size == 5
+    assert layout.size_of_vars == layout.size_of_parameters == 1
+    assert layout.size_of_ret == 1
+    assert layout.size_of_parameters == 1
+    assert layout.identifiers['result'] == 4

@@ -1,6 +1,6 @@
 from __future__ import annotations
-from typing import List, Dict, Sequence
 from dataclasses import dataclass
+from typing import List, Dict, Sequence
 
 from gcpu import ast, default_config, instructions
 
@@ -49,25 +49,35 @@ class FrameLayout:
 
 def get_frame_layout(compiler: Compiler, function_node: ast.FunctionNode) -> FrameLayout:
     offsets_from_top: Dict[str, int] = {}
-    current_size = 0
 
+    return_type = compiler.get_type(function_node.return_type)
+    if return_type != void:
+        offsets_from_top['result'] = 0
+
+    size_of_ret = return_type.size
+    current_size = size_of_ret
+
+    size_of_args = 0
     for arg in function_node.arguments:
         offsets_from_top[arg] = current_size
         current_size += 1
-
-    size_of_args = current_size
+        size_of_args += 1
 
     size_of_meta = SP_STACK_SIZE + PC_STACK_SIZE
     current_size += size_of_meta
 
+    size_of_vars = 0
+
     def build_recursive(nodes: Sequence[ast.AstNode]):
         nonlocal current_size
+        nonlocal size_of_vars
         for node in nodes:
             if isinstance(node, ast.AssignNode):
                 if node.target not in offsets_from_top:
                     # TODO check type
                     offsets_from_top[node.target] = current_size
                     current_size += 1
+                    size_of_vars += 1
             elif isinstance(node, ast.IfNode):
                 build_recursive(node.body)
                 build_recursive(node.else_body)
@@ -75,9 +85,6 @@ def get_frame_layout(compiler: Compiler, function_node: ast.FunctionNode) -> Fra
                 build_recursive(node.body)
 
     build_recursive(function_node.body)
-
-    size_of_vars = current_size - size_of_args - size_of_meta
-    size_of_ret = compiler.get_type(function_node.return_type).size
 
     return FrameLayout(
         total_size=current_size,
@@ -152,16 +159,9 @@ class AssemblyFunction:
             # pop return value if exists
             if function.frame_layout.size_of_ret != 0:
                 self.compiler.put_code(
-                    default_config.addsp.build(val=function.return_type.size + function.frame_layout.size_of_ret))
+                    default_config.addsp.build(val=function.frame_layout.size_of_ret))
 
         elif isinstance(statement_node, ast.ReturnNode):
-
-            if statement_node.value:
-                assert self.return_type.size == 1
-                self.put_value_node_in_a_register(statement_node.value)
-                self.compiler.put_code(
-                    default_config.sta_fp_offset_negative.build(offset=-self.frame_variables_offsets['return']))
-
             self.compiler.put_code(default_config.ret.build())
 
         else:
@@ -203,10 +203,7 @@ class AssemblyFunction:
                 raise CompileError(f'No variable with name {name}')
 
             offset = self.frame_layout.identifiers[name]
-            if offset >= 0:
-                self.compiler.put_code(default_config.lda_fp_offset.build(offset=offset))
-            else:
-                self.compiler.put_code(default_config.lda_fp_negative.build(offset=-offset))
+            self.compiler.put_code(default_config.lda_fp_offset.build(offset=offset))
         elif isinstance(node, ast.OperationNode):
             self.put_value_node_in_a_register(node.left)
 
@@ -214,19 +211,13 @@ class AssemblyFunction:
                 self.compiler.put_code(default_config.adda.build(val=node.right.value))
             elif isinstance(node, ast.AdditionNode) and isinstance(node.right, ast.IdentifierNode):
                 offset = self.frame_layout.identifiers[node.right.identifier]
-                if offset >= 0:
-                    self.compiler.put_code(default_config.adda_fp_offset.build(offset=offset))
-                else:
-                    self.compiler.put_code(default_config.adda_fp_offset_negative.build(offset=-offset))
+                self.compiler.put_code(default_config.adda_fp_offset.build(offset=offset))
 
             elif isinstance(node, ast.SubtractionNode) and isinstance(node.right, ast.ConstantNode):
                 self.compiler.put_code(default_config.suba.build(val=node.right.value))
             elif isinstance(node, ast.SubtractionNode) and isinstance(node.right, ast.IdentifierNode):
                 offset = self.frame_layout.identifiers[node.right.identifier]
-                if offset >= 0:
-                    self.compiler.put_code(default_config.suba_fp_offset.build(offset=offset))
-                else:
-                    self.compiler.put_code(default_config.suba_fp_offset_negative.build(offset=-offset))
+                self.compiler.put_code(default_config.suba_fp_offset.build(offset=offset))
 
             else:
                 raise CompileError(' not supported yet')

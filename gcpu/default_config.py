@@ -64,24 +64,10 @@ def lda_fp_offset(emulator):
     return False
 
 
-@instructions.create_instruction('LDA FP, -#offset', group=LOAD_STORE)
-def lda_fp_negative(emulator):
-    offset = emulator.get_and_inc_pc()
-    emulator.a = emulator.get_memory_at(emulator.fp - offset)
-    return False
-
-
 @instructions.create_instruction('STA FP, #offset', group=LOAD_STORE)
 def sta_fp_offset(emulator):
     offset = emulator.get_and_inc_pc()
     emulator.set_memory_at(emulator.fp + offset, emulator.a_lower)
-    return False
-
-
-@instructions.create_instruction('STA FP, -#offset', group=LOAD_STORE)
-def sta_fp_offset_negative(emulator):
-    offset = emulator.get_and_inc_pc()
-    emulator.set_memory_at(emulator.fp - offset, emulator.a_lower)
     return False
 
 
@@ -97,12 +83,6 @@ def adda_fp_offset(emulator):
     offset = emulator.get_and_inc_pc()
     emulator.a += emulator.get_memory_at(emulator.fp + offset)
     return False
-
-
-@instructions.create_instruction('ADDA FP, -#offset', group=OPERATION)
-def adda_fp_offset_negative(emulator):
-    offset = emulator.get_and_inc_pc()
-    emulator.a += emulator.get_memory_at(emulator.fp - offset)
 
 
 @instructions.create_instruction('ADDSP #val', group=OPERATION)
@@ -123,13 +103,6 @@ def suba(emulator):
 def suba_fp_offset(emulator):
     offset = emulator.get_and_inc_pc()
     emulator.a -= emulator.get_memory_at(emulator.fp + offset)
-    return False
-
-
-@instructions.create_instruction('SUBA FP, -#offset', group=OPERATION)
-def suba_fp_offset_negative(emulator):
-    offset = emulator.get_and_inc_pc()
-    emulator.a -= emulator.get_memory_at(emulator.fp - offset)
     return False
 
 
