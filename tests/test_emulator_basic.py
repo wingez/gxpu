@@ -152,7 +152,6 @@ def test_call():
 
 
 def test_call_and_ret():
-    pytest.skip("not implemented")
     program = """
     LDSP #25
     LDFP #25
@@ -165,6 +164,7 @@ def test_call_and_ret():
     OUT
     EXIT
     
+    ldfp sp
     LDA #2
     OUT
     RET
