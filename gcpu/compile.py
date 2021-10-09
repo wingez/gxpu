@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import List, Dict, Sequence
+from typing import List, Dict, Sequence, Optional
 
 from gcpu import ast, default_config, instructions
 
@@ -201,7 +201,7 @@ class AssemblyFunction:
             if statement_node.value is not None:
                 # Take care of explicit returns
                 self.build_statement_node(
-                    ast.AssignNode(target=ast.PrimitiveAssignTarget('result'), value=statement_node.value))
+                    ast.AssignNode(target=ast.AssignTarget('result'), value=statement_node.value))
 
             if self.frame_layout.size_of_vars != 0:
                 self.compiler.put_code(
@@ -314,7 +314,10 @@ class Compiler:
         self.put_code([0] * instruction.size)
         return pos
 
-    def get_type(self, identifier: str):
+    def get_type(self, identifier: Optional[str]):
+        if identifier is None:
+            identifier = byte.name
+
         if identifier not in self.types:
             raise CompileError(f'No type with name {identifier!r} found')
         return self.types[identifier]

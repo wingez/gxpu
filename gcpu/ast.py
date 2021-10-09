@@ -23,15 +23,26 @@ class StatementNode(AstNode):
 
 
 @dataclass
-class PrimitiveAssignTarget:
+class AssignModifier:
+    pass
+
+
+@dataclass
+class MemberAccess(AssignModifier):
+    member: str
+
+
+@dataclass
+class AssignTarget:
     name: str
-    type: str = BYTE_TYPE_NAME
+    type: Optional[str] = None
     explicit_new: bool = False
+    actions: List[AssignModifier] = field(default_factory=list)
 
 
 @dataclass
 class AssignNode(StatementNode):
-    def __init__(self, target: PrimitiveAssignTarget, value: ValueProviderNode):
+    def __init__(self, target: AssignTarget, value: ValueProviderNode):
         self.target = target
         self.value_node = value
 
@@ -69,7 +80,7 @@ class OperationNode(ValueProviderNode):
 @dataclass
 class FunctionNode(AstNode):
     name: str
-    arguments: List[PrimitiveAssignTarget]
+    arguments: List[AssignTarget]
     body: List[StatementNode]
     return_type: str = VOID_TYPE_NAME
 
@@ -77,7 +88,7 @@ class FunctionNode(AstNode):
 @dataclass
 class StructNode(AstNode):
     name: str
-    members: List[PrimitiveAssignTarget]
+    members: List[AssignTarget]
 
 
 @dataclass
@@ -207,7 +218,7 @@ class Parser:
     def consume_type(self, token_type: Type[T]) -> T:
         current = self.consume()
         if not isinstance(current, token_type):
-            raise ParserError()
+            raise ParserError(f'Expected token to be of type {token_type}. It was {current}')
 
         return current
 
@@ -255,7 +266,7 @@ class Parser:
         parameters = []
 
         while not self.peek_is(token.TokenRightParenthesis, consume_match=True):
-            member = self.parse_primitive_member_declaration()
+            member = self.parse_primitive_member_declaration(allow_modifiers=False)
             parameters.append(member)
 
             self.peek_is(token.TokenComma, consume_match=True)
@@ -306,22 +317,29 @@ class Parser:
 
         return IfNode(condition=condition, body=statements, else_body=else_statements)
 
-    def parse_primitive_member_declaration(self) -> PrimitiveAssignTarget:
+    def parse_primitive_member_declaration(self, allow_modifiers: bool) -> AssignTarget:
         """
         Parses 'val:type' or 'val' or 'val:new type'
         :return:
         """
         target_token = self.consume_type(token.TokenIdentifier)
+
+        modifiers = []
+        if allow_modifiers:
+            while self.peek_is(token.TokenDot, consume_match=True):
+                identifier = self.consume_type(token.TokenIdentifier)
+                modifiers.append(MemberAccess(identifier.target))
+
         if self.peek_is(token.TokenColon, consume_match=True):
             explicit_new = self.peek_is(token.TokenKeywordNew, consume_match=True)
             type_node = self.consume_type(token.TokenIdentifier)
 
-            return PrimitiveAssignTarget(target_token.target, type=type_node.target, explicit_new=explicit_new)
+            return AssignTarget(target_token.target, type=type_node.target, explicit_new=explicit_new)
 
-        return PrimitiveAssignTarget(name=target_token.target)
+        return AssignTarget(name=target_token.target)
 
     def parse_assignment(self) -> AssignNode:
-        assignment = self.parse_primitive_member_declaration()
+        assignment = self.parse_primitive_member_declaration(allow_modifiers=True)
         self.consume_type(token.TokenEquals)
         value_node = self.parse_value_provider()
         self.consume_type(token.TokenEOL)
@@ -381,7 +399,7 @@ class Parser:
                 self.consume()
                 continue
 
-            member = self.parse_primitive_member_declaration()
+            member = self.parse_primitive_member_declaration(allow_modifiers=False)
             members.append(member)
 
         self.consume_type(token.TokenEndBlock)
