@@ -1,10 +1,11 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import List, Optional, Type, TypeVar, Callable
+from typing import List, Optional, Type, TypeVar, Callable, Union
 
 from gcpu import token
 
 T = TypeVar('T', bound=token.Token, covariant=True)
+P = TypeVar('P')
 
 VOID_TYPE_NAME = 'void'
 BYTE_TYPE_NAME = 'byte'
@@ -28,35 +29,32 @@ class AssignModifier:
 
 
 @dataclass
-class MemberAccess(AssignModifier):
+class MemberAccessAction(AssignModifier):
     member: str
 
 
 @dataclass
-class AssignTarget:
+class MemberAccess(ValueProviderNode):
     name: str
-    type: Optional[str] = None
-    explicit_new: bool = False
     actions: List[AssignModifier] = field(default_factory=list)
 
 
 @dataclass
+class AssignTarget(StatementNode):
+    member: MemberAccess
+    type: Optional[str] = None
+    explicit_new: bool = False
+
+
+@dataclass
 class AssignNode(StatementNode):
-    def __init__(self, target: AssignTarget, value: ValueProviderNode):
-        self.target = target
-        self.value_node = value
+    target: AssignTarget
+    value_node: ValueProviderNode
 
 
 @dataclass
 class PrintNode(StatementNode):
-    def __init__(self, target: ValueProviderNode):
-        self.target = target
-
-
-@dataclass
-class IdentifierNode(ValueProviderNode):
-    def __init__(self, identifier: str):
-        self.identifier = identifier
+    target: ValueProviderNode
 
 
 @dataclass
@@ -148,8 +146,8 @@ class Parser:
     def has_more_to_parse(self) -> bool:
         return self._index < len(self._token)
 
-    def parse(self) -> List[FunctionNode]:
-        result: List[FunctionNode] = []
+    def parse(self) -> List[Union[FunctionNode, StructNode]]:
+        result: List[Union[FunctionNode, StructNode]] = []
 
         while self.has_more_to_parse():
 
@@ -157,54 +155,43 @@ class Parser:
             if self.peek_is(token.TokenEOL):
                 self.consume()
             else:
-                try:
-                    result.append(self.parse_function_definition())
+                tok: Optional[Union[FunctionNode, StructNode]]
+                if tok := self.try_parse(self.parse_function_definition):
+                    result.append(tok)
                     continue
-                except ParserError:
-                    pass
+
+                if tok := self.try_parse(self.parse_struct):
+                    result.append(tok)
+                    continue
 
                 raise ParserError('Could not parse')
 
         return result
 
-    def parse_statements_until_endblock(self) -> List[StatementNode]:
-        expressions = []
-
-        while not self.peek_is(token.TokenEndBlock):
-            if self.peek_is(token.TokenEOL):
-                self.consume()
-                continue
-
-            new_statement = self.parse_statement()
-            expressions.append(new_statement)
-
-        self.consume_type(token.TokenEndBlock)
-
-        return expressions
+    def try_parse(self, func: Callable[[], P]) -> Optional[P]:
+        line = self.savepoint()
+        try:
+            return func()
+        except ParserError:
+            self.restore(line)
+            return None
 
     def parse_statement(self) -> StatementNode:
-
-        def try_parse(func: Callable[[], StatementNode]) -> Optional[StatementNode]:
-            line = self.savepoint()
-            try:
-                return func()
-            except ParserError:
-                self.restore(line)
-                return None
-
         tok: Optional[StatementNode]
 
-        if tok := try_parse(self.parse_assignment):
+        if tok := self.try_parse(self.parse_assignment):
             return tok
-        if tok := try_parse(self.parse_print):
+        if tok := self.try_parse(self.parse_asignment_no_init):
             return tok
-        if tok := try_parse(self.parse_function_call):
+        if tok := self.try_parse(self.parse_print):
             return tok
-        if tok := try_parse(self.parse_while_statement):
+        if tok := self.try_parse(self.parse_function_call):
             return tok
-        if tok := try_parse(self.parse_if_statement):
+        if tok := self.try_parse(self.parse_while_statement):
             return tok
-        if tok := try_parse(self.parse_return_statement):
+        if tok := self.try_parse(self.parse_if_statement):
+            return tok
+        if tok := self.try_parse(self.parse_return_statement):
             return tok
 
         raise ParserError(f'Dont know how to parse: {self.peek()}')
@@ -222,6 +209,21 @@ class Parser:
 
         return current
 
+    def parse_statements_until_endblock(self) -> List[StatementNode]:
+        expressions = []
+
+        while not self.peek_is(token.TokenEndBlock):
+            if self.peek_is(token.TokenEOL):
+                self.consume()
+                continue
+
+            new_statement = self.parse_statement()
+            expressions.append(new_statement)
+
+        self.consume_type(token.TokenEndBlock)
+
+        return expressions
+
     def parse_value_provider(self) -> ValueProviderNode:
         first_result: ValueProviderNode
         if self.peek_is(token.TokenNumericConstant):
@@ -232,7 +234,13 @@ class Parser:
                 first_result = self.parse_function_call(should_consume_eol=False)
             except ParserError:
                 self.restore(savepoint)
-                first_result = IdentifierNode(self.consume_type(token.TokenIdentifier).target)
+                identifier = self.consume_type(token.TokenIdentifier).target
+                if self.peek_is(token.TokenDot, consume_match=True):
+                    member = self.consume_type(token.TokenIdentifier)
+                    first_result = MemberAccess(identifier, actions=[MemberAccessAction(member.target)])
+                else:
+                    first_result = MemberAccess(identifier)
+
         else:
             raise ParserError(f"Cannot parse to value provider: {self.peek()}")
 
@@ -245,7 +253,7 @@ class Parser:
             self.consume()
 
             second_result = self.parse_value_provider()
-            if not isinstance(second_result, (IdentifierNode, ConstantNode)):
+            if not isinstance(second_result, (MemberAccess, ConstantNode)):
                 raise ParserError('Operation too complex')
 
             if isinstance(next_token, token.TokenPlusSign):
@@ -324,19 +332,21 @@ class Parser:
         """
         target_token = self.consume_type(token.TokenIdentifier)
 
-        modifiers = []
+        modifiers: List[AssignModifier] = []
         if allow_modifiers:
             while self.peek_is(token.TokenDot, consume_match=True):
                 identifier = self.consume_type(token.TokenIdentifier)
-                modifiers.append(MemberAccess(identifier.target))
+                modifiers.append(MemberAccessAction(identifier.target))
+        member = MemberAccess(target_token.target, actions=modifiers)
 
         if self.peek_is(token.TokenColon, consume_match=True):
             explicit_new = self.peek_is(token.TokenKeywordNew, consume_match=True)
             type_node = self.consume_type(token.TokenIdentifier)
 
-            return AssignTarget(target_token.target, type=type_node.target, explicit_new=explicit_new)
+            return AssignTarget(member=member, type=type_node.target,
+                                explicit_new=explicit_new)
 
-        return AssignTarget(name=target_token.target)
+        return AssignTarget(member=member)
 
     def parse_assignment(self) -> AssignNode:
         assignment = self.parse_primitive_member_declaration(allow_modifiers=True)
@@ -344,6 +354,11 @@ class Parser:
         value_node = self.parse_value_provider()
         self.consume_type(token.TokenEOL)
         return AssignNode(assignment, value_node)
+
+    def parse_asignment_no_init(self) -> StatementNode:
+        val = self.parse_primitive_member_declaration(allow_modifiers=False)
+        self.consume_type(token.TokenEOL)
+        return val
 
     def parse_print(self) -> PrintNode:
         self.consume_type(token.TokenKeywordPrint)
@@ -407,7 +422,7 @@ class Parser:
         return StructNode(name=name_node.target, members=members)
 
 
-def parse(tokens: List[token.Token]) -> List[FunctionNode]:
+def parse(tokens: List[token.Token]) -> List[Union[FunctionNode, StructNode]]:
     p = Parser(tokens)
     return p.parse()
 

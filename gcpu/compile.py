@@ -46,7 +46,7 @@ class StructDataField:
 class StructData(DataType):
     def __init__(self, name: str, fields: List[StructDataField], size: int, stack_creation: bool):
         super().__init__(name=name, size=size, default_on_stack=stack_creation)
-        self.fields = fields
+        self.fields: Dict[str, StructDataField] = {d.name: d for d in fields}
 
 
 void = PrimitiveDataType(ast.VOID_TYPE_NAME, 0)
@@ -91,7 +91,7 @@ def get_frame_layout(compiler: Compiler, function_node: ast.FunctionNode) -> Fra
     size_of_args = 0
     for arg in function_node.arguments:
         param_type = compiler.get_type(arg.type)
-        offsets_from_top[arg.name] = StructDataField(arg.name, current_size, type=param_type)
+        offsets_from_top[arg.member.name] = StructDataField(arg.member.name, current_size, type=param_type)
         current_size += param_type.size
         size_of_args += param_type.size
 
@@ -100,30 +100,42 @@ def get_frame_layout(compiler: Compiler, function_node: ast.FunctionNode) -> Fra
 
     size_of_vars = 0
 
-    def build_recursive(nodes: Sequence[ast.AstNode]):
+    def found_assignment(assign_name: str, assign_type: DataType):
         nonlocal current_size
         nonlocal size_of_vars
+        if assign_name not in offsets_from_top:
+            offsets_from_top[assign_name] = StructDataField(assign_name, current_size, assign_type)
+            current_size += assign_type.size
+            size_of_vars += assign_type.size
+
+    def build_recursive(nodes: Sequence[ast.AstNode]):
         for node in nodes:
             if isinstance(node, ast.AssignNode):
-
-                assign_name = node.target.name
+                assign_name = node.target.member.name
                 assign_type = compiler.get_type(node.target.type)
-                if assign_name not in offsets_from_top:
-                    offsets_from_top[assign_name] = StructDataField(assign_name, current_size, assign_type)
-                    current_size += assign_type.size
-                    size_of_vars += assign_type.size
+                found_assignment(assign_name, assign_type)
+            elif isinstance(node, ast.AssignTarget):
+                assign_name = node.member.name
+                assign_type = compiler.get_type(node.type)
+                found_assignment(assign_name, assign_type)
+
             elif isinstance(node, ast.IfNode):
                 build_recursive(node.body)
                 build_recursive(node.else_body)
             elif isinstance(node, ast.WhileNode):
                 build_recursive(node.body)
+            elif type(node) in (ast.PrintNode, ast.ReturnNode, ast.CallNode):
+                pass
+
+            else:
+                raise CompileError(f'Dont know what to do with {node}')
 
     build_recursive(function_node.body)
 
     return FrameLayout(
         total_size=current_size,
-        identifiers={name: StructDataField(val.name, current_size - 1 - val.offset, val.type) for name, val in
-                     offsets_from_top.items()},
+        identifiers={name: StructDataField(val.name, current_size - val.type.size - val.offset, val.type)
+                     for name, val in offsets_from_top.items()},
         size_of_vars=size_of_vars,
         size_of_parameters=size_of_args,
         size_of_meta=size_of_meta,
@@ -147,12 +159,7 @@ class AssemblyFunction:
             self.put_value_node_in_a_register(statement_node.target)
             self.compiler.put_code(default_config.print.build())
         elif isinstance(statement_node, ast.AssignNode):
-            name = statement_node.target.name
-            if name not in self.frame_layout.identifiers:
-                raise AssertionError
-            self.put_value_node_in_a_register(statement_node.value_node)
-            self.compiler.put_code(
-                default_config.sta_fp_offset.build(offset=self.frame_layout.identifiers[name].offset))
+            self.handle_assignment(statement_node)
 
         elif isinstance(statement_node, ast.IfNode):
             has_else = bool(statement_node.else_body)
@@ -201,7 +208,8 @@ class AssemblyFunction:
             if statement_node.value is not None:
                 # Take care of explicit returns
                 self.build_statement_node(
-                    ast.AssignNode(target=ast.AssignTarget('result'), value=statement_node.value))
+                    ast.AssignNode(target=ast.AssignTarget(ast.MemberAccess('result')),
+                                   value_node=statement_node.value))
 
             if self.frame_layout.size_of_vars != 0:
                 self.compiler.put_code(
@@ -209,8 +217,38 @@ class AssemblyFunction:
             else:
                 self.compiler.put_code(default_config.ret.build())
 
+        elif isinstance(statement_node, ast.AssignTarget):
+            # We can ignore these. just used for caluclate frame-size
+            pass
+
         else:
             raise CompileError(f'node of type {statement_node} not supported yet')
+
+    def get_fp_offset(self, target: ast.MemberAccess):
+        if target.name not in self.frame_layout.identifiers:
+            raise CompileError(f'No variable with name {target.name}')
+        frame_var = self.frame_layout.identifiers[target.name]
+        offset = frame_var.offset
+        for modifier in target.actions:
+            if isinstance(modifier, ast.MemberAccessAction):
+                struct_type = frame_var.type
+                if not isinstance(struct_type, StructData):
+                    raise CompileError(f'{frame_var.type} is not a struct')
+
+                member_offset = struct_type.fields[modifier.member].offset
+                offset += member_offset
+
+            else:
+                raise CompileError(f'Dont know how to parse modifier {modifier}')
+
+        return offset
+
+    def handle_assignment(self, statement_node: ast.AssignNode):
+        offset = self.get_fp_offset(statement_node.target.member)
+
+        self.put_value_node_in_a_register(statement_node.value_node)
+        self.compiler.put_code(
+            default_config.sta_fp_offset.build(offset=offset))
 
     def call_func(self, node: ast.CallNode) -> AssemblyFunction:
         function_name = node.target_name
@@ -244,26 +282,24 @@ class AssemblyFunction:
     def put_value_node_in_a_register(self, node: ast.ValueProviderNode):
         if isinstance(node, ast.ConstantNode):
             self.compiler.put_code(default_config.lda.build(val=node.value))
-        elif isinstance(node, ast.IdentifierNode):
-            name = node.identifier
-            if name not in self.frame_layout.identifiers:
-                raise CompileError(f'No variable with name {name}')
 
-            offset = self.frame_layout.identifiers[name].offset
+        elif isinstance(node, ast.MemberAccess):
+            offset = self.get_fp_offset(node)
             self.compiler.put_code(default_config.lda_fp_offset.build(offset=offset))
+
         elif isinstance(node, ast.OperationNode):
             self.put_value_node_in_a_register(node.left)
 
             if isinstance(node, ast.AdditionNode) and isinstance(node.right, ast.ConstantNode):
                 self.compiler.put_code(default_config.adda.build(val=node.right.value))
-            elif isinstance(node, ast.AdditionNode) and isinstance(node.right, ast.IdentifierNode):
-                offset = self.frame_layout.identifiers[node.right.identifier].offset
+            elif isinstance(node, ast.AdditionNode) and isinstance(node.right, ast.MemberAccess):
+                offset = self.get_fp_offset(node.right)
                 self.compiler.put_code(default_config.adda_fp_offset.build(offset=offset))
 
             elif isinstance(node, ast.SubtractionNode) and isinstance(node.right, ast.ConstantNode):
                 self.compiler.put_code(default_config.suba.build(val=node.right.value))
-            elif isinstance(node, ast.SubtractionNode) and isinstance(node.right, ast.IdentifierNode):
-                offset = self.frame_layout.identifiers[node.right.identifier].offset
+            elif isinstance(node, ast.SubtractionNode) and isinstance(node.right, ast.MemberAccess):
+                offset = self.get_fp_offset(node.right)
                 self.compiler.put_code(default_config.suba_fp_offset.build(offset=offset))
 
             else:
@@ -273,9 +309,8 @@ class AssemblyFunction:
             func = self.call_func(node)
             assert func.return_type == self.compiler.types['byte']
             self.compiler.put_code(default_config.pop_a.build())
-
         else:
-            raise CompileError('not supported yet')
+            raise CompileError(f'Node {node} not supported yet')
 
     def build(self, node: ast.FunctionNode):
 
@@ -340,7 +375,31 @@ class Compiler:
 
         return function
 
-    def build_program(self, function_nodes: List[ast.FunctionNode]) -> List[int]:
+    def build_single_main_function(self, nodes: List[ast.StatementNode]) -> List[int]:
+        node = ast.FunctionNode(name='main', body=nodes, arguments=[])
+        return self.build_program([node])
+
+    def build_struct(self, struct_node: ast.StructNode) -> DataType:
+
+        if struct_node.name in self.types:
+            raise CompileError(f'Struct {struct_node.name} already declared')
+
+        fields = []
+        current_size = 0
+        for member in struct_node.members:
+            if not member.type:
+                field_type = DEFAULT_TYPE
+            else:
+                field_type = self.get_type(member.type)
+
+            fields.append(StructDataField(member.member.name, current_size, field_type))
+            current_size += field_type.size
+
+        result = StructData(struct_node.name, fields, current_size, stack_creation=False)
+        self.types[struct_node.name] = result
+        return result
+
+    def build_program(self, function_nodes: List[ast.AstNode]) -> List[int]:
 
         self.put_code(default_config.ldfp.build(val=STACK_START))
         self.put_code(default_config.ldsp.build(val=STACK_START))
@@ -350,7 +409,8 @@ class Compiler:
         for node in function_nodes:
             if isinstance(node, ast.FunctionNode):
                 self.build_new_function(node)
-
+            elif isinstance(node, ast.StructNode):
+                self.build_struct(node)
             else:
                 raise CompileError(f'Dont know how to parse {node}')
 
@@ -365,22 +425,3 @@ class Compiler:
         self.put_code_at(default_config.exit.build(), to_place_exit)
 
         return self.resulting_code
-
-    def build_single_main_function(self, nodes: List[ast.StatementNode]) -> List[int]:
-        node = ast.FunctionNode(name='main', body=nodes, arguments=[])
-        return self.build_program([node])
-
-    def build_struct(self, struct_node: ast.StructNode) -> DataType:
-
-        fields = []
-        current_size = 0
-        for member in struct_node.members:
-            if not member.type:
-                field_type = DEFAULT_TYPE
-            else:
-                field_type = self.get_type(member.type)
-
-            fields.append(StructDataField(member.name, current_size, field_type))
-            current_size += field_type.size
-
-        return StructData(struct_node.name, fields, current_size, stack_creation=False)
