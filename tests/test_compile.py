@@ -208,3 +208,48 @@ def test_return_byte():
             ast.CallNode(target_name='test', parameters=[])
         ]),
     ], expected)
+
+
+def test_return_byte_and_assign():
+    expected = """
+           ldfp #255
+           ldsp #255
+
+           call #14
+           exit
+
+
+           # test function
+           ldfp sp
+           lda #10
+           STA FP, #2
+           ret
+           ret
+
+           # main function
+           subsp #1
+           ldfp sp
+           # make space for ret
+           subsp #1
+           call #7
+
+           # pop return
+           popa
+           
+           STA FP, #0
+           LDA FP, #0
+           out
+
+           ret #1
+           """
+
+    compiled_should_match_assembled([
+        ast.FunctionNode(name='test', arguments=[], return_type='byte', body=[
+            ast.AssignNode(target='result', value=ast.ConstantNode(10)),
+            ast.ReturnNode(),
+        ]),
+        ast.FunctionNode(name='main', arguments=[], body=[
+            ast.AssignNode(target='test', value=ast.CallNode('test', parameters=[])),
+            ast.PrintNode(target=ast.IdentifierNode('test'))
+        ]),
+    ], expected)

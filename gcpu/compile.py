@@ -185,9 +185,11 @@ class AssemblyFunction:
             self.put_value_node_in_a_register(value_node)
             self.compiler.put_code(default_config.push_a.build())
 
+        # call
         self.compiler.put_code(
             default_config.call_addr.build(addr=function.memory_address))
 
+        # pop arguments
         params_size = function.frame_layout.size_of_parameters
         if params_size != 0:
             self.compiler.put_code(default_config.addsp.build(val=params_size))
@@ -225,7 +227,6 @@ class AssemblyFunction:
         elif isinstance(node, ast.CallNode):
             func = self.call_func(node)
             assert func.return_type == self.compiler.types['byte']
-            self.compiler.put_code(default_config.sub_sp.build(val=func.num_arguments))
             self.compiler.put_code(default_config.pop_a.build())
 
         else:
