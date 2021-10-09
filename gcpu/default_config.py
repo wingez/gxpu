@@ -45,6 +45,12 @@ def ldfp(emulator):
     return False
 
 
+@instructions.create_instruction('LDFP SP', group=STACK)
+def ldfp_sp(emulator):
+    emulator.fp = emulator.sp
+    return False
+
+
 @instructions.create_instruction('LDSP #val', group=STACK)
 def ldsp(emulator):
     emulator.sp = emulator.get_and_inc_pc()
@@ -133,20 +139,29 @@ def call_addr(emulator):
     emulator.push(emulator.fp)
     emulator.push(emulator.pc)
 
-    emulator.fp = emulator.sp
-
     emulator.pc = addr
     return False
 
 
-@instructions.create_instruction('RET', group=CONTROL)
-def ret(emulator):
+def _ret_generic(emulator, size: int):
     emulator.sp = emulator.fp
+    emulator.sp += size
 
     emulator.pc = emulator.pop()
     emulator.fp = emulator.pop()
 
     return False
+
+
+@instructions.create_instruction('RET', group=CONTROL)
+def ret(emulator):
+    return _ret_generic(emulator, size=0)
+
+
+@instructions.create_instruction('RET #frame_size', group=CONTROL)
+def ret_with_frame_size(emulator):
+    size = emulator.get_and_inc_pc()
+    return _ret_generic(emulator, size)
 
 
 @instructions.create_instruction('PUSHA', group=STACK)

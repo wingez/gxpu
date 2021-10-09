@@ -6,7 +6,7 @@ from typing import List
 
 from gcpu.instructions import InstructionSet
 
-MEMORY_SIZE = 2 ** 7
+MEMORY_SIZE = 2 ** 8
 
 
 class EmulatorRuntimeError(Exception): pass
@@ -83,12 +83,13 @@ class Emulator:
         self._output_stream.flush()
 
     def push(self, byte: int):
+        self.sp -= 1
         self.set_memory_at(self.sp, byte)
-        self.sp += 1
 
     def pop(self) -> int:
-        self.sp -= 1
-        return self.get_memory_at(self.sp)
+        val = self.get_memory_at(self.sp)
+        self.sp += 1
+        return val
 
     def get_output(self, clear: bool = True) -> bytes:
         result = self._output_stream.getvalue()
