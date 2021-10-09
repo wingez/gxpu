@@ -6,6 +6,9 @@ from gcpu import ast, default_config, instructions
 
 FP_STACK_SIZE = 1
 SP_STACK_SIZE = 1
+PC_STACK_SIZE = 1
+
+STACK_START = 0xff
 
 
 class CompileError(Exception):
@@ -24,6 +27,63 @@ primitive_types = [
     DataType('byte', 1),
     void,
 ]
+
+
+@dataclass
+class FrameLayout:
+    total_size: int
+    identifiers: Dict[str, int]
+
+    size_of_parameters: int
+    size_of_meta: int
+    size_of_vars: int
+
+    def get_description(self) -> List[str]:
+        result = []
+        for identifier, offset in sorted(self.identifiers.items(), key=lambda x: x[1], reverse=False):
+            result.append(f'{offset}: {identifier}')
+
+        return result
+
+
+def get_frame_layout(function_node: ast.FunctionNode) -> FrameLayout:
+    offsets_from_top: Dict[str, int] = {}
+    current_size = 0
+
+    for arg in function_node.arguments:
+        offsets_from_top[arg] = current_size
+        current_size += 1
+
+    size_of_args = current_size
+
+    size_of_meta = SP_STACK_SIZE + PC_STACK_SIZE
+    current_size += size_of_meta
+
+    def build_recursive(nodes: List[ast.AstNode]):
+        nonlocal current_size
+        for node in nodes:
+            if isinstance(node, ast.AssignNode):
+                if node.target not in offsets_from_top:
+                    # TODO check type
+                    offsets_from_top[node.target] = current_size
+                    current_size += 1
+            elif isinstance(node, ast.IfNode):
+                build_recursive(node.body)
+                build_recursive(node.else_body)
+            elif isinstance(node, ast.WhileNode):
+                build_recursive(node.body)
+
+    build_recursive(function_node.body)
+
+    size_of_vars = current_size - size_of_args - size_of_meta
+
+    return FrameLayout(
+        total_size=current_size,
+        identifiers={name: current_size - 1 - val for name, val in offsets_from_top.items()},
+        size_of_vars=size_of_vars,
+        size_of_parameters=size_of_args,
+        size_of_meta=size_of_meta
+    )
 
 
 @dataclass
