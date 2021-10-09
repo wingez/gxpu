@@ -1,5 +1,7 @@
 from io import StringIO
 
+import pytest
+
 from gcpu import compile, ast, default_config, assembler
 
 
@@ -8,45 +10,58 @@ def test_fp_offset():
 
     """
     #Expected
-    ldfp 10
-    ldsp 10
-    call 7
+    ldfp #255
+    ldsp #255
+    call #7
     exit
     
+    ldfp sp
     ret
     
     
     """
 
     code = c.build_single_main_function([])
-    fp_offset = 10
+    fp_offset = 255
 
-    assert code == [default_config.ldfp.id, fp_offset,
-                    default_config.ldsp.id, fp_offset,
-                    default_config.call_addr.id, 7,
-                    default_config.exit.id,
-                    default_config.addsp.id, 0,
-                    default_config.ret.id]
+    assert code == [
+        # Init stack and frame
+        default_config.ldfp.id, fp_offset,
+        default_config.ldsp.id, fp_offset,
+        # Call
+        default_config.call_addr.id, 7,
+        # on return
+        default_config.exit.id,
+
+        # start of function
+        default_config.ldfp_sp.id,
+        # frame size is 0
+        default_config.ret.id,
+    ]
 
 
 def test_function_arguments():
     expected = """
-    ldfp #22
-    ldsp #22
+    ldfp #255
+    ldsp #255
 
-    call #10
+    call #9
     exit
     
-    addsp #0
+    # empty function test
+    ldfp sp
     ret             
     
-    addsp #0
-    addsp #0
+    # main function
+    ldfp sp
+     
+    # make space for ret, not needed since == 0
+    # addsp #0
 
     lda #5
     pusha
     call #7
-    subsp #1
+    addsp #1
     ret
 
     """
@@ -54,11 +69,6 @@ def test_function_arguments():
                                      ast.FunctionNode(name='main', arguments=[],
                                                       body=[ast.CallNode('test', [ast.ConstantNode(5)])])
                                      ], expected)
-
-
-def test_assembly_parameter_offset():
-    f = compile.AssemblyFunction(compiler=None, return_type=compile.void, name='func', args=['param1', 'param2'])
-    assert f.frame_variables_offsets == {'param1': -4, 'param2': -3, 'return': -4}
 
 
 def compiled_should_match_assembled(nodes, expected_assembly):
@@ -71,19 +81,20 @@ def compiled_should_match_assembled(nodes, expected_assembly):
 
 def test_compile_while():
     expected = """
-    ldfp #20
-    ldsp #20
+    ldfp #255
+    ldsp #255
 
     call #7
     exit
     
-    addsp #0
+    # main function
+    ldfp sp
     lda #1
     tsta
-    jmpz #19
+    jmpz #18
     lda #5
     out
-    jmp #9
+    jmp #8
     ret             
     
     
@@ -96,21 +107,22 @@ def test_compile_while():
     ])], expected)
 
 
-def test_compile_if():
+def test_compile_if_else():
     expected = """
-    ldfp #23
-    ldsp #23
+    ldfp #255
+    ldsp #255
 
     call #7
     exit
     
-    addsp #0
+    # main function
+    ldfp sp
     lda #1
     tsta
-    jmpz #19
+    jmpz #18
     lda #5
     out
-    jmp #22
+    jmp #21
     lda #4
     out
     
@@ -126,17 +138,20 @@ def test_compile_if():
 
     ])], expected)
 
+
+def test_if_no_else():
     expected = """
-        ldfp #18
-        ldsp #18
+        ldfp #255
+        ldsp #255
 
         call #7
         exit
-
-        addsp #0
+        
+        #main function
+        ldfp sp
         lda #1
         tsta
-        jmpz #17
+        jmpz #16
         lda #5
         out
 
@@ -153,6 +168,7 @@ def test_compile_if():
 
 
 def test_return_byte():
+    pytest.skip("return types not implemented yet")
     expected = """
            ldfp #18
            ldsp #18
