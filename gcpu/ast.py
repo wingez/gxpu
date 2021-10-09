@@ -6,6 +6,8 @@ from gcpu import token
 
 T = TypeVar('T', bound=token.Token, covariant=True)
 
+VOID_TYPE_NAME = 'void'
+
 
 @dataclass
 class AstNode: pass
@@ -61,7 +63,7 @@ class FunctionNode(AstNode):
     name: str
     arguments: List[str]
     body: List[StatementNode]
-    return_type: str = ''
+    return_type: str = VOID_TYPE_NAME
 
 
 @dataclass
@@ -246,7 +248,7 @@ class Parser:
         self.consume()
 
         self.consume_type(token.TokenColon)
-        return_type = ''
+        return_type = VOID_TYPE_NAME
         if not self.peek_is(token.TokenEOL):
             return_type = self.consume_type(token.TokenIdentifier).target
 

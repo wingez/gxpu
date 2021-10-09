@@ -37,16 +37,18 @@ def run_code_check_output(code, *output):
     assert e.get_output() == expected
 
 
-def run_program_text(text, *output):
+def build_program(text):
     file = StringIO(text)
     tokens = token.parse_file(file)
 
     nodes = ast.parse(tokens)
 
     c = compile.Compiler()
-    code = c.build_program(nodes)
+    return c.build_program(nodes)
 
-    run_code_check_output(code, *output)
+
+def run_program_text(text, *output):
+    run_code_check_output(build_program(text), *output)
 
 
 def test_empty_program():
@@ -315,3 +317,21 @@ def test_call_return_parameters():
       print(add3(1,0,0))
     """
     run_program_text(program, 7, 18, 1)
+
+
+def test_main_function_validity():
+    program1 = """
+    def main(): byte
+      print(1)
+    """
+    program2 = """
+    def main(test):
+      print(1)
+    """
+    with pytest.raises(CompileError) as e:
+        build_program(program1)
+    assert "No suitable main-function found" in str(e)
+
+    with pytest.raises(CompileError) as e:
+        build_program(program2)
+    assert "No suitable main-function found" in str(e)

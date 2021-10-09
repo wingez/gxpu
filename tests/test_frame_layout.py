@@ -1,6 +1,7 @@
 from io import StringIO
 
 from gcpu.ast import Parser
+from gcpu.compile import Compiler
 from gcpu.token import parse_file
 
 from gcpu import compile
@@ -8,8 +9,9 @@ from gcpu import compile
 
 def get_layout(program: str) -> compile.FrameLayout:
     function_node = Parser(parse_file(StringIO(program))).parse_function_definition()
+    compiler = Compiler()
 
-    return compile.get_frame_layout(function_node)
+    return compile.get_frame_layout(compiler, function_node)
 
 
 def test_empty():
