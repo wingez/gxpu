@@ -19,7 +19,7 @@ def test_parse_too_complex():
 
 def test_parse_with_identifier():
     assert ast.parse_expressions(token.parse_line('print(2+test)')) == [ast.PrintNode(
-        ast.AdditionNode(left=ast.ConstantNode(2), right=ast.IdentifierNode('test')))]
+        ast.AdditionNode(left=ast.ConstantNode(2), right=ast.MemberAccess('test')))]
 
 
 def test_run_addition():

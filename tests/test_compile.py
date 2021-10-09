@@ -2,7 +2,7 @@ from io import StringIO
 
 import pytest
 
-from gcpu import compile, ast, default_config, assembler
+from gcpu import compile, ast, default_config, assembler, token
 
 
 def test_fp_offset():
@@ -66,7 +66,7 @@ def test_function_arguments():
 
     """
     compiled_should_match_assembled(
-        [ast.FunctionNode(name='test', arguments=[ast.AssignTarget('arg2')], body=[]),
+        [ast.FunctionNode(name='test', arguments=[ast.AssignTarget(ast.MemberAccess('arg2'))], body=[]),
          ast.FunctionNode(name='main', arguments=[],
                           body=[ast.CallNode('test', [ast.ConstantNode(5)])])
          ], expected)
@@ -202,7 +202,7 @@ def test_return_byte():
     compiled_should_match_assembled([
         ast.FunctionNode(name='test', arguments=[], return_type='byte', body=[
             ast.PrintNode(ast.ConstantNode(5)),
-            ast.AssignNode(target=ast.AssignTarget('result'), value=ast.ConstantNode(10)),
+            ast.AssignNode(target=ast.AssignTarget(ast.MemberAccess('result')), value_node=ast.ConstantNode(10)),
             ast.ReturnNode(),
         ]),
         ast.FunctionNode(name='main', arguments=[], body=[
@@ -246,12 +246,13 @@ def test_return_byte_and_assign():
 
     compiled_should_match_assembled([
         ast.FunctionNode(name='test', arguments=[], return_type='byte', body=[
-            ast.AssignNode(target=ast.AssignTarget('result'), value=ast.ConstantNode(10)),
+            ast.AssignNode(target=ast.AssignTarget(ast.MemberAccess('result')), value_node=ast.ConstantNode(10)),
             ast.ReturnNode(),
         ]),
         ast.FunctionNode(name='main', arguments=[], body=[
-            ast.AssignNode(target=ast.AssignTarget('test'), value=ast.CallNode('test', parameters=[])),
-            ast.PrintNode(target=ast.IdentifierNode('test'))
+            ast.AssignNode(target=ast.AssignTarget(ast.MemberAccess('test')),
+                           value_node=ast.CallNode('test', parameters=[])),
+            ast.PrintNode(target=ast.MemberAccess('test'))
         ]),
     ], expected)
 
@@ -259,16 +260,16 @@ def test_return_byte_and_assign():
 def test_build_struct():
     with pytest.raises(compile.CompileError) as e:
         c = compile.Compiler()
-        c.build_struct(ast.StructNode('test', members=[ast.AssignTarget('target', type='invalid')]))
+        c.build_struct(ast.StructNode('test', members=[ast.AssignTarget(ast.MemberAccess('target'), type='invalid')]))
     assert 'No type with name' in str(e)
 
-    s = c.build_struct(ast.StructNode('test', members=[ast.AssignTarget('field1', type='byte')]))
+    s = c.build_struct(ast.StructNode('test', members=[ast.AssignTarget(ast.MemberAccess('field1'), type='byte')]))
     assert s.name == 'test'
     assert s.size == 1
 
-    s = c.build_struct(ast.StructNode('test', members=[ast.AssignTarget('field1', type='byte'),
-                                                       ast.AssignTarget('field2', type='byte')]))
-    assert s.name == 'test'
+    s = c.build_struct(ast.StructNode('test2', members=[ast.AssignTarget(ast.MemberAccess('field1'), type='byte'),
+                                                        ast.AssignTarget(ast.MemberAccess('field2'), type='byte')]))
+    assert s.name == 'test2'
     assert s.size == 2
 
 
@@ -280,8 +281,35 @@ def test_compile_struct():
     call #7
     exit
     
+    subsp #2
     ldfp sp
+    lda #2
+    sta fp, #0
+    lda #1
+    sta fp, #1
     
+    lda fp, #1
+    out
+    lda fp, #0
+    out
     
+    ret #2
     
     """
+    program = """
+    struct type1:
+      member1:byte
+      member2:byte
+      
+    def main():
+      a: type1
+      
+      a.member1=2
+      a.member2=1
+      
+      print(a.member2)
+      print(a.member1)
+      
+    """
+
+    compiled_should_match_assembled(ast.Parser(token.parse_file(StringIO(program))).parse(), expected)

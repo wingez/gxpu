@@ -13,7 +13,8 @@ def test_many_eol():
     tokens = [token.TokenEOL(), token.TokenEOL(), token.TokenIdentifier('test'), token.TokenEquals(),
               token.TokenNumericConstant(5), token.TokenEOL()]
 
-    assert ast.parse_expressions(tokens) == [ast.AssignNode('test', ast.ConstantNode(5))]
+    assert ast.parse_expressions(tokens) == [
+        ast.AssignNode(ast.AssignTarget(ast.MemberAccess('test')), ast.ConstantNode(5))]
 
 
 def test_expression():
@@ -22,7 +23,7 @@ def test_expression():
     node = ast.Parser(tokens).parse_statement()
     assert isinstance(node, ast.AssignNode)
     assert node.value_node == ast.ConstantNode(4)
-    assert node.target == ast.AssignTarget(name='test')
+    assert node.target == ast.AssignTarget(ast.MemberAccess('test'))
 
     node = ast.Parser(token.parse_line('print(5)')).parse_statement()
     assert isinstance(node, ast.PrintNode)
@@ -61,7 +62,7 @@ def test_parse_function():
 def test_parse_function_with_single_parameter():
     assert ast.Parser(get_func_tokens("param1")).parse_function_definition() == \
            ast.FunctionNode(name='test',
-                            arguments=[ast.AssignTarget('param1')],
+                            arguments=[ast.AssignTarget(ast.MemberAccess('param1'))],
                             body=[ast.PrintNode(
                                 ast.ConstantNode(
                                     5))])
@@ -72,11 +73,22 @@ def test_parse_function_with_multiple_parameters():
            ast.FunctionNode(
                name='test',
                arguments=[
-                   ast.AssignTarget("param1"),
-                   ast.AssignTarget("param2"),
-                   ast.AssignTarget("param3")
+                   ast.AssignTarget(ast.MemberAccess("param1")),
+                   ast.AssignTarget(ast.MemberAccess("param2")),
+                   ast.AssignTarget(ast.MemberAccess("param3"))
                ], body=[
                    ast.PrintNode(ast.ConstantNode(5))])
+
+
+def test_parse_function_parameter_type():
+    assert ast.Parser(token.parse_file(StringIO("""
+    def test(param:type):
+      print(5)
+    """))).parse_function_definition() == \
+           ast.FunctionNode(name='test',
+                            arguments=[
+                                ast.AssignTarget(ast.MemberAccess('param'), type='type')
+                            ], body=[ast.PrintNode(ast.ConstantNode(5))])
 
 
 def test_function_return_type():
@@ -96,7 +108,7 @@ def test_return():
            ast.ReturnNode()
 
     assert ast.Parser(token.parse_line('return 5+a')).parse_return_statement() == \
-           ast.ReturnNode(ast.AdditionNode(left=ast.ConstantNode(5), right=ast.IdentifierNode('a')))
+           ast.ReturnNode(ast.AdditionNode(left=ast.ConstantNode(5), right=ast.MemberAccess('a')))
 
 
 def test_call_no_parameters():
@@ -111,13 +123,13 @@ def test_call_parameters():
            ast.CallNode('func', parameters=[
                ast.ConstantNode(5),
                ast.ConstantNode(10),
-               ast.IdentifierNode('test')
+               ast.MemberAccess('test')
            ])
 
 
 def test_assign_call():
     assert ast.Parser(token.parse_line("a=test()")).parse_assignment() == ast.AssignNode(
-        target='a', value=ast.CallNode('test', [])
+        target=ast.AssignTarget(ast.MemberAccess('a')), value_node=ast.CallNode('test', [])
     )
 
 
@@ -152,7 +164,6 @@ def test_if_else():
     
     """
     assert ast.Parser(token.parse_file(StringIO(code))).parse_if_statement() == \
-           ast.IfNode(condition=ast.IdentifierNode('a'),
+           ast.IfNode(condition=ast.MemberAccess('a'),
                       body=[ast.PrintNode(ast.ConstantNode(1))],
                       else_body=[ast.PrintNode(ast.ConstantNode(0))])
-

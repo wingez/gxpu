@@ -63,18 +63,18 @@ def test_print_constant():
 
 def test_print_variable():
     nodes = [
-        ast.AssignNode(ast.AssignTarget('var'), ast.ConstantNode(4)),
-        ast.PrintNode(ast.IdentifierNode('var'))
+        ast.AssignNode(ast.AssignTarget(ast.MemberAccess('var')), ast.ConstantNode(4)),
+        ast.PrintNode(ast.MemberAccess('var'))
     ]
     run_expression_nodes_check_output(nodes, 4)
 
 
 def test_print_many_variables():
     nodes = [
-        ast.AssignNode(ast.AssignTarget('var1'), ast.ConstantNode(5)),
-        ast.AssignNode(ast.AssignTarget('var2'), ast.ConstantNode(8)),
-        ast.PrintNode(ast.IdentifierNode('var1')),
-        ast.PrintNode(ast.IdentifierNode('var2')),
+        ast.AssignNode(ast.AssignTarget(ast.MemberAccess('var1')), ast.ConstantNode(5)),
+        ast.AssignNode(ast.AssignTarget(ast.MemberAccess('var2')), ast.ConstantNode(8)),
+        ast.PrintNode(ast.MemberAccess('var1')),
+        ast.PrintNode(ast.MemberAccess('var2')),
     ]
     run_expression_nodes_check_output(nodes, 5, 8)
 
@@ -102,9 +102,9 @@ def test_variable_increment():
 
 def test_variable_move():
     nodes = [
-        ast.AssignNode(ast.AssignTarget('var1'), ast.ConstantNode(2)),
-        ast.AssignNode(ast.AssignTarget('var2'), ast.IdentifierNode('var1')),
-        ast.PrintNode(ast.IdentifierNode('var2')),
+        ast.AssignNode(ast.AssignTarget(ast.MemberAccess('var1')), ast.ConstantNode(2)),
+        ast.AssignNode(ast.AssignTarget(ast.MemberAccess('var2')), ast.MemberAccess('var1')),
+        ast.PrintNode(ast.MemberAccess('var2')),
     ]
     run_expression_nodes_check_output(nodes, 2)
 
@@ -121,9 +121,9 @@ def test_variable_move():
 
 def test_invalid_variable_name():
     nodes = [
-        ast.AssignNode(ast.AssignTarget('var1'), ast.ConstantNode(2)),
-        ast.AssignNode(ast.AssignTarget('var2'), ast.IdentifierNode('var 1')),
-        ast.PrintNode(ast.IdentifierNode('var2')),
+        ast.AssignNode(ast.AssignTarget(ast.MemberAccess('var1')), ast.ConstantNode(2)),
+        ast.AssignNode(ast.AssignTarget(ast.MemberAccess('var2')), ast.MemberAccess('var 1')),
+        ast.PrintNode(ast.MemberAccess('var2')),
     ]
     with pytest.raises(CompileError):
         run_expression_nodes_check_output(nodes, 2)
