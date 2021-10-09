@@ -88,6 +88,11 @@ def test_assemble_mnemonic():
     assert assemble_mnemonic(i, '   ') == []
 
 
+def test_assemble_mnemonic_comment():
+    i = InstructionSet()
+    assert assemble_mnemonic(i, '  # comment') == []
+
+
 def test_assemble_mnemonic_case_invariance():
     i = InstructionSet()
     i.add_instruction(Instruction('test #ins', emulate=None, id=1))

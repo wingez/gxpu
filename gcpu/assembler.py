@@ -7,7 +7,7 @@ from gcpu.instructions import MNEMONIC_DELIMITERS, InstructionBuilderError, Inst
 def assemble_mnemonic(instruction_set: InstructionSet, mnemonic: str) -> List[int]:
     mnemonic = mnemonic.strip(' ')
 
-    if mnemonic == '':
+    if mnemonic == '' or mnemonic.startswith('#'):
         return []
 
     def parse_variable(text: str) -> int:
