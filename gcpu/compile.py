@@ -162,7 +162,16 @@ class AssemblyFunction:
                     default_config.addsp.build(val=function.frame_layout.size_of_ret))
 
         elif isinstance(statement_node, ast.ReturnNode):
-            self.compiler.put_code(default_config.ret.build())
+
+            if statement_node.value is not None:
+                # Take care of explicit returns
+                self.build_statement_node(ast.AssignNode(target='result', value=statement_node.value))
+
+            if self.frame_layout.size_of_vars != 0:
+                self.compiler.put_code(
+                    default_config.ret_with_frame_size.build(frame_size=self.frame_layout.size_of_vars))
+            else:
+                self.compiler.put_code(default_config.ret.build())
 
         else:
             raise CompileError(f'node of type {statement_node} not supported yet')
