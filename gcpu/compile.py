@@ -21,7 +21,7 @@ class DataType:
     size: int
 
 
-void = DataType('void', 0)
+void = DataType(ast.VOID_TYPE_NAME, 0)
 
 primitive_types = [
     DataType('byte', 1),
@@ -47,7 +47,7 @@ class FrameLayout:
         return result
 
 
-def get_frame_layout(function_node: ast.FunctionNode) -> FrameLayout:
+def get_frame_layout(compiler: Compiler, function_node: ast.FunctionNode) -> FrameLayout:
     offsets_from_top: Dict[str, int] = {}
     current_size = 0
 
@@ -77,6 +77,7 @@ def get_frame_layout(function_node: ast.FunctionNode) -> FrameLayout:
     build_recursive(function_node.body)
 
     size_of_vars = current_size - size_of_args - size_of_meta
+    size_of_ret = compiler.get_type(function_node.return_type).size
 
     return FrameLayout(
         total_size=current_size,
@@ -84,7 +85,7 @@ def get_frame_layout(function_node: ast.FunctionNode) -> FrameLayout:
         size_of_vars=size_of_vars,
         size_of_parameters=size_of_args,
         size_of_meta=size_of_meta,
-        size_of_ret=0,  # TODO
+        size_of_ret=size_of_ret,
     )
 
 
@@ -276,6 +277,11 @@ class Compiler:
         self.put_code([0] * instruction.size)
         return pos
 
+    def get_type(self, identifier: str):
+        if identifier not in self.types:
+            raise CompileError(f'No type with name {identifier!r} found')
+        return self.types[identifier]
+
     def build_new_function(self, function_node: ast.FunctionNode) -> AssemblyFunction:
 
         return_type_name = function_node.return_type if function_node.return_type else 'void'
@@ -283,7 +289,8 @@ class Compiler:
             raise CompileError(f'No known type {function_node.return_type}')
 
         function = AssemblyFunction(compiler=self, return_type=self.types[return_type_name], name=function_node.name,
-                                    memory_address=self.current_size, frame_layout=get_frame_layout(function_node))
+                                    memory_address=self.current_size,
+                                    frame_layout=get_frame_layout(self, function_node))
 
         if function.name in self.functions:
             raise CompileError(f'Function {function.name} already declared')
@@ -310,9 +317,11 @@ class Compiler:
         if 'main' not in self.functions:
             raise CompileError('No main-function provided')
 
-        main_function_address = self.functions['main'].memory_address
+        main_function = self.functions['main']
+        if main_function.frame_layout.size_of_parameters != 0 or main_function.frame_layout.size_of_ret != 0:
+            raise CompileError("No suitable main-function found")
 
-        self.put_code_at(default_config.call_addr.build(addr=main_function_address), to_place_call_main)
+        self.put_code_at(default_config.call_addr.build(addr=main_function.memory_address), to_place_call_main)
         self.put_code_at(default_config.exit.build(), to_place_exit)
 
         return self.resulting_code
