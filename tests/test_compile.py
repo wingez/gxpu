@@ -168,25 +168,43 @@ def test_if_no_else():
 
 
 def test_return_byte():
-    pytest.skip("return types not implemented yet")
     expected = """
-           ldfp #18
-           ldsp #18
+           ldfp #255
+           ldsp #255
 
-           call #7
+           call #17
            exit
            
-           addsp #0
+           
+           # test function
+           ldfp sp
            lda #5
            out
            lda #10
-           STA FP, -#3
+           STA FP, #2
            ret
+           ret
+           
+           
+           # main function
+           ldfp sp
+           # make space for ret
+           subsp #1
+           call #7
+           
+           # pop return
+           addsp #1
+           
            ret
            """
 
-    compiled_should_match_assembled([ast.FunctionNode(name='main', arguments=[], return_type='byte', body=[
-        ast.PrintNode(ast.ConstantNode(5)),
-        ast.ReturnNode(ast.ConstantNode(10)),
-
-    ])], expected)
+    compiled_should_match_assembled([
+        ast.FunctionNode(name='test', arguments=[], return_type='byte', body=[
+            ast.PrintNode(ast.ConstantNode(5)),
+            ast.AssignNode(target='result', value=ast.ConstantNode(10)),
+            ast.ReturnNode(),
+        ]),
+        ast.FunctionNode(name='main', arguments=[], body=[
+            ast.CallNode(target_name='test', parameters=[])
+        ]),
+    ], expected)
