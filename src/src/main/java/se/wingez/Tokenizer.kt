@@ -4,31 +4,30 @@ import java.io.Reader
 
 class Tokenizer {
 
-    val TokenEOL = ExpressionSeparator()
-    val TokenLeftParenthesis = ExpressionSeparator()
-    val TokenRightParenthesis = ExpressionSeparator()
-    val TokenComma = ExpressionSeparator()
-    val TokenColon = ExpressionSeparator()
-    val TokenEquals = Token()
-    val TokenDot = Token()
-    val TokenKeywordDef = Token()
-    val TokenKeywordPrint = Token()
-    val TokenKeywordWhile = Token()
-    val TokenKeywordIf = Token()
-    val TokenKeywordElse = Token()
-    val TokenKeywordReturn = Token()
-    val TokenKeywordStruct = Token()
-    val TokenKeywordNew = Token()
-    val TokenBeginBlock = Token()
-    val TokenEndBlock = Token()
-    val TokenSingleOperation = Token()
-    val TokenPlusSign = Token()
-    val TokenMinusSign = Token()
-    val TokenGreaterSign = Token()
-
-
-    private val DELIMITERS = listOf(" ", "#", "(", ")", ",", ":", "+", "-", "=", "<", ">", ".")
-    private val TOKENS = listOf("(", ")", ",", ":", "=", "-", "+", "<", ">", ".")
+    companion object {
+        val TokenEOL = ExpressionSeparator()
+        val TokenLeftParenthesis = ExpressionSeparator()
+        val TokenRightParenthesis = ExpressionSeparator()
+        val TokenComma = ExpressionSeparator()
+        val TokenColon = ExpressionSeparator()
+        val TokenEquals = Token()
+        val TokenDot = Token()
+        val TokenKeywordDef = Token()
+        val TokenKeywordPrint = Token()
+        val TokenKeywordWhile = Token()
+        val TokenKeywordIf = Token()
+        val TokenKeywordElse = Token()
+        val TokenKeywordReturn = Token()
+        val TokenKeywordStruct = Token()
+        val TokenKeywordNew = Token()
+        val TokenBeginBlock = Token()
+        val TokenEndBlock = Token()
+        val TokenPlusSign = TokenSingleOperation()
+        val TokenMinusSign = TokenSingleOperation()
+        val TokenGreaterSign = Token()
+        private val DELIMITERS = listOf(" ", "#", "(", ")", ",", ":", "+", "-", "=", "<", ">", ".")
+        private val TOKENS = listOf("(", ")", ",", ":", "=", "-", "+", "<", ">", ".")
+    }
 
 
     fun getIndentation(line: String): Pair<Int, String> {
@@ -105,7 +104,7 @@ class Tokenizer {
         return result
     }
 
-    fun parseLine(line: String): Collection<Token> {
+    fun parseLine(line: String): List<Token> {
         val result = mutableListOf<Token>()
         var current = ""
 

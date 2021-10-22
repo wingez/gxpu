@@ -29,22 +29,22 @@ internal class TokenizerTest {
         assertEquals(t.parseFile(StringReader("""
         var
         print
-        """)), listOf(TokenIdentifier("var"), t.TokenEOL, t.TokenKeywordPrint, t.TokenEOL))
+        """)), listOf(TokenIdentifier("var"), Tokenizer.TokenEOL, Tokenizer.TokenKeywordPrint, Tokenizer.TokenEOL))
 
         assertEquals(t.parseFile(StringReader("""
             var
               print
             
             
-        """)), listOf(TokenIdentifier("var"), t.TokenEOL, t.TokenBeginBlock, t.TokenKeywordPrint, t.TokenEOL, t.TokenEndBlock))
+        """)), listOf(TokenIdentifier("var"), Tokenizer.TokenEOL, Tokenizer.TokenBeginBlock, Tokenizer.TokenKeywordPrint, Tokenizer.TokenEOL, Tokenizer.TokenEndBlock))
 
         assertEquals(t.parseFile(StringReader("""
             var
               print
             5
             
-        """)), listOf(TokenIdentifier("var"), t.TokenEOL, t.TokenBeginBlock, t.TokenKeywordPrint,
-                t.TokenEOL, t.TokenEndBlock, TokenNumericConstant(5), t.TokenEOL))
+        """)), listOf(TokenIdentifier("var"), Tokenizer.TokenEOL, Tokenizer.TokenBeginBlock, Tokenizer.TokenKeywordPrint,
+                Tokenizer.TokenEOL, Tokenizer.TokenEndBlock, TokenNumericConstant(5), Tokenizer.TokenEOL))
 
         assertThrows(TokenError::class.java) {
             t.parseFile(StringReader("""
@@ -60,17 +60,17 @@ internal class TokenizerTest {
   
         var         
         """
-        )), listOf(t.TokenKeywordPrint, t.TokenEOL,
-                t.TokenBeginBlock, t.TokenKeywordPrint, t.TokenEOL,
-                t.TokenBeginBlock, t.TokenKeywordPrint, t.TokenEOL,
-                t.TokenEndBlock, t.TokenEndBlock,
-                TokenIdentifier("var"), t.TokenEOL))
+        )), listOf(Tokenizer.TokenKeywordPrint, Tokenizer.TokenEOL,
+                Tokenizer.TokenBeginBlock, Tokenizer.TokenKeywordPrint, Tokenizer.TokenEOL,
+                Tokenizer.TokenBeginBlock, Tokenizer.TokenKeywordPrint, Tokenizer.TokenEOL,
+                Tokenizer.TokenEndBlock, Tokenizer.TokenEndBlock,
+                TokenIdentifier("var"), Tokenizer.TokenEOL))
     }
 
     @Test
     fun testToToken() {
-        assertEquals(t.toToken("("), t.TokenLeftParenthesis)
-        assertEquals(t.toToken(")"), t.TokenRightParenthesis)
+        assertEquals(t.toToken("("), Tokenizer.TokenLeftParenthesis)
+        assertEquals(t.toToken(")"), Tokenizer.TokenRightParenthesis)
         assertEquals(t.toToken("test"), TokenIdentifier("test"))
     }
 
@@ -79,15 +79,15 @@ internal class TokenizerTest {
         for (item in items) {
             result.add(t.toToken(item))
         }
-        result.add(t.TokenEOL)
+        result.add(Tokenizer.TokenEOL)
         return result
     }
 
     @Test
     fun testParseLine() {
         //Comments
-        assertEquals(t.parseLine("#"), listOf(t.TokenEOL))
-        assertEquals(t.parseLine("test#"), listOf(TokenIdentifier("test"), t.TokenEOL))
+        assertEquals(t.parseLine("#"), listOf(Tokenizer.TokenEOL))
+        assertEquals(t.parseLine("test#"), listOf(TokenIdentifier("test"), Tokenizer.TokenEOL))
 
         //Regular words
         assertEquals(t.parseLine("test"), tokenize("test"))
@@ -97,8 +97,8 @@ internal class TokenizerTest {
         assertEquals(t.parseLine("def main(test: int, test2: bool, test3: str): "), tokenize(
                 "def", "main", "(", "test", ":", "int", ",", "test2", ":", "bool", ",", "test3", ":", "str", ")", ":"
         ))
-        assertEquals(t.parseLine("test3"), listOf(TokenIdentifier("test3"), t.TokenEOL))
-        assertEquals(t.parseLine("456"), listOf(TokenNumericConstant(456), t.TokenEOL))
+        assertEquals(t.parseLine("test3"), listOf(TokenIdentifier("test3"), Tokenizer.TokenEOL))
+        assertEquals(t.parseLine("456"), listOf(TokenNumericConstant(456), Tokenizer.TokenEOL))
 
 
         assertEquals(t.parseLine("a:int = 5"), tokenize("a", ":", "int", "=", "5"))
@@ -117,9 +117,9 @@ internal class TokenizerTest {
           
         """
         assertEquals(t.parseFile(StringReader(content)), listOf(
-                TokenIdentifier("test"), t.TokenEOL,
-                t.TokenBeginBlock, t.TokenKeywordPrint, t.TokenEOL,
-                t.TokenEndBlock,
+                TokenIdentifier("test"), Tokenizer.TokenEOL,
+                Tokenizer.TokenBeginBlock, Tokenizer.TokenKeywordPrint, Tokenizer.TokenEOL,
+                Tokenizer.TokenEndBlock,
         ))
     }
 }
