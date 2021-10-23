@@ -16,3 +16,18 @@ fun splitMany(toSplit: String, delimiters: Iterable<String>): List<String> {
     }
     return current
 }
+
+fun bytes(vararg bytes: Int): List<UByte> {
+    val result = mutableListOf<UByte>()
+    for (byte in bytes) {
+
+        result.add(byte(byte))
+    }
+    return result
+}
+
+fun byte(value: Int): UByte {
+    if (value !in 0..255)
+        throw AssertionError()
+    return value.toUByte()
+}

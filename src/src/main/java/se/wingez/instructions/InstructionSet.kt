@@ -4,7 +4,6 @@ import se.wingez.emulator.Emulator
 import se.wingez.instructions.Instruction.Companion.MNEMONIC_DELIMITERS
 import se.wingez.splitMany
 import java.io.StringReader
-import java.lang.Exception
 
 class RegisterInstructionError(message: String) : Exception(message)
 class InstructionBuilderError(message: String) : Exception(message)
@@ -42,6 +41,7 @@ data class Instruction(
     }
 
     val size = { 1 + variableOrder.size }
+
 
     fun build(args: Map<String, UByte> = emptyMap()): List<UByte> {
         val mutableArgs = args.toMutableMap()
@@ -92,13 +92,15 @@ class InstructionSet(val maxSize: UByte = Instruction.MAX_SIZE) {
         instructionByIndex[instruction.id] = instruction
     }
 
-    fun createInstruction(mnemonic: String, index: UByte = Instruction.AUTO_INDEX_ASSIGMENT, group: String, emulate: (Emulator) -> Boolean) {
-        addInstruction(Instruction(
+    fun createInstruction(mnemonic: String, index: UByte = Instruction.AUTO_INDEX_ASSIGMENT, group: String = "", emulate: (Emulator) -> Boolean): Instruction {
+        val instr = Instruction(
                 mnemonic,
                 emulate,
                 index,
                 group,
-        ))
+        )
+        addInstruction(instr)
+        return instr
     }
 
     fun getInstructions(): Collection<Instruction> {

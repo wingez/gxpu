@@ -2,20 +2,12 @@ package se.wingez.instructions
 
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import se.wingez.bytes
 import se.wingez.emulator.Emulator
 
 internal class InstructionTest {
 
     private val emptyEmulate = { _: Emulator -> false }
-
-    fun bytes(vararg bytes: Int): List<UByte> {
-        val result = mutableListOf<UByte>()
-        for (byte in bytes) {
-            assertTrue(byte in 0..255)
-            result.add(byte.toUByte())
-        }
-        return result
-    }
 
     @Test
     fun testAutoId() {
