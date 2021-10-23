@@ -3,19 +3,25 @@ package se.wingez.ast
 import se.wingez.*
 import se.wingez.Tokenizer.Companion.TokenBeginBlock
 import se.wingez.Tokenizer.Companion.TokenColon
+import se.wingez.Tokenizer.Companion.TokenComma
+import se.wingez.Tokenizer.Companion.TokenDot
 import se.wingez.Tokenizer.Companion.TokenEOL
-import java.lang.Exception
-import kotlin.reflect.KFunction0
-import kotlin.reflect.typeOf
-
+import se.wingez.Tokenizer.Companion.TokenEndBlock
 import se.wingez.Tokenizer.Companion.TokenEquals
+import se.wingez.Tokenizer.Companion.TokenKeywordDef
 import se.wingez.Tokenizer.Companion.TokenKeywordElse
 import se.wingez.Tokenizer.Companion.TokenKeywordIf
+import se.wingez.Tokenizer.Companion.TokenKeywordNew
 import se.wingez.Tokenizer.Companion.TokenKeywordPrint
 import se.wingez.Tokenizer.Companion.TokenKeywordReturn
+import se.wingez.Tokenizer.Companion.TokenKeywordStruct
 import se.wingez.Tokenizer.Companion.TokenKeywordWhile
 import se.wingez.Tokenizer.Companion.TokenLeftParenthesis
+import se.wingez.Tokenizer.Companion.TokenMinusSign
+import se.wingez.Tokenizer.Companion.TokenPlusSign
 import se.wingez.Tokenizer.Companion.TokenRightParenthesis
+import kotlin.reflect.KFunction0
+import kotlin.reflect.typeOf
 
 class ParserError(message: String) : Exception(message)
 
@@ -80,13 +86,13 @@ class AstParser(private val tokens: List<Token>) {
         return index < tokens.size
     }
 
-    public fun parse(): List<AstNode> {
+    fun parse(): List<AstNode> {
         val result = mutableListOf<AstNode>()
 
         while (hasMoreToParse()) {
 
             // Filter empty line
-            if (peekIs(Tokenizer.TokenEOL, consumeMatch = true))
+            if (peekIs(TokenEOL, consumeMatch = true))
                 continue
 
             var tok: AstNode?
@@ -95,6 +101,12 @@ class AstParser(private val tokens: List<Token>) {
                 result.add(tok)
                 continue
             }
+            tok = tryParse(this::parseStruct)
+            if (tok != null) {
+                result.add(tok)
+                continue
+            }
+
 
             throw ParserError("Could not parse")
 
@@ -122,14 +134,14 @@ class AstParser(private val tokens: List<Token>) {
 
         val modifiers = mutableListOf<MemberAccessModifier>()
         if (allowModifiers) {
-            while (peekIs(Tokenizer.TokenDot, consumeMatch = true)) {
+            while (peekIs(TokenDot, consumeMatch = true)) {
                 val identifier = consumeType<TokenIdentifier>()
                 modifiers.add(MemberAccessModifier(identifier.target))
             }
         }
         val member = MemberAccess(targetToken.target, modifiers)
-        if (peekIs(Tokenizer.TokenColon, consumeMatch = true)) {
-            val explicitNew = peekIs(Tokenizer.TokenKeywordNew, consumeMatch = true)
+        if (peekIs(TokenColon, consumeMatch = true)) {
+            val explicitNew = peekIs(TokenKeywordNew, consumeMatch = true)
             val typeNode = consumeType<TokenIdentifier>()
 
             return AssignTarget(member, typeNode.target, explicitNew)
@@ -138,25 +150,25 @@ class AstParser(private val tokens: List<Token>) {
     }
 
     fun parseFunctionDefinition(): FunctionNode {
-        consumeType(Tokenizer.TokenKeywordDef)
+        consumeType(TokenKeywordDef)
         val name = consumeType<TokenIdentifier>().target
-        consumeType(Tokenizer.TokenLeftParenthesis)
+        consumeType(TokenLeftParenthesis)
 
         val parameters = mutableListOf<AssignTarget>()
-        while (!peekIs(Tokenizer.TokenRightParenthesis, true)) {
+        while (!peekIs(TokenRightParenthesis, true)) {
             val member = parsePrimitiveMemberDeclaration(false)
             parameters.add(member)
 
-            peekIs(Tokenizer.TokenComma, true)
+            peekIs(TokenComma, true)
         }
-        consumeType(Tokenizer.TokenColon)
+        consumeType(TokenColon)
         var returnType = VOID_TYPE_NAME
-        if (!peekIs(Tokenizer.TokenEOL)) {
+        if (!peekIs(TokenEOL)) {
             returnType = consumeIdentifier()
         }
 
-        consumeType(Tokenizer.TokenEOL)
-        consumeType(Tokenizer.TokenBeginBlock)
+        consumeType(TokenEOL)
+        consumeType(TokenBeginBlock)
 
         val statements = parseStatementsUntilEndblock()
 
@@ -166,8 +178,8 @@ class AstParser(private val tokens: List<Token>) {
     fun parseStatementsUntilEndblock(): List<StatementNode> {
         val expressions = mutableListOf<StatementNode>()
 
-        while (!peekIs(Tokenizer.TokenEndBlock, true)) {
-            if (peekIs(Tokenizer.TokenEOL, true))
+        while (!peekIs(TokenEndBlock, true)) {
+            if (peekIs(TokenEOL, true))
                 continue
 
             val newStatement = parseStatement()
@@ -269,7 +281,7 @@ class AstParser(private val tokens: List<Token>) {
             } catch (e: ParserError) {
                 restore(savepoint)
                 val identifier = consumeIdentifier()
-                if (peekIs(Tokenizer.TokenDot, true)) {
+                if (peekIs(TokenDot, true)) {
                     val member = consumeIdentifier()
                     MemberAccess(identifier, listOf(MemberAccessModifier(member)))
                 } else {
@@ -293,8 +305,8 @@ class AstParser(private val tokens: List<Token>) {
                 throw ParserError("Operation to complex for now")
 
             val operation = when (nextToken) {
-                Tokenizer.TokenPlusSign -> Operation.Plus
-                Tokenizer.TokenMinusSign -> Operation.Minus
+                TokenPlusSign -> Operation.Plus
+                TokenMinusSign -> Operation.Minus
                 else -> throw ParserError("Dont know how to parse $nextToken")
             }
             return SingleOperationNode(operation, firstResult, secondResult)
@@ -308,21 +320,39 @@ class AstParser(private val tokens: List<Token>) {
 
     fun parseFunctionCall(shouldConsumeEol: Boolean): CallNode {
         val targetName = consumeType<TokenIdentifier>().target
-        consumeType(Tokenizer.TokenLeftParenthesis)
+        consumeType(TokenLeftParenthesis)
 
         val parameters = mutableListOf<ValueProviderNode>()
 
-        while (!peekIs(Tokenizer.TokenRightParenthesis, true)) {
+        while (!peekIs(TokenRightParenthesis, true)) {
             val paramValue = parseValueProvider()
             parameters.add(paramValue)
 
-            peekIs(Tokenizer.TokenComma, true)
+            peekIs(TokenComma, true)
         }
 
         if (shouldConsumeEol)
-            consumeType(Tokenizer.TokenEOL)
+            consumeType(TokenEOL)
 
         return CallNode(targetName, parameters)
+    }
+
+    fun parseStruct(): StructNode {
+        consumeType(TokenKeywordStruct)
+        val name = consumeIdentifier()
+        consumeType(TokenColon)
+        consumeType(TokenEOL)
+        consumeType(TokenBeginBlock)
+
+        val members = mutableListOf<AssignTarget>()
+
+        while (!peekIs(TokenEndBlock, true)) {
+            if (peekIs(TokenEOL, true))
+                continue
+
+            members.add(parsePrimitiveMemberDeclaration(allowModifiers = false))
+        }
+        return StructNode(name, members)
     }
 
 }

@@ -1,6 +1,6 @@
 package se.wingez.ast
 
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import se.wingez.Token
 import se.wingez.TokenIdentifier
@@ -9,10 +9,9 @@ import se.wingez.Tokenizer
 import se.wingez.Tokenizer.Companion.TokenBeginBlock
 import se.wingez.Tokenizer.Companion.TokenColon
 import se.wingez.Tokenizer.Companion.TokenComma
-
 import se.wingez.Tokenizer.Companion.TokenEOL
-import se.wingez.Tokenizer.Companion.TokenEquals
 import se.wingez.Tokenizer.Companion.TokenEndBlock
+import se.wingez.Tokenizer.Companion.TokenEquals
 import se.wingez.Tokenizer.Companion.TokenKeywordDef
 import se.wingez.Tokenizer.Companion.TokenKeywordPrint
 import se.wingez.Tokenizer.Companion.TokenLeftParenthesis
@@ -21,27 +20,30 @@ import java.io.StringReader
 
 internal class AstParserTest {
 
-    val t = Tokenizer()
+    companion object {
+        val t = Tokenizer()
 
-    fun parse(tokens: List<Token>): List<AstNode> {
-        return AstParser(tokens).parse()
+        fun parse(tokens: List<Token>): List<AstNode> {
+            return AstParser(tokens).parse()
+        }
+
+        fun parserFromLine(line: String): AstParser {
+            return AstParser(t.parseLine(line))
+        }
+
+        fun parserFromFile(file: String): AstParser {
+            return AstParser(t.parseFile(StringReader(file)))
+        }
+
+        fun parseExpressions(tokens: List<Token>): List<AstNode> {
+            return AstParser(tokens + listOf(TokenEndBlock)).parseStatementsUntilEndblock()
+        }
+
+        fun assign(to: String, value: Int): AssignNode {
+            return AssignNode(AssignTarget(MemberAccess(to)), ConstantNode(value))
+        }
     }
 
-    fun parserFromLine(line: String): AstParser {
-        return AstParser(t.parseLine(line))
-    }
-
-    fun parserFromFile(file: String): AstParser {
-        return AstParser(t.parseFile(StringReader(file)))
-    }
-
-    fun parseExpressions(tokens: List<Token>): List<AstNode> {
-        return AstParser(tokens + listOf(TokenEndBlock)).parseStatementsUntilEndblock()
-    }
-
-    fun assign(to: String, value: Int): AssignNode {
-        return AssignNode(AssignTarget(MemberAccess(to)), ConstantNode(value))
-    }
 
     @Test
     fun testManyEOL() {

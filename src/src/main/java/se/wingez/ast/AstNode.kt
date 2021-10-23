@@ -1,7 +1,6 @@
 package se.wingez.ast
 
 import se.wingez.TokenNumericConstant
-import javax.swing.plaf.nimbus.State
 
 abstract class AstNode
 abstract class StatementNode : AstNode()
@@ -69,3 +68,8 @@ data class WhileNode(
 data class ReturnNode(
         val value: ValueProviderNode? = null,
 ) : StatementNode()
+
+data class StructNode(
+        val name: String,
+        val members: List<AssignTarget>,
+) : AstNode()
