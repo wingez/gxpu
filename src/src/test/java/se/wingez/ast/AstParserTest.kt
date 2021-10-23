@@ -145,16 +145,16 @@ internal class AstParserTest {
 
     @Test
     fun testCallNoParameters() {
-        assertEquals(parserFromLine("func()").parseFunctionCall(),
+        assertEquals(parserFromLine("func()").parseCall(),
                 CallNode("func", emptyList()))
     }
 
     @Test
     fun testCallParameters() {
-        assertEquals(parserFromLine("func(5)").parseFunctionCall(),
+        assertEquals(parserFromLine("func(5)").parseCall(),
                 CallNode("func", listOf(ConstantNode(5))))
 
-        assertEquals(parserFromLine("func(5,10,test)").parseFunctionCall(),
+        assertEquals(parserFromLine("func(5,10,test)").parseCall(),
                 CallNode("func", listOf(
                         ConstantNode(5),
                         ConstantNode(10),

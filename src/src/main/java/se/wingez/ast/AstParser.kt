@@ -114,7 +114,7 @@ class AstParser(private val tokens: List<Token>) {
         return result
     }
 
-    fun <T> tryParse(toCall: KFunction0<T>): T? {
+    private fun <T> tryParse(toCall: KFunction0<T>): T? {
 
         val savepoint = savepoint()
         try {
@@ -126,7 +126,7 @@ class AstParser(private val tokens: List<Token>) {
         return null
     }
 
-    fun parsePrimitiveMemberDeclaration(allowModifiers: Boolean): AssignTarget {
+    private fun parsePrimitiveMemberDeclaration(allowModifiers: Boolean): AssignTarget {
         /**
         Parses 'val:type' or 'val' or 'val:new type'
          */
@@ -194,7 +194,7 @@ class AstParser(private val tokens: List<Token>) {
         tryParse(this::parseAssignment)?.also { return it }
         tryParse(this::parseAssignmentNoInit)?.also { return it }
         tryParse(this::parsePrint)?.also { return it }
-        tryParse(this::parseFunctionCall)?.also { return it }
+        tryParse(this::parseCall)?.also { return it }
         tryParse(this::parseIfStatement)?.also { return it }
         tryParse(this::parseWhileStatement)?.also { return it }
         tryParse(this::parseReturnStatement)?.also { return it }
@@ -210,7 +210,7 @@ class AstParser(private val tokens: List<Token>) {
         return AssignNode(assignment, valueNode)
     }
 
-    fun parseAssignmentNoInit(): AssignNode {
+    private fun parseAssignmentNoInit(): AssignNode {
         val value = parsePrimitiveMemberDeclaration(false)
         consumeType(TokenEOL)
         return AssignNode(value, null)
@@ -277,7 +277,7 @@ class AstParser(private val tokens: List<Token>) {
         } else if (peekIs<TokenIdentifier>()) {
             val savepoint = savepoint()
             firstResult = try {
-                parseFunctionCall(false)
+                parseCall(false)
             } catch (e: ParserError) {
                 restore(savepoint)
                 val identifier = consumeIdentifier()
@@ -314,11 +314,11 @@ class AstParser(private val tokens: List<Token>) {
         throw ParserError("$nextToken was not expected")
     }
 
-    fun parseFunctionCall(): CallNode {
-        return parseFunctionCall(true)
+    fun parseCall(): CallNode {
+        return parseCall(true)
     }
 
-    fun parseFunctionCall(shouldConsumeEol: Boolean): CallNode {
+    fun parseCall(shouldConsumeEol: Boolean): CallNode {
         val targetName = consumeType<TokenIdentifier>().target
         consumeType(TokenLeftParenthesis)
 
