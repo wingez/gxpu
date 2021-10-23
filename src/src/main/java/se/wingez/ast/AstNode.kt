@@ -41,7 +41,12 @@ data class FunctionNode(
         val arguments: List<AssignTarget>,
         val body: List<StatementNode>,
         val returnType: String,
-) : AstNode()
+) : AstNode(), NodeContainer {
+    override fun getNodes(): Iterable<AstNode> {
+        return body
+    }
+
+}
 
 enum class Operation {
     Plus,
@@ -58,12 +63,20 @@ data class IfNode(
         val condition: ValueProviderNode,
         val body: List<StatementNode>,
         val elseBody: List<StatementNode>,
-) : StatementNode()
+) : StatementNode(), NodeContainer {
+    override fun getNodes(): Iterable<AstNode> {
+        return body + elseBody
+    }
+}
 
 data class WhileNode(
         val condition: ValueProviderNode,
         val body: List<StatementNode>,
-) : StatementNode()
+) : StatementNode(), NodeContainer {
+    override fun getNodes(): Iterable<AstNode> {
+        return body
+    }
+}
 
 data class ReturnNode(
         val value: ValueProviderNode? = null,
