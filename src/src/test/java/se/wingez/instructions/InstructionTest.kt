@@ -8,6 +8,15 @@ internal class InstructionTest {
 
     private val emptyEmulate = { _: Emulator -> false }
 
+    fun bytes(vararg bytes: Int): List<UByte> {
+        val result = mutableListOf<UByte>()
+        for (byte in bytes) {
+            assertTrue(byte in 0..255)
+            result.add(byte.toUByte())
+        }
+        return result
+    }
+
     @Test
     fun testAutoId() {
         val i = InstructionSet(maxSize = 3u)
@@ -67,9 +76,9 @@ internal class InstructionTest {
     @Test
     fun testBuild() {
         assertIterableEquals(Instruction("test", emptyEmulate, 0u).build(), listOf<UByte>(0u))
-        assertIterableEquals(Instruction("test #test", emptyEmulate, 5u).build(mapOf("test" to 6u)), listOf<UByte>(5u, 6u))
-        assertIterableEquals(Instruction("test #a #b", emptyEmulate, 7u, listOf("b", "a")).build(
-                mapOf("a" to 2u, "b" to 3u)), listOf<UByte>(7u, 3u, 2u))
+        assertIterableEquals(Instruction("test #test", emptyEmulate, 5u).build(mapOf("test" to 6u)), bytes(5, 6))
+        assertIterableEquals(Instruction("test #a #b", emptyEmulate, 7u, variableOrder = listOf("b", "a")).build(
+                mapOf("a" to 2u, "b" to 3u)), bytes(7, 3, 2))
 
         val i = Instruction("test #a, #b", emptyEmulate)
         assertThrows(InstructionBuilderError::class.java) {
@@ -79,4 +88,105 @@ internal class InstructionTest {
             i.build(mapOf("a" to 6u, "b" to 4u, "c" to 10u))
         }
     }
+
+    @Test
+    fun testAssembleMnemonic() {
+        val i = InstructionSet()
+        i.addInstruction(Instruction("test", emptyEmulate, 0u))
+        i.addInstruction(Instruction("test #ins #tmp", emptyEmulate, 2u))
+        i.addInstruction(Instruction("test #ins", emptyEmulate, 1u))
+
+        assertIterableEquals(i.assembleMnemonic("test"), bytes(0))
+        assertIterableEquals(i.assembleMnemonic("test #4"), bytes(1, 4))
+
+        assertThrows(InstructionBuilderError::class.java) {
+            i.assembleMnemonic("test 4")
+        }
+
+        assertIterableEquals(i.assembleMnemonic("test #5 #6"), bytes(2, 5, 6))
+        assertIterableEquals(i.assembleMnemonic("test    #5   #6"), bytes(2, 5, 6))
+
+        assertIterableEquals(i.assembleMnemonic("    "), bytes())
+    }
+
+    @Test
+    fun testAssembleMnemonicComment() {
+        assertIterableEquals(InstructionSet().assembleMnemonic("   # comment"), bytes())
+    }
+
+    @Test
+    fun testAssembleMnemonicCaseInvariance() {
+        val i = InstructionSet()
+        i.addInstruction(Instruction("test #ins", emptyEmulate, 1u))
+        i.addInstruction(Instruction("TEst2 #ins", emptyEmulate, 2u))
+
+        assertIterableEquals(i.assembleMnemonic("test #0"), bytes(1, 0))
+        assertIterableEquals(i.assembleMnemonic("TesT #0"), bytes(1, 0))
+        assertIterableEquals(i.assembleMnemonic("test2 #0"), bytes(2, 0))
+    }
+
+    @Test
+    fun testAssembleNegativeSymbol() {
+        val i = InstructionSet()
+        i.addInstruction(Instruction("sta fp, #offset", emulate = emptyEmulate, 1u))
+        i.addInstruction(Instruction("sta fp, -#offset", emulate = emptyEmulate, 2u))
+
+        assertIterableEquals(i.assembleMnemonic("sta fp, #5"), bytes(1, 5))
+        assertIterableEquals(i.assembleMnemonic("sta fp, -#10"), bytes(2, 10))
+    }
+
+    @Test
+    fun testDisassemble() {
+        val i = InstructionSet()
+        i.addInstruction(Instruction("test #ins", emulate = emptyEmulate, id = 1u))
+        i.addInstruction(Instruction("TEst2 #ins #asd", emulate = emptyEmulate, id = 2u))
+        i.addInstruction(Instruction("second", emulate = emptyEmulate, id = 3u))
+
+        val code = bytes(
+                1, 15,
+                3,
+                3,
+                2, 6, 3,
+                1, 14
+        )
+
+        val expected = listOf(
+                "test #15",
+                "second",
+                "second",
+                "TEst2 #6 #3",
+                "test #14",
+        )
+
+        assertIterableEquals(i.disassemble(code), expected)
+    }
+
+
+    @Test
+    fun testPrintInstructions() {
+        val i = InstructionSet()
+        i.addInstruction(Instruction("test", emulate = emptyEmulate, id = 0u, group = "group1"))
+        i.addInstruction(Instruction("test #ins #tmp", emulate = emptyEmulate, id = 1u, group = "group2"))
+        i.addInstruction(Instruction("test #ins", emulate = emptyEmulate, id = 2u, group = "group1"))
+
+        assertIterableEquals(i.describeInstructions(),
+                listOf("Group: group1",
+                        "  0: test",
+                        "  2: test #ins",
+                        "Group: group2",
+                        "  1: test #ins #tmp"
+                ))
+    }
+
+    @Test
+    fun testPrintInstructionsNoGroup() {
+        val i = InstructionSet()
+        i.addInstruction(Instruction("test", emulate = emptyEmulate, id = 5u))
+
+        assertIterableEquals(i.describeInstructions(),
+                listOf("Group: not set",
+                        "  5: test",
+                ))
+    }
+
 }

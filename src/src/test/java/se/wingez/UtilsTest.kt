@@ -7,9 +7,9 @@ internal class UtilsTest {
 
     @Test
     fun testSplitMany() {
-        assertEquals(Utils.splitMany("hej", listOf("test")), listOf("hej"))
-        assertEquals(Utils.splitMany("hej", listOf("e")), listOf("h", "j"))
-        assertEquals(Utils.splitMany("1,2 3,4&7", listOf(" ", ",")), listOf("1", "2", "3", "4&7"))
+        assertEquals(splitMany("hej", listOf("test")), listOf("hej"))
+        assertEquals(splitMany("hej", listOf("e")), listOf("h", "j"))
+        assertEquals(splitMany("1,2 3,4&7", listOf(" ", ",")), listOf("1", "2", "3", "4&7"))
 
 
     }

@@ -1,7 +1,9 @@
 package se.wingez.instructions
 
-import se.wingez.Utils
 import se.wingez.emulator.Emulator
+import se.wingez.instructions.Instruction.Companion.MNEMONIC_DELIMITERS
+import se.wingez.splitMany
+import java.io.StringReader
 import java.lang.Exception
 
 class RegisterInstructionError(message: String) : Exception(message)
@@ -13,7 +15,8 @@ data class Instruction(
 
         val emulate: (Emulator) -> Boolean,
         var id: UByte = AUTO_INDEX_ASSIGMENT,
-        var variableOrder: List<String> = emptyList()
+        val group: String = "",
+        var variableOrder: List<String> = emptyList(),
 ) {
     companion object {
         const val AUTO_INDEX_ASSIGMENT: UByte = 255u
@@ -24,7 +27,7 @@ data class Instruction(
     val name: String
 
     init {
-        val words = Utils.splitMany(mnemonic, MNEMONIC_DELIMITERS)
+        val words = splitMany(mnemonic, MNEMONIC_DELIMITERS)
         name = words[0]
 
         val variables = words.filter { '#' in it }.map { it.trimStart('#', '-') }.toList()
@@ -89,11 +92,12 @@ class InstructionSet(val maxSize: UByte = Instruction.MAX_SIZE) {
         instructionByIndex[instruction.id] = instruction
     }
 
-    fun createInstruction(mnemonic: String, index: UByte = Instruction.AUTO_INDEX_ASSIGMENT, emulate: (Emulator) -> Boolean) {
+    fun createInstruction(mnemonic: String, index: UByte = Instruction.AUTO_INDEX_ASSIGMENT, group: String, emulate: (Emulator) -> Boolean) {
         addInstruction(Instruction(
                 mnemonic,
                 emulate,
-                index
+                index,
+                group,
         ))
     }
 
@@ -101,4 +105,103 @@ class InstructionSet(val maxSize: UByte = Instruction.MAX_SIZE) {
         return instructionByIndex.values
     }
 
+    fun instructionFromID(id: UByte): Instruction {
+        if (id !in instructionByIndex)
+            throw InstructionBuilderError(id.toString())
+        return instructionByIndex.getValue(id)
+    }
+
+    fun assembleMnemonic(mnemonic: String): List<UByte> {
+        val trimmedMnemonic = mnemonic.trim(' ')
+
+        // Filter empty lines and comments
+        if (trimmedMnemonic.isEmpty() || trimmedMnemonic.startsWith('#'))
+            return emptyList()
+
+        for (instr in getInstructions()) {
+
+            val variables = mutableMapOf<String, UByte>()
+
+            val templateSplitted = splitMany(instr.mnemonic, MNEMONIC_DELIMITERS).filter { it.isNotEmpty() }
+            val mnemSplitted = splitMany(trimmedMnemonic, MNEMONIC_DELIMITERS).filter { it.isNotEmpty() }
+
+            if (templateSplitted.size != mnemSplitted.size)
+                continue
+
+            var allMatch = true
+            for ((templateWord, mnemWord) in templateSplitted.zip(mnemSplitted)) {
+                if ('#' in templateWord && '#' in mnemWord) {
+                    //Variable
+                    val index = templateWord.indexOf("#")
+                    if (index != mnemWord.indexOf("#")) {
+                        allMatch = false
+                        break
+                    }
+                    //check variable name matches
+                    if (templateWord.lowercase().substring(0, index) !=
+                            mnemWord.lowercase().substring(0, index)) {
+                        allMatch = false
+                        break
+                    }
+
+                    variables[templateWord.substring(index + 1)] = mnemWord.substring(index + 1).toUByte()
+
+                } else if (templateWord.lowercase() != mnemWord.lowercase()) {
+                    allMatch = false
+                    break
+                }
+            }
+            if (allMatch)
+                return instr.build(variables)
+        }
+        throw InstructionBuilderError("No instruction matches $mnemonic")
+    }
+
+    fun assembleMnemonicFile(file: StringReader): List<UByte> {
+        val result = mutableListOf<UByte>()
+
+        file.forEachLine {
+            result.addAll(assembleMnemonic(it.trim('\n')))
+        }
+        return result
+    }
+
+    fun disassemble(code: List<UByte>): List<String> {
+        var index = 0
+        val result = mutableListOf<String>()
+
+        while (index < code.size) {
+            val instructionId = code[index]
+            val instr = instructionFromID(instructionId)
+
+            var out = instr.mnemonic
+
+            instr.variableOrder.forEach {
+                val value = code[index + 1 + instr.getPositionOfVariable(it)]
+                out = out.replace("#$it", "#$value")
+            }
+
+            index += instr.size()
+            result.add(out)
+
+        }
+        return result
+    }
+
+    fun describeInstructions(): Iterable<String> {
+        val groupKeySelector = { instruction: Instruction -> instruction.group }
+
+        val instructions = getInstructions().sortedBy(groupKeySelector)
+
+        val result = mutableListOf<String>()
+
+        instructions.groupBy(groupKeySelector).forEach { group, instr ->
+            result.add("Group: ${group.ifEmpty { "not set" }}")
+
+            instr.sortedBy { it.id }.forEach {
+                result.add("${it.id.toString().padStart(3)}: ${it.mnemonic}")
+            }
+        }
+        return result
+    }
 }
