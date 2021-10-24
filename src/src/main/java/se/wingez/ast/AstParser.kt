@@ -1,25 +1,6 @@
 package se.wingez.ast
 
 import se.wingez.*
-import se.wingez.Tokenizer.Companion.TokenBeginBlock
-import se.wingez.Tokenizer.Companion.TokenColon
-import se.wingez.Tokenizer.Companion.TokenComma
-import se.wingez.Tokenizer.Companion.TokenDot
-import se.wingez.Tokenizer.Companion.TokenEOL
-import se.wingez.Tokenizer.Companion.TokenEndBlock
-import se.wingez.Tokenizer.Companion.TokenEquals
-import se.wingez.Tokenizer.Companion.TokenKeywordDef
-import se.wingez.Tokenizer.Companion.TokenKeywordElse
-import se.wingez.Tokenizer.Companion.TokenKeywordIf
-import se.wingez.Tokenizer.Companion.TokenKeywordNew
-import se.wingez.Tokenizer.Companion.TokenKeywordPrint
-import se.wingez.Tokenizer.Companion.TokenKeywordReturn
-import se.wingez.Tokenizer.Companion.TokenKeywordStruct
-import se.wingez.Tokenizer.Companion.TokenKeywordWhile
-import se.wingez.Tokenizer.Companion.TokenLeftParenthesis
-import se.wingez.Tokenizer.Companion.TokenMinusSign
-import se.wingez.Tokenizer.Companion.TokenPlusSign
-import se.wingez.Tokenizer.Companion.TokenRightParenthesis
 import kotlin.reflect.KFunction0
 import kotlin.reflect.typeOf
 

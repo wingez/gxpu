@@ -3,9 +3,9 @@ package se.wingez.compiler
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertIterableEquals
 import org.junit.jupiter.api.Test
-import se.wingez.Tokenizer
 import se.wingez.ast.AstParser
 import se.wingez.byte
+import se.wingez.parseFile
 import java.io.StringReader
 
 internal class FrameLayoutTest {
@@ -23,11 +23,10 @@ internal class FrameLayoutTest {
     }
 
 
-    val t = Tokenizer()
     val defaultTypes = listOf(voidType, byteType)
 
     fun getLayout(program: String, types: List<DataType> = defaultTypes): FrameLayout {
-        val node = AstParser(t.parseFile(StringReader(program))).parseFunctionDefinition()
+        val node = AstParser(parseFile(StringReader(program))).parseFunctionDefinition()
 
         return calculateFrameLayout(node, TypeContainer(types))
 

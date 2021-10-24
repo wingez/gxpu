@@ -1,109 +1,140 @@
 package se.wingez
 
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.io.StringReader
 
 internal class TokenizerTest {
-    val t = Tokenizer()
 
     @Test
     fun testIndentation() {
-        assertEquals(t.getIndentation("test"), Pair(0, "test"))
-        assertEquals(t.getIndentation("\ttemp"), Pair(1, "temp"))
-        assertEquals(t.getIndentation("rest\t"), Pair(0, "rest\t"))
+        assertEquals(getIndentation("test"), Pair(0, "test"))
+        assertEquals(getIndentation("\ttemp"), Pair(1, "temp"))
+        assertEquals(getIndentation("rest\t"), Pair(0, "rest\t"))
         for (i in 0..9) {
-            assertEquals(t.getIndentation("\t".repeat(i) + "test"), Pair(i, "test"))
-            assertEquals(t.getIndentation("  ".repeat(i) + "test"), Pair(i, "test"))
+            assertEquals(getIndentation("\t".repeat(i) + "test"), Pair(i, "test"))
+            assertEquals(getIndentation("  ".repeat(i) + "test"), Pair(i, "test"))
         }
 
-        assertThrows(TokenError::class.java) { t.getIndentation(" test") }
-        assertThrows(TokenError::class.java) { t.getIndentation("  \ttemp") }
+        assertThrows(TokenError::class.java) { getIndentation(" test") }
+        assertThrows(TokenError::class.java) { getIndentation("  \ttemp") }
     }
 
     @Test
     fun test_indentation_token() {
 
 
-        assertEquals(t.parseFile(StringReader("""
+        assertEquals(
+            parseFile(
+                StringReader(
+                    """
         var
         print
-        """)), listOf(TokenIdentifier("var"), Tokenizer.TokenEOL, Tokenizer.TokenKeywordPrint, Tokenizer.TokenEOL))
+        """
+                )
+            ), listOf(TokenIdentifier("var"), TokenEOL, TokenKeywordPrint, TokenEOL)
+        )
 
-        assertEquals(t.parseFile(StringReader("""
+        assertEquals(
+            parseFile(
+                StringReader(
+                    """
             var
               print
             
             
-        """)), listOf(TokenIdentifier("var"), Tokenizer.TokenEOL, Tokenizer.TokenBeginBlock, Tokenizer.TokenKeywordPrint, Tokenizer.TokenEOL, Tokenizer.TokenEndBlock))
+        """
+                )
+            ), listOf(TokenIdentifier("var"), TokenEOL, TokenBeginBlock, TokenKeywordPrint, TokenEOL, TokenEndBlock)
+        )
 
-        assertEquals(t.parseFile(StringReader("""
+        assertEquals(
+            parseFile(
+                StringReader(
+                    """
             var
               print
             5
             
-        """)), listOf(TokenIdentifier("var"), Tokenizer.TokenEOL, Tokenizer.TokenBeginBlock, Tokenizer.TokenKeywordPrint,
-                Tokenizer.TokenEOL, Tokenizer.TokenEndBlock, TokenNumericConstant(5), Tokenizer.TokenEOL))
+        """
+                )
+            ), listOf(
+                TokenIdentifier("var"), TokenEOL, TokenBeginBlock, TokenKeywordPrint,
+                TokenEOL, TokenEndBlock, TokenNumericConstant(5), TokenEOL
+            )
+        )
 
         assertThrows(TokenError::class.java) {
-            t.parseFile(StringReader("""
+            parseFile(
+                StringReader(
+                    """
            var
                print
-        """))
+        """
+                )
+            )
         }
 
-        assertEquals(t.parseFile(StringReader("""
+        assertEquals(
+            parseFile(
+                StringReader(
+                    """
         print
           print
             print
   
         var         
         """
-        )), listOf(Tokenizer.TokenKeywordPrint, Tokenizer.TokenEOL,
-                Tokenizer.TokenBeginBlock, Tokenizer.TokenKeywordPrint, Tokenizer.TokenEOL,
-                Tokenizer.TokenBeginBlock, Tokenizer.TokenKeywordPrint, Tokenizer.TokenEOL,
-                Tokenizer.TokenEndBlock, Tokenizer.TokenEndBlock,
-                TokenIdentifier("var"), Tokenizer.TokenEOL))
+                )
+            ), listOf(
+                TokenKeywordPrint, TokenEOL,
+                TokenBeginBlock, TokenKeywordPrint, TokenEOL,
+                TokenBeginBlock, TokenKeywordPrint, TokenEOL,
+                TokenEndBlock, TokenEndBlock,
+                TokenIdentifier("var"), TokenEOL
+            )
+        )
     }
 
     @Test
     fun testToToken() {
-        assertEquals(t.toToken("("), Tokenizer.TokenLeftParenthesis)
-        assertEquals(t.toToken(")"), Tokenizer.TokenRightParenthesis)
-        assertEquals(t.toToken("test"), TokenIdentifier("test"))
+        assertEquals(toToken("("), TokenLeftParenthesis)
+        assertEquals(toToken(")"), TokenRightParenthesis)
+        assertEquals(toToken("test"), TokenIdentifier("test"))
     }
 
     fun tokenize(vararg items: String): List<Token> {
         val result = mutableListOf<Token>()
         for (item in items) {
-            result.add(t.toToken(item))
+            result.add(toToken(item))
         }
-        result.add(Tokenizer.TokenEOL)
+        result.add(TokenEOL)
         return result
     }
 
     @Test
     fun testParseLine() {
         //Comments
-        assertEquals(t.parseLine("#"), listOf(Tokenizer.TokenEOL))
-        assertEquals(t.parseLine("test#"), listOf(TokenIdentifier("test"), Tokenizer.TokenEOL))
+        assertEquals(parseLine("#"), listOf(TokenEOL))
+        assertEquals(parseLine("test#"), listOf(TokenIdentifier("test"), TokenEOL))
 
         //Regular words
-        assertEquals(t.parseLine("test"), tokenize("test"))
-        assertEquals(t.parseLine("test hest"), tokenize("test", "hest"))
+        assertEquals(parseLine("test"), tokenize("test"))
+        assertEquals(parseLine("test hest"), tokenize("test", "hest"))
 
         //Function statement
-        assertEquals(t.parseLine("def main(test: int, test2: bool, test3: str): "), tokenize(
+        assertEquals(
+            parseLine("def main(test: int, test2: bool, test3: str): "), tokenize(
                 "def", "main", "(", "test", ":", "int", ",", "test2", ":", "bool", ",", "test3", ":", "str", ")", ":"
-        ))
-        assertEquals(t.parseLine("test3"), listOf(TokenIdentifier("test3"), Tokenizer.TokenEOL))
-        assertEquals(t.parseLine("456"), listOf(TokenNumericConstant(456), Tokenizer.TokenEOL))
+            )
+        )
+        assertEquals(parseLine("test3"), listOf(TokenIdentifier("test3"), TokenEOL))
+        assertEquals(parseLine("456"), listOf(TokenNumericConstant(456), TokenEOL))
 
 
-        assertEquals(t.parseLine("a:int = 5"), tokenize("a", ":", "int", "=", "5"))
-        assertEquals(t.parseLine("a = 5+10"), tokenize("a", "=", "5", "+", "10"))
-        assertEquals(t.parseLine("if a+b>10:"), tokenize("if", "a", "+", "b", ">", "10", ":"))
+        assertEquals(parseLine("a:int = 5"), tokenize("a", ":", "int", "=", "5"))
+        assertEquals(parseLine("a = 5+10"), tokenize("a", "=", "5", "+", "10"))
+        assertEquals(parseLine("if a+b>10:"), tokenize("if", "a", "+", "b", ">", "10", ":"))
         // assert token.parse_line("if a>=10:") == ["if", "a", ">=", "10", ":"]
 
     }
@@ -116,10 +147,33 @@ internal class TokenizerTest {
           
           
         """
-        assertEquals(t.parseFile(StringReader(content)), listOf(
-                TokenIdentifier("test"), Tokenizer.TokenEOL,
-                Tokenizer.TokenBeginBlock, Tokenizer.TokenKeywordPrint, Tokenizer.TokenEOL,
-                Tokenizer.TokenEndBlock,
-        ))
+        assertEquals(
+            parseFile(StringReader(content)), listOf(
+                TokenIdentifier("test"), TokenEOL,
+                TokenBeginBlock, TokenKeywordPrint, TokenEOL,
+                TokenEndBlock,
+            )
+        )
+    }
+
+    @Test
+    fun testMultiLetterToken() {
+        assertIterableEquals(parseLine("+ ="), listOf(TokenPlusSign, TokenEquals, TokenEOL))
+        assertIterableEquals(parseLine("!="), listOf(TokenNotEqual, TokenEOL))
+    }
+
+    @Test
+    fun isNumeric() {
+        assertEquals(isNumeric("567987"), true)
+        assertEquals(isNumeric("a567987"), false)
+        assertEquals(isNumeric("56!"), false)
+
+        assertEquals(isAlNumeric("56a"), true)
+        assertEquals(isAlNumeric("DFGZa"), true)
+        assertEquals(isAlNumeric("!a"), false)
+    }
+
+    @Test
+    fun isAlNumeric() {
     }
 }
