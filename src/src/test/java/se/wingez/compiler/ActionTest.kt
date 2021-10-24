@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import se.wingez.ast.*
 import se.wingez.bytes
+import se.wingez.compiler.actions.AdditionProvider
 import se.wingez.emulator.DefaultEmulator
 import se.wingez.instructions.Instruction
 
@@ -93,6 +94,23 @@ class ActionTest {
         assertIterableEquals(
             generator.result,
             bytes(DefaultEmulator.lda.id.toInt(), 4, DefaultEmulator.sta_fp_offset.id.toInt(), 0)
+        )
+    }
+
+    @Test
+    fun testAddition() {
+        val node = PrintNode(SingleOperationNode(Operation.Addition, ConstantNode(5), ConstantNode(10)))
+
+        assertEquals(
+            flatten(node, dummyFrame),
+            CompositeAction(
+                CompositeAction(
+                    PutByteOnStack.PutByteOnStackAction(10u),
+                    PutByteOnStack.PutByteOnStackAction(5u),
+                    AdditionProvider.AdditionAction(),
+                ),
+                PrintFromRegister.PrintAction()
+            )
         )
     }
 }

@@ -2,6 +2,7 @@ package se.wingez.compiler
 
 import se.wingez.ast.*
 import se.wingez.byte
+import se.wingez.compiler.actions.AdditionProvider
 import se.wingez.emulator.DefaultEmulator
 
 
@@ -66,7 +67,7 @@ class PrintFromRegister : ActionConverter {
         if (node !is PrintNode)
             return null
 
-        val value = putByteInRegister(node.target, byteType, frame) ?: return null
+        val value = getActionInRegister(node.target, byteType, frame) ?: return null
         return CompositeAction(value, PrintAction())
     }
 }
@@ -142,7 +143,7 @@ class AssignFrameByte : ActionConverter {
             return null
         }
 
-        val putValueInRegister = putByteInRegister(node.value, byteType, frame) ?: return null
+        val putValueInRegister = getActionInRegister(node.value, byteType, frame) ?: return null
 
         return CompositeAction(
             putValueInRegister,
@@ -192,10 +193,20 @@ val actions = listOf(
     PutByteOnStack(),
     AssignFrameByte(),
     FieldByteToRegister(),
+    AdditionProvider(),
 )
 
 
-fun putByteInRegister(node: ValueProviderNode, type: DataType, frame: FrameLayout): Action? {
+fun getActionOnStack(node: ValueProviderNode, type: DataType, frame: FrameLayout): Action? {
+    for (action in actions) {
+        val result = action.putOnStack(node, type, frame)
+        if (result != null)
+            return result
+    }
+    return null
+}
+
+fun getActionInRegister(node: ValueProviderNode, type: DataType, frame: FrameLayout): Action? {
     for (action in actions) {
         val result = action.putInRegister(node, type, frame)
         if (result != null)

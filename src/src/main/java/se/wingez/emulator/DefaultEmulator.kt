@@ -10,6 +10,7 @@ class DefaultEmulator : Emulator(instructionSet) {
         const val LOAD_STORE = "load/store"
         const val STACK = "stack"
         const val FLOW_CONTROL = "flow control"
+        const val ARITHMETIC = "arithmetic"
 
         private val instructionSet = InstructionSet()
 
@@ -59,9 +60,14 @@ class DefaultEmulator : Emulator(instructionSet) {
             it.a = it.pop()
             false
         }
-        val sub_sp = instructionSet.createInstruction("SUBSÅ #val", group = STACK) {
+        val sub_sp = instructionSet.createInstruction("SUBSP #val", group = STACK) {
             val value = it.getIncPC()
             it.sp = (it.sp - value).toUByte()
+            false
+        }
+        val add_sp = instructionSet.createInstruction("ADDSP #val", group = STACK) {
+            val value = it.getIncPC()
+            it.sp = (it.sp + value).toUByte()
             false
         }
 
@@ -107,6 +113,12 @@ class DefaultEmulator : Emulator(instructionSet) {
 
         val testa = instructionSet.createInstruction("TSTA", group = FLOW_CONTROL) {
             it.zeroFlag = it.a == byte(0)
+            false
+        }
+
+        val adda_sp = instructionSet.createInstruction("ADDA SP #offset", group = ARITHMETIC) {
+            val offset = it.getIncPC()
+            it.a = (it.a + it.getMemoryAt(it.sp + offset)).toUByte()
             false
         }
 
