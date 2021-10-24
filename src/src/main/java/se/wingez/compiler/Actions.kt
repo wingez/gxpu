@@ -12,11 +12,11 @@ interface Action {
 }
 
 interface ActionConverter {
-    fun putInRegister(node: ValueProviderNode): Action? {
+    fun putInRegister(node: ValueProviderNode, type: DataType, frame: FrameLayout): Action? {
         return null
     }
 
-    fun putOnStack(node: ValueProviderNode, type: DataType): Action? {
+    fun putOnStack(node: ValueProviderNode, type: DataType, frame: FrameLayout): Action? {
         return null
     }
 
@@ -66,12 +66,12 @@ class PrintFromRegister : ActionConverter {
         if (node !is PrintNode)
             return null
 
-        val value = putByteInRegister(node.target) ?: return null
+        val value = putByteInRegister(node.target, byteType, frame) ?: return null
         return CompositeAction(value, PrintAction())
     }
 }
 
-class PutByteInRegister(
+class PutConstantInRegister(
 ) : ActionConverter {
 
     data class PutByteInRegisterAction(
@@ -83,7 +83,7 @@ class PutByteInRegister(
         }
     }
 
-    override fun putInRegister(node: ValueProviderNode): Action? {
+    override fun putInRegister(node: ValueProviderNode, type: DataType, frame: FrameLayout): Action? {
         if (node is ConstantNode)
             return PutByteInRegisterAction(byte(node.value))
         return null
@@ -101,7 +101,7 @@ class PutByteOnStack : ActionConverter {
         }
     }
 
-    override fun putOnStack(node: ValueProviderNode, type: DataType): Action? {
+    override fun putOnStack(node: ValueProviderNode, type: DataType, frame: FrameLayout): Action? {
         if (node !is ConstantNode || type != byteType) {
             return null
         }
@@ -142,7 +142,7 @@ class AssignFrameByte : ActionConverter {
             return null
         }
 
-        val putValueInRegister = putByteInRegister(node.value) ?: return null
+        val putValueInRegister = putByteInRegister(node.value, byteType, frame) ?: return null
 
         return CompositeAction(
             putValueInRegister,
@@ -151,17 +151,53 @@ class AssignFrameByte : ActionConverter {
     }
 }
 
+class FieldByteToRegister : ActionConverter {
+    data class FieldByteToRegisterAction(
+        val frame: FrameLayout,
+        val field: String,
+    ) : Action {
+        override val cost: Int = 1
+        override fun compile(generator: CodeGenerator) {
+            generator.generate(
+                DefaultEmulator.lda_fp_offset.build(
+                    mapOf("offset" to frame.fields.getValue(field).offset)
+                )
+            )
+        }
+    }
+
+    override fun putInRegister(node: ValueProviderNode, type: DataType, frame: FrameLayout): Action? {
+
+        if (node !is MemberAccess)
+            return null
+        if (type != byteType)
+            return null
+
+        val field = node.name
+        if (!frame.hasField(field)) {
+            throw CompileError("No field with name: $field")
+        }
+        if (frame.fields.getValue(field).type != byteType) {
+            return null
+        }
+
+        return FieldByteToRegisterAction(frame, field)
+    }
+
+}
+
 val actions = listOf(
-    PutByteInRegister(),
+    PutConstantInRegister(),
     PrintFromRegister(),
     PutByteOnStack(),
     AssignFrameByte(),
+    FieldByteToRegister(),
 )
 
 
-fun putByteInRegister(node: ValueProviderNode): Action? {
+fun putByteInRegister(node: ValueProviderNode, type: DataType, frame: FrameLayout): Action? {
     for (action in actions) {
-        val result = action.putInRegister(node)
+        val result = action.putInRegister(node, type, frame)
         if (result != null)
             return result
     }

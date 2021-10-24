@@ -7,15 +7,14 @@ import se.wingez.ast.StatementNode
 import se.wingez.byte
 import se.wingez.emulator.DefaultEmulator
 
+
+fun buildSingleMainFunction(nodes: List<StatementNode>): List<UByte> {
+    val node = FunctionNode("main", emptyList(), nodes, "")
+    val c = Compiler()
+    return c.buildProgram(listOf(node))
+}
+
 class CompilerTest {
-
-    fun buildSingleMainFunction(nodes: List<StatementNode>): List<UByte> {
-        val node = FunctionNode("main", emptyList(), nodes, "")
-        val c = Compiler()
-        return c.buildProgram(listOf(node))
-    }
-
-
     @Test
     fun testFpOffset() {
 

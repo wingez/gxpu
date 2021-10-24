@@ -152,7 +152,7 @@ internal class AstParserTest {
 
         assertEquals(
             parserFromLine("return 5+a").parseReturnStatement(),
-            ReturnNode(SingleOperationNode(Operation.Plus, ConstantNode(5), MemberAccess("a")))
+            ReturnNode(SingleOperationNode(Operation.Addition, ConstantNode(5), MemberAccess("a")))
         )
     }
 

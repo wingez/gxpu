@@ -10,7 +10,7 @@ class AstParserArithmetic {
     fun testBasic() {
         assertEquals(
             parserFromFile("5+10").parseValueProvider(),
-            SingleOperationNode(Operation.Plus, ConstantNode(5), ConstantNode(10))
+            SingleOperationNode(Operation.Addition, ConstantNode(5), ConstantNode(10))
         )
     }
 
@@ -25,7 +25,15 @@ class AstParserArithmetic {
     fun testWithIdentifier() {
         assertEquals(
             parserFromFile("2+test").parseValueProvider(),
-            SingleOperationNode(Operation.Plus, ConstantNode(2), MemberAccess("test"))
+            SingleOperationNode(Operation.Addition, ConstantNode(2), MemberAccess("test"))
+        )
+    }
+
+    @Test
+    fun notEqual() {
+        assertEquals(
+            parserFromFile("2!=0").parseValueProvider(),
+            SingleOperationNode(Operation.NotEquals, ConstantNode(2), ConstantNode(0))
         )
     }
 

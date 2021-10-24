@@ -27,6 +27,13 @@ class DefaultEmulator : Emulator(instructionSet) {
             it.a = it.getIncPC()
             false
         }
+
+        val lda_fp_offset = instructionSet.createInstruction("LDA FP, #offset", group = LOAD_STORE) {
+            val offset = it.getIncPC()
+            it.a = it.getMemoryAt(it.fp + offset)
+            false
+        }
+
         val sta_fp_offset = instructionSet.createInstruction("STA FP, #offset", group = LOAD_STORE) {
             val offset = it.getIncPC()
             it.setMemoryAt(it.fp.toInt() + offset.toInt(), it.a)
@@ -76,6 +83,11 @@ class DefaultEmulator : Emulator(instructionSet) {
 
         val ret = instructionSet.createInstruction("RET", group = FLOW_CONTROL) {
             ret_generic(it, 0u)
+            false
+        }
+        val ret_frame = instructionSet.createInstruction("RET #size", group = FLOW_CONTROL) {
+            val size = it.getIncPC()
+            ret_generic(it, size)
             false
         }
 

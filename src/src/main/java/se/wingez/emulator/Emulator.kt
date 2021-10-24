@@ -8,8 +8,8 @@ class EmulatorInstructionError(message: String) : EmulatorRuntimeError(message)
 class EmulatorInvalidInstructionError(message: String) : EmulatorRuntimeError(message)
 
 open class Emulator(
-        val instructionSet: InstructionSet,
-        val memorySize: Int = MEMORY_SIZE,
+    val instructionSet: InstructionSet,
+    val memorySize: Int = MEMORY_SIZE,
 ) {
     companion object {
         const val MEMORY_SIZE = 256
@@ -56,6 +56,10 @@ open class Emulator(
         if (position !in 0 until memorySize)
             throw EmulatorRuntimeError("Trying to access memory at $position, which is outside memory range")
         return memory[position]
+    }
+
+    fun getMemoryAt(position: UInt): UByte {
+        return getMemoryAt(position.toInt())
     }
 
     fun getMemoryAt(position: UByte): UByte {

@@ -45,7 +45,7 @@ class ActionTest {
         assertEquals(
             flattened,
             CompositeAction(
-                PutByteInRegister.PutByteInRegisterAction(5u),
+                PutConstantInRegister.PutByteInRegisterAction(5u),
                 PrintFromRegister.PrintAction()
             )
         )
@@ -56,6 +56,21 @@ class ActionTest {
             listOf(DefaultEmulator.lda.id, 5u, DefaultEmulator.print.id)
         )
     }
+
+    @Test
+    fun testPrintVariable() {
+        val node = PrintNode(MemberAccess("var1"))
+        val flattened = flatten(node, dummyFrame)
+
+        assertEquals(
+            flattened,
+            CompositeAction(
+                FieldByteToRegister.FieldByteToRegisterAction(dummyFrame, "var1"),
+                PrintFromRegister.PrintAction()
+            )
+        )
+    }
+
 
     @Test
     fun testAssignConstant() {
@@ -69,7 +84,7 @@ class ActionTest {
         assertEquals(
             flattened,
             CompositeAction(
-                PutByteInRegister.PutByteInRegisterAction(4u),
+                PutConstantInRegister.PutByteInRegisterAction(4u),
                 AssignFrameByte.AssignFrameRegister(dummyFrame, "var1")
             )
         )

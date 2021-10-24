@@ -49,8 +49,9 @@ data class FunctionNode(
 }
 
 enum class Operation {
-    Plus,
-    Minus
+    Addition,
+    Subtraction,
+    NotEquals,
 }
 
 data class SingleOperationNode(

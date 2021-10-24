@@ -286,8 +286,9 @@ class AstParser(private val tokens: List<Token>) {
                 throw ParserError("Operation to complex for now")
 
             val operation = when (nextToken) {
-                TokenPlusSign -> Operation.Plus
-                TokenMinusSign -> Operation.Minus
+                TokenPlusSign -> Operation.Addition
+                TokenMinusSign -> Operation.Subtraction
+                TokenNotEqual -> Operation.NotEquals
                 else -> throw ParserError("Dont know how to parse $nextToken")
             }
             return SingleOperationNode(operation, firstResult, secondResult)
