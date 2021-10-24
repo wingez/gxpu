@@ -40,7 +40,8 @@ data class Instruction(
         }
     }
 
-    val size = { 1 + variableOrder.size }
+    val size
+        get() = 1 + variableOrder.size
 
 
     fun build(args: Map<String, UByte> = emptyMap()): List<UByte> {
@@ -183,7 +184,7 @@ class InstructionSet(val maxSize: UByte = Instruction.MAX_SIZE) {
                 out = out.replace("#$it", "#$value")
             }
 
-            index += instr.size()
+            index += instr.size
             result.add(out)
 
         }

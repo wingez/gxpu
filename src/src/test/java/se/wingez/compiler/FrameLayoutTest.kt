@@ -5,12 +5,13 @@ import org.junit.jupiter.api.Assertions.assertIterableEquals
 import org.junit.jupiter.api.Test
 import se.wingez.Tokenizer
 import se.wingez.ast.AstParser
+import se.wingez.byte
 import java.io.StringReader
 
 internal class FrameLayoutTest {
 
     class TypeContainer(
-            private val types: List<DataType>
+        private val types: List<DataType>
     ) : TypeProvider {
         override fun getType(name: String): DataType {
             if (name.isEmpty())
@@ -34,76 +35,92 @@ internal class FrameLayoutTest {
 
     @Test
     fun testEmpty() {
-        val layout = getLayout("""
+        val layout = getLayout(
+            """
             def test1():
               print(5)
-    """)
-        assertEquals(layout.size, 2)
-        assertEquals(layout.sizeOfVars, 0)
-        assertEquals(layout.sizeOfParameters, 0)
+    """
+        )
+        assertEquals(layout.size, byte(2))
+        assertEquals(layout.sizeOfVars, byte(0))
+        assertEquals(layout.sizeOfParameters, byte(0))
         assertEquals(layout.fields, emptyMap<String, StructDataField>())
     }
 
     @Test
     fun testParam() {
-        val layout = getLayout("""
+        val layout = getLayout(
+            """
             def test1(test):
               print(5)
-    """)
-        assertEquals(layout.size, 3)
-        assertEquals(layout.sizeOfVars, 0)
-        assertEquals(layout.sizeOfParameters, 1)
-        assertEquals(layout.fields, mapOf("test" to StructDataField("test", 2, byteType)))
+    """
+        )
+        assertEquals(layout.size, byte(3))
+        assertEquals(layout.sizeOfVars, byte(0))
+        assertEquals(layout.sizeOfParameters, byte(1))
+        assertEquals(layout.fields, mapOf("test" to StructDataField("test", 2u, byteType)))
     }
 
     @Test
     fun testVar() {
-        val layout = getLayout("""
+        val layout = getLayout(
+            """
             def test1():
               var=5
-    """)
-        assertEquals(layout.size, 3)
-        assertEquals(layout.sizeOfVars, 1)
-        assertEquals(layout.sizeOfParameters, 0)
-        assertEquals(layout.fields, mapOf("var" to StructDataField("var", 0, byteType)))
+    """
+        )
+        assertEquals(layout.size, byte(3))
+        assertEquals(layout.sizeOfVars, byte(1))
+        assertEquals(layout.sizeOfParameters, byte(0))
+        assertEquals(layout.fields, mapOf("var" to StructDataField("var", 0u, byteType)))
     }
 
     @Test
     fun testIf() {
-        val layout = getLayout("""
+        val layout = getLayout(
+            """
             def test1():
               if 5:
                 var=2
               else:
                 var1=3
-    """)
-        assertEquals(layout.size, 4)
-        assertEquals(layout.sizeOfVars, 2)
-        assertEquals(layout.sizeOfParameters, 0)
-        assertEquals(layout.fields, mapOf(
-                "var1" to StructDataField("var1", 0, byteType),
-                "var" to StructDataField("var", 1, byteType),
-        ))
+    """
+        )
+        assertEquals(layout.size, byte(4))
+        assertEquals(layout.sizeOfVars, byte(2))
+        assertEquals(layout.sizeOfParameters, byte(0))
+        assertEquals(
+            layout.fields, mapOf(
+                "var1" to StructDataField("var1", 0u, byteType),
+                "var" to StructDataField("var", 1u, byteType),
+            )
+        )
     }
 
     @Test
     fun testDescription() {
-        val layout = getLayout("""
+        val layout = getLayout(
+            """
             def test1(var2):
               var=1
-    """)
-        assertEquals(layout.size, 4)
-        assertEquals(layout.sizeOfVars, 1)
-        assertEquals(layout.sizeOfParameters, 1)
-        assertEquals(layout.fields, mapOf(
-                "var2" to StructDataField("var2", 3, byteType),
-                "var" to StructDataField("var", 0, byteType),
-        ))
+    """
+        )
+        assertEquals(layout.size, byte(4))
+        assertEquals(layout.sizeOfVars, byte(1))
+        assertEquals(layout.sizeOfParameters, byte(1))
+        assertEquals(
+            layout.fields, mapOf(
+                "var2" to StructDataField("var2", 3u, byteType),
+                "var" to StructDataField("var", 0u, byteType),
+            )
+        )
 
-        assertIterableEquals(layout.getDescription(), listOf(
+        assertIterableEquals(
+            layout.getDescription(), listOf(
                 "  0: var: byte",
                 "  3: var2: byte"
-        ))
+            )
+        )
     }
 
 }

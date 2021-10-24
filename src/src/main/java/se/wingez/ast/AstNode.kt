@@ -42,7 +42,7 @@ data class FunctionNode(
         val body: List<StatementNode>,
         val returnType: String,
 ) : AstNode(), NodeContainer {
-    override fun getNodes(): Iterable<AstNode> {
+    override fun getNodes(): Iterable<StatementNode> {
         return body
     }
 
@@ -64,16 +64,20 @@ data class IfNode(
         val body: List<StatementNode>,
         val elseBody: List<StatementNode>,
 ) : StatementNode(), NodeContainer {
-    override fun getNodes(): Iterable<AstNode> {
+    override fun getNodes(): Iterable<StatementNode> {
         return body + elseBody
     }
+
+    val hasElse
+        get() = elseBody.isNotEmpty()
+
 }
 
 data class WhileNode(
         val condition: ValueProviderNode,
         val body: List<StatementNode>,
 ) : StatementNode(), NodeContainer {
-    override fun getNodes(): Iterable<AstNode> {
+    override fun getNodes(): Iterable<StatementNode> {
         return body
     }
 }
