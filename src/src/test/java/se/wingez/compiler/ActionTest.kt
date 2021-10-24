@@ -22,7 +22,7 @@ class ActionTest {
             throw NotImplementedError()
         }
 
-        override fun makeSpaceFor(instruction: Instruction): Int {
+        override fun makeSpaceFor(instruction: Instruction): GenerateLater {
             throw NotImplementedError()
         }
 

@@ -8,6 +8,7 @@ import se.wingez.byte
 
 const val SP_STACK_SIZE = 1
 const val PC_STACK_SIZE = 1
+const val STACK_START = 255
 
 
 class FrameLayout(

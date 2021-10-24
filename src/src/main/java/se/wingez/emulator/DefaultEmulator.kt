@@ -52,7 +52,11 @@ class DefaultEmulator : Emulator(instructionSet) {
             it.a = it.pop()
             false
         }
-
+        val sub_sp = instructionSet.createInstruction("SUBSÅ #val", group = STACK) {
+            val value = it.getIncPC()
+            it.sp = (it.sp - value).toUByte()
+            false
+        }
 
         val call_addr = instructionSet.createInstruction("CALL #addr", group = FLOW_CONTROL) {
             val addr = it.getIncPC()
