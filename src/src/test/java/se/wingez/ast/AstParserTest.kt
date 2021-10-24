@@ -34,7 +34,7 @@ internal class AstParserTest {
     @Test
     fun testManyEOL() {
         val tokens = listOf(
-            TokenEOL, TokenEOL, TokenIdentifier("test"), TokenEquals,
+            TokenEOL, TokenEOL, TokenIdentifier("test"), TokenAssign,
             TokenNumericConstant(5), TokenEOL
         )
         assertEquals(parseExpressions(tokens), listOf(assign("test", 5)))
@@ -42,7 +42,7 @@ internal class AstParserTest {
 
     @Test
     fun testExpressionAssignment() {
-        val tokens = listOf(TokenIdentifier("Test"), TokenEquals, TokenNumericConstant(4), TokenEOL)
+        val tokens = listOf(TokenIdentifier("Test"), TokenAssign, TokenNumericConstant(4), TokenEOL)
         val node = AstParser(tokens).parseStatement()
         assertEquals(node, assign("Test", 4))
     }

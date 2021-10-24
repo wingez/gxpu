@@ -185,7 +185,7 @@ class AstParser(private val tokens: List<Token>) {
 
     fun parseAssignment(): AssignNode {
         val assignment = parsePrimitiveMemberDeclaration(true)
-        consumeType(TokenEquals)
+        consumeType(TokenAssign)
         val valueNode = parseValueProvider()
         consumeType(TokenEOL)
         return AssignNode(assignment, valueNode)

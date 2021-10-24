@@ -14,7 +14,6 @@ open class Token(
 open class ExpressionSeparator(type: TokenType) : Token(type)
 open class TokenSingleOperation(type: TokenType) : Token(type)
 
-
 data class TokenIdentifier(val target: String) : Token(TokenType.Identifier)
 data class TokenNumericConstant(val value: Int) : Token(TokenType.NumericConstant)
 
@@ -44,13 +43,12 @@ enum class TokenType {
     NotEqual,
 }
 
-
 val TokenEOL = ExpressionSeparator(TokenType.EOL)
 val TokenLeftParenthesis = ExpressionSeparator(TokenType.LeftParenthesis)
 val TokenRightParenthesis = ExpressionSeparator(TokenType.RightParenthesis)
 val TokenComma = ExpressionSeparator(TokenType.Comma)
 val TokenColon = ExpressionSeparator(TokenType.Colon)
-val TokenEquals = Token(TokenType.Equals)
+val TokenAssign = Token(TokenType.Equals)
 val TokenDot = Token(TokenType.Dot)
 val TokenKeywordDef = Token(TokenType.KeywordDef)
 val TokenKeywordPrint = Token(TokenType.KeywordPrint)
@@ -69,6 +67,8 @@ val TokenNotEqual = TokenSingleOperation(TokenType.NotEqual)
 
 private val ALWAYS_DELIMITER = listOf('(', ')', ',', ':')
 
+fun isNumeric(str: String) = str.all { it in '0'..'9' }
+fun isAlNumeric(str: String) = str.all { it in '0'..'9' || it in 'a'..'z' || it in 'A'..'Z' }
 
 fun getIndentation(line: String): Pair<Int, String> {
     var indentation = 0
@@ -144,74 +144,60 @@ fun parseFile(input: Reader): List<Token> {
     return result
 }
 
+private enum class TokenParserState {
+    Nothing,
+    Operator,
+    Identifier,
+}
+
 fun parseLine(line: String): List<Token> {
     val result = mutableListOf<Token>()
     var current = ""
 
+    var state = TokenParserState.Nothing
 
-    var isParsingIdentifier = isAlNumeric(line[0].toString())
-    var isParsingOperator = !isParsingIdentifier
-    var isParsingNothing = true
-
-    for (symbolIndex in line.withIndex()) {
-        val symbol = symbolIndex.value
-        var shouldDelimit = false
+    for (symbol in line) {
         val isComment = symbol == '#'
         val isSpace = symbol == ' '
-        val isLast = symbolIndex.index == line.length - 1
         val isLetter = isAlNumeric(symbol.toString())
 
-        if (isComment || isSpace) {
-            // Comment, ignore the rest of the line
-            shouldDelimit = true
-        } else if (isParsingNothing) {
-            isParsingIdentifier = isLetter
-            isParsingOperator = !isLetter
-            isParsingNothing = false
+        if (state == TokenParserState.Nothing && !isComment && !isSpace) {
+            state = when (isLetter) {
+                true -> TokenParserState.Identifier
+                false -> TokenParserState.Operator
+            }
+        }
+        val shouldBreak = when {
+            isComment -> true
+            isSpace -> true
+            state == TokenParserState.Operator && isLetter -> true
+            state == TokenParserState.Identifier && !isLetter -> true
+            state == TokenParserState.Operator && symbol in ALWAYS_DELIMITER -> true
+            else -> false
         }
 
-
-        if (isParsingOperator && isLetter) {
-            shouldDelimit = true
-        }
-        if (isParsingIdentifier && !isLetter) {
-            shouldDelimit = true
-        }
-        if (isParsingOperator && symbol in ALWAYS_DELIMITER) {
-            shouldDelimit = true
-        }
-
-        if (shouldDelimit) {
+        if (shouldBreak) {
             if (current.isNotEmpty()) {
                 result.add(toToken(current))
+                current = ""
             }
-            current = ""
             if (isComment)
+            // Comment, ignore the rest of the line
                 break
             if (isSpace) {
-                isParsingOperator = false
-                isParsingIdentifier = false
-                isParsingNothing = true
+                state = TokenParserState.Nothing
                 continue
             }
-            if (isParsingOperator && isLetter) {
-                isParsingOperator = false
-                isParsingIdentifier = true
-            } else if (isParsingIdentifier && !isLetter) {
-                isParsingOperator = true
-                isParsingIdentifier = false
-            } else {
-//                throw AssertionError("We should not reach this")
+            state = when (isLetter) {
+                true -> TokenParserState.Identifier
+                false -> TokenParserState.Operator
             }
         }
         current += symbol
-
-
     }
 
-
     if (current.isNotEmpty()) {
-        // current could be empty if last symbol was an delimiter
+        // current could be empty if last symbol was a delimiter
         result.add(toToken(current))
     }
 
@@ -224,53 +210,36 @@ fun toToken(text: String): Token {
     if (' ' in text)
         throw TokenError("text contains spaces")
 
-    if (text == "(")
-        return TokenLeftParenthesis
-    if (text == ")")
-        return TokenRightParenthesis
-    if (text == ":")
-        return TokenColon
-    if (text == ",")
-        return TokenComma
-    if (text == "=")
-        return TokenEquals
-    if (text == "!=")
-        return TokenNotEqual
-    if (text == "+")
-        return TokenPlusSign
-    if (text == "-")
-        return TokenMinusSign
-    if (text == ">")
-        return TokenGreaterSign
-    if (text == ".")
-        return TokenDot
-
     if (isNumeric(text))
         return TokenNumericConstant(text.toInt())
 
+    when (text) {
+        "(" -> TokenLeftParenthesis
+        ")" -> TokenRightParenthesis
+        ":" -> TokenColon
+        "," -> TokenComma
+        "=" -> TokenAssign
+        "!=" -> TokenNotEqual
+        "+" -> TokenPlusSign
+        "-" -> TokenMinusSign
+        ">" -> TokenGreaterSign
+        "." -> TokenDot
+        else -> null
+    }?.also { return it }
+
+    //We should now only have identifiers and keywords left
     if (!isAlNumeric(text))
         throw TokenError("Invalid operator $text")
 
-
-    if (text == "def")
-        return TokenKeywordDef
-    if (text == "print")
-        return TokenKeywordPrint
-    if (text == "while")
-        return TokenKeywordWhile
-    if (text == "if")
-        return TokenKeywordIf
-    if (text == "else")
-        return TokenKeywordElse
-    if (text == "return")
-        return TokenKeywordReturn
-    if (text == "struct")
-        return TokenKeywordStruct
-    if (text == "new")
-        return TokenKeywordNew
-
-    return TokenIdentifier(text)
+    return when (text) {
+        "def" -> TokenKeywordDef
+        "print" -> TokenKeywordPrint
+        "while" -> TokenKeywordWhile
+        "if" -> TokenKeywordIf
+        "else" -> TokenKeywordElse
+        "return" -> TokenKeywordReturn
+        "struct" -> TokenKeywordStruct
+        "new" -> TokenKeywordNew
+        else -> TokenIdentifier(text)
+    }
 }
-
-fun isNumeric(str: String) = str.all { it in '0'..'9' }
-fun isAlNumeric(str: String) = str.all { it in '0'..'9' || it in 'a'..'z' || it in 'A'..'Z' }

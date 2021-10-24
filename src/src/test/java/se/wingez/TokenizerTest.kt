@@ -158,7 +158,7 @@ internal class TokenizerTest {
 
     @Test
     fun testMultiLetterToken() {
-        assertIterableEquals(parseLine("+ ="), listOf(TokenPlusSign, TokenEquals, TokenEOL))
+        assertIterableEquals(parseLine("+ ="), listOf(TokenPlusSign, TokenAssign, TokenEOL))
         assertIterableEquals(parseLine("!="), listOf(TokenNotEqual, TokenEOL))
     }
 
