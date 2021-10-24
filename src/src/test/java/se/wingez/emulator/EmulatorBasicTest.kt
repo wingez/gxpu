@@ -11,6 +11,15 @@ import java.io.StringReader
 
 internal class EmulatorBasicTest {
 
+    companion object {
+        fun assembleLoadEmulator(program: String): Emulator {
+            val e = DefaultEmulator()
+            val memory = e.instructionSet.assembleMnemonicFile(StringReader(program))
+            e.setAllMemory(memory)
+            return e
+        }
+    }
+
     val dummyInstructions: InstructionSet
 
     init {
@@ -128,12 +137,6 @@ internal class EmulatorBasicTest {
         ), bytes(0, 10))
     }
 
-    fun assembleLoadEmulator(program: String): Emulator {
-        val e = DefaultEmulator()
-        val memory = e.instructionSet.assembleMnemonicFile(StringReader(program))
-        e.setAllMemory(memory)
-        return e
-    }
 
     @Test
     fun testCall() {

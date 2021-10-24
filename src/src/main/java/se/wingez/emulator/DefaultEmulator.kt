@@ -27,6 +27,11 @@ class DefaultEmulator : Emulator(instructionSet) {
             it.a = it.getIncPC()
             false
         }
+        val sta_fp_offset = instructionSet.createInstruction("STA FP, #offset", group = LOAD_STORE) {
+            val offset = it.getIncPC()
+            it.setMemoryAt(it.fp.toInt() + offset.toInt(), it.a)
+            false
+        }
         val ldsp = instructionSet.createInstruction("LDSP #val", group = STACK) {
             it.sp = it.getIncPC()
             false
@@ -39,6 +44,15 @@ class DefaultEmulator : Emulator(instructionSet) {
             it.fp = it.sp
             false
         }
+        val pusha = instructionSet.createInstruction("PUSHA", group = STACK) {
+            it.push(it.a)
+            false
+        }
+        val popa = instructionSet.createInstruction("POPA", group = STACK) {
+            it.a = it.pop()
+            false
+        }
+
 
         val call_addr = instructionSet.createInstruction("CALL #addr", group = FLOW_CONTROL) {
             val addr = it.getIncPC()

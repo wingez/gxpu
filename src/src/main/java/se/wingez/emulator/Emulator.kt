@@ -96,8 +96,6 @@ open class Emulator(
             }
         }
         throw EmulatorCyclesExceeded("Maximum execution cycles exceeded, stuck in infinite loop perhaps?")
-
-
     }
 
 }
