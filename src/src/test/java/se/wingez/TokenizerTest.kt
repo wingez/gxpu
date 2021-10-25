@@ -160,7 +160,16 @@ internal class TokenizerTest {
     fun testMultiLetterToken() {
         assertIterableEquals(parseLine("+ ="), listOf(TokenPlusSign, TokenAssign, TokenEOL))
         assertIterableEquals(parseLine("!="), listOf(TokenNotEqual, TokenEOL))
+
+        assertIterableEquals(
+            parseLine("if a-2!=0:"), listOf(
+                TokenKeywordIf, TokenIdentifier("a"), TokenMinusSign, TokenNumericConstant(2),
+                TokenNotEqual, TokenNumericConstant(0), TokenColon, TokenEOL
+            )
+        )
+
     }
+
 
     @Test
     fun isNumeric() {
@@ -173,7 +182,4 @@ internal class TokenizerTest {
         assertEquals(isAlNumeric("!a"), false)
     }
 
-    @Test
-    fun isAlNumeric() {
-    }
 }
