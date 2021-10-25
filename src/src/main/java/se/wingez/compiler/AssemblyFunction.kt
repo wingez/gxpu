@@ -2,6 +2,7 @@ package se.wingez.compiler
 
 import se.wingez.ast.*
 import se.wingez.byte
+import se.wingez.compiler.actions.getActionInRegister
 import se.wingez.emulator.DefaultEmulator
 
 interface FunctionProvider {
@@ -25,7 +26,7 @@ class AssemblyFunction(
     }
 
     fun handleStatement(node: StatementNode) {
-        val action = buildStatement(node, frameLayout, functionProvider)
+        val action = se.wingez.compiler.actions.buildStatement(node, frameLayout, functionProvider)
         action.compile(generator)
     }
 

@@ -1,8 +1,8 @@
-package se.wingez.compiler
+package se.wingez.compiler.actions
 
 import se.wingez.ast.*
 import se.wingez.byte
-import se.wingez.compiler.actions.*
+import se.wingez.compiler.*
 import se.wingez.emulator.DefaultEmulator
 
 

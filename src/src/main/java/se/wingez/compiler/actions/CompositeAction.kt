@@ -1,6 +1,5 @@
 package se.wingez.compiler.actions
 
-import se.wingez.compiler.Action
 import se.wingez.compiler.CodeGenerator
 
 class CompositeAction(
