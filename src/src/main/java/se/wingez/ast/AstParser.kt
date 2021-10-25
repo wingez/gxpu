@@ -248,8 +248,8 @@ class AstParser(private val tokens: List<Token>) {
         return ReturnNode(value)
     }
 
-    fun parseValueProvider(): ValueProviderNode {
-        val firstResult: ValueProviderNode
+    fun parseValueProvider(): ValueNode {
+        val firstResult: ValueNode
         var hasParenthesis = false
         if (peekIs(TokenLeftParenthesis, true)) {
             hasParenthesis = true
@@ -299,7 +299,7 @@ class AstParser(private val tokens: List<Token>) {
         val targetName = consumeType<TokenIdentifier>().target
         consumeType(TokenLeftParenthesis)
 
-        val parameters = mutableListOf<ValueProviderNode>()
+        val parameters = mutableListOf<ValueNode>()
 
         while (!peekIs(TokenRightParenthesis, true)) {
             val paramValue = parseValueProvider()

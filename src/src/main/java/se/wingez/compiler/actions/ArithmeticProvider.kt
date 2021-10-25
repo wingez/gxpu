@@ -2,7 +2,7 @@ package se.wingez.compiler.actions
 
 import se.wingez.ast.Operation
 import se.wingez.ast.SingleOperationNode
-import se.wingez.ast.ValueProviderNode
+import se.wingez.ast.ValueNode
 import se.wingez.compiler.*
 import se.wingez.emulator.DefaultEmulator
 
@@ -14,7 +14,7 @@ abstract class ArithmeticProvider(
     abstract fun generate(): Action
 
     override fun putInRegister(
-        node: ValueProviderNode,
+        node: ValueNode,
         type: DataType,
         frame: FrameLayout,
         functionProvider: FunctionProvider
@@ -79,7 +79,7 @@ class NotEqualProvider : ActionConverter {
 
 
     override fun putInRegister(
-        node: ValueProviderNode,
+        node: ValueNode,
         type: DataType,
         frame: FrameLayout,
         functionProvider: FunctionProvider

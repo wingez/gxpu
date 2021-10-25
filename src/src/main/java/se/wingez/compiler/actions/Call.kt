@@ -2,7 +2,7 @@ package se.wingez.compiler.actions
 
 import se.wingez.ast.CallNode
 import se.wingez.ast.StatementNode
-import se.wingez.ast.ValueProviderNode
+import se.wingez.ast.ValueNode
 import se.wingez.compiler.*
 import se.wingez.emulator.DefaultEmulator
 
@@ -68,7 +68,7 @@ class CallProvider : ActionConverter {
     }
 
     override fun putOnStack(
-        node: ValueProviderNode,
+        node: ValueNode,
         type: DataType,
         frame: FrameLayout,
         functionProvider: FunctionProvider

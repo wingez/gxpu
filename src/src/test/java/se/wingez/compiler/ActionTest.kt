@@ -31,7 +31,7 @@ class ActionTest {
     @Test
     fun testFlatten() {
         fun a(value: UByte): Action {
-            return PutConstantInRegister.PutByteInRegisterAction(value)
+            return LoadRegister(value)
         }
 
         assertIterableEquals(
@@ -61,7 +61,7 @@ class ActionTest {
         assertEquals(
             flattened,
             CompositeAction(
-                PutConstantInRegister.PutByteInRegisterAction(5u),
+                LoadRegister(5u),
                 PrintFromRegister.PrintAction()
             )
         )
@@ -100,7 +100,7 @@ class ActionTest {
         assertEquals(
             flattened,
             CompositeAction(
-                PutConstantInRegister.PutByteInRegisterAction(4u),
+                LoadRegister(4u),
                 AssignFrameByte.AssignFrameRegister(dummyFrame, "var1")
             )
         )
@@ -120,8 +120,8 @@ class ActionTest {
             buildStatement(node, dummyFrame, dummyFunctions),
             CompositeAction(
                 CompositeAction(
-                    PutByteOnStack.PutByteOnStackAction(10u),
-                    PutConstantInRegister.PutByteInRegisterAction(5u),
+                    PushByte(10u),
+                    LoadRegister(5u),
                     AdditionProvider.AdditionAction(),
                 ),
                 PrintFromRegister.PrintAction()
@@ -135,8 +135,8 @@ class ActionTest {
 
         assertIterableEquals(
             listOf(
-                PutByteOnStack.PutByteOnStackAction(10u),
-                PutConstantInRegister.PutByteInRegisterAction(5u),
+                PushByte(10u),
+                LoadRegister(5u),
                 SubtractionProvider.SubtractionAction(),
                 NotEqualProvider.NotEqualCompare()
             ),
@@ -193,7 +193,7 @@ class ActionTest {
         assertIterableEquals(
             listOf(
                 CallProvider.PlaceReturnValueOnStack(voidType),
-                PutByteOnStack.PutByteOnStackAction(5u),
+                PushByte(5u),
                 CallProvider.CallAction(functionWithParameter),
                 CallProvider.PopArguments(functionWithParameter),
             ), flatten(

@@ -14,7 +14,7 @@ interface Action {
 
 interface ActionConverter {
     fun putInRegister(
-        node: ValueProviderNode,
+        node: ValueNode,
         type: DataType,
         frame: FrameLayout,
         functionProvider: FunctionProvider
@@ -23,7 +23,7 @@ interface ActionConverter {
     }
 
     fun putOnStack(
-        node: ValueProviderNode,
+        node: ValueNode,
         type: DataType,
         frame: FrameLayout,
         functionProvider: FunctionProvider
@@ -38,14 +38,6 @@ interface ActionConverter {
         functionProvider: FunctionProvider
     ): Action? {
         return null
-    }
-}
-
-data class PopStack(
-    override val cost: Int = 1
-) : Action {
-    override fun compile(generator: CodeGenerator) {
-        generator.generate(DefaultEmulator.popa.build())
     }
 }
 
@@ -71,7 +63,7 @@ class PrintFromRegister : ActionConverter {
         value ?: return null
         return CompositeAction(
             value,
-            PopStack(),
+            PopRegister(),
             PrintAction(),
         )
 
@@ -81,40 +73,22 @@ class PrintFromRegister : ActionConverter {
 
 class PutConstantInRegister : ActionConverter {
 
-    data class PutByteInRegisterAction(
-        val value: UByte
-    ) : Action {
-        override val cost: Int = 1
-        override fun compile(generator: CodeGenerator) {
-            generator.generate(DefaultEmulator.lda.build(mapOf("val" to value)))
-        }
-    }
-
     override fun putInRegister(
-        node: ValueProviderNode,
+        node: ValueNode,
         type: DataType,
         frame: FrameLayout,
         functionProvider: FunctionProvider
     ): Action? {
         if (node !is ConstantNode) return null
         if (type != byteType) return null
-        return PutByteInRegisterAction(byte(node.value))
+        return LoadRegister(byte(node.value))
     }
 }
 
 class PutByteOnStack : ActionConverter {
-    data class PutByteOnStackAction(
-        val value: UByte
-    ) : Action {
-        override val cost: Int = 1
-        override fun compile(generator: CodeGenerator) {
-            generator.generate(DefaultEmulator.lda.build(mapOf("val" to value)))
-            generator.generate(DefaultEmulator.pusha.build())
-        }
-    }
 
     override fun putOnStack(
-        node: ValueProviderNode,
+        node: ValueNode,
         type: DataType,
         frame: FrameLayout,
         functionProvider: FunctionProvider
@@ -122,7 +96,7 @@ class PutByteOnStack : ActionConverter {
         if (node !is ConstantNode || type != byteType) {
             return null
         }
-        return PutByteOnStackAction(byte(node.value))
+        return PushByte(byte(node.value))
     }
 }
 
@@ -183,7 +157,7 @@ class FieldByteToRegister : ActionConverter {
     }
 
     override fun putInRegister(
-        node: ValueProviderNode,
+        node: ValueNode,
         type: DataType,
         frame: FrameLayout,
         functionProvider: FunctionProvider
@@ -207,16 +181,9 @@ class FieldByteToRegister : ActionConverter {
 }
 
 class PutRegisterOnStack : ActionConverter {
-    data class PushRegister(
-        override val cost: Int = 1
-    ) : Action {
-        override fun compile(generator: CodeGenerator) {
-            generator.generate(DefaultEmulator.pusha.build())
-        }
-    }
 
     override fun putOnStack(
-        node: ValueProviderNode,
+        node: ValueNode,
         type: DataType,
         frame: FrameLayout,
         functionProvider: FunctionProvider
@@ -248,7 +215,7 @@ val actions = listOf(
 
 
 fun getActionOnStack(
-    node: ValueProviderNode,
+    node: ValueNode,
     type: DataType,
     frame: FrameLayout,
     functionProvider: FunctionProvider
@@ -262,7 +229,7 @@ fun getActionOnStack(
 }
 
 fun getActionInRegister(
-    node: ValueProviderNode,
+    node: ValueNode,
     type: DataType,
     frame: FrameLayout,
     functionProvider: FunctionProvider

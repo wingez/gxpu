@@ -4,10 +4,10 @@ import se.wingez.TokenNumericConstant
 
 abstract class AstNode
 abstract class StatementNode : AstNode()
-abstract class ValueProviderNode : StatementNode()
+abstract class ValueNode : StatementNode()
 
 
-data class MemberAccess(val name: String) : ValueProviderNode()
+data class MemberAccess(val name: String) : ValueNode()
 
 
 data class PrimitiveMemberDeclaration(
@@ -18,15 +18,15 @@ data class PrimitiveMemberDeclaration(
 
 
 data class AssignNode(
-    val target: ValueProviderNode,
-    val value: ValueProviderNode?,
+    val target: ValueNode,
+    val value: ValueNode?,
     val type: String = "",
     val explicitNew: Boolean = false,
 
     ) : StatementNode()
 
-data class PrintNode(val target: ValueProviderNode) : StatementNode()
-data class ConstantNode(val value: Int) : ValueProviderNode() {
+data class PrintNode(val target: ValueNode) : StatementNode()
+data class ConstantNode(val value: Int) : ValueNode() {
     companion object {
         fun fromToken(token: TokenNumericConstant): ConstantNode {
             return ConstantNode(value = token.value)
@@ -36,8 +36,8 @@ data class ConstantNode(val value: Int) : ValueProviderNode() {
 
 data class CallNode(
     val targetName: String,
-    val parameters: List<ValueProviderNode>
-) : ValueProviderNode()
+    val parameters: List<ValueNode>
+) : ValueNode()
 
 
 data class FunctionNode(
@@ -61,12 +61,12 @@ enum class Operation {
 
 data class SingleOperationNode(
     val operation: Operation,
-    val left: ValueProviderNode,
-    val right: ValueProviderNode,
-) : ValueProviderNode()
+    val left: ValueNode,
+    val right: ValueNode,
+) : ValueNode()
 
 data class IfNode(
-    val condition: ValueProviderNode,
+    val condition: ValueNode,
     val body: List<StatementNode>,
     val elseBody: List<StatementNode>,
 ) : StatementNode(), NodeContainer {
@@ -80,7 +80,7 @@ data class IfNode(
 }
 
 data class WhileNode(
-    val condition: ValueProviderNode,
+    val condition: ValueNode,
     val body: List<StatementNode>,
 ) : StatementNode(), NodeContainer {
     override fun getNodes(): Iterable<StatementNode> {
@@ -89,7 +89,7 @@ data class WhileNode(
 }
 
 data class ReturnNode(
-    val value: ValueProviderNode? = null,
+    val value: ValueNode? = null,
 ) : StatementNode()
 
 data class StructNode(
