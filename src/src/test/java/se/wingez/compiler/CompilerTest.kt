@@ -45,7 +45,7 @@ fun buildProgram(body: String): List<UByte> {
 
 fun shouldMatch(code: List<UByte>, expected: List<UByte>) {
     assertIterableEquals(code, expected) {
-        (listOf("Dissasembled: ") + DefaultEmulator().instructionSet.disassemble(code)).joinToString(
+        (listOf("SDisassembled: ") + DefaultEmulator().instructionSet.disassemble(code)).joinToString(
             "\n"
         )
     }
@@ -83,7 +83,7 @@ class CompilerTest {
 
         val code = buildSingleMainFunction(emptyList())
         assertIterableEquals(
-            code, listOf<UByte>(
+            code, listOf(
                 // Init stack and frame
                 DefaultEmulator.ldfp.id, byte(255),
                 DefaultEmulator.ldsp.id, byte(255),

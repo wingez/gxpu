@@ -13,7 +13,7 @@ internal class InstructionTest {
     fun testAutoId() {
         val i = InstructionSet(maxSize = 3u)
 
-        val createDummy = { index: UByte -> Instruction("dummy", { _ -> false }, index) }
+        val createDummy = { index: UByte -> Instruction("dummy", { false }, index) }
 
         val i1 = createDummy(1u)
         val i0 = createDummy(0u)

@@ -47,7 +47,6 @@ data class PopStack(
     override fun compile(generator: CodeGenerator) {
         generator.generate(DefaultEmulator.popa.build())
     }
-
 }
 
 class PrintFromRegister : ActionConverter {
@@ -80,8 +79,7 @@ class PrintFromRegister : ActionConverter {
 
 }
 
-class PutConstantInRegister(
-) : ActionConverter {
+class PutConstantInRegister : ActionConverter {
 
     data class PutByteInRegisterAction(
         val value: UByte

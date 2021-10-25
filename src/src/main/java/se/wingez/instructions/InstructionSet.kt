@@ -125,14 +125,14 @@ class InstructionSet(val maxSize: UByte = Instruction.MAX_SIZE) {
 
             val variables = mutableMapOf<String, UByte>()
 
-            val templateSplitted = splitMany(instr.mnemonic, MNEMONIC_DELIMITERS).filter { it.isNotEmpty() }
-            val mnemSplitted = splitMany(trimmedMnemonic, MNEMONIC_DELIMITERS).filter { it.isNotEmpty() }
+            val templateSplit = splitMany(instr.mnemonic, MNEMONIC_DELIMITERS).filter { it.isNotEmpty() }
+            val mnemSplit = splitMany(trimmedMnemonic, MNEMONIC_DELIMITERS).filter { it.isNotEmpty() }
 
-            if (templateSplitted.size != mnemSplitted.size)
+            if (templateSplit.size != mnemSplit.size)
                 continue
 
             var allMatch = true
-            for ((templateWord, mnemWord) in templateSplitted.zip(mnemSplitted)) {
+            for ((templateWord, mnemWord) in templateSplit.zip(mnemSplit)) {
                 if ('#' in templateWord && '#' in mnemWord) {
                     //Variable
                     val index = templateWord.indexOf("#")
@@ -142,7 +142,8 @@ class InstructionSet(val maxSize: UByte = Instruction.MAX_SIZE) {
                     }
                     //check variable name matches
                     if (templateWord.lowercase().substring(0, index) !=
-                            mnemWord.lowercase().substring(0, index)) {
+                        mnemWord.lowercase().substring(0, index)
+                    ) {
                         allMatch = false
                         break
                     }
@@ -198,7 +199,7 @@ class InstructionSet(val maxSize: UByte = Instruction.MAX_SIZE) {
 
         val result = mutableListOf<String>()
 
-        instructions.groupBy(groupKeySelector).forEach { group, instr ->
+        instructions.groupBy(groupKeySelector).forEach { (group, instr) ->
             result.add("Group: ${group.ifEmpty { "not set" }}")
 
             instr.sortedBy { it.id }.forEach {
