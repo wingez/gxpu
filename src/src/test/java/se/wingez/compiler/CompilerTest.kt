@@ -8,6 +8,7 @@ import se.wingez.ast.StatementNode
 import se.wingez.ast.parseExpressions
 import se.wingez.ast.parserFromFile
 import se.wingez.byte
+import se.wingez.compiler.actions.ActionBuilder
 import se.wingez.emulator.DefaultEmulator
 import se.wingez.parseFile
 import java.io.StringReader
@@ -25,10 +26,10 @@ fun buildBody(body: String): List<UByte> {
 
 
     val node = FunctionNode("main", emptyList(), nodes, "")
-    val frame = calculateFrameLayout(node, dummyTypeContainer)
+    val frame = calculateFrameLayout(node, dummyTypeContainer, 0u)
 
     val generator = CodeGenerator()
-    val function = AssemblyFunction(generator, frame, 0u, dummyFunctions)
+    val function = FunctionBuilder(generator, frame, ActionBuilder(frame, dummyFunctions))
     function.buildNodes(node.body)
 
     return generator.resultingCode

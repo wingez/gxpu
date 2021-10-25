@@ -9,9 +9,9 @@ import se.wingez.compiler.actions.*
 import se.wingez.emulator.DefaultEmulator
 
 class FunctionContainer(
-    val functions: List<AssemblyFunction>
+    val functions: List<FunctionInfo>
 ) : FunctionProvider {
-    override fun getFunction(name: String): AssemblyFunction {
+    override fun getFunction(name: String): FunctionInfo {
         return functions.find { it.name == name } ?: throw AssertionError()
     }
 }
@@ -21,8 +21,8 @@ val dummyFunctions = FunctionContainer(emptyList())
 class ActionTest {
 
 
-    private val dummyFrame = FrameLayout(
-        3u, "dummyFrame",
+    private val dummyFrame = FunctionInfo(
+        3u, 0u, "dummyFrame",
         mapOf("var1" to StructDataField("var1", 0u, byteType)),
         emptyList(),
         voidType, 2u, 1u, 0u
@@ -46,17 +46,15 @@ class ActionTest {
                     a(3u)
                 )
             )
-
         )
-
-
     }
 
 
     @Test
     fun testPrintConstant() {
+        val builder = ActionBuilder(dummyFrame, dummyFunctions)
         val node = PrintNode(ConstantNode(5))
-        val flattened = buildStatement(node, dummyFrame, dummyFunctions)
+        val flattened = builder.buildStatement(node)
 
         assertEquals(
             flattened,
@@ -75,13 +73,14 @@ class ActionTest {
 
     @Test
     fun testPrintVariable() {
+        val builder = ActionBuilder(dummyFrame, dummyFunctions)
         val node = PrintNode(MemberAccess("var1"))
-        val flattened = buildStatement(node, dummyFrame, dummyFunctions)
+        val flattened = builder.buildStatement(node)
 
         assertEquals(
             flattened,
             CompositeAction(
-                FieldByteToRegister.FieldByteToRegisterAction(dummyFrame, "var1"),
+                FieldByteToRegister.FieldByteToRegisterAction(dummyFrame.getField("var1")),
                 PrintFromRegister.PrintAction()
             )
         )
@@ -90,18 +89,19 @@ class ActionTest {
 
     @Test
     fun testAssignConstant() {
+        val builder = ActionBuilder(dummyFrame, dummyFunctions)
         val node = AssignNode(MemberAccess("var2"), ConstantNode(5))
         assertThrows<CompileError> {
-            buildStatement(node, dummyFrame, dummyFunctions)
+            builder.buildStatement(node)
         }
         val node2 = AssignNode(MemberAccess("var1"), ConstantNode(4))
-        val flattened = buildStatement(node2, dummyFrame, dummyFunctions)
+        val flattened = builder.buildStatement(node2)
 
         assertEquals(
             flattened,
             CompositeAction(
                 LoadRegister(4u),
-                AssignFrameByte.AssignFrameRegister(dummyFrame, "var1")
+                AssignFrameByte.AssignFrameRegister(dummyFrame.getField("var1"))
             )
         )
         val generator = CodeGenerator()
@@ -114,10 +114,11 @@ class ActionTest {
 
     @Test
     fun testAddition() {
+        val builder = ActionBuilder(dummyFrame, dummyFunctions)
         val node = PrintNode(SingleOperationNode(Operation.Addition, ConstantNode(5), ConstantNode(10)))
 
         assertEquals(
-            buildStatement(node, dummyFrame, dummyFunctions),
+            builder.buildStatement(node),
             CompositeAction(
                 CompositeAction(
                     PushByte(10u),
@@ -131,6 +132,7 @@ class ActionTest {
 
     @Test
     fun testNotEqual() {
+        val builder = ActionBuilder(dummyFrame, dummyFunctions)
         val node = SingleOperationNode(Operation.NotEquals, ConstantNode(5), ConstantNode(10))
 
         assertIterableEquals(
@@ -141,7 +143,7 @@ class ActionTest {
                 NotEqualProvider.NotEqualCompare()
             ),
             flatten(
-                getActionInRegister(node, compareType, dummyFrame, dummyFunctions)
+                builder.getActionInRegister(node, compareType)
                     ?: throw AssertionError("No action found")
             )
         )
@@ -149,22 +151,17 @@ class ActionTest {
 
     @Test
     fun testConditionMustBeComparison() {
+        val builder = ActionBuilder(dummyFrame, dummyFunctions)
         val node = ConstantNode(5)
-        assertNull(getActionInRegister(node, compareType, dummyFrame, dummyFunctions))
+        assertNull(builder.getActionInRegister(node, compareType))
         val node2 = SingleOperationNode(Operation.Addition, ConstantNode(5), ConstantNode(10))
-        assertNull(getActionInRegister(node2, compareType, dummyFrame, dummyFunctions))
+        assertNull(builder.getActionInRegister(node2, compareType))
     }
 
     @Test
     fun testCall() {
-        val generator = CodeGenerator()
-
-        val emptyFunction = AssemblyFunction(
-            generator,
-            FrameLayout(2u, "test", emptyMap(), emptyList(), voidType, 0u, 2u, 0u),
-            0u,
-            dummyFunctions,
-        )
+        val emptyFunction = FunctionInfo(2u, 0u, "test", emptyMap(), emptyList(), voidType, 0u, 2u, 0u)
+        val builder = ActionBuilder(dummyFrame, FunctionContainer(listOf(emptyFunction)))
 
 
         //No params no return
@@ -174,22 +171,31 @@ class ActionTest {
                 CallProvider.CallAction(emptyFunction),
                 CallProvider.PopArguments(emptyFunction),
             ), flatten(
-                getActionOnStack(
+                builder.getActionOnStack(
                     CallNode("test", emptyList()),
-                    voidType, emptyFunction.frameLayout,
-                    FunctionContainer(listOf(emptyFunction))
+                    voidType
                 ) ?: throw AssertionError("Not found")
             )
         )
+    }
 
-        val functionWithParameter = AssemblyFunction(
-            generator,
-            FrameLayout(3u, "test", emptyMap(), listOf(StructDataField("param", 0u, byteType)), voidType, 0u, 2u, 0u),
+    @Test
+    fun testCallParameter() {
+        val functionWithParameter = FunctionInfo(
+            3u,
             0u,
-            dummyFunctions,
+            "test",
+            emptyMap(),
+            listOf(StructDataField("param", 0u, byteType)),
+            voidType,
+            0u,
+            2u,
+            0u
         )
+        val builder = ActionBuilder(dummyFrame, FunctionContainer(listOf(functionWithParameter)))
 
-        //No params no return
+
+        //1 parameter no return
         assertIterableEquals(
             listOf(
                 CallProvider.PlaceReturnValueOnStack(voidType),
@@ -197,42 +203,38 @@ class ActionTest {
                 CallProvider.CallAction(functionWithParameter),
                 CallProvider.PopArguments(functionWithParameter),
             ), flatten(
-                getActionOnStack(
+                builder.getActionOnStack(
                     CallNode("test", listOf(ConstantNode(5))),
-                    voidType, functionWithParameter.frameLayout,
-                    FunctionContainer(listOf(functionWithParameter))
+                    voidType
                 ) ?: throw AssertionError("Not found")
             )
         )
+    }
 
+    @Test
+    fun testCallReturnType() {
 
-        val functionWithReturn = AssemblyFunction(
-            generator,
-            FrameLayout(3u, "test", emptyMap(), emptyList(), byteType, 0u, 2u, 0u),
-            0u,
-            dummyFunctions,
-        )
+        val functionWithReturn = FunctionInfo(3u, 0u, "test", emptyMap(), emptyList(), byteType, 0u, 2u, 0u)
+        val builder = ActionBuilder(dummyFrame, FunctionContainer(listOf(functionWithReturn)))
 
-        //No params no return
+        //No params, return byte
         assertIterableEquals(
             listOf(
                 CallProvider.PlaceReturnValueOnStack(byteType),
                 CallProvider.CallAction(functionWithReturn),
                 CallProvider.PopArguments(functionWithReturn),
             ), flatten(
-                getActionOnStack(
+                builder.getActionOnStack(
                     CallNode("test", emptyList()),
-                    byteType, functionWithReturn.frameLayout,
-                    FunctionContainer(listOf(functionWithReturn))
+                    byteType
                 ) ?: throw AssertionError("Not found")
             )
         )
         //Test wrong return type
         assertNull(
-            getActionOnStack(
+            builder.getActionOnStack(
                 CallNode("test", emptyList()),
-                voidType, functionWithReturn.frameLayout,
-                FunctionContainer(listOf(functionWithReturn))
+                voidType
             )
         )
     }

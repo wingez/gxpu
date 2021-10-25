@@ -35,3 +35,19 @@ class CompositeAction(
     }
 
 }
+
+fun flatten(topAction: Action): List<Action> {
+    val result = mutableListOf<Action>()
+
+    fun visitRecursive(action: Action) {
+        if (action is CompositeAction) {
+            for (child in action) {
+                visitRecursive(child)
+            }
+        } else {
+            result.add(action)
+        }
+    }
+    visitRecursive(topAction)
+    return result
+}

@@ -2,23 +2,18 @@ package se.wingez.compiler
 
 import se.wingez.ast.*
 import se.wingez.byte
-import se.wingez.compiler.actions.getActionInRegister
+import se.wingez.compiler.actions.ActionBuilder
 import se.wingez.emulator.DefaultEmulator
 
 interface FunctionProvider {
-    fun getFunction(name: String): AssemblyFunction
+    fun getFunction(name: String): FunctionInfo
 }
 
-class AssemblyFunction(
+class FunctionBuilder(
     val generator: CodeGenerator,
-    val frameLayout: FrameLayout,
-    val memoryPosition: UByte,
-    val functionProvider: FunctionProvider,
+    val functionInfo: FunctionInfo,
+    private val actionBuilder: ActionBuilder,
 ) {
-
-    val name: String
-        get() = frameLayout.name
-
     fun buildNodes(nodes: Iterable<StatementNode>) {
         for (node in nodes) {
             buildStatement(node)
@@ -26,7 +21,7 @@ class AssemblyFunction(
     }
 
     fun handleStatement(node: StatementNode) {
-        val action = se.wingez.compiler.actions.buildStatement(node, frameLayout, functionProvider)
+        val action = actionBuilder.buildStatement(node)
         action.compile(generator)
     }
 
@@ -35,8 +30,8 @@ class AssemblyFunction(
             throw NotImplementedError()
         }
 
-        if (frameLayout.sizeOfVars > 0u) {
-            generator.generate(DefaultEmulator.ret_frame.build(mapOf("size" to frameLayout.sizeOfVars)))
+        if (functionInfo.sizeOfVars > 0u) {
+            generator.generate(DefaultEmulator.ret_frame.build(mapOf("size" to functionInfo.sizeOfVars)))
         } else {
             generator.generate(DefaultEmulator.ret.build())
         }
@@ -44,7 +39,7 @@ class AssemblyFunction(
 
     private fun handleIf(node: IfNode) {
 
-        val compareAction = getActionInRegister(node.condition, compareType, frameLayout, functionProvider)
+        val compareAction = actionBuilder.getActionInRegister(node.condition, compareType)
             ?: throw CompileError("Could not parse condition")
         compareAction.compile(generator)
         val jumpToFalseCondition = generator.makeSpaceFor(DefaultEmulator.jump_zero)
@@ -66,7 +61,7 @@ class AssemblyFunction(
 
     private fun handleWhile(node: WhileNode) {
         val startOfBlock = byte(generator.currentSize)
-        val compareAction = getActionInRegister(node.condition, compareType, frameLayout, functionProvider)
+        val compareAction = actionBuilder.getActionInRegister(node.condition, compareType)
             ?: throw CompileError("Could not parse condition")
         compareAction.compile(generator)
         val jumpToExit = generator.makeSpaceFor(DefaultEmulator.jump_zero)
@@ -91,11 +86,10 @@ class AssemblyFunction(
         }
     }
 
-
     fun buildBody(nodes: Iterable<StatementNode>) {
         // Make space on stack for local variables
-        if (frameLayout.sizeOfVars > 0u) {
-            generator.generate(DefaultEmulator.sub_sp.build(mapOf("val" to frameLayout.sizeOfVars)))
+        if (functionInfo.sizeOfVars > 0u) {
+            generator.generate(DefaultEmulator.sub_sp.build(mapOf("val" to functionInfo.sizeOfVars)))
         }
         //Move fp to sp = bottom of frame
         generator.generate(DefaultEmulator.ldfp_sp.build())
@@ -104,6 +98,4 @@ class AssemblyFunction(
 
         handleReturn(ReturnNode())
     }
-
-
 }

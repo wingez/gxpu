@@ -16,8 +16,7 @@ interface ActionConverter {
     fun putInRegister(
         node: ValueNode,
         type: DataType,
-        frame: FrameLayout,
-        functionProvider: FunctionProvider
+        builder: ActionBuilder,
     ): Action? {
         return null
     }
@@ -25,8 +24,7 @@ interface ActionConverter {
     fun putOnStack(
         node: ValueNode,
         type: DataType,
-        frame: FrameLayout,
-        functionProvider: FunctionProvider
+        builder: ActionBuilder,
     ): Action? {
         return null
     }
@@ -34,8 +32,7 @@ interface ActionConverter {
 
     fun buildStatement(
         node: StatementNode,
-        frame: FrameLayout,
-        functionProvider: FunctionProvider
+        builder: ActionBuilder,
     ): Action? {
         return null
     }
@@ -51,24 +48,22 @@ class PrintFromRegister : ActionConverter {
         }
     }
 
-    override fun buildStatement(node: StatementNode, frame: FrameLayout, functionProvider: FunctionProvider): Action? {
+    override fun buildStatement(node: StatementNode, builder: ActionBuilder): Action? {
         if (node !is PrintNode)
             return null
 
-        var value = getActionInRegister(node.target, byteType, frame, functionProvider)
+        var value = builder.getActionInRegister(node.target, byteType)
         if (value != null)
             return CompositeAction(value, PrintAction())
 
-        value = getActionOnStack(node.target, byteType, frame, functionProvider)
+        value = builder.getActionOnStack(node.target, byteType)
         value ?: return null
         return CompositeAction(
             value,
             PopRegister(),
             PrintAction(),
         )
-
     }
-
 }
 
 class PutConstantInRegister : ActionConverter {
@@ -76,8 +71,7 @@ class PutConstantInRegister : ActionConverter {
     override fun putInRegister(
         node: ValueNode,
         type: DataType,
-        frame: FrameLayout,
-        functionProvider: FunctionProvider
+        builder: ActionBuilder,
     ): Action? {
         if (node !is ConstantNode) return null
         if (type != byteType) return null
@@ -90,8 +84,7 @@ class PutByteOnStack : ActionConverter {
     override fun putOnStack(
         node: ValueNode,
         type: DataType,
-        frame: FrameLayout,
-        functionProvider: FunctionProvider
+        builder: ActionBuilder,
     ): Action? {
         if (node !is ConstantNode || type != byteType) {
             return null
@@ -102,20 +95,19 @@ class PutByteOnStack : ActionConverter {
 
 class AssignFrameByte : ActionConverter {
     data class AssignFrameRegister(
-        val frame: FrameLayout,
-        val field: String,
+        val field: StructDataField,
     ) : Action {
         override val cost: Int = 1
         override fun compile(generator: CodeGenerator) {
             generator.generate(
                 DefaultEmulator.sta_fp_offset.build(
-                    mapOf("offset" to frame.fields.getValue(field).offset)
+                    mapOf("offset" to field.offset)
                 )
             )
         }
     }
 
-    override fun buildStatement(node: StatementNode, frame: FrameLayout, functionProvider: FunctionProvider): Action? {
+    override fun buildStatement(node: StatementNode, builder: ActionBuilder): Action? {
         if (node !is AssignNode)
             return null
         if (node.value == null) {
@@ -124,33 +116,32 @@ class AssignFrameByte : ActionConverter {
         val target = node.target
         if (target !is MemberAccess) return null
 
-        val field = target.name
-        if (!frame.hasField(field)) {
-            throw CompileError("No field with name: $field")
+        if (!builder.hasField(target.name)) {
+            throw CompileError("No field with name: ${target.name}")
         }
-        if (frame.fields.getValue(field).type != byteType) {
+        val field = builder.getField(target.name)
+        if (field.type != byteType) {
             return null
         }
 
-        val putValueInRegister = getActionInRegister(node.value, byteType, frame, functionProvider) ?: return null
+        val putValueInRegister = builder.getActionInRegister(node.value, byteType) ?: return null
 
         return CompositeAction(
             putValueInRegister,
-            AssignFrameRegister(frame, field)
+            AssignFrameRegister(field)
         )
     }
 }
 
 class FieldByteToRegister : ActionConverter {
     data class FieldByteToRegisterAction(
-        val frame: FrameLayout,
-        val field: String,
+        val field: StructDataField,
     ) : Action {
         override val cost: Int = 1
         override fun compile(generator: CodeGenerator) {
             generator.generate(
                 DefaultEmulator.lda_fp_offset.build(
-                    mapOf("offset" to frame.fields.getValue(field).offset)
+                    mapOf("offset" to field.offset)
                 )
             )
         }
@@ -159,8 +150,7 @@ class FieldByteToRegister : ActionConverter {
     override fun putInRegister(
         node: ValueNode,
         type: DataType,
-        frame: FrameLayout,
-        functionProvider: FunctionProvider
+        builder: ActionBuilder
     ): Action? {
 
         if (node !is MemberAccess)
@@ -168,15 +158,15 @@ class FieldByteToRegister : ActionConverter {
         if (type != byteType)
             return null
 
-        val field = node.name
-        if (!frame.hasField(field)) {
-            throw CompileError("No field with name: $field")
+        if (!builder.hasField(node.name)) {
+            throw CompileError("No field with name: $node.name")
         }
-        if (frame.fields.getValue(field).type != byteType) {
+        val field = builder.getField(node.name)
+        if (field.type != byteType) {
             return null
         }
 
-        return FieldByteToRegisterAction(frame, field)
+        return FieldByteToRegisterAction(field)
     }
 }
 
@@ -185,13 +175,12 @@ class PutRegisterOnStack : ActionConverter {
     override fun putOnStack(
         node: ValueNode,
         type: DataType,
-        frame: FrameLayout,
-        functionProvider: FunctionProvider
+        builder: ActionBuilder
     ): Action? {
         if (type != byteType) {
             return null
         }
-        val putInRegister = getActionInRegister(node, type, frame, functionProvider) ?: return null
+        val putInRegister = builder.getActionInRegister(node, type) ?: return null
         return CompositeAction(
             putInRegister,
             PushRegister(),
@@ -213,58 +202,57 @@ val actions = listOf(
     CallProvider(),
 )
 
+class ActionBuilder(
+    private val frame: FunctionInfo,
+    private val functionProvider: FunctionProvider,
+) : FunctionProvider {
 
-fun getActionOnStack(
-    node: ValueNode,
-    type: DataType,
-    frame: FrameLayout,
-    functionProvider: FunctionProvider
-): Action? {
-    for (action in actions) {
-        val result = action.putOnStack(node, type, frame, functionProvider)
-        if (result != null)
-            return result
+    fun hasField(name: String): Boolean {
+        return frame.hasField(name)
     }
-    return null
-}
 
-fun getActionInRegister(
-    node: ValueNode,
-    type: DataType,
-    frame: FrameLayout,
-    functionProvider: FunctionProvider
-): Action? {
-    for (action in actions) {
-        val result = action.putInRegister(node, type, frame, functionProvider)
-        if (result != null)
-            return result
+    fun getField(name: String): StructDataField {
+        return frame.getField(name)
     }
-    return null
-}
 
-fun flatten(topAction: Action): List<Action> {
-    val result = mutableListOf<Action>()
+    override fun getFunction(name: String): FunctionInfo {
+        return functionProvider.getFunction(name)
+    }
 
-    fun visitRecursive(action: Action) {
-        if (action is CompositeAction) {
-            for (child in action) {
-                visitRecursive(child)
+    fun getActionOnStack(
+        node: ValueNode,
+        type: DataType,
+    ): Action? {
+        for (action in actions) {
+            val result = action.putOnStack(node, type, this)
+            if (result != null)
+                return result
+        }
+        return null
+    }
+
+    fun getActionInRegister(
+        node: ValueNode,
+        type: DataType,
+    ): Action? {
+        for (action in actions) {
+            val result = action.putInRegister(node, type, this)
+            if (result != null)
+                return result
+        }
+        return null
+    }
+
+    fun buildStatement(node: StatementNode): Action {
+        for (a in actions) {
+            val result = a.buildStatement(node, this)
+            if (result != null) {
+                return result
             }
-        } else {
-            result.add(action)
         }
+
+        throw CompileError("Dont know how to build $node")
     }
-    visitRecursive(topAction)
-    return result
 }
 
-fun buildStatement(node: StatementNode, frame: FrameLayout, functionProvider: FunctionProvider): Action {
-    for (a in actions) {
-        val result = a.buildStatement(node, frame, functionProvider)
-        if (result != null) {
-            return result
-        }
-    }
 
-    throw CompileError("Dont know how to build $node")
-}

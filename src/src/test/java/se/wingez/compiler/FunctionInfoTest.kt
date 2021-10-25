@@ -26,13 +26,13 @@ val dummyTypeContainer = TypeContainer(
     defaultTypes
 )
 
-internal class FrameLayoutTest {
+internal class FunctionInfoTest {
 
 
-    fun getLayout(program: String, types: List<DataType> = defaultTypes): FrameLayout {
+    fun getLayout(program: String, types: List<DataType> = defaultTypes): FunctionInfo {
         val node = AstParser(parseFile(StringReader(program))).parseFunctionDefinition()
 
-        return calculateFrameLayout(node, TypeContainer(types))
+        return calculateFrameLayout(node, TypeContainer(types), 0u)
 
     }
 

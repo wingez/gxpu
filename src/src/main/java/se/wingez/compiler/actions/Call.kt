@@ -22,7 +22,7 @@ class CallProvider : ActionConverter {
     }
 
     data class CallAction(
-        val function: AssemblyFunction,
+        val function: FunctionInfo,
         override val cost: Int = 2,
     ) : Action {
         override fun compile(generator: CodeGenerator) {
@@ -31,11 +31,11 @@ class CallProvider : ActionConverter {
     }
 
     data class PopArguments(
-        val function: AssemblyFunction,
+        val function: FunctionInfo,
         override val cost: Int = 1,
     ) : Action {
         override fun compile(generator: CodeGenerator) {
-            val paramSize = function.frameLayout.sizeOfParameters
+            val paramSize = function.sizeOfParameters
             if (paramSize > 0u) {
                 generator.generate(DefaultEmulator.add_sp.build(mapOf("val" to paramSize)))
             }
@@ -54,42 +54,41 @@ class CallProvider : ActionConverter {
     }
 
 
-    override fun buildStatement(node: StatementNode, frame: FrameLayout, functionProvider: FunctionProvider): Action? {
+    override fun buildStatement(node: StatementNode, builder: ActionBuilder): Action? {
         if (node !is CallNode) return null
 
-        val function = functionProvider.getFunction(node.targetName)
-        if (function.frameLayout.returnType != voidType) return null
+        val function = builder.getFunction(node.targetName)
+        if (function.returnType != voidType) return null
 
-        val callAction = putOnStack(node, function.frameLayout.returnType, frame, functionProvider)
+        val callAction = putOnStack(node, function.returnType, builder)
         callAction ?: return null
         return CompositeAction(
-            callAction, PopResult(function.frameLayout.returnType)
+            callAction, PopResult(function.returnType)
         )
     }
 
     override fun putOnStack(
         node: ValueNode,
         type: DataType,
-        frame: FrameLayout,
-        functionProvider: FunctionProvider
+        builder: ActionBuilder,
     ): Action? {
         if (node !is CallNode) return null
 
-        val function = functionProvider.getFunction(node.targetName)
+        val function = builder.getFunction(node.targetName)
 
-        if (function.frameLayout.returnType != type) return null
+        if (function.returnType != type) return null
 
-        if (function.frameLayout.parameters.size != node.parameters.size) {
+        if (function.parameters.size != node.parameters.size) {
             throw CompileError("Wrong amount of parameters provided")
         }
         val actions = mutableListOf<Action>()
 
         //Make space for return value
-        actions.add(PlaceReturnValueOnStack(function.frameLayout.returnType))
+        actions.add(PlaceReturnValueOnStack(function.returnType))
 
         //place arguments
-        for ((parameter, paramInfo) in node.parameters.zip(function.frameLayout.parameters)) {
-            val action = getActionOnStack(parameter, paramInfo.type, frame, functionProvider)
+        for ((parameter, paramInfo) in node.parameters.zip(function.parameters)) {
+            val action = builder.getActionOnStack(parameter, paramInfo.type)
                 ?: throw CompileError("Type mismatch: ${paramInfo.type}")
             actions.add(action)
         }

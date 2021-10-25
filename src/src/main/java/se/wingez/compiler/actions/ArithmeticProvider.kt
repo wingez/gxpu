@@ -3,7 +3,10 @@ package se.wingez.compiler.actions
 import se.wingez.ast.Operation
 import se.wingez.ast.SingleOperationNode
 import se.wingez.ast.ValueNode
-import se.wingez.compiler.*
+import se.wingez.compiler.CodeGenerator
+import se.wingez.compiler.DataType
+import se.wingez.compiler.byteType
+import se.wingez.compiler.compareType
 import se.wingez.emulator.DefaultEmulator
 
 
@@ -16,15 +19,14 @@ abstract class ArithmeticProvider(
     override fun putInRegister(
         node: ValueNode,
         type: DataType,
-        frame: FrameLayout,
-        functionProvider: FunctionProvider
+        builder: ActionBuilder,
     ): Action? {
         if (node !is SingleOperationNode) return null
         else if (node.operation != operation) return null
         else if (type != byteType) return null
 
-        val putLeftInRegister = getActionInRegister(node.left, byteType, frame, functionProvider)
-        val putRightOnStack = getActionOnStack(node.right, byteType, frame, functionProvider)
+        val putLeftInRegister = builder.getActionInRegister(node.left, byteType)
+        val putRightOnStack = builder.getActionOnStack(node.right, byteType)
 
         if (putLeftInRegister == null || putRightOnStack == null) {
             return null
@@ -81,17 +83,16 @@ class NotEqualProvider : ActionConverter {
     override fun putInRegister(
         node: ValueNode,
         type: DataType,
-        frame: FrameLayout,
-        functionProvider: FunctionProvider
+        builder: ActionBuilder
     ): Action? {
         if (type != compareType) return null
         if (node !is SingleOperationNode) return null
         if (node.operation != Operation.NotEquals) return null
 
-        val subtract = getActionInRegister(
+        val subtract = builder.getActionInRegister(
             SingleOperationNode(
                 Operation.Subtraction, node.left, node.right
-            ), byteType, frame, functionProvider
+            ), byteType
         ) ?: return null
 
         return CompositeAction(

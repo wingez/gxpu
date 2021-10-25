@@ -8,8 +8,9 @@ const val PC_STACK_SIZE = 1
 const val STACK_START = 255
 
 
-class FrameLayout(
+class FunctionInfo(
     size: UByte,
+    val memoryPosition: UByte,
     name: String,
     fields: Map<String, StructDataField>,
     val parameters: List<StructDataField>,
@@ -28,7 +29,8 @@ class FrameLayout(
 fun calculateFrameLayout(
     node: FunctionNode,
     typeProvider: TypeProvider,
-): FrameLayout {
+    memoryPosition: UByte,
+): FunctionInfo {
     // We first calculate the offsets from the top. Then we reverse it when we know the total size
     val fieldsOffsetFromTop = mutableMapOf<String, StructDataField>()
 
@@ -107,8 +109,9 @@ fun calculateFrameLayout(
     }
 
 
-    return FrameLayout(
+    return FunctionInfo(
         byte(currentSize),
+        memoryPosition,
         node.name,
         fields,
         parameters,

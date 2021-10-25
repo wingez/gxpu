@@ -42,6 +42,10 @@ open class StructType(
         return field in fields
     }
 
+    fun getField(field: String): StructDataField {
+        return fields.getValue(field)
+    }
+
     fun getDescription(): List<String> {
         val result = mutableListOf<String>()
         val items = fields.entries.toList()

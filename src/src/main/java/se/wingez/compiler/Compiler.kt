@@ -2,6 +2,7 @@ package se.wingez.compiler
 
 import se.wingez.ast.FunctionNode
 import se.wingez.byte
+import se.wingez.compiler.actions.ActionBuilder
 import se.wingez.emulator.DefaultEmulator
 import se.wingez.instructions.Instruction
 
@@ -47,7 +48,8 @@ class CodeGenerator {
 
 class Compiler : TypeProvider, FunctionProvider {
     val generator = CodeGenerator()
-    val functions = mutableMapOf<String, AssemblyFunction>()
+    val functions = mutableMapOf<String, FunctionInfo>()
+
     val types = mutableMapOf<String, DataType>(
         "void" to voidType,
         "byte" to byteType,
@@ -64,7 +66,7 @@ class Compiler : TypeProvider, FunctionProvider {
         return types.getValue(name)
     }
 
-    override fun getFunction(name: String): AssemblyFunction {
+    override fun getFunction(name: String): FunctionInfo {
         if (name !in functions) {
             throw CompileError("No function with name $name found")
         }
@@ -72,22 +74,22 @@ class Compiler : TypeProvider, FunctionProvider {
     }
 
 
-    fun buildFunction(node: FunctionNode): AssemblyFunction {
+    fun buildFunction(node: FunctionNode): FunctionInfo {
 
         assertValidFunctionNode(node)
 
-        val layout = calculateFrameLayout(node, this)
+        val functionInfo = calculateFrameLayout(node, this, byte(generator.currentSize))
 
-        val function = AssemblyFunction(generator, layout, byte(generator.currentSize), this)
+        val builder = FunctionBuilder(generator, functionInfo, ActionBuilder(functionInfo, this))
 
-        if (function.name in functions) {
-            throw CompileError("Function ${function.name} already exists")
+        if (functionInfo.name in functions) {
+            throw CompileError("Function ${functionInfo.name} already exists")
         }
-        functions[function.name] = function
+        functions[functionInfo.name] = functionInfo
 
-        function.buildBody(node.getNodes())
+        builder.buildBody(node.getNodes())
 
-        return function
+        return functionInfo
 
     }
 
