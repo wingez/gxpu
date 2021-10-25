@@ -157,6 +157,14 @@ internal class TokenizerTest {
     }
 
     @Test
+    fun testParseOperator() {
+        assertIterableEquals(parseOperator("("), listOf(TokenLeftParenthesis))
+        assertIterableEquals(parseOperator("()"), listOf(TokenLeftParenthesis, TokenRightParenthesis))
+        assertIterableEquals(parseOperator(")+"), listOf(TokenRightParenthesis, TokenPlusSign))
+        assertIterableEquals(parseOperator(")+"), listOf(TokenRightParenthesis, TokenPlusSign))
+    }
+
+    @Test
     fun testMultiLetterToken() {
         assertIterableEquals(parseLine("+ ="), listOf(TokenPlusSign, TokenAssign, TokenEOL))
         assertIterableEquals(parseLine("!="), listOf(TokenNotEqual, TokenEOL))
@@ -167,6 +175,8 @@ internal class TokenizerTest {
                 TokenNotEqual, TokenNumericConstant(0), TokenColon, TokenEOL
             )
         )
+
+        assertIterableEquals(parseLine(")+"), listOf(TokenRightParenthesis, TokenPlusSign, TokenEOL))
 
     }
 

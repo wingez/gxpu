@@ -178,7 +178,7 @@ fun parseLine(line: String): List<Token> {
 
         if (shouldBreak) {
             if (current.isNotEmpty()) {
-                result.add(toToken(current))
+                result.addAll(parseOperator(current))
                 current = ""
             }
             if (isComment)
@@ -198,17 +198,37 @@ fun parseLine(line: String): List<Token> {
 
     if (current.isNotEmpty()) {
         // current could be empty if last symbol was a delimiter
-        result.add(toToken(current))
+        result.addAll(parseOperator(current))
     }
 
     result.add(TokenEOL)
     return result
 }
 
+fun parseOperator(line: String): Iterable<Token> {
+
+    for (length in line.length downTo 1) {
+        val toParse = line.substring(0, length)
+        val validToken = try {
+            toToken(toParse)
+        } catch (e: TokenError) {
+            continue
+        }
+        val rest = line.substring(length, line.length)
+        if (rest.isEmpty()) {
+            return listOf(validToken)
+        }
+        return listOf(validToken) + parseOperator(rest)
+    }
+    throw TokenError("Cannot parse $line to operator")
+}
+
 fun toToken(text: String): Token {
     // sanity check
     if (' ' in text)
         throw TokenError("text contains spaces")
+    if (text.isEmpty())
+        throw TokenError("text is empty")
 
     if (isNumeric(text))
         return TokenNumericConstant(text.toInt())
