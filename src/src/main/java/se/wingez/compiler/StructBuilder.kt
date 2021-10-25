@@ -16,7 +16,7 @@ fun buildStruct(node: StructNode, typeProvider: TypeProvider): StructType {
 
         //TODO check duplicate
 
-        fields[member.member.name] = StructDataField(member.member.name, byte(currentSize), fieldType)
+        fields[member.name] = StructDataField(member.name, byte(currentSize), fieldType)
         currentSize += fields.size
     }
 

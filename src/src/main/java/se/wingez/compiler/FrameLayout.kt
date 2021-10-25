@@ -1,9 +1,6 @@
 package se.wingez.compiler
 
-import se.wingez.ast.AssignNode
-import se.wingez.ast.AssignTarget
-import se.wingez.ast.FunctionNode
-import se.wingez.ast.NodeContainer
+import se.wingez.ast.*
 import se.wingez.byte
 
 const val SP_STACK_SIZE = 1
@@ -45,7 +42,7 @@ fun calculateFrameLayout(
 
     for (arg in node.arguments) {
         val paramType = typeProvider.getType(arg.type)
-        fieldsOffsetFromTop[arg.member.name] = StructDataField(arg.member.name, byte(currentSize), paramType)
+        fieldsOffsetFromTop[arg.name] = StructDataField(arg.name, byte(currentSize), paramType)
         currentSize += paramType.size.toInt()
         sizeOfParams += paramType.size.toInt()
     }
@@ -59,29 +56,36 @@ fun calculateFrameLayout(
     // Traverse recursively. Can probably be flattened but meh
     fun traverseNode(nodeToVisit: NodeContainer) {
         for (visitNode in nodeToVisit.getNodes()) {
-            var assignTarget: AssignTarget? = null
+            var name: String
+            var typeName: String
 
             if (visitNode is AssignNode) {
-                assignTarget = visitNode.target
-            } else if (visitNode is AssignTarget) {
-                assignTarget = visitNode
-            } else if (visitNode is NodeContainer) {
-                traverseNode(visitNode)
+                if (visitNode.target !is MemberAccess) {
+                    throw CompileError("To complex for now")
+                }
+                name = visitNode.target.name
+                typeName = visitNode.type
+            } else if (visitNode is PrimitiveMemberDeclaration) {
+                name = visitNode.name
+                typeName = visitNode.type
+            } else {
+                if (visitNode is NodeContainer) {
+                    traverseNode(visitNode)
+                }
+                continue
             }
 
-            if (assignTarget != null) {
-                val name = assignTarget.member.name
-                val type = typeProvider.getType(assignTarget.type)
-                if (name in fieldsOffsetFromTop) {
-                    // TODO: Do something here??
-                } else {
-                    fieldsOffsetFromTop[name] = StructDataField(name, byte(currentSize), type)
-                    currentSize += type.size.toInt()
-                    sizeOfVars += type.size.toInt()
-                }
+            val type = typeProvider.getType(typeName)
+            if (name in fieldsOffsetFromTop) {
+                // TODO: Do something here??
+            } else {
+                fieldsOffsetFromTop[name] = StructDataField(name, byte(currentSize), type)
+                currentSize += type.size.toInt()
+                sizeOfVars += type.size.toInt()
             }
         }
     }
+
 
     traverseNode(node)
 

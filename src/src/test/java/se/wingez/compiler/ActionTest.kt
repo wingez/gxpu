@@ -81,11 +81,11 @@ class ActionTest {
 
     @Test
     fun testAssignConstant() {
-        val node = AssignNode(AssignTarget(MemberAccess("var2")), ConstantNode(5))
+        val node = AssignNode(MemberAccess("var2"), ConstantNode(5))
         assertThrows<CompileError> {
             buildStatement(node, dummyFrame)
         }
-        val node2 = AssignNode(AssignTarget(MemberAccess("var1")), ConstantNode(4))
+        val node2 = AssignNode(MemberAccess("var1"), ConstantNode(4))
         val flattened = buildStatement(node2, dummyFrame)
 
         assertEquals(

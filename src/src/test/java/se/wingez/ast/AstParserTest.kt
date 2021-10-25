@@ -22,7 +22,7 @@ fun parseExpressions(tokens: List<Token>): List<StatementNode> {
 }
 
 private fun assign(to: String, value: Int): AssignNode {
-    return AssignNode(AssignTarget(MemberAccess(to)), ConstantNode(value))
+    return AssignNode(MemberAccess(to), ConstantNode(value))
 }
 
 internal class AstParserTest {
@@ -83,7 +83,7 @@ internal class AstParserTest {
         assertEquals(
             AstParser(getFuncTokens("param1")).parseFunctionDefinition(),
             FunctionNode(
-                "test", arguments = listOf(AssignTarget(MemberAccess("param1"))),
+                "test", arguments = listOf(PrimitiveMemberDeclaration("param1", "")),
                 body = printBody, "void"
             )
         )
@@ -95,9 +95,9 @@ internal class AstParserTest {
             AstParser(getFuncTokens("param1", "param2", "param3")).parseFunctionDefinition(),
             FunctionNode(
                 "test", arguments = listOf(
-                    AssignTarget(MemberAccess("param1")),
-                    AssignTarget(MemberAccess("param2")),
-                    AssignTarget(MemberAccess("param3")),
+                    PrimitiveMemberDeclaration("param1", ""),
+                    PrimitiveMemberDeclaration("param2", ""),
+                    PrimitiveMemberDeclaration("param3", ""),
                 ), body = printBody, "void"
             )
         )
@@ -116,7 +116,7 @@ internal class AstParserTest {
         assertEquals(
             AstParser(tokens).parseFunctionDefinition(),
             FunctionNode(
-                "test", arguments = listOf(AssignTarget(MemberAccess("param"), "type")),
+                "test", arguments = listOf(PrimitiveMemberDeclaration("param", "type")),
                 body = printBody, "void"
             )
         )
@@ -182,7 +182,7 @@ internal class AstParserTest {
     fun testAssignCall() {
         assertEquals(
             parserFromLine("a=test()").parseAssignment(),
-            AssignNode(AssignTarget(MemberAccess("a")), CallNode("test", emptyList()))
+            AssignNode(MemberAccess("a"), CallNode("test", emptyList()))
         )
     }
 

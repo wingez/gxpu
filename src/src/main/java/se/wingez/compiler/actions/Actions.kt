@@ -142,11 +142,10 @@ class AssignFrameByte : ActionConverter {
         if (node.value == null) {
             return null
         }
-        if (node.target.member.actions.isNotEmpty()) {
-            //To complex..
-            return null
-        }
-        val field = node.target.member.name
+        val target = node.target
+        if (target !is MemberAccess) return null
+
+        val field = target.name
         if (!frame.hasField(field)) {
             throw CompileError("No field with name: $field")
         }

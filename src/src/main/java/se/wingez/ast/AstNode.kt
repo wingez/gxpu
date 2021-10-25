@@ -7,19 +7,23 @@ abstract class StatementNode : AstNode()
 abstract class ValueProviderNode : StatementNode()
 
 
-data class MemberAccessModifier(val member: String)
-data class MemberAccess(val name: String, val actions: List<MemberAccessModifier> = emptyList()) : ValueProviderNode()
+data class MemberAccess(val name: String) : ValueProviderNode()
 
-data class AssignTarget(
-        val member: MemberAccess,
-        val type: String = "",
-        val explicitNew: Boolean = false
+
+data class PrimitiveMemberDeclaration(
+    val name: String,
+    val type: String,
+    val explicitNew: Boolean = false,
 ) : StatementNode()
+
 
 data class AssignNode(
-        val target: AssignTarget,
-        val value: ValueProviderNode?
-) : StatementNode()
+    val target: ValueProviderNode,
+    val value: ValueProviderNode?,
+    val type: String = "",
+    val explicitNew: Boolean = false,
+
+    ) : StatementNode()
 
 data class PrintNode(val target: ValueProviderNode) : StatementNode()
 data class ConstantNode(val value: Int) : ValueProviderNode() {
@@ -31,16 +35,16 @@ data class ConstantNode(val value: Int) : ValueProviderNode() {
 }
 
 data class CallNode(
-        val targetName: String,
-        val parameters: List<ValueProviderNode>
+    val targetName: String,
+    val parameters: List<ValueProviderNode>
 ) : ValueProviderNode()
 
 
 data class FunctionNode(
-        val name: String,
-        val arguments: List<AssignTarget>,
-        val body: List<StatementNode>,
-        val returnType: String,
+    val name: String,
+    val arguments: List<PrimitiveMemberDeclaration>,
+    val body: List<StatementNode>,
+    val returnType: String,
 ) : AstNode(), NodeContainer {
     override fun getNodes(): Iterable<StatementNode> {
         return body
@@ -52,18 +56,19 @@ enum class Operation {
     Addition,
     Subtraction,
     NotEquals,
+    MemberAccess,
 }
 
 data class SingleOperationNode(
-        val operation: Operation,
-        val left: ValueProviderNode,
-        val right: ValueProviderNode,
+    val operation: Operation,
+    val left: ValueProviderNode,
+    val right: ValueProviderNode,
 ) : ValueProviderNode()
 
 data class IfNode(
-        val condition: ValueProviderNode,
-        val body: List<StatementNode>,
-        val elseBody: List<StatementNode>,
+    val condition: ValueProviderNode,
+    val body: List<StatementNode>,
+    val elseBody: List<StatementNode>,
 ) : StatementNode(), NodeContainer {
     override fun getNodes(): Iterable<StatementNode> {
         return body + elseBody
@@ -75,8 +80,8 @@ data class IfNode(
 }
 
 data class WhileNode(
-        val condition: ValueProviderNode,
-        val body: List<StatementNode>,
+    val condition: ValueProviderNode,
+    val body: List<StatementNode>,
 ) : StatementNode(), NodeContainer {
     override fun getNodes(): Iterable<StatementNode> {
         return body
@@ -84,10 +89,10 @@ data class WhileNode(
 }
 
 data class ReturnNode(
-        val value: ValueProviderNode? = null,
+    val value: ValueProviderNode? = null,
 ) : StatementNode()
 
 data class StructNode(
-        val name: String,
-        val members: List<AssignTarget>,
+    val name: String,
+    val members: List<PrimitiveMemberDeclaration>,
 ) : AstNode()
