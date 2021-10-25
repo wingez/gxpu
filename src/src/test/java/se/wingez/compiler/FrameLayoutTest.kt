@@ -8,22 +8,26 @@ import se.wingez.byte
 import se.wingez.parseFile
 import java.io.StringReader
 
+class TypeContainer(
+    private val types: List<DataType>
+) : TypeProvider {
+    override fun getType(name: String): DataType {
+        if (name.isEmpty())
+            return byteType
+
+        return types.find { it.name == name } ?: throw AssertionError("Did not find $name")
+
+    }
+}
+
+private val defaultTypes = listOf(voidType, byteType)
+
+val dummyTypeContainer = TypeContainer(
+    defaultTypes
+)
+
 internal class FrameLayoutTest {
 
-    class TypeContainer(
-        private val types: List<DataType>
-    ) : TypeProvider {
-        override fun getType(name: String): DataType {
-            if (name.isEmpty())
-                return byteType
-
-            return types.find { it.name == name } ?: throw AssertionError("Did not find $name")
-
-        }
-    }
-
-
-    val defaultTypes = listOf(voidType, byteType)
 
     fun getLayout(program: String, types: List<DataType> = defaultTypes): FrameLayout {
         val node = AstParser(parseFile(StringReader(program))).parseFunctionDefinition()

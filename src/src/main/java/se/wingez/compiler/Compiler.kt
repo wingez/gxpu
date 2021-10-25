@@ -15,40 +15,41 @@ data class GenerateLater(
     }
 }
 
-interface CodeGenerator {
-    fun generate(code: List<UByte>)
-    fun generateAt(code: List<UByte>, at: Int)
-    fun makeSpaceFor(instruction: Instruction): GenerateLater
-    val currentSize: Int
-}
+class CodeGenerator {
+    private val codeList = mutableListOf<UByte>()
 
 
-class Compiler : TypeProvider, CodeGenerator {
-
-    val resultingCode = mutableListOf<UByte>()
-    val functions = mutableMapOf<String, AssemblyFunction>()
-    val types = mutableMapOf<String, DataType>()
-
-    override val currentSize
-        get() = resultingCode.size
-
-    override fun generate(code: List<UByte>) {
-        resultingCode.addAll(code)
+    fun generate(code: List<UByte>) {
+        codeList.addAll(code)
     }
 
-    override fun generateAt(code: List<UByte>, at: Int) {
+    fun generateAt(code: List<UByte>, at: Int) {
         code.forEachIndexed { index, byte ->
-            resultingCode[at + index] = byte
+            codeList[at + index] = byte
         }
     }
 
-    override fun makeSpaceFor(instruction: Instruction): GenerateLater {
+    fun makeSpaceFor(instruction: Instruction): GenerateLater {
         val pos = currentSize
         for (i in 0 until instruction.size) {
             generate(listOf(0u))
         }
         return GenerateLater(instruction, pos, this)
     }
+
+    val currentSize: Int
+        get() = codeList.size
+
+    val resultingCode: List<UByte>
+        get() = codeList.toList()
+}
+
+
+class Compiler : TypeProvider {
+    val generator = CodeGenerator()
+    val functions = mutableMapOf<String, AssemblyFunction>()
+    val types = mutableMapOf<String, DataType>()
+
 
     override fun getType(name: String): DataType {
         if (name.isEmpty()) {
@@ -66,7 +67,7 @@ class Compiler : TypeProvider, CodeGenerator {
 
         val layout = calculateFrameLayout(node, this)
 
-        val function = AssemblyFunction(this, layout, byte(currentSize))
+        val function = AssemblyFunction(generator, layout, byte(generator.currentSize))
 
         if (function.name in functions) {
             throw CompileError("Function ${function.name} already exists")
@@ -80,11 +81,11 @@ class Compiler : TypeProvider, CodeGenerator {
     }
 
     fun buildProgram(nodes: List<FunctionNode>): List<UByte> {
-        generate(DefaultEmulator.ldfp.build(mapOf("val" to byte(STACK_START))))
-        generate(DefaultEmulator.ldsp.build(mapOf("val" to byte(STACK_START))))
+        generator.generate(DefaultEmulator.ldfp.build(mapOf("val" to byte(STACK_START))))
+        generator.generate(DefaultEmulator.ldsp.build(mapOf("val" to byte(STACK_START))))
 
-        val callMain = makeSpaceFor(DefaultEmulator.call_addr)
-        generate(DefaultEmulator.exit.build())
+        val callMain = generator.makeSpaceFor(DefaultEmulator.call_addr)
+        generator.generate(DefaultEmulator.exit.build())
 
         for (node in nodes) {
             buildFunction(node)
@@ -98,7 +99,7 @@ class Compiler : TypeProvider, CodeGenerator {
 
         callMain.generate(mapOf("addr" to mainFunction.memoryPosition))
 
-        return resultingCode
+        return generator.resultingCode
     }
 
 }

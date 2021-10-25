@@ -5,32 +5,27 @@ import org.junit.jupiter.api.Test
 import se.wingez.*
 import java.io.StringReader
 
+fun parse(tokens: List<Token>): List<AstNode> {
+    return AstParser(tokens).parse()
+}
+
+fun parserFromLine(line: String): AstParser {
+    return AstParser(parseLine(line))
+}
+
+fun parserFromFile(file: String): AstParser {
+    return AstParser(parseFile(StringReader(file)))
+}
+
+fun parseExpressions(tokens: List<Token>): List<StatementNode> {
+    return AstParser(tokens + listOf(TokenEndBlock)).parseStatementsUntilEndblock()
+}
+
+private fun assign(to: String, value: Int): AssignNode {
+    return AssignNode(AssignTarget(MemberAccess(to)), ConstantNode(value))
+}
+
 internal class AstParserTest {
-
-    companion object {
-
-        fun parse(tokens: List<Token>): List<AstNode> {
-            return AstParser(tokens).parse()
-        }
-
-        fun parserFromLine(line: String): AstParser {
-            return AstParser(parseLine(line))
-        }
-
-        fun parserFromFile(file: String): AstParser {
-            return AstParser(parseFile(StringReader(file)))
-        }
-
-        fun parseExpressions(tokens: List<Token>): List<AstNode> {
-            return AstParser(tokens + listOf(TokenEndBlock)).parseStatementsUntilEndblock()
-        }
-
-        fun assign(to: String, value: Int): AssignNode {
-            return AssignNode(AssignTarget(MemberAccess(to)), ConstantNode(value))
-        }
-    }
-
-
     @Test
     fun testManyEOL() {
         val tokens = listOf(

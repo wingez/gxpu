@@ -97,7 +97,7 @@ class DefaultEmulator : Emulator(instructionSet) {
             false
         }
 
-        val jump = instructionSet.createInstruction("JMP #7", group = FLOW_CONTROL) {
+        val jump = instructionSet.createInstruction("JMP #addr", group = FLOW_CONTROL) {
             val addr = it.getMemoryAt(it.pc)
             it.pc = addr
             false

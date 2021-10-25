@@ -2,7 +2,6 @@ package se.wingez.ast
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import se.wingez.ast.AstParserTest.Companion.parserFromFile
 
 class AstParserStructTest {
 

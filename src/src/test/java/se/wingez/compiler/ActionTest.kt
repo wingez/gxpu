@@ -10,29 +10,10 @@ import se.wingez.compiler.actions.AdditionProvider
 import se.wingez.compiler.actions.NotEqualProvider
 import se.wingez.compiler.actions.SubtractionProvider
 import se.wingez.emulator.DefaultEmulator
-import se.wingez.instructions.Instruction
 
 class ActionTest {
 
-    class DummyGenerator(
-        val result: MutableList<UByte> = mutableListOf()
-    ) : CodeGenerator {
-        override fun generate(code: List<UByte>) {
-            result.addAll(code)
-        }
 
-        override fun generateAt(code: List<UByte>, at: Int) {
-            throw NotImplementedError()
-        }
-
-        override fun makeSpaceFor(instruction: Instruction): GenerateLater {
-            throw NotImplementedError()
-        }
-
-        override val currentSize: Int
-            get() = throw NotImplementedError()
-
-    }
 
     private val dummyFrame = FrameLayout(
         3u, "dummyFrame",
@@ -77,10 +58,10 @@ class ActionTest {
                 PrintFromRegister.PrintAction()
             )
         )
-        val generator = DummyGenerator()
+        val generator = CodeGenerator()
         flattened.compile(generator)
         assertIterableEquals(
-            generator.result,
+            generator.resultingCode,
             listOf(DefaultEmulator.lda.id, 5u, DefaultEmulator.print.id)
         )
     }
@@ -116,10 +97,10 @@ class ActionTest {
                 AssignFrameByte.AssignFrameRegister(dummyFrame, "var1")
             )
         )
-        val generator = DummyGenerator()
+        val generator = CodeGenerator()
         flattened.compile(generator)
         assertIterableEquals(
-            generator.result,
+            generator.resultingCode,
             bytes(DefaultEmulator.lda.id.toInt(), 4, DefaultEmulator.sta_fp_offset.id.toInt(), 0)
         )
     }
