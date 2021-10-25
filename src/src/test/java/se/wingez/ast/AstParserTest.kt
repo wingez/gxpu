@@ -154,7 +154,7 @@ internal class AstParserTest {
     @Test
     fun testCallNoParameters() {
         assertEquals(
-            parserFromLine("func()").parseCall(),
+            parserFromLine("func()").parseCall(true),
             CallNode("func", emptyList())
         )
     }
@@ -162,12 +162,12 @@ internal class AstParserTest {
     @Test
     fun testCallParameters() {
         assertEquals(
-            parserFromLine("func(5)").parseCall(),
+            parserFromLine("func(5)").parseCall(true),
             CallNode("func", listOf(ConstantNode(5)))
         )
 
         assertEquals(
-            parserFromLine("func(5,10,test)").parseCall(),
+            parserFromLine("func(5,10,test)").parseCall(true),
             CallNode(
                 "func", listOf(
                     ConstantNode(5),
@@ -209,6 +209,23 @@ internal class AstParserTest {
         """
             ).parseIfStatement(),
             IfNode(ConstantNode(1), printBody, emptyList())
+        )
+        assertEquals(
+            parserFromFile(
+                """
+            if (a-2)!=0:
+              print(5)
+            """
+            ).parseIfStatement(),
+            IfNode(
+                SingleOperationNode(
+                    Operation.NotEquals,
+                    SingleOperationNode(Operation.Subtraction, MemberAccess("a"), ConstantNode(2)),
+                    ConstantNode(0)
+                ),
+                listOf(PrintNode(ConstantNode(5))),
+                emptyList()
+            )
         )
     }
 

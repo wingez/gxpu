@@ -1,7 +1,6 @@
 package se.wingez.ast
 
 import se.wingez.*
-import kotlin.reflect.KFunction0
 import kotlin.reflect.typeOf
 
 class ParserError(message: String) : Exception(message)
@@ -46,8 +45,12 @@ class AstParser(private val tokens: List<Token>) {
     }
 
     private fun consumeType(token: Token): Token {
+        return consumeType(token, "Expected token to be of type $token")
+    }
+
+    private fun consumeType(token: Token, errorMessage: String): Token {
         if (!peekIs(token))
-            throw ParserError("Expected token to be of type $token")
+            throw ParserError(errorMessage)
         return consume()
     }
 
@@ -95,7 +98,7 @@ class AstParser(private val tokens: List<Token>) {
         return result
     }
 
-    private fun <T> tryParse(toCall: KFunction0<T>): T? {
+    private fun <T> tryParse(toCall: () -> T): T? {
 
         val savepoint = savepoint()
         try {
@@ -175,7 +178,7 @@ class AstParser(private val tokens: List<Token>) {
         tryParse(this::parseAssignment)?.also { return it }
         tryParse(this::parseAssignmentNoInit)?.also { return it }
         tryParse(this::parsePrint)?.also { return it }
-        tryParse(this::parseCall)?.also { return it }
+        tryParse { parseCall(true) }?.also { return it }
         tryParse(this::parseIfStatement)?.also { return it }
         tryParse(this::parseWhileStatement)?.also { return it }
         tryParse(this::parseReturnStatement)?.also { return it }
@@ -253,21 +256,21 @@ class AstParser(private val tokens: List<Token>) {
 
     fun parseValueProvider(): ValueProviderNode {
         val firstResult: ValueProviderNode
-        if (peekIs<TokenNumericConstant>()) {
+        var hasParenthesis = false
+        if (peekIs(TokenLeftParenthesis, true)) {
+            hasParenthesis = true
+            firstResult = parseValueProvider()
+            consumeType(TokenRightParenthesis, "Mismatched parenthesis")
+
+        } else if (peekIs<TokenNumericConstant>()) {
             firstResult = ConstantNode.fromToken(consumeType())
         } else if (peekIs<TokenIdentifier>()) {
-            val savepoint = savepoint()
-            firstResult = try {
-                parseCall(false)
-            } catch (e: ParserError) {
-                restore(savepoint)
-                val identifier = consumeIdentifier()
-                if (peekIs(TokenDot, true)) {
-                    val member = consumeIdentifier()
-                    MemberAccess(identifier, listOf(MemberAccessModifier(member)))
-                } else {
-                    MemberAccess(identifier)
-                }
+            val callNode = tryParse { parseCall(false) }
+            firstResult = if (callNode != null)
+                callNode
+            else {
+                val member = consumeIdentifier()
+                MemberAccess(member)
             }
         } else {
             throw ParserError("Cannot parse to value provider: ${peek()}")
@@ -282,8 +285,8 @@ class AstParser(private val tokens: List<Token>) {
 
             val secondResult = parseValueProvider()
 
-            if (!((secondResult is MemberAccess) || (secondResult is ConstantNode)))
-                throw ParserError("Operation to complex for now")
+            if (!(hasParenthesis || secondResult is MemberAccess || secondResult is ConstantNode))
+                throw ParserError("Operation too complex for now. Use more parentheses")
 
             val operation = when (nextToken) {
                 TokenPlusSign -> Operation.Addition
@@ -296,9 +299,6 @@ class AstParser(private val tokens: List<Token>) {
         throw ParserError("$nextToken was not expected")
     }
 
-    fun parseCall(): CallNode {
-        return parseCall(true)
-    }
 
     fun parseCall(shouldConsumeEol: Boolean): CallNode {
         val targetName = consumeType<TokenIdentifier>().target
