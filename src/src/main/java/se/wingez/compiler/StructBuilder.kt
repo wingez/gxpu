@@ -6,7 +6,7 @@ import se.wingez.byte
 
 fun buildStruct(node: StructNode, typeProvider: TypeProvider): StructType {
     val fields = mutableMapOf<String, StructDataField>()
-    var currentSize = 0
+    var currentSize = byte(0)
 
     for (member in node.members) {
         val fieldType: DataType = if (member.type.isEmpty())
@@ -16,9 +16,9 @@ fun buildStruct(node: StructNode, typeProvider: TypeProvider): StructType {
 
         //TODO check duplicate
 
-        fields[member.name] = StructDataField(member.name, byte(currentSize), fieldType)
-        currentSize += fields.size
+        fields[member.name] = StructDataField(member.name, currentSize, fieldType)
+        currentSize = byte(currentSize + fieldType.size)
     }
 
-    return StructType(byte(currentSize), node.name, fields)
+    return StructType(currentSize, node.name, fields)
 }

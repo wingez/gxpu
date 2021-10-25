@@ -57,4 +57,22 @@ open class StructType(
 
         return result
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (other !is StructType) return false
+        return size == other.size && name == other.name && fields == other.fields
+    }
+
+
+    override fun toString(): String {
+        return "name=$name, size=$size, fields=$fields"
+    }
+
+    override fun hashCode(): Int {
+        var result = size.hashCode()
+        result = 31 * result + name.hashCode()
+        result = 31 * result + fields.hashCode()
+        return result
+    }
+
 }
