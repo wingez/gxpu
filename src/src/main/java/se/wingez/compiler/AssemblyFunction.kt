@@ -1,6 +1,7 @@
 package se.wingez.compiler
 
 import se.wingez.ast.*
+import se.wingez.byte
 import se.wingez.emulator.DefaultEmulator
 
 class AssemblyFunction(
@@ -11,10 +12,6 @@ class AssemblyFunction(
 
     val name: String
         get() = frameLayout.name
-
-    fun buildNode(container: NodeContainer) {
-        buildNodes(container.getNodes())
-    }
 
     fun buildNodes(nodes: Iterable<StatementNode>) {
         for (node in nodes) {
@@ -61,6 +58,20 @@ class AssemblyFunction(
     }
 
 
+    private fun handleWhile(node: WhileNode) {
+        val startOfBlock = byte(generator.currentSize)
+        val compareAction = getActionInRegister(node.condition, compareType, frameLayout)
+            ?: throw CompileError("Could not parse condition")
+        compareAction.compile(generator)
+        val jumpToExit = generator.makeSpaceFor(DefaultEmulator.jump_zero)
+
+        buildNodes(node.body)
+        //TODO size
+        generator.generate(DefaultEmulator.jump.build(mapOf("addr" to startOfBlock)))
+        jumpToExit.generate(mapOf("addr" to byte(generator.currentSize)))
+    }
+
+
     fun buildStatement(node: StatementNode) {
 
         when (node) {
@@ -68,25 +79,12 @@ class AssemblyFunction(
             is ReturnNode -> handleReturn(node)
             is AssignNode -> handleStatement(node)
             is IfNode -> handleIf(node)
+            is WhileNode -> handleWhile(node)
         }
 
         return
 
-        if (node is AssignNode) {
-//            handleAssignment(node)
-        } else if (node is IfNode) {
-
-        } else if (node is WhileNode) {
-            val startOfBlock = generator.currentSize
-//            putValueInRegister(node.condition)
-            generator.generate(DefaultEmulator.testa.build())
-            val jumpToExit = generator.makeSpaceFor(DefaultEmulator.jump_zero)
-
-            buildNodes(node.body)
-            //TODO size
-            generator.generate(DefaultEmulator.jump.build(mapOf("addr" to startOfBlock.toUByte())))
-            jumpToExit.generate(mapOf("addr" to generator.currentSize.toUByte()))
-        } else if (node is CallNode) {
+        if (node is CallNode) {
 //            val function = callFunc(node)
 
             //TODO pop return value if exists

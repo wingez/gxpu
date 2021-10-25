@@ -2,6 +2,7 @@ package se.wingez.compiler
 
 import org.junit.jupiter.api.Assertions.assertIterableEquals
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import se.wingez.ast.FunctionNode
 import se.wingez.ast.StatementNode
 import se.wingez.ast.parseExpressions
@@ -17,8 +18,7 @@ fun buildSingleMainFunction(nodes: List<StatementNode>): List<UByte> {
     return c.buildProgram(listOf(node))
 }
 
-
-fun bodyShouldMatchAssembled(body: String, expectedAssembly: String) {
+fun buildBody(body: String): List<UByte> {
     val tokens = parseFile(StringReader(body))
     val nodes = parseExpressions(tokens)
 
@@ -30,10 +30,17 @@ fun bodyShouldMatchAssembled(body: String, expectedAssembly: String) {
     val function = AssemblyFunction(generator, frame, 0u)
     function.buildNodes(node.body)
 
+    return generator.resultingCode
+}
+
+
+fun bodyShouldMatchAssembled(body: String, expectedAssembly: String) {
+
+    val code = buildBody(body)
     val expected = DefaultEmulator().instructionSet.assembleMnemonicFile(StringReader(expectedAssembly))
 
-    assertIterableEquals(generator.resultingCode, expected) {
-        (listOf("Dissasembled: ") + DefaultEmulator().instructionSet.disassemble(generator.resultingCode)).joinToString(
+    assertIterableEquals(code, expected) {
+        (listOf("Dissasembled: ") + DefaultEmulator().instructionSet.disassemble(code)).joinToString(
             "\n"
         )
     }
@@ -120,5 +127,41 @@ class CompilerTest {
         """
 
         bodyShouldMatchAssembled(body, expected)
+    }
+
+    @Test
+    fun testWhile() {
+        val expected = """
+        lda #0
+        pusha
+        lda #5
+        suba sp #0
+        addsp #1
+        tsta
+        
+        jmpz #17
+        lda #1
+        out
+        jmp #0
+         
+        """
+        val body = """
+          while 5!=0:
+            print(1)
+        """
+
+        bodyShouldMatchAssembled(body, expected)
+    }
+
+    @Test
+    fun testIfConditionMustBeComparison() {
+        val code = """
+            if 2:
+              print(6)
+        """
+        assertThrows<CompileError> {
+            buildBody(code)
+        }
+
     }
 }
