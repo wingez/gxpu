@@ -1,7 +1,6 @@
 package se.wingez.compiler
 
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertIterableEquals
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import se.wingez.ast.*
@@ -12,7 +11,6 @@ import se.wingez.compiler.actions.SubtractionProvider
 import se.wingez.emulator.DefaultEmulator
 
 class ActionTest {
-
 
 
     private val dummyFrame = FrameLayout(
@@ -137,5 +135,13 @@ class ActionTest {
                 getActionInRegister(node, compareType, dummyFrame) ?: throw AssertionError("No action found")
             )
         )
+    }
+
+    @Test
+    fun testConditionMustBeComparison() {
+        val node = ConstantNode(5)
+        assertNull(getActionInRegister(node, compareType, dummyFrame))
+        val node2 = SingleOperationNode(Operation.Addition, ConstantNode(5), ConstantNode(10))
+        assertNull(getActionInRegister(node2, compareType, dummyFrame))
     }
 }

@@ -96,9 +96,9 @@ class PutConstantInRegister(
     }
 
     override fun putInRegister(node: ValueProviderNode, type: DataType, frame: FrameLayout): Action? {
-        if (node is ConstantNode)
-            return PutByteInRegisterAction(byte(node.value))
-        return null
+        if (node !is ConstantNode) return null
+        if (type != byteType) return null
+        return PutByteInRegisterAction(byte(node.value))
     }
 }
 
