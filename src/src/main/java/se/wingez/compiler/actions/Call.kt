@@ -100,7 +100,5 @@ class CallProvider : ActionConverter {
         actions.add(PopArguments(function))
         return CompositeAction(*actions.toTypedArray())
     }
-
-
 }
 

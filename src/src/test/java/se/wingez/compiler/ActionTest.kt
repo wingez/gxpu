@@ -5,10 +5,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import se.wingez.ast.*
 import se.wingez.bytes
-import se.wingez.compiler.actions.AdditionProvider
-import se.wingez.compiler.actions.CallProvider
-import se.wingez.compiler.actions.NotEqualProvider
-import se.wingez.compiler.actions.SubtractionProvider
+import se.wingez.compiler.actions.*
 import se.wingez.emulator.DefaultEmulator
 
 class FunctionContainer(
