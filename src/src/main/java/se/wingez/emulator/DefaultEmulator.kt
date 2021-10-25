@@ -121,6 +121,11 @@ class DefaultEmulator : Emulator(instructionSet) {
             it.a = (it.a + it.getMemoryAt(it.sp + offset)).toUByte()
             false
         }
+        val suba_sp = instructionSet.createInstruction("SUBA SP #offset", group = ARITHMETIC) {
+            val offset = it.getIncPC()
+            it.a = (it.a - it.getMemoryAt(it.sp + offset)).toUByte()
+            false
+        }
 
     }
 }

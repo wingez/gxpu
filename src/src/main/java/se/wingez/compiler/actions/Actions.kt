@@ -3,6 +3,7 @@ package se.wingez.compiler
 import se.wingez.ast.*
 import se.wingez.byte
 import se.wingez.compiler.actions.AdditionProvider
+import se.wingez.compiler.actions.SubtractionProvider
 import se.wingez.emulator.DefaultEmulator
 
 
@@ -29,7 +30,7 @@ interface ActionConverter {
 
 class CompositeAction(
     vararg actions: Action
-) : Action {
+) : Action, Iterable<Action> {
     private val actions = actions.asList()
     override val cost: Int
         get() = actions.sumOf { it.cost }
@@ -48,6 +49,15 @@ class CompositeAction(
 
     override fun hashCode(): Int {
         return actions.hashCode()
+    }
+
+    override fun iterator(): Iterator<Action> {
+        return actions.iterator()
+    }
+
+    override fun toString(): String {
+
+        return "CompositeAction $actions"
     }
 
 }
@@ -184,7 +194,27 @@ class FieldByteToRegister : ActionConverter {
 
         return FieldByteToRegisterAction(frame, field)
     }
+}
 
+class PutRegisterOnStack : ActionConverter {
+    data class PushRegister(
+        override val cost: Int = 1
+    ) : Action {
+        override fun compile(generator: CodeGenerator) {
+            generator.generate(DefaultEmulator.pusha.build())
+        }
+    }
+
+    override fun putOnStack(node: ValueProviderNode, type: DataType, frame: FrameLayout): Action? {
+        if (type != byteType) {
+            return null
+        }
+        val putInRegister = getActionInRegister(node, type, frame) ?: return null
+        return CompositeAction(
+            putInRegister,
+            PushRegister(),
+        )
+    }
 }
 
 val actions = listOf(
@@ -194,6 +224,8 @@ val actions = listOf(
     AssignFrameByte(),
     FieldByteToRegister(),
     AdditionProvider(),
+    SubtractionProvider(),
+    PutRegisterOnStack(),
 )
 
 
@@ -215,7 +247,23 @@ fun getActionInRegister(node: ValueProviderNode, type: DataType, frame: FrameLay
     return null
 }
 
-fun flatten(node: StatementNode, frame: FrameLayout): Action {
+fun flatten(topAction: Action): List<Action> {
+    val result = mutableListOf<Action>()
+
+    fun visitRecursive(action: Action) {
+        if (action is CompositeAction) {
+            for (child in action) {
+                visitRecursive(child)
+            }
+        } else {
+            result.add(action)
+        }
+    }
+    visitRecursive(topAction)
+    return result
+}
+
+fun buildStatement(node: StatementNode, frame: FrameLayout): Action {
     for (a in actions) {
         val result = a.buildStatement(node, frame)
         if (result != null) {

@@ -18,14 +18,14 @@ abstract class ArithmeticProvider(
         else if (node.operation != operation) return null
         else if (type != byteType) return null
 
-        val putLeftOnStack = getActionOnStack(node.left, byteType, frame)
+        val putLeftInRegister = getActionInRegister(node.left, byteType, frame)
         val putRightOnStack = getActionOnStack(node.right, byteType, frame)
 
-        if (putLeftOnStack == null || putRightOnStack == null) {
+        if (putLeftInRegister == null || putRightOnStack == null) {
             return null
         }
 
-        return CompositeAction(putRightOnStack, putLeftOnStack, generate())
+        return CompositeAction(putRightOnStack, putLeftInRegister, generate())
     }
 }
 
@@ -33,22 +33,34 @@ class AdditionProvider : ArithmeticProvider(Operation.Addition) {
     data class AdditionAction(
         override val cost: Int = 2
     ) : Action {
-
-
         override fun compile(generator: CodeGenerator) {
-            //Pop left
-            generator.generate(DefaultEmulator.popa.build())
+            // Left already in stack
             generator.generate(DefaultEmulator.adda_sp.build(mapOf("offset" to 0u)))
-            //Pop left
+            //Pop right
             generator.generate(DefaultEmulator.add_sp.build(mapOf("val" to 1u)))
         }
-
     }
-
 
     override fun generate(): Action {
         return AdditionAction()
     }
-
 }
+
+class SubtractionProvider : ArithmeticProvider(Operation.Subtraction) {
+    data class SubtractionAction(
+        override val cost: Int = 2
+    ) : Action {
+        override fun compile(generator: CodeGenerator) {
+            //Left already on stack
+            generator.generate(DefaultEmulator.suba_sp.build(mapOf("offset" to 0u)))
+            // Pop right
+            generator.generate(DefaultEmulator.add_sp.build(mapOf("val" to 1u)))
+        }
+    }
+
+    override fun generate(): Action {
+        return SubtractionAction()
+    }
+}
+
 

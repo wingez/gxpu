@@ -41,7 +41,7 @@ class ActionTest {
     @Test
     fun testPrintConstant() {
         val node = PrintNode(ConstantNode(5))
-        val flattened = flatten(node, dummyFrame)
+        val flattened = buildStatement(node, dummyFrame)
 
         assertEquals(
             flattened,
@@ -61,7 +61,7 @@ class ActionTest {
     @Test
     fun testPrintVariable() {
         val node = PrintNode(MemberAccess("var1"))
-        val flattened = flatten(node, dummyFrame)
+        val flattened = buildStatement(node, dummyFrame)
 
         assertEquals(
             flattened,
@@ -77,10 +77,10 @@ class ActionTest {
     fun testAssignConstant() {
         val node = AssignNode(AssignTarget(MemberAccess("var2")), ConstantNode(5))
         assertThrows<CompileError> {
-            flatten(node, dummyFrame)
+            buildStatement(node, dummyFrame)
         }
         val node2 = AssignNode(AssignTarget(MemberAccess("var1")), ConstantNode(4))
-        val flattened = flatten(node2, dummyFrame)
+        val flattened = buildStatement(node2, dummyFrame)
 
         assertEquals(
             flattened,
@@ -102,11 +102,11 @@ class ActionTest {
         val node = PrintNode(SingleOperationNode(Operation.Addition, ConstantNode(5), ConstantNode(10)))
 
         assertEquals(
-            flatten(node, dummyFrame),
+            buildStatement(node, dummyFrame),
             CompositeAction(
                 CompositeAction(
                     PutByteOnStack.PutByteOnStackAction(10u),
-                    PutByteOnStack.PutByteOnStackAction(5u),
+                    PutConstantInRegister.PutByteInRegisterAction(5u),
                     AdditionProvider.AdditionAction(),
                 ),
                 PrintFromRegister.PrintAction()

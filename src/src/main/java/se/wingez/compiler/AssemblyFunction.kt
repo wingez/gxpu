@@ -23,7 +23,7 @@ class AssemblyFunction(
     }
 
     fun handleStatement(node: StatementNode) {
-        val action = flatten(node, frameLayout)
+        val action = buildStatement(node, frameLayout)
         action.compile(generator)
     }
 

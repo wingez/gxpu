@@ -7,10 +7,21 @@ class CompileRunArithmetic {
 
     @Test
     fun testAddition() {
-        var code = """
+        val code = """
           print(5+10) 
         """
 
         runBodyCheckOutput(code, 15)
     }
+
+    @Test
+    fun testSubtraction() {
+        val code = """
+          var =5
+          print(8-var)
+           
+        """
+        runBodyCheckOutput(code, 3)
+    }
+
 }
