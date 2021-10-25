@@ -4,10 +4,15 @@ import se.wingez.ast.*
 import se.wingez.byte
 import se.wingez.emulator.DefaultEmulator
 
+interface FunctionProvider {
+    fun getFunction(name: String): AssemblyFunction
+}
+
 class AssemblyFunction(
     val generator: CodeGenerator,
     val frameLayout: FrameLayout,
     val memoryPosition: UByte,
+    val functionProvider: FunctionProvider,
 ) {
 
     val name: String
@@ -20,7 +25,7 @@ class AssemblyFunction(
     }
 
     fun handleStatement(node: StatementNode) {
-        val action = buildStatement(node, frameLayout)
+        val action = buildStatement(node, frameLayout, functionProvider)
         action.compile(generator)
     }
 
@@ -38,7 +43,7 @@ class AssemblyFunction(
 
     private fun handleIf(node: IfNode) {
 
-        val compareAction = getActionInRegister(node.condition, compareType, frameLayout)
+        val compareAction = getActionInRegister(node.condition, compareType, frameLayout, functionProvider)
             ?: throw CompileError("Could not parse condition")
         compareAction.compile(generator)
         val jumpToFalseCondition = generator.makeSpaceFor(DefaultEmulator.jump_zero)
@@ -60,7 +65,7 @@ class AssemblyFunction(
 
     private fun handleWhile(node: WhileNode) {
         val startOfBlock = byte(generator.currentSize)
-        val compareAction = getActionInRegister(node.condition, compareType, frameLayout)
+        val compareAction = getActionInRegister(node.condition, compareType, frameLayout, functionProvider)
             ?: throw CompileError("Could not parse condition")
         compareAction.compile(generator)
         val jumpToExit = generator.makeSpaceFor(DefaultEmulator.jump_zero)
@@ -80,18 +85,8 @@ class AssemblyFunction(
             is AssignNode -> handleStatement(node)
             is IfNode -> handleIf(node)
             is WhileNode -> handleWhile(node)
-        }
-
-        return
-
-        if (node is CallNode) {
-//            val function = callFunc(node)
-
-            //TODO pop return value if exists
-//            if (function.hasReturnSize) {
-//                compiler.putCode(DefaultEmulator.)
-//            }
-
+            is CallNode -> handleStatement(node)
+            else -> throw CompileError("Dont know how to parse $node")
         }
     }
 

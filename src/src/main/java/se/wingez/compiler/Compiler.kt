@@ -45,10 +45,13 @@ class CodeGenerator {
 }
 
 
-class Compiler : TypeProvider {
+class Compiler : TypeProvider, FunctionProvider {
     val generator = CodeGenerator()
     val functions = mutableMapOf<String, AssemblyFunction>()
-    val types = mutableMapOf<String, DataType>()
+    val types = mutableMapOf<String, DataType>(
+        "void" to voidType,
+        "byte" to byteType,
+    )
 
 
     override fun getType(name: String): DataType {
@@ -61,13 +64,21 @@ class Compiler : TypeProvider {
         return types.getValue(name)
     }
 
+    override fun getFunction(name: String): AssemblyFunction {
+        if (name !in functions) {
+            throw CompileError("No function with name $name found")
+        }
+        return functions.getValue(name)
+    }
+
+
     fun buildFunction(node: FunctionNode): AssemblyFunction {
 
         assertValidFunctionNode(node)
 
         val layout = calculateFrameLayout(node, this)
 
-        val function = AssemblyFunction(generator, layout, byte(generator.currentSize))
+        val function = AssemblyFunction(generator, layout, byte(generator.currentSize), this)
 
         if (function.name in functions) {
             throw CompileError("Function ${function.name} already exists")

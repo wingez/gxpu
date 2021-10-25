@@ -12,13 +12,14 @@ class FrameLayout(
     size: UByte,
     name: String,
     fields: Map<String, StructDataField>,
+    val parameters: List<StructDataField>,
+    val returnType: DataType,
     val sizeOfParameters: UByte,
     val sizeOfMeta: UByte,
     val sizeOfVars: UByte,
-    val sizeOfReturn: UByte,
 ) : StructType(size, name, fields) {
-    val hasReturnSize
-        get() = sizeOfReturn > 0u
+    val sizeOfReturn = returnType.size
+    val hasReturnSize = sizeOfReturn > 0u
 
 
 }
@@ -40,7 +41,11 @@ fun calculateFrameLayout(
     var currentSize = sizeOfRet.toInt()
     var sizeOfParams = 0
 
+    val parameterNames = mutableListOf<String>()
     for (arg in node.arguments) {
+        if (arg.name in parameterNames) throw CompileError("Duplicate parameter")
+
+        parameterNames.add(arg.name)
         val paramType = typeProvider.getType(arg.type)
         fieldsOffsetFromTop[arg.name] = StructDataField(arg.name, byte(currentSize), paramType)
         currentSize += paramType.size.toInt()
@@ -96,15 +101,21 @@ fun calculateFrameLayout(
         fields[it.key] = StructDataField(it.value.name, byte(offset), it.value.type)
     }
 
+    val parameters = mutableListOf<StructDataField>()
+    for (paramName in parameterNames) {
+        parameters.add(fields.getValue(paramName))
+    }
+
 
     return FrameLayout(
         byte(currentSize),
         node.name,
         fields,
+        parameters,
+        returnType,
         byte(sizeOfParams),
         sizeOfMeta,
         byte(sizeOfVars),
-        sizeOfRet,
     )
 
 }

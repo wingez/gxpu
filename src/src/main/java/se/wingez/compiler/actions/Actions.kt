@@ -3,6 +3,7 @@ package se.wingez.compiler
 import se.wingez.ast.*
 import se.wingez.byte
 import se.wingez.compiler.actions.AdditionProvider
+import se.wingez.compiler.actions.CallProvider
 import se.wingez.compiler.actions.NotEqualProvider
 import se.wingez.compiler.actions.SubtractionProvider
 import se.wingez.emulator.DefaultEmulator
@@ -15,16 +16,30 @@ interface Action {
 }
 
 interface ActionConverter {
-    fun putInRegister(node: ValueProviderNode, type: DataType, frame: FrameLayout): Action? {
+    fun putInRegister(
+        node: ValueProviderNode,
+        type: DataType,
+        frame: FrameLayout,
+        functionProvider: FunctionProvider
+    ): Action? {
         return null
     }
 
-    fun putOnStack(node: ValueProviderNode, type: DataType, frame: FrameLayout): Action? {
+    fun putOnStack(
+        node: ValueProviderNode,
+        type: DataType,
+        frame: FrameLayout,
+        functionProvider: FunctionProvider
+    ): Action? {
         return null
     }
 
 
-    fun buildStatement(node: StatementNode, frame: FrameLayout): Action? {
+    fun buildStatement(
+        node: StatementNode,
+        frame: FrameLayout,
+        functionProvider: FunctionProvider
+    ): Action? {
         return null
     }
 }
@@ -63,6 +78,14 @@ class CompositeAction(
 
 }
 
+data class PopStack(
+    override val cost: Int = 1
+) : Action {
+    override fun compile(generator: CodeGenerator) {
+        generator.generate(DefaultEmulator.popa.build())
+    }
+
+}
 
 class PrintFromRegister : ActionConverter {
 
@@ -74,13 +97,24 @@ class PrintFromRegister : ActionConverter {
         }
     }
 
-    override fun buildStatement(node: StatementNode, frame: FrameLayout): Action? {
+    override fun buildStatement(node: StatementNode, frame: FrameLayout, functionProvider: FunctionProvider): Action? {
         if (node !is PrintNode)
             return null
 
-        val value = getActionInRegister(node.target, byteType, frame) ?: return null
-        return CompositeAction(value, PrintAction())
+        var value = getActionInRegister(node.target, byteType, frame, functionProvider)
+        if (value != null)
+            return CompositeAction(value, PrintAction())
+
+        value = getActionOnStack(node.target, byteType, frame, functionProvider)
+        value ?: return null
+        return CompositeAction(
+            value,
+            PopStack(),
+            PrintAction(),
+        )
+
     }
+
 }
 
 class PutConstantInRegister(
@@ -95,7 +129,12 @@ class PutConstantInRegister(
         }
     }
 
-    override fun putInRegister(node: ValueProviderNode, type: DataType, frame: FrameLayout): Action? {
+    override fun putInRegister(
+        node: ValueProviderNode,
+        type: DataType,
+        frame: FrameLayout,
+        functionProvider: FunctionProvider
+    ): Action? {
         if (node !is ConstantNode) return null
         if (type != byteType) return null
         return PutByteInRegisterAction(byte(node.value))
@@ -113,7 +152,12 @@ class PutByteOnStack : ActionConverter {
         }
     }
 
-    override fun putOnStack(node: ValueProviderNode, type: DataType, frame: FrameLayout): Action? {
+    override fun putOnStack(
+        node: ValueProviderNode,
+        type: DataType,
+        frame: FrameLayout,
+        functionProvider: FunctionProvider
+    ): Action? {
         if (node !is ConstantNode || type != byteType) {
             return null
         }
@@ -136,7 +180,7 @@ class AssignFrameByte : ActionConverter {
         }
     }
 
-    override fun buildStatement(node: StatementNode, frame: FrameLayout): Action? {
+    override fun buildStatement(node: StatementNode, frame: FrameLayout, functionProvider: FunctionProvider): Action? {
         if (node !is AssignNode)
             return null
         if (node.value == null) {
@@ -153,7 +197,7 @@ class AssignFrameByte : ActionConverter {
             return null
         }
 
-        val putValueInRegister = getActionInRegister(node.value, byteType, frame) ?: return null
+        val putValueInRegister = getActionInRegister(node.value, byteType, frame, functionProvider) ?: return null
 
         return CompositeAction(
             putValueInRegister,
@@ -177,7 +221,12 @@ class FieldByteToRegister : ActionConverter {
         }
     }
 
-    override fun putInRegister(node: ValueProviderNode, type: DataType, frame: FrameLayout): Action? {
+    override fun putInRegister(
+        node: ValueProviderNode,
+        type: DataType,
+        frame: FrameLayout,
+        functionProvider: FunctionProvider
+    ): Action? {
 
         if (node !is MemberAccess)
             return null
@@ -205,11 +254,16 @@ class PutRegisterOnStack : ActionConverter {
         }
     }
 
-    override fun putOnStack(node: ValueProviderNode, type: DataType, frame: FrameLayout): Action? {
+    override fun putOnStack(
+        node: ValueProviderNode,
+        type: DataType,
+        frame: FrameLayout,
+        functionProvider: FunctionProvider
+    ): Action? {
         if (type != byteType) {
             return null
         }
-        val putInRegister = getActionInRegister(node, type, frame) ?: return null
+        val putInRegister = getActionInRegister(node, type, frame, functionProvider) ?: return null
         return CompositeAction(
             putInRegister,
             PushRegister(),
@@ -228,21 +282,32 @@ val actions = listOf(
     PutRegisterOnStack(),
 
     NotEqualProvider(),
+    CallProvider(),
 )
 
 
-fun getActionOnStack(node: ValueProviderNode, type: DataType, frame: FrameLayout): Action? {
+fun getActionOnStack(
+    node: ValueProviderNode,
+    type: DataType,
+    frame: FrameLayout,
+    functionProvider: FunctionProvider
+): Action? {
     for (action in actions) {
-        val result = action.putOnStack(node, type, frame)
+        val result = action.putOnStack(node, type, frame, functionProvider)
         if (result != null)
             return result
     }
     return null
 }
 
-fun getActionInRegister(node: ValueProviderNode, type: DataType, frame: FrameLayout): Action? {
+fun getActionInRegister(
+    node: ValueProviderNode,
+    type: DataType,
+    frame: FrameLayout,
+    functionProvider: FunctionProvider
+): Action? {
     for (action in actions) {
-        val result = action.putInRegister(node, type, frame)
+        val result = action.putInRegister(node, type, frame, functionProvider)
         if (result != null)
             return result
     }
@@ -265,9 +330,9 @@ fun flatten(topAction: Action): List<Action> {
     return result
 }
 
-fun buildStatement(node: StatementNode, frame: FrameLayout): Action {
+fun buildStatement(node: StatementNode, frame: FrameLayout, functionProvider: FunctionProvider): Action {
     for (a in actions) {
-        val result = a.buildStatement(node, frame)
+        val result = a.buildStatement(node, frame, functionProvider)
         if (result != null) {
             return result
         }

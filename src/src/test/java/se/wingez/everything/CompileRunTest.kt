@@ -5,8 +5,10 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import se.wingez.TokenEndBlock
 import se.wingez.ast.AstParser
+import se.wingez.ast.FunctionNode
 import se.wingez.bytes
 import se.wingez.compiler.CompileError
+import se.wingez.compiler.Compiler
 import se.wingez.compiler.buildSingleMainFunction
 import se.wingez.emulator.DefaultEmulator
 import se.wingez.emulator.EmulatorCyclesExceeded
@@ -21,6 +23,20 @@ fun runBodyCheckOutput(program: String, vararg result: Int) {
     val code = buildSingleMainFunction(nodes)
     val emulator = DefaultEmulator()
     emulator.setAllMemory(code)
+    emulator.run()
+
+    assertIterableEquals(bytes(*result), emulator.outputStream)
+}
+
+fun runProgramCheckOutput(program: String, vararg result: Int) {
+    val tokens = parseFile(StringReader(program))
+    val nodes = AstParser(tokens).parse()
+
+    val c = Compiler()
+    c.buildProgram(nodes.filterIsInstance<FunctionNode>())
+
+    val emulator = DefaultEmulator()
+    emulator.setAllMemory(c.generator.resultingCode)
     emulator.run()
 
     assertIterableEquals(bytes(*result), emulator.outputStream)

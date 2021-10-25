@@ -6,6 +6,7 @@ import org.junit.jupiter.api.assertThrows
 import se.wingez.ast.FunctionNode
 import se.wingez.ast.StatementNode
 import se.wingez.ast.parseExpressions
+import se.wingez.ast.parserFromFile
 import se.wingez.byte
 import se.wingez.emulator.DefaultEmulator
 import se.wingez.parseFile
@@ -27,23 +28,41 @@ fun buildBody(body: String): List<UByte> {
     val frame = calculateFrameLayout(node, dummyTypeContainer)
 
     val generator = CodeGenerator()
-    val function = AssemblyFunction(generator, frame, 0u)
+    val function = AssemblyFunction(generator, frame, 0u, dummyFunctions)
     function.buildNodes(node.body)
 
     return generator.resultingCode
 }
 
+fun buildProgram(body: String): List<UByte> {
+    val nodes = parserFromFile(body).parse()
+
+    val c = Compiler()
+    c.buildProgram(nodes.filterIsInstance<FunctionNode>())
+
+    return c.generator.resultingCode
+}
+
+fun shouldMatch(code: List<UByte>, expected: List<UByte>) {
+    assertIterableEquals(code, expected) {
+        (listOf("Dissasembled: ") + DefaultEmulator().instructionSet.disassemble(code)).joinToString(
+            "\n"
+        )
+    }
+}
 
 fun bodyShouldMatchAssembled(body: String, expectedAssembly: String) {
 
     val code = buildBody(body)
     val expected = DefaultEmulator().instructionSet.assembleMnemonicFile(StringReader(expectedAssembly))
 
-    assertIterableEquals(code, expected) {
-        (listOf("Dissasembled: ") + DefaultEmulator().instructionSet.disassemble(code)).joinToString(
-            "\n"
-        )
-    }
+    shouldMatch(code, expected)
+}
+
+fun programShouldMatchAssembled(program: String, expectedAssembly: String) {
+    val code = buildProgram(program)
+    val expected = DefaultEmulator().instructionSet.assembleMnemonicFile(StringReader(expectedAssembly))
+    shouldMatch(code, expected)
 }
 
 class CompilerTest {
@@ -164,4 +183,38 @@ class CompilerTest {
         }
 
     }
+
+    @Test
+    fun testCall() {
+        val expected = """
+        LDFP #255
+        LDSP #255
+        CALL #12
+        exit
+        # test1 
+        LDFP SP
+        LDA #10
+        out
+        RET
+        #main
+       
+        LDFP SP
+        CALL #7
+        LDA #3
+        out
+        ret
+         
+        """
+        val body = """
+          def test1():
+            print(10)
+            
+          def main():
+            test1()
+            print(3)
+        """
+
+        programShouldMatchAssembled(body, expected)
+    }
+
 }

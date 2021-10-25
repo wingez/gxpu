@@ -13,13 +13,18 @@ abstract class ArithmeticProvider(
 
     abstract fun generate(): Action
 
-    override fun putInRegister(node: ValueProviderNode, type: DataType, frame: FrameLayout): Action? {
+    override fun putInRegister(
+        node: ValueProviderNode,
+        type: DataType,
+        frame: FrameLayout,
+        functionProvider: FunctionProvider
+    ): Action? {
         if (node !is SingleOperationNode) return null
         else if (node.operation != operation) return null
         else if (type != byteType) return null
 
-        val putLeftInRegister = getActionInRegister(node.left, byteType, frame)
-        val putRightOnStack = getActionOnStack(node.right, byteType, frame)
+        val putLeftInRegister = getActionInRegister(node.left, byteType, frame, functionProvider)
+        val putRightOnStack = getActionOnStack(node.right, byteType, frame, functionProvider)
 
         if (putLeftInRegister == null || putRightOnStack == null) {
             return null
@@ -73,7 +78,12 @@ class NotEqualProvider : ActionConverter {
     }
 
 
-    override fun putInRegister(node: ValueProviderNode, type: DataType, frame: FrameLayout): Action? {
+    override fun putInRegister(
+        node: ValueProviderNode,
+        type: DataType,
+        frame: FrameLayout,
+        functionProvider: FunctionProvider
+    ): Action? {
         if (type != compareType) return null
         if (node !is SingleOperationNode) return null
         if (node.operation != Operation.NotEquals) return null
@@ -81,7 +91,7 @@ class NotEqualProvider : ActionConverter {
         val subtract = getActionInRegister(
             SingleOperationNode(
                 Operation.Subtraction, node.left, node.right
-            ), byteType, frame
+            ), byteType, frame, functionProvider
         ) ?: return null
 
         return CompositeAction(
