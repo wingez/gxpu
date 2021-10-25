@@ -63,4 +63,31 @@ class SubtractionProvider : ArithmeticProvider(Operation.Subtraction) {
     }
 }
 
+class NotEqualProvider : ActionConverter {
+    data class NotEqualCompare(
+        override val cost: Int = 1
+    ) : Action {
+        override fun compile(generator: CodeGenerator) {
+            generator.generate(DefaultEmulator.testa.build())
+        }
+    }
+
+
+    override fun putInRegister(node: ValueProviderNode, type: DataType, frame: FrameLayout): Action? {
+        if (type != compareType) return null
+        if (node !is SingleOperationNode) return null
+        if (node.operation != Operation.NotEquals) return null
+
+        val subtract = getActionInRegister(
+            SingleOperationNode(
+                Operation.Subtraction, node.left, node.right
+            ), byteType, frame
+        ) ?: return null
+
+        return CompositeAction(
+            subtract,
+            NotEqualCompare()
+        )
+    }
+}
 

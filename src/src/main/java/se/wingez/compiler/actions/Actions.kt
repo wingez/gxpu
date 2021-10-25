@@ -3,6 +3,7 @@ package se.wingez.compiler
 import se.wingez.ast.*
 import se.wingez.byte
 import se.wingez.compiler.actions.AdditionProvider
+import se.wingez.compiler.actions.NotEqualProvider
 import se.wingez.compiler.actions.SubtractionProvider
 import se.wingez.emulator.DefaultEmulator
 
@@ -226,6 +227,8 @@ val actions = listOf(
     AdditionProvider(),
     SubtractionProvider(),
     PutRegisterOnStack(),
+
+    NotEqualProvider(),
 )
 
 

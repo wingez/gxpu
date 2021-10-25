@@ -102,7 +102,7 @@ internal class FrameLayoutTest {
             """
             def test1(var2):
               var=1
-    """
+            """
         )
         assertEquals(layout.size, byte(4))
         assertEquals(layout.sizeOfVars, byte(1))
