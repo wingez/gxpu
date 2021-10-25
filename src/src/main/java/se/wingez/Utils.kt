@@ -31,3 +31,8 @@ fun byte(value: Int): UByte {
         throw AssertionError()
     return value.toUByte()
 }
+
+fun byte(value: UInt): UByte {
+    return byte(value.toInt())
+}
+

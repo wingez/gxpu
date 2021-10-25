@@ -1,6 +1,8 @@
 package se.wingez.compiler
 
+import se.wingez.ast.AstNode
 import se.wingez.ast.FunctionNode
+import se.wingez.ast.StructNode
 import se.wingez.byte
 import se.wingez.compiler.actions.ActionBuilder
 import se.wingez.emulator.DefaultEmulator
@@ -93,7 +95,15 @@ class Compiler : TypeProvider, FunctionProvider {
 
     }
 
-    fun buildProgram(nodes: List<FunctionNode>): List<UByte> {
+    fun buildStruct(node: StructNode) {
+        val struct = buildStruct(node, this)
+        if (struct.name in types) {
+            throw CompileError("Function ${struct.name} already exists")
+        }
+        types[struct.name] = struct
+    }
+
+    fun buildProgram(nodes: List<AstNode>): List<UByte> {
         generator.generate(DefaultEmulator.ldfp.build(mapOf("val" to byte(STACK_START))))
         generator.generate(DefaultEmulator.ldsp.build(mapOf("val" to byte(STACK_START))))
 
@@ -101,7 +111,12 @@ class Compiler : TypeProvider, FunctionProvider {
         generator.generate(DefaultEmulator.exit.build())
 
         for (node in nodes) {
-            buildFunction(node)
+            when (node) {
+                is FunctionNode -> buildFunction(node)
+                is StructNode -> buildStruct(node)
+                else -> throw CompileError("Dont know what to do with $node")
+
+            }
         }
 
         if (MAIN_NAME !in functions) {

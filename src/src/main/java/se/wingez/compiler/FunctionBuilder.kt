@@ -82,6 +82,8 @@ class FunctionBuilder(
             is IfNode -> handleIf(node)
             is WhileNode -> handleWhile(node)
             is CallNode -> handleStatement(node)
+            is PrimitiveMemberDeclaration -> {
+            }
             else -> throw CompileError("Dont know how to parse $node")
         }
     }

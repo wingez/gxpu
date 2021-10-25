@@ -93,6 +93,43 @@ class PutByteOnStack : ActionConverter {
     }
 }
 
+fun calculateFrameMemberOffset(node: ValueNode, function: FunctionInfo): StructDataField? {
+    var currentNode = node
+    val accessOrder = mutableListOf<String>()
+    while (true) {
+        if (currentNode is Identifier) {
+            accessOrder.add(currentNode.name)
+            break
+        }
+        if (currentNode is MemberAccess) {
+            accessOrder.add(currentNode.member)
+            currentNode = currentNode.left
+        } else {
+            return null
+        }
+    }
+    val fieldDescription = accessOrder.reversed().joinToString(".")
+
+    var currentOffset = byte(0)
+    var currentType: DataType = function
+
+    while (accessOrder.isNotEmpty()) {
+        val access = accessOrder.removeLast()
+
+        if (currentType !is StructType) {
+            throw CompileError("Cannot read $access from type $currentType ")
+        }
+        if (!currentType.hasField(access)) {
+            throw CompileError("Type $currentType has no member $access")
+        }
+
+        val field = currentType.getField(access)
+        currentOffset = byte(currentOffset + field.offset)
+        currentType = field.type
+    }
+    return StructDataField(fieldDescription, currentOffset, byteType)
+}
+
 class AssignFrameByte : ActionConverter {
     data class AssignFrameRegister(
         val field: StructDataField,
@@ -113,14 +150,10 @@ class AssignFrameByte : ActionConverter {
         if (node.value == null) {
             return null
         }
-        val target = node.target
-        if (target !is Identifier) return null
 
-        if (!builder.hasField(target.name)) {
-            throw CompileError("No field with name: ${target.name}")
-        }
-        val field = builder.getField(target.name)
-        if (field.type != byteType) {
+        val member = calculateFrameMemberOffset(node.target, builder.currentFunction) ?: return null
+
+        if (member.type != byteType) {
             return null
         }
 
@@ -128,7 +161,7 @@ class AssignFrameByte : ActionConverter {
 
         return CompositeAction(
             putValueInRegister,
-            AssignFrameRegister(field)
+            AssignFrameRegister(member)
         )
     }
 }
@@ -153,18 +186,10 @@ class FieldByteToRegister : ActionConverter {
         builder: ActionBuilder
     ): Action? {
 
-        if (node !is Identifier)
-            return null
         if (type != byteType)
             return null
 
-        if (!builder.hasField(node.name)) {
-            throw CompileError("No field with name: $node.name")
-        }
-        val field = builder.getField(node.name)
-        if (field.type != byteType) {
-            return null
-        }
+        val field = calculateFrameMemberOffset(node, builder.currentFunction) ?: return null
 
         return FieldByteToRegisterAction(field)
     }
@@ -203,17 +228,11 @@ val actions = listOf(
 )
 
 class ActionBuilder(
-    private val frame: FunctionInfo,
+    private val function: FunctionInfo,
     private val functionProvider: FunctionProvider,
 ) : FunctionProvider {
-
-    fun hasField(name: String): Boolean {
-        return frame.hasField(name)
-    }
-
-    fun getField(name: String): StructDataField {
-        return frame.getField(name)
-    }
+    val currentFunction: FunctionInfo
+        get() = function
 
     override fun getFunction(name: String): FunctionInfo {
         return functionProvider.getFunction(name)

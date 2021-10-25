@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import se.wingez.TokenEndBlock
 import se.wingez.ast.AstParser
-import se.wingez.ast.FunctionNode
 import se.wingez.bytes
 import se.wingez.compiler.CompileError
 import se.wingez.compiler.Compiler
@@ -33,7 +32,7 @@ fun runProgramCheckOutput(program: String, vararg result: Int) {
     val nodes = AstParser(tokens).parse()
 
     val c = Compiler()
-    c.buildProgram(nodes.filterIsInstance<FunctionNode>())
+    c.buildProgram(nodes)
 
     val emulator = DefaultEmulator()
     emulator.setAllMemory(c.generator.resultingCode)

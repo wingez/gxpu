@@ -238,4 +238,40 @@ class ActionTest {
             )
         )
     }
+
+    @Test
+    fun testAssignStruct() {
+
+        val myType = StructType(
+            2u, "myType", mapOf(
+                "member1" to StructDataField("member1", 0u, byteType),
+                "member2" to StructDataField("member2", 1u, byteType),
+            )
+        )
+        val function = FunctionInfo(
+            4u, 0u, "test",
+            mapOf("t" to StructDataField("t", 0u, myType)), emptyList(), voidType, 0u, 2u, 2u
+        )
+
+        val builder = ActionBuilder(function, dummyFunctions)
+
+        assertIterableEquals(
+            listOf(
+                LoadRegister(5u),
+                AssignFrameByte.AssignFrameRegister(StructDataField("t.member1", 0u, byteType))
+            ),
+            flatten(
+                builder.buildStatement(AssignNode(MemberAccess(Identifier("t"), "member1"), ConstantNode(5)))
+            )
+        )
+        assertIterableEquals(
+            listOf(
+                LoadRegister(4u),
+                AssignFrameByte.AssignFrameRegister(StructDataField("t.member2", 1u, byteType)),
+
+                ), flatten(
+                builder.buildStatement(AssignNode(MemberAccess(Identifier("t"), "member2"), ConstantNode(4)))
+            )
+        )
+    }
 }

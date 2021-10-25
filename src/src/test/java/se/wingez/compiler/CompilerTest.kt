@@ -39,7 +39,7 @@ fun buildProgram(body: String): List<UByte> {
     val nodes = parserFromFile(body).parse()
 
     val c = Compiler()
-    c.buildProgram(nodes.filterIsInstance<FunctionNode>())
+    c.buildProgram(nodes)
 
     return c.generator.resultingCode
 }

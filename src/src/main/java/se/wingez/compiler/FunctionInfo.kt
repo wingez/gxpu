@@ -68,7 +68,9 @@ fun calculateFrameLayout(
 
             if (visitNode is AssignNode) {
                 if (visitNode.target !is Identifier) {
-                    throw CompileError("To complex for now")
+                    // TODO what should happen here??
+                    //throw CompileError("To complex for now")
+                    continue
                 }
                 name = visitNode.target.name
                 typeName = visitNode.type
