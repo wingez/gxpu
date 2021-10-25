@@ -264,7 +264,7 @@ class AstParser(private val tokens: List<Token>) {
                 callNode
             else {
                 val member = consumeIdentifier()
-                MemberAccess(member)
+                Identifier(member)
             }
         } else {
             throw ParserError("Cannot parse to value provider: ${peek()}")
@@ -279,7 +279,7 @@ class AstParser(private val tokens: List<Token>) {
 
             val secondResult = parseValueProvider()
 
-            if (!(hasParenthesis || secondResult is MemberAccess || secondResult is ConstantNode))
+            if (!(hasParenthesis || secondResult is Identifier || secondResult is ConstantNode))
                 throw ParserError("Operation too complex for now. Use more parentheses")
 
             val operation = when (nextToken) {

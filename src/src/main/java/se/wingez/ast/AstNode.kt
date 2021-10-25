@@ -7,7 +7,7 @@ abstract class StatementNode : AstNode()
 abstract class ValueNode : StatementNode()
 
 
-data class MemberAccess(val name: String) : ValueNode()
+data class Identifier(val name: String) : ValueNode()
 
 
 data class PrimitiveMemberDeclaration(

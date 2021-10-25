@@ -9,7 +9,7 @@ import se.wingez.compiler.actions.*
 import se.wingez.emulator.DefaultEmulator
 
 class FunctionContainer(
-    val functions: List<FunctionInfo>
+    private val functions: List<FunctionInfo>
 ) : FunctionProvider {
     override fun getFunction(name: String): FunctionInfo {
         return functions.find { it.name == name } ?: throw AssertionError()
@@ -74,7 +74,7 @@ class ActionTest {
     @Test
     fun testPrintVariable() {
         val builder = ActionBuilder(dummyFrame, dummyFunctions)
-        val node = PrintNode(MemberAccess("var1"))
+        val node = PrintNode(Identifier("var1"))
         val flattened = builder.buildStatement(node)
 
         assertEquals(
@@ -90,11 +90,11 @@ class ActionTest {
     @Test
     fun testAssignConstant() {
         val builder = ActionBuilder(dummyFrame, dummyFunctions)
-        val node = AssignNode(MemberAccess("var2"), ConstantNode(5))
+        val node = AssignNode(Identifier("var2"), ConstantNode(5))
         assertThrows<CompileError> {
             builder.buildStatement(node)
         }
-        val node2 = AssignNode(MemberAccess("var1"), ConstantNode(4))
+        val node2 = AssignNode(Identifier("var1"), ConstantNode(4))
         val flattened = builder.buildStatement(node2)
 
         assertEquals(

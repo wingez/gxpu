@@ -65,8 +65,8 @@ class AstParserStructTest {
             ).parseAssignment(), AssignNode(
                 SingleOperationNode(
                     Operation.MemberAccess,
-                    MemberAccess("member"),
-                    MemberAccess("i")
+                    Identifier("member"),
+                    Identifier("i")
                 ),
                 ConstantNode(5)
             )
@@ -91,13 +91,13 @@ class AstParserStructTest {
                     PrimitiveMemberDeclaration("a", "type1"),
                     AssignNode(
                         SingleOperationNode(
-                            Operation.MemberAccess, MemberAccess("a"), MemberAccess("member1")
+                            Operation.MemberAccess, Identifier("a"), Identifier("member1")
                         ),
                         ConstantNode(2)
                     ),
                     AssignNode(
                         SingleOperationNode(
-                            Operation.MemberAccess, MemberAccess("a"), MemberAccess("member2")
+                            Operation.MemberAccess, Identifier("a"), Identifier("member2")
                         ),
                         ConstantNode(1)
                     )
@@ -114,10 +114,10 @@ class AstParserStructTest {
         a=s.member
         """
             ).parseAssignment(), AssignNode(
-                MemberAccess("a"),
+                Identifier("a"),
                 SingleOperationNode(
                     Operation.MemberAccess,
-                    MemberAccess("s"), MemberAccess("member")
+                    Identifier("s"), Identifier("member")
                 ),
             )
         )

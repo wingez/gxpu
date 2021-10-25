@@ -114,7 +114,7 @@ class AssignFrameByte : ActionConverter {
             return null
         }
         val target = node.target
-        if (target !is MemberAccess) return null
+        if (target !is Identifier) return null
 
         if (!builder.hasField(target.name)) {
             throw CompileError("No field with name: ${target.name}")
@@ -153,7 +153,7 @@ class FieldByteToRegister : ActionConverter {
         builder: ActionBuilder
     ): Action? {
 
-        if (node !is MemberAccess)
+        if (node !is Identifier)
             return null
         if (type != byteType)
             return null

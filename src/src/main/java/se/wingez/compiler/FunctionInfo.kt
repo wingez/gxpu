@@ -67,7 +67,7 @@ fun calculateFrameLayout(
             var typeName: String
 
             if (visitNode is AssignNode) {
-                if (visitNode.target !is MemberAccess) {
+                if (visitNode.target !is Identifier) {
                     throw CompileError("To complex for now")
                 }
                 name = visitNode.target.name

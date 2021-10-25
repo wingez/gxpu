@@ -22,7 +22,7 @@ fun parseExpressions(tokens: List<Token>): List<StatementNode> {
 }
 
 private fun assign(to: String, value: Int): AssignNode {
-    return AssignNode(MemberAccess(to), ConstantNode(value))
+    return AssignNode(Identifier(to), ConstantNode(value))
 }
 
 internal class AstParserTest {
@@ -147,7 +147,7 @@ internal class AstParserTest {
 
         assertEquals(
             parserFromLine("return 5+a").parseReturnStatement(),
-            ReturnNode(SingleOperationNode(Operation.Addition, ConstantNode(5), MemberAccess("a")))
+            ReturnNode(SingleOperationNode(Operation.Addition, ConstantNode(5), Identifier("a")))
         )
     }
 
@@ -172,7 +172,7 @@ internal class AstParserTest {
                 "func", listOf(
                     ConstantNode(5),
                     ConstantNode(10),
-                    MemberAccess("test"),
+                    Identifier("test"),
                 )
             )
         )
@@ -182,7 +182,7 @@ internal class AstParserTest {
     fun testAssignCall() {
         assertEquals(
             parserFromLine("a=test()").parseAssignment(),
-            AssignNode(MemberAccess("a"), CallNode("test", emptyList()))
+            AssignNode(Identifier("a"), CallNode("test", emptyList()))
         )
     }
 
@@ -220,7 +220,7 @@ internal class AstParserTest {
             IfNode(
                 SingleOperationNode(
                     Operation.NotEquals,
-                    SingleOperationNode(Operation.Subtraction, MemberAccess("a"), ConstantNode(2)),
+                    SingleOperationNode(Operation.Subtraction, Identifier("a"), ConstantNode(2)),
                     ConstantNode(0)
                 ),
                 listOf(PrintNode(ConstantNode(5))),
@@ -242,7 +242,7 @@ internal class AstParserTest {
         """
             ).parseIfStatement(),
             IfNode(
-                MemberAccess("a"), printBody,
+                Identifier("a"), printBody,
                 listOf(PrintNode(ConstantNode(0)))
             )
         )
