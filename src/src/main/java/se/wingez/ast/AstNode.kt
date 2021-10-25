@@ -56,7 +56,6 @@ enum class Operation {
     Addition,
     Subtraction,
     NotEquals,
-    MemberAccess,
 }
 
 data class SingleOperationNode(
@@ -96,3 +95,8 @@ data class StructNode(
     val name: String,
     val members: List<PrimitiveMemberDeclaration>,
 ) : AstNode()
+
+data class MemberAccess(
+    val left: ValueNode,
+    val member: String
+) : ValueNode()

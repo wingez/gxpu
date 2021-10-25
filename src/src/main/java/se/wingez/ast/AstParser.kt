@@ -277,6 +277,12 @@ class AstParser(private val tokens: List<Token>) {
         if (nextToken is TokenSingleOperation) {
             consume()
 
+            if (nextToken == TokenDot) {
+                val target = consumeIdentifier()
+                return MemberAccess(firstResult, target)
+            }
+
+
             val secondResult = parseValueProvider()
 
             if (!(hasParenthesis || secondResult is Identifier || secondResult is ConstantNode))
@@ -286,7 +292,6 @@ class AstParser(private val tokens: List<Token>) {
                 TokenPlusSign -> Operation.Addition
                 TokenMinusSign -> Operation.Subtraction
                 TokenNotEqual -> Operation.NotEquals
-                TokenDot -> Operation.MemberAccess
                 else -> throw ParserError("Dont know how to parse $nextToken")
             }
             return SingleOperationNode(operation, firstResult, secondResult)
