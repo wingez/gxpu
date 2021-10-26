@@ -1,7 +1,6 @@
 package se.wingez.ast
 
-import se.wingez.*
-import kotlin.reflect.typeOf
+import se.wingez.tokens.*
 
 class ParserError(message: String) : Exception(message)
 

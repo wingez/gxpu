@@ -10,7 +10,7 @@ import se.wingez.ast.parserFromFile
 import se.wingez.byte
 import se.wingez.compiler.actions.ActionBuilder
 import se.wingez.emulator.DefaultEmulator
-import se.wingez.parseFile
+import se.wingez.tokens.parseFile
 import java.io.StringReader
 
 

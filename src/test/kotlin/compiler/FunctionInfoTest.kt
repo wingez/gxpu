@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Assertions.assertIterableEquals
 import org.junit.jupiter.api.Test
 import se.wingez.ast.AstParser
 import se.wingez.byte
-import se.wingez.parseFile
+import se.wingez.tokens.parseFile
 import java.io.StringReader
 
 class TypeContainer(

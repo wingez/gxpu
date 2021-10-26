@@ -1,7 +1,9 @@
-package se.wingez
+package se.wingez.tokens
 
 import java.io.Reader
+import java.lang.Exception
 
+class TokenError(message: String) : Exception(message)
 
 open class Token(
     val type: TokenType,

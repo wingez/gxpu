@@ -1,6 +1,6 @@
 package se.wingez.ast
 
-import se.wingez.TokenNumericConstant
+import se.wingez.tokens.TokenNumericConstant
 
 abstract class AstNode
 abstract class StatementNode : AstNode()

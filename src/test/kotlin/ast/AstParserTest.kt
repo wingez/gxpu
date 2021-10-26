@@ -2,7 +2,7 @@ package se.wingez.ast
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import se.wingez.*
+import se.wingez.tokens.*
 import java.io.StringReader
 
 fun parse(tokens: List<Token>): List<AstNode> {

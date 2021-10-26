@@ -2,6 +2,7 @@ package se.wingez
 
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import se.wingez.tokens.*
 import java.io.StringReader
 
 internal class TokenizerTest {
