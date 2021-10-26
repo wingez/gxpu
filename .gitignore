@@ -5,3 +5,7 @@
 .coverage
 htmlcov/
 venv/
+
+# Ignore gradle files
+.gradle/
+build/
