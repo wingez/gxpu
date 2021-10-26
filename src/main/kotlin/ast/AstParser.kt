@@ -40,7 +40,7 @@ class AstParser(private val tokens: List<Token>) {
 
     private inline fun <reified T : Token> consumeType(): T {
         if (!peekIs<T>())
-            throw ParserError("Expected token to be of type ${typeOf<T>()}")
+            throw ParserError("Token was not of expected type")
         return consume() as T
     }
 
