@@ -11,14 +11,6 @@ data class PopRegister(
     }
 }
 
-data class LoadRegister(
-    val value: UByte
-) : Action {
-    override val cost: Int = 1
-    override fun compile(generator: CodeGenerator) {
-        generator.generate(DefaultEmulator.lda_constant.build(mapOf("val" to value)))
-    }
-}
 
 data class PushByte(
     val value: UByte

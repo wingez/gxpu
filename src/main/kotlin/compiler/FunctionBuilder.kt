@@ -39,8 +39,7 @@ class FunctionBuilder(
 
     private fun handleIf(node: IfNode) {
 
-        val compareAction = actionBuilder.getActionInRegister(node.condition, compareType)
-            ?: throw CompileError("Could not parse condition")
+        val compareAction = actionBuilder.buildStatement(node.condition)
         compareAction.compile(generator)
         val jumpToFalseCondition = generator.makeSpaceFor(DefaultEmulator.jump_zero)
         buildNodes(node.body)
@@ -61,8 +60,7 @@ class FunctionBuilder(
 
     private fun handleWhile(node: WhileNode) {
         val startOfBlock = byte(generator.currentSize)
-        val compareAction = actionBuilder.getActionInRegister(node.condition, compareType)
-            ?: throw CompileError("Could not parse condition")
+        val compareAction = actionBuilder.buildStatement(node.condition)
         compareAction.compile(generator)
         val jumpToExit = generator.makeSpaceFor(DefaultEmulator.jump_zero)
 

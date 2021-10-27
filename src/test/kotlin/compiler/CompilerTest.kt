@@ -155,12 +155,18 @@ class CompilerTest {
         lda #0
         pusha
         lda #5
+        pusha
+        popa
         suba sp #0
         addsp #1
+        pusha
+        popa
         tsta
         
-        jmpz #17
+        jmpz #23
         lda #1
+        pusha
+        popa
         out
         jmp #0
          
@@ -190,11 +196,13 @@ class CompilerTest {
         val expected = """
         LDFP #255
         LDSP #255
-        CALL #12
+        CALL #14
         exit
         # test1 
         LDFP SP
         LDA #10
+        pusha
+        popa
         out
         RET
         #main
@@ -202,6 +210,8 @@ class CompilerTest {
         LDFP SP
         CALL #7
         LDA #3
+        pusha
+        popa
         out
         ret
          

@@ -13,14 +13,6 @@ interface Action {
 }
 
 interface ActionConverter {
-    fun putInRegister(
-        node: ValueNode,
-        type: DataType,
-        builder: ActionBuilder,
-    ): Action? {
-        return null
-    }
-
     fun putOnStack(
         node: ValueNode,
         type: DataType,
@@ -52,12 +44,7 @@ class Print : ActionConverter {
         if (node !is PrintNode)
             return null
 
-        var value = builder.getActionInRegister(node.target, byteType)
-        if (value != null)
-            return CompositeAction(value, PrintAction())
-
-        value = builder.getActionOnStack(node.target, byteType)
-        value ?: return null
+        val value = builder.getActionOnStack(node.target, byteType) ?: return null
         return CompositeAction(
             value,
             PopRegister(),
@@ -66,20 +53,8 @@ class Print : ActionConverter {
     }
 }
 
-class PutConstantInRegister : ActionConverter {
-
-    override fun putInRegister(
-        node: ValueNode,
-        type: DataType,
-        builder: ActionBuilder,
-    ): Action? {
-        if (node !is ConstantNode) return null
-        if (type != byteType) return null
-        return LoadRegister(byte(node.value))
-    }
-}
-
 class PutByteOnStack : ActionConverter {
+    //TODO remove?? and split to lda+ push???
 
     override fun putOnStack(
         node: ValueNode,
@@ -93,57 +68,151 @@ class PutByteOnStack : ActionConverter {
     }
 }
 
-fun calculateFrameMemberOffset(node: ValueNode, function: FunctionInfo): StructDataField? {
-    var currentNode = node
-    val accessOrder = mutableListOf<String>()
-    while (true) {
-        if (currentNode is Identifier) {
-            accessOrder.add(currentNode.name)
-            break
-        }
-        if (currentNode is MemberAccess) {
-            accessOrder.add(currentNode.member)
-            currentNode = currentNode.left
-        } else {
-            return null
-        }
+data class PopThrow(
+    override val cost: Int = 1
+) : Action {
+    override fun compile(generator: CodeGenerator) {
+        generator.generate(DefaultEmulator.build("ADDSP #1"))
     }
-    val fieldDescription = accessOrder.reversed().joinToString(".")
-
-    var currentOffset = byte(0)
-    var currentType: DataType = function
-
-    while (accessOrder.isNotEmpty()) {
-        val access = accessOrder.removeLast()
-
-        if (currentType !is StructType) {
-            throw CompileError("Cannot read $access from type $currentType ")
-        }
-        if (!currentType.hasField(access)) {
-            throw CompileError("Type $currentType has no member $access")
-        }
-
-        val field = currentType.getField(access)
-        currentOffset = byte(currentOffset + field.offset)
-        currentType = field.type
-    }
-
-    return StructDataField(fieldDescription, currentOffset, currentType)
 }
 
-class AssignFrameByte : ActionConverter {
-    data class AssignFrameRegister(
-        val field: StructDataField,
-    ) : Action {
-        override val cost: Int = 1
-        override fun compile(generator: CodeGenerator) {
-            generator.generate(
-                DefaultEmulator.sta_fp_offset.build(
-                    mapOf("offset" to field.offset)
-                )
-            )
+data class LoadRegisterFP(
+    override val cost: Int = 1
+) : Action {
+    override fun compile(generator: CodeGenerator) {
+        generator.generate(DefaultEmulator.lda_fp_offset.build(mapOf("offset" to 0u)))
+    }
+}
+
+data class AddRegister(
+    val offset: UByte,
+    override val cost: Int = 1,
+) : Action {
+    override fun compile(generator: CodeGenerator) {
+        generator.generate(DefaultEmulator.adda.build(mapOf("val" to offset)))
+    }
+
+}
+
+enum class MemberAccessAction {
+    Access,
+    Deref,
+}
+
+fun pushAddress(topNode: ValueNode, function: FunctionInfo, expectedType: DataType): Action {
+
+    val result = mutableListOf<Action>(LoadRegisterFP())
+
+
+    // Recursive because we want to start with the innermost node
+    fun buildRecursive(currentNode: ValueNode, providedType: DataType): DataType {
+
+        val member: String
+        val currentType: DataType
+        val action: MemberAccessAction
+
+        when (currentNode) {
+            is Identifier -> {
+                member = currentNode.name
+                currentType = providedType
+                action = MemberAccessAction.Access
+            }
+            is MemberAccess -> {
+                currentType = buildRecursive(currentNode.left, providedType)
+                member = currentNode.member
+                action = MemberAccessAction.Access
+            }
+            is MemberDeref -> {
+                currentType = buildRecursive(currentNode.left, providedType)
+                member = currentNode.member
+                action = MemberAccessAction.Deref
+
+            }
+            else -> {
+                throw CompileError("Cannot calculate address from node $currentNode")
+            }
+        }
+
+
+
+        when (action) {
+            MemberAccessAction.Access -> {
+                if (currentType !is StructType) {
+                    throw CompileError("Cannot access member of $currentType")
+                }
+                if (!currentType.hasField(member)) {
+                    throw CompileError("Type $currentType has no member $member")
+                }
+
+                val field = currentType.getField(member)
+
+                result.add(AddRegister(field.offset))
+                return field.type
+            }
+            MemberAccessAction.Deref -> {
+                if (currentType !is Pointer) {
+                    throw CompileError("Cannot deref non-pointer")
+                }
+                if (currentType.type !is StructType) {
+                    throw CompileError("Cannot access member of $currentType")
+                }
+
+                if (!currentType.type.hasField(member)) {
+                    throw CompileError("Type $currentType has no member $member")
+                }
+
+                val field = currentType.type.getField(member)
+
+                result.add(DerefByteAction(0u))
+                result.add(AddRegister(field.offset))
+                return field.type
+            }
         }
     }
+
+    val resultingType = buildRecursive(topNode, function)
+    if (resultingType != expectedType) {
+        throw CompileError("Expected type to be $expectedType")
+    }
+
+    result.add(PushRegister())
+    return CompositeAction(*result.toTypedArray())
+}
+
+
+data class StoreRegisterAtStackAddress(
+    val offset: UByte,
+) : Action {
+    /**
+     * Expects Value to be in A, address on top of stack.
+     * Does not clear the Stack afterwards
+     */
+    override val cost: Int = 1
+    override fun compile(generator: CodeGenerator) {
+        generator.generate(
+            DefaultEmulator.sta_at_sp_offset.build(
+                mapOf("offset" to offset)
+            )
+        )
+    }
+}
+
+data class DerefByteAction(
+    val offset: UByte,
+) : Action {
+    override val cost: Int = 1
+    override fun compile(generator: CodeGenerator) {
+        generator.generate(
+            DefaultEmulator.lda_at_a_offset.build(
+                mapOf("offset" to offset)
+            )
+        )
+    }
+}
+
+
+class AssignFrameByte : ActionConverter {
+
 
     override fun buildStatement(node: StatementNode, builder: ActionBuilder): Action? {
         if (node !is AssignNode)
@@ -152,161 +221,75 @@ class AssignFrameByte : ActionConverter {
             return null
         }
 
-        val member = calculateFrameMemberOffset(node.target, builder.currentFunction) ?: return null
+        val pushMemberAddress = pushAddress(node.target, builder.currentFunction, byteType)
 
-        if (member.type != byteType) {
-            return null
-        }
-
-        val putValueInRegister = builder.getActionInRegister(node.value, byteType) ?: return null
+        val putValueOnStack = builder.getActionOnStack(node.value, byteType) ?: return null
 
         return CompositeAction(
-            putValueInRegister,
-            AssignFrameRegister(member)
+            pushMemberAddress,
+            putValueOnStack,
+            PopRegister(),
+            StoreRegisterAtStackAddress(0u),
+            PopThrow(),
         )
     }
 }
 
-class DerefByte : ActionConverter {
-
-    data class DerefByteAction(
-        val derefField: StructDataField,
+class ByteToStack : ActionConverter {
+    data class LoadRegisterStackAddress(
+        val offset: UByte,
     ) : Action {
         override val cost: Int = 1
         override fun compile(generator: CodeGenerator) {
             generator.generate(
-                DefaultEmulator.lda_at_a_offset.build(
-                    mapOf("offset" to derefField.offset)
+                DefaultEmulator.lda_at_sp_offset.build(
+                    mapOf("offset" to offset)
                 )
             )
         }
     }
-
-    override fun putInRegister(node: ValueNode, type: DataType, builder: ActionBuilder): Action? {
-
-        if (node !is MemberDeref)
-            return null
-        if (type != byteType)
-            return null
-
-        val member = node.member
-        val baseMember = calculateFrameMemberOffset(node.left, builder.currentFunction) ?: return null
-
-        val ptr = baseMember.type
-        if (ptr !is Pointer) throw CompileError("Cannot deref type of $type")
-
-
-        if (ptr.type !is StructType) throw CompileError("Cannot deref member $member from ${ptr.type}")
-
-        val field = ptr.type.getField(member)
-
-        return CompositeAction(
-            FieldByteToRegister.FieldByteToRegisterAction(baseMember),
-            DerefByteAction(field)
-        )
-    }
-}
-
-class FieldByteToRegister : ActionConverter {
-    data class FieldByteToRegisterAction(
-        val field: StructDataField,
-    ) : Action {
-        override val cost: Int = 1
-        override fun compile(generator: CodeGenerator) {
-            generator.generate(
-                DefaultEmulator.lda_at_fp_offset.build(
-                    mapOf("offset" to field.offset)
-                )
-            )
-        }
-    }
-
-    override fun putInRegister(
-        node: ValueNode,
-        type: DataType,
-        builder: ActionBuilder
-    ): Action? {
-
-        if (type != byteType)
-            return null
-
-        val field = calculateFrameMemberOffset(node, builder.currentFunction) ?: return null
-        if (field.type != byteType)
-            return null
-
-        return FieldByteToRegisterAction(field)
-    }
-}
-
-class PutRegisterOnStack : ActionConverter {
 
     override fun putOnStack(
         node: ValueNode,
         type: DataType,
         builder: ActionBuilder
     ): Action? {
-        if (type != byteType) {
-            return null
-        }
-        val putInRegister = builder.getActionInRegister(node, type) ?: return null
+        if (node !is Identifier && node !is MemberAccess && node !is MemberDeref) return null
+
+        if (type != byteType) return null
+
+        val pushMemberAddress = pushAddress(node, builder.currentFunction, byteType)
+
         return CompositeAction(
-            putInRegister,
+            pushMemberAddress,
+            LoadRegisterStackAddress(0u),
+            PopThrow(),
             PushRegister(),
         )
     }
 }
 
-class PutPointerOnStack : ActionConverter {
+class FieldToPointer : ActionConverter {
+
 
     override fun putOnStack(node: ValueNode, type: DataType, builder: ActionBuilder): Action? {
         if (type !is Pointer) return null
-        val action = builder.getActionInRegister(node, type) ?: return null
-        return CompositeAction(
-            action, PushRegister(),
-        )
 
-    }
-}
-
-class FieldToPointer : ActionConverter {
-    data class FieldDerefAction(
-        val field: StructDataField,
-    ) : Action {
-        override val cost: Int = 1
-        override fun compile(generator: CodeGenerator) {
-            generator.generate(
-                DefaultEmulator.lda_fp_offset.build(
-                    mapOf("offset" to field.offset)
-                )
-            )
-        }
-    }
-
-    override fun putInRegister(node: ValueNode, type: DataType, builder: ActionBuilder): Action? {
-        if (type !is Pointer) return null
-
-        val field = calculateFrameMemberOffset(node, builder.currentFunction) ?: return null
-        if (field.type != type.type) return null
-
-        return FieldDerefAction(field)
+        return pushAddress(node, builder.currentFunction, type.type)
     }
 }
 
 val actions = listOf(
-    PutConstantInRegister(),
     Print(),
     PutByteOnStack(),
     AssignFrameByte(),
-    FieldByteToRegister(),
+    ByteToStack(),
     AdditionProvider(),
     SubtractionProvider(),
-    PutRegisterOnStack(),
 
     NotEqualProvider(),
     CallProvider(),
-    DerefByte(),
     FieldToPointer(),
-    PutPointerOnStack(),
 )
 
 class ActionBuilder(
@@ -326,18 +309,6 @@ class ActionBuilder(
     ): Action? {
         for (action in actions) {
             val result = action.putOnStack(node, type, this)
-            if (result != null)
-                return result
-        }
-        return null
-    }
-
-    fun getActionInRegister(
-        node: ValueNode,
-        type: DataType,
-    ): Action? {
-        for (action in actions) {
-            val result = action.putInRegister(node, type, this)
             if (result != null)
                 return result
         }

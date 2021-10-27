@@ -14,6 +14,12 @@ class DefaultEmulator : Emulator(instructionSet) {
 
         private val instructionSet = InstructionSet()
 
+
+        fun build(mnemonic: String): List<UByte> {
+            return instructionSet.assembleMnemonic(mnemonic)
+        }
+
+
         val invalid = instructionSet.createInstruction("invalid", group = MISC) {
             throw EmulatorInvalidInstructionError("invalid")
         }
@@ -45,12 +51,25 @@ class DefaultEmulator : Emulator(instructionSet) {
             it.a = (it.fp + offset).toUByte()
             false
         }
+        val lda_at_sp_offset = instructionSet.createInstruction("LDA [[SP #offset]]", group = LOAD_STORE) {
+            val offset = it.getIncPC()
+            val addr = it.getMemoryAt((it.sp + offset).toInt())
+            it.a = it.getMemoryAt(addr).toUByte()
+            false
+        }
 
         val sta_fp_offset = instructionSet.createInstruction("STA [FP #offset]", group = LOAD_STORE) {
             val offset = it.getIncPC()
             it.setMemoryAt(it.fp.toInt() + offset.toInt(), it.a)
             false
         }
+        val sta_at_sp_offset = instructionSet.createInstruction("STA [[SP #offset]]", group = LOAD_STORE) {
+            val offset = it.getIncPC()
+            val addr = it.getMemoryAt((it.sp + offset).toInt())
+            it.setMemoryAt(addr.toInt(), it.a)
+            false
+        }
+
         val ldsp = instructionSet.createInstruction("LDSP #val", group = STACK) {
             it.sp = it.getIncPC()
             false
@@ -124,6 +143,12 @@ class DefaultEmulator : Emulator(instructionSet) {
 
         val testa = instructionSet.createInstruction("TSTA", group = FLOW_CONTROL) {
             it.zeroFlag = it.a == byte(0)
+            false
+        }
+
+        val adda = instructionSet.createInstruction("ADDA #val", group = ARITHMETIC) {
+            val value = it.getIncPC()
+            it.a = (it.a + value).toUByte()
             false
         }
 
