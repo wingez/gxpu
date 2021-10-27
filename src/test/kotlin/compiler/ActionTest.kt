@@ -4,6 +4,8 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import se.wingez.ast.*
+import se.wingez.byte
+import se.wingez.bytes
 import se.wingez.compiler.actions.*
 import se.wingez.emulator.DefaultEmulator
 
@@ -322,7 +324,7 @@ class ActionTest {
     }
 
     @Test
-    fun testDerefAddress() {
+    fun testDerefAddressRead() {
         val myType = StructBuilder(dummyTypeContainer).addMember("value", byteType).getStruct("myType")
 
         val function = FunctionInfo(
@@ -333,17 +335,50 @@ class ActionTest {
         )
 
         val builder = ActionBuilder(function, dummyFunctions)
-//        assertIterableEquals(
-//            listOf(
-//                FieldByteToRegister.FieldByteToRegisterAction(StructDataField("field", 0u, Pointer(myType))),
-//                DerefByte.DerefByteAction(StructDataField("value", 0u, byteType)),
-//                Print.PrintAction()
-//            ),
-//            flatten(
-//                builder.buildStatement(PrintNode(MemberDeref(Identifier("field"), "value")))
-//            )
-//        )
+        assertIterableEquals(
+            listOf(
+                FieldByteToRegister.FieldByteToRegisterAction(StructDataField("field", 0u, Pointer(myType))),
+                DerefByte.DerefByteAction(StructDataField("value", 0u, byteType)),
+                Print.PrintAction()
+            ),
+            flatten(
+                builder.buildStatement(PrintNode(MemberDeref(Identifier("field"), "value")))
+            )
+        )
+    }
+
+    @Test
+    @Ignore
+    fun testDerefAssign() {
 
 
+        val myType = StructBuilder(dummyTypeContainer).addMember("value", byteType).getStruct("myType")
+
+        val function = FunctionInfo(
+            0u, "test",
+            StructBuilder(TypeContainer(listOf(myType))).addMember("field", Pointer(myType)).getFields(),
+            emptyList(),
+            voidType, 0u, 0u, 0u
+        )
+
+
+        val builder = ActionBuilder(function, dummyFunctions)
+
+        assertIterableEquals(
+            listOf(
+                FieldByteToRegister.FieldByteToRegisterAction(StructDataField("field", 0u, Pointer(myType))),
+                PushRegister(),
+                LoadRegister(byte(5)),
+//                SetByteAtAddressFromStack(StructDataField("value", 0u, byteType)),
+            ),
+            flatten(
+                builder.buildStatement(
+                    AssignNode(
+                        MemberDeref(Identifier("field"), "value"),
+                        ConstantNode(5)
+                    )
+                )
+            )
+        )
     }
 }
