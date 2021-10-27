@@ -34,7 +34,9 @@ class AstParser(private val tokens: List<Token>) {
     }
 
     private fun consume(): Token {
-        return tokens[index++]
+        val result = peek()
+        index++
+        return result
     }
 
     private inline fun <reified T : Token> consumeType(): T {
