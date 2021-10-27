@@ -4,8 +4,6 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import se.wingez.ast.*
-import se.wingez.byte
-import se.wingez.bytes
 import se.wingez.compiler.actions.*
 import se.wingez.emulator.DefaultEmulator
 
@@ -32,7 +30,7 @@ class ActionTest {
     @Test
     fun testFlatten() {
         fun a(value: UByte): Action {
-            return PushByte(value)
+            return ConstantRegister(value)
         }
 
         assertIterableEquals(
@@ -60,7 +58,7 @@ class ActionTest {
         assertEquals(
             flattened,
             CompositeAction(
-                PushByte(5u),
+                PushConstant(5u),
                 PopRegister(),
                 Print.PrintAction()
             )
@@ -118,7 +116,8 @@ class ActionTest {
                 LoadRegisterFP(),
                 AddRegister(0u),
                 PushRegister(),
-                PushByte(4u),
+                ConstantRegister(4u),
+                PushRegister(),
                 PopRegister(),
                 StoreRegisterAtStackAddress(0u),
                 PopThrow(),
@@ -153,8 +152,10 @@ class ActionTest {
 
         assertEquals(
             listOf(
-                PushByte(10u),
-                PushByte(5u),
+                ConstantRegister(10u),
+                PushRegister(),
+                ConstantRegister(5u),
+                PushRegister(),
                 PopRegister(),
                 AdditionProvider.AdditionAction(),
                 PopThrow(),
@@ -173,8 +174,10 @@ class ActionTest {
 
         assertEquals(
             listOf(
-                PushByte(10u),
-                PushByte(5u),
+                ConstantRegister(10u),
+                PushRegister(),
+                ConstantRegister(5u),
+                PushRegister(),
                 PopRegister(),
                 SubtractionProvider.SubtractionAction(),
                 PopThrow(),
@@ -237,7 +240,8 @@ class ActionTest {
         assertIterableEquals(
             listOf(
                 CallProvider.PlaceReturnValueOnStack(voidType),
-                PushByte(5u),
+                ConstantRegister(5u),
+                PushRegister(),
                 CallProvider.CallAction(functionWithParameter),
                 CallProvider.PopArguments(functionWithParameter),
             ), flatten(
@@ -297,7 +301,8 @@ class ActionTest {
                 AddRegister(0u),
                 AddRegister(0u),
                 PushRegister(),
-                PushByte(5u),
+                ConstantRegister(5u),
+                PushRegister(),
                 PopRegister(),
                 StoreRegisterAtStackAddress(0u),
                 PopThrow()
@@ -312,7 +317,8 @@ class ActionTest {
                 AddRegister(0u),
                 AddRegister(1u),
                 PushRegister(),
-                PushByte(4u),
+                ConstantRegister(4u),
+                PushRegister(),
                 PopRegister(),
                 StoreRegisterAtStackAddress(0u),
                 PopThrow()
@@ -335,10 +341,17 @@ class ActionTest {
         )
 
         val builder = ActionBuilder(function, dummyFunctions)
-        assertIterableEquals(
+        assertEquals(
             listOf(
-                FieldByteToRegister.FieldByteToRegisterAction(StructDataField("field", 0u, Pointer(myType))),
-                DerefByte.DerefByteAction(StructDataField("value", 0u, byteType)),
+                LoadRegisterFP(),
+                AddRegister(0u),
+                DerefByteAction(0u),
+                AddRegister(0u),
+                PushRegister(),
+                ByteToStack.LoadRegisterStackAddress(0u),
+                PopThrow(),
+                PushRegister(),
+                PopRegister(),
                 Print.PrintAction()
             ),
             flatten(
@@ -348,7 +361,6 @@ class ActionTest {
     }
 
     @Test
-    @Ignore
     fun testDerefAssign() {
 
 
@@ -364,12 +376,18 @@ class ActionTest {
 
         val builder = ActionBuilder(function, dummyFunctions)
 
-        assertIterableEquals(
+        assertEquals(
             listOf(
-                FieldByteToRegister.FieldByteToRegisterAction(StructDataField("field", 0u, Pointer(myType))),
+                LoadRegisterFP(),
+                AddRegister(0u),
+                DerefByteAction(0u),
+                AddRegister(0u),
                 PushRegister(),
-                LoadRegister(byte(5)),
-//                SetByteAtAddressFromStack(StructDataField("value", 0u, byteType)),
+                ConstantRegister(5u),
+                PushRegister(),
+                PopRegister(),
+                StoreRegisterAtStackAddress(0u),
+                PopThrow()
             ),
             flatten(
                 builder.buildStatement(

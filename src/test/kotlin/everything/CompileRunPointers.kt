@@ -28,4 +28,31 @@ class CompileRunPointers {
         runProgramCheckOutput(program, 11, 13)
     }
 
+    @Test
+    fun testEditPointerFromCallee() {
+        val program = """
+          struct type:
+            val1:byte
+            val2:byte
+           
+          def toCall(param:type):
+            param->val1 = 5
+          
+          def main():
+            a:new type
+            
+            a.val1=11
+            a.val2=13
+            
+            toCall(a)
+            print(a.val1)
+            print(a.val2)
+            
+            
+                 
+    """
+        runProgramCheckOutput(program, 5, 13)
+    }
+
+
 }

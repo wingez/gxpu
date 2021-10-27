@@ -2,7 +2,10 @@ package se.wingez.compiler
 
 import se.wingez.ast.*
 import se.wingez.byte
+import se.wingez.compiler.actions.Action
 import se.wingez.compiler.actions.ActionBuilder
+import se.wingez.compiler.actions.flatten
+import se.wingez.compiler.actions.optimizers.applyAllOptimizations
 import se.wingez.emulator.DefaultEmulator
 
 interface FunctionProvider {
@@ -21,8 +24,7 @@ class FunctionBuilder(
     }
 
     fun handleStatement(node: StatementNode) {
-        val action = actionBuilder.buildStatement(node)
-        action.compile(generator)
+        optimizeGenerate(actionBuilder.buildStatement(node))
     }
 
     fun handleReturn(node: ReturnNode) {
@@ -37,10 +39,17 @@ class FunctionBuilder(
         }
     }
 
+    private fun optimizeGenerate(action: Action) {
+        val actionsMutable = flatten(action).toMutableList()
+        applyAllOptimizations(actionsMutable)
+        for (a in actionsMutable) {
+            a.compile(generator)
+        }
+    }
+
     private fun handleIf(node: IfNode) {
 
-        val compareAction = actionBuilder.buildStatement(node.condition)
-        compareAction.compile(generator)
+        optimizeGenerate(actionBuilder.buildStatement(node.condition))
         val jumpToFalseCondition = generator.makeSpaceFor(DefaultEmulator.jump_zero)
         buildNodes(node.body)
 
@@ -60,8 +69,7 @@ class FunctionBuilder(
 
     private fun handleWhile(node: WhileNode) {
         val startOfBlock = byte(generator.currentSize)
-        val compareAction = actionBuilder.buildStatement(node.condition)
-        compareAction.compile(generator)
+        optimizeGenerate(actionBuilder.buildStatement(node.condition))
         val jumpToExit = generator.makeSpaceFor(DefaultEmulator.jump_zero)
 
         buildNodes(node.body)

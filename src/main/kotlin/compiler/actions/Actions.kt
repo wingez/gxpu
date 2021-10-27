@@ -64,35 +64,11 @@ class PutByteOnStack : ActionConverter {
         if (node !is ConstantNode || type != byteType) {
             return null
         }
-        return PushByte(byte(node.value))
+        return PushConstant(byte(node.value))
     }
 }
 
-data class PopThrow(
-    override val cost: Int = 1
-) : Action {
-    override fun compile(generator: CodeGenerator) {
-        generator.generate(DefaultEmulator.build("ADDSP #1"))
-    }
-}
 
-data class LoadRegisterFP(
-    override val cost: Int = 1
-) : Action {
-    override fun compile(generator: CodeGenerator) {
-        generator.generate(DefaultEmulator.lda_fp_offset.build(mapOf("offset" to 0u)))
-    }
-}
-
-data class AddRegister(
-    val offset: UByte,
-    override val cost: Int = 1,
-) : Action {
-    override fun compile(generator: CodeGenerator) {
-        generator.generate(DefaultEmulator.adda.build(mapOf("val" to offset)))
-    }
-
-}
 
 enum class MemberAccessAction {
     Access,
@@ -180,35 +156,6 @@ fun pushAddress(topNode: ValueNode, function: FunctionInfo, expectedType: DataTy
 }
 
 
-data class StoreRegisterAtStackAddress(
-    val offset: UByte,
-) : Action {
-    /**
-     * Expects Value to be in A, address on top of stack.
-     * Does not clear the Stack afterwards
-     */
-    override val cost: Int = 1
-    override fun compile(generator: CodeGenerator) {
-        generator.generate(
-            DefaultEmulator.sta_at_sp_offset.build(
-                mapOf("offset" to offset)
-            )
-        )
-    }
-}
-
-data class DerefByteAction(
-    val offset: UByte,
-) : Action {
-    override val cost: Int = 1
-    override fun compile(generator: CodeGenerator) {
-        generator.generate(
-            DefaultEmulator.lda_at_a_offset.build(
-                mapOf("offset" to offset)
-            )
-        )
-    }
-}
 
 
 class AssignFrameByte : ActionConverter {
@@ -270,8 +217,6 @@ class ByteToStack : ActionConverter {
 }
 
 class FieldToPointer : ActionConverter {
-
-
     override fun putOnStack(node: ValueNode, type: DataType, builder: ActionBuilder): Action? {
         if (type !is Pointer) return null
 
