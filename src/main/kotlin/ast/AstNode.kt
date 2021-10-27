@@ -100,3 +100,8 @@ data class MemberAccess(
     val left: ValueNode,
     val member: String
 ) : ValueNode()
+
+data class MemberDeref(
+    val left: ValueNode,
+    val member: String,
+) : ValueNode()

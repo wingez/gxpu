@@ -278,11 +278,10 @@ class AstParser(private val tokens: List<Token>) {
         if (nextToken is TokenSingleOperation) {
             consume()
 
-            if (nextToken == TokenDot) {
-                val target = consumeIdentifier()
-                return MemberAccess(firstResult, target)
+            when (nextToken) {
+                TokenDot -> return MemberAccess(firstResult, consumeIdentifier())
+                TokenDeref -> return MemberDeref(firstResult, consumeIdentifier())
             }
-
 
             val secondResult = parseValueProvider()
 

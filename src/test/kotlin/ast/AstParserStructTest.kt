@@ -111,6 +111,16 @@ class AstParserStructTest {
                 MemberAccess(Identifier("s"), "member")
             ),
         )
+    }
 
+    @Test
+    fun testStructMemberDeref() {
+        assertEquals(
+            AssignNode(
+                MemberDeref(Identifier("a"), "test"),
+                Identifier("s")
+            ),
+            parserFromLine("a->test = s").parseAssignment()
+        )
     }
 }
