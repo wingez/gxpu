@@ -179,6 +179,11 @@ internal class TokenizerTest {
 
         assertIterableEquals(parseLine(")+"), listOf(TokenRightParenthesis, TokenPlusSign, TokenEOL))
 
+        assertIterableEquals(
+            parseLine(")->test"),
+            listOf(TokenRightParenthesis, TokenDeref, TokenIdentifier("test"), TokenEOL)
+        )
+
     }
 
 

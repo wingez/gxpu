@@ -1,7 +1,6 @@
 package se.wingez.tokens
 
 import java.io.Reader
-import java.lang.Exception
 
 class TokenError(message: String) : Exception(message)
 
@@ -43,6 +42,7 @@ enum class TokenType {
     MinusSign,
     GreaterSign,
     NotEqual,
+    Deref,
 }
 
 val TokenEOL = ExpressionSeparator(TokenType.EOL)
@@ -52,6 +52,7 @@ val TokenComma = ExpressionSeparator(TokenType.Comma)
 val TokenColon = ExpressionSeparator(TokenType.Colon)
 val TokenAssign = ExpressionSeparator(TokenType.Equals)
 val TokenDot = TokenSingleOperation(TokenType.Dot)
+val TokenDeref = TokenSingleOperation(TokenType.Deref)
 val TokenKeywordDef = Token(TokenType.KeywordDef)
 val TokenKeywordPrint = Token(TokenType.KeywordPrint)
 val TokenKeywordWhile = Token(TokenType.KeywordWhile)
@@ -246,6 +247,7 @@ fun toToken(text: String): Token {
         "-" -> TokenMinusSign
         ">" -> TokenGreaterSign
         "." -> TokenDot
+        "->" -> TokenDeref
         else -> null
     }?.also { return it }
 
