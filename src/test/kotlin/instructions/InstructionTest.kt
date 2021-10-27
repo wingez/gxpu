@@ -53,7 +53,10 @@ internal class InstructionTest {
         assertEquals(Instruction("lda sp,#var", emptyEmulate).variableOrder, listOf("var"))
         assertEquals(Instruction("test #a, #b", emptyEmulate).variableOrder, listOf("a", "b"))
 
-        assertEquals(Instruction("test #a, #b", emptyEmulate, variableOrder = listOf("b", "a")).variableOrder, listOf("b", "a"))
+        assertEquals(
+            Instruction("test #a, #b", emptyEmulate, variableOrder = listOf("b", "a")).variableOrder,
+            listOf("b", "a")
+        )
 
         assertEquals(Instruction("test -#a", emptyEmulate).variableOrder, listOf("a"))
 
@@ -66,11 +69,31 @@ internal class InstructionTest {
     }
 
     @Test
+    fun testAddressBrackets() {
+        assertEquals(Instruction("test [#a, #b]", emptyEmulate).variableOrder, listOf("a", "b"))
+        val i = InstructionSet()
+
+        val lda_at_fp_offset =
+            i.createInstruction("LDA [FP #offset]", 1u, "", emptyEmulate)
+        val lda_fp_offset =
+            i.createInstruction("LDA FP #offset", 2u, "", emptyEmulate)
+
+        val mnem1 = "LDA [FP #5]"
+        val mnem2 = "LDA FP #4"
+
+        assertEquals(i.assembleMnemonic(mnem1), lda_at_fp_offset.build(mapOf("offset" to 5u)))
+        assertEquals(i.assembleMnemonic(mnem2), lda_fp_offset.build(mapOf("offset" to 4u)))
+    }
+
+    @Test
     fun testBuild() {
         assertIterableEquals(Instruction("test", emptyEmulate, 0u).build(), listOf<UByte>(0u))
         assertIterableEquals(Instruction("test #test", emptyEmulate, 5u).build(mapOf("test" to 6u)), bytes(5, 6))
-        assertIterableEquals(Instruction("test #a #b", emptyEmulate, 7u, variableOrder = listOf("b", "a")).build(
-                mapOf("a" to 2u, "b" to 3u)), bytes(7, 3, 2))
+        assertIterableEquals(
+            Instruction("test #a #b", emptyEmulate, 7u, variableOrder = listOf("b", "a")).build(
+                mapOf("a" to 2u, "b" to 3u)
+            ), bytes(7, 3, 2)
+        )
 
         val i = Instruction("test #a, #b", emptyEmulate)
         assertThrows(InstructionBuilderError::class.java) {
@@ -135,19 +158,19 @@ internal class InstructionTest {
         i.addInstruction(Instruction("second", emulate = emptyEmulate, id = 3u))
 
         val code = bytes(
-                1, 15,
-                3,
-                3,
-                2, 6, 3,
-                1, 14
+            1, 15,
+            3,
+            3,
+            2, 6, 3,
+            1, 14
         )
 
         val expected = listOf(
-                "test #15",
-                "second",
-                "second",
-                "TEst2 #6 #3",
-                "test #14",
+            "test #15",
+            "second",
+            "second",
+            "TEst2 #6 #3",
+            "test #14",
         )
 
         assertIterableEquals(i.disassemble(code), expected)
@@ -161,13 +184,16 @@ internal class InstructionTest {
         i.addInstruction(Instruction("test #ins #tmp", emulate = emptyEmulate, id = 1u, group = "group2"))
         i.addInstruction(Instruction("test #ins", emulate = emptyEmulate, id = 2u, group = "group1"))
 
-        assertIterableEquals(i.describeInstructions(),
-                listOf("Group: group1",
-                        "  0: test",
-                        "  2: test #ins",
-                        "Group: group2",
-                        "  1: test #ins #tmp"
-                ))
+        assertIterableEquals(
+            i.describeInstructions(),
+            listOf(
+                "Group: group1",
+                "  0: test",
+                "  2: test #ins",
+                "Group: group2",
+                "  1: test #ins #tmp"
+            )
+        )
     }
 
     @Test
@@ -175,10 +201,13 @@ internal class InstructionTest {
         val i = InstructionSet()
         i.addInstruction(Instruction("test", emulate = emptyEmulate, id = 5u))
 
-        assertIterableEquals(i.describeInstructions(),
-                listOf("Group: not set",
-                        "  5: test",
-                ))
+        assertIterableEquals(
+            i.describeInstructions(),
+            listOf(
+                "Group: not set",
+                "  5: test",
+            )
+        )
     }
 
 }

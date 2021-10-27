@@ -10,12 +10,12 @@ class InstructionBuilderError(message: String) : Exception(message)
 
 
 data class Instruction(
-        val mnemonic: String,
+    val mnemonic: String,
 
-        val emulate: (Emulator) -> Boolean,
-        var id: UByte = AUTO_INDEX_ASSIGMENT,
-        val group: String = "",
-        var variableOrder: List<String> = emptyList(),
+    val emulate: (Emulator) -> Boolean,
+    var id: UByte = AUTO_INDEX_ASSIGMENT,
+    val group: String = "",
+    var variableOrder: List<String> = emptyList(),
 ) {
     companion object {
         const val AUTO_INDEX_ASSIGMENT: UByte = 255u
@@ -26,7 +26,7 @@ data class Instruction(
     val name: String
 
     init {
-        val words = splitMany(mnemonic, MNEMONIC_DELIMITERS)
+        val words = splitMany(mnemonic, listOf(" ", ",", "[", "]"))
         name = words[0]
 
         val variables = words.filter { '#' in it }.map { it.trimStart('#', '-') }.toList()
@@ -93,12 +93,17 @@ class InstructionSet(val maxSize: UByte = Instruction.MAX_SIZE) {
         instructionByIndex[instruction.id] = instruction
     }
 
-    fun createInstruction(mnemonic: String, index: UByte = Instruction.AUTO_INDEX_ASSIGMENT, group: String = "", emulate: (Emulator) -> Boolean): Instruction {
+    fun createInstruction(
+        mnemonic: String,
+        index: UByte = Instruction.AUTO_INDEX_ASSIGMENT,
+        group: String = "",
+        emulate: (Emulator) -> Boolean
+    ): Instruction {
         val instr = Instruction(
-                mnemonic,
-                emulate,
-                index,
-                group,
+            mnemonic,
+            emulate,
+            index,
+            group,
         )
         addInstruction(instr)
         return instr
@@ -114,8 +119,19 @@ class InstructionSet(val maxSize: UByte = Instruction.MAX_SIZE) {
         return instructionByIndex.getValue(id)
     }
 
+    fun adjustForBrackets(mnemonic: String): String {
+        // TODO fix this hack
+        // Add spaces after each token so we can treat them as a regular word
+        var result = mnemonic
+        for (letter in listOf("[", "]")) {
+            result = result.replace(letter, " $letter ")
+        }
+
+        return result
+    }
+
     fun assembleMnemonic(mnemonic: String): List<UByte> {
-        val trimmedMnemonic = mnemonic.trim(' ')
+        val trimmedMnemonic = adjustForBrackets(mnemonic).trim(' ')
 
         // Filter empty lines and comments
         if (trimmedMnemonic.isEmpty() || trimmedMnemonic.startsWith('#'))
@@ -125,7 +141,8 @@ class InstructionSet(val maxSize: UByte = Instruction.MAX_SIZE) {
 
             val variables = mutableMapOf<String, UByte>()
 
-            val templateSplit = splitMany(instr.mnemonic, MNEMONIC_DELIMITERS).filter { it.isNotEmpty() }
+            val templateSplit =
+                splitMany(adjustForBrackets(instr.mnemonic), MNEMONIC_DELIMITERS).filter { it.isNotEmpty() }
             val mnemSplit = splitMany(trimmedMnemonic, MNEMONIC_DELIMITERS).filter { it.isNotEmpty() }
 
             if (templateSplit.size != mnemSplit.size)
