@@ -34,7 +34,7 @@ open class Emulator(
 
     fun clearMemory() {
         for (i in 0 until memorySize) {
-            memory[0] = 0u
+            memory[i] = 0u
         }
     }
 
@@ -101,5 +101,4 @@ open class Emulator(
         }
         throw EmulatorCyclesExceeded("Maximum execution cycles exceeded, stuck in infinite loop perhaps?")
     }
-
 }
