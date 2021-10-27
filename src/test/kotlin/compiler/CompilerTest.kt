@@ -218,4 +218,52 @@ class CompilerTest {
         programShouldMatchAssembled(body, expected)
     }
 
+    @Test
+    fun testPointerDeref() {
+        val expected = """
+        LDFP #255
+        LDSP #255
+        CALL #14
+        exit
+        # test1 
+        LDFP SP
+        LDA [FP #2]
+        LDA [A #0]
+        out
+        RET
+        
+        # main
+        SUBSP #1
+        LDFP SP
+        LDA #11
+        STA [FP #0]
+        
+        LDA FP #0
+        PUSHA
+        
+        CALL #7
+        ADDSP #1
+        
+        ret #1
+         
+        """
+        val body = """
+          struct type:
+            val1:byte
+           
+          def toCall(param:type):
+            print(param->val1)
+          
+          def main():
+            a:new type
+            
+            a.val1=11
+            
+            toCall(a)
+        """
+
+        programShouldMatchAssembled(body, expected)
+    }
+
+
 }

@@ -130,10 +130,10 @@ internal class EmulatorBasicTest {
                 DefaultEmulator.print.build(), DefaultEmulator.exit.build()
         ), bytes(0))
         assertIterableEquals(buildAndRun(
-                DefaultEmulator.print.build(),
-                DefaultEmulator.lda.build(mapOf("val" to 10u)),
-                DefaultEmulator.print.build(),
-                DefaultEmulator.exit.build()
+            DefaultEmulator.print.build(),
+            DefaultEmulator.lda_constant.build(mapOf("val" to 10u)),
+            DefaultEmulator.print.build(),
+            DefaultEmulator.exit.build()
         ), bytes(0, 10))
     }
 

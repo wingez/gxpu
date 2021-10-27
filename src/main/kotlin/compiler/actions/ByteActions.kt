@@ -16,7 +16,7 @@ data class LoadRegister(
 ) : Action {
     override val cost: Int = 1
     override fun compile(generator: CodeGenerator) {
-        generator.generate(DefaultEmulator.lda.build(mapOf("val" to value)))
+        generator.generate(DefaultEmulator.lda_constant.build(mapOf("val" to value)))
     }
 }
 
@@ -25,7 +25,7 @@ data class PushByte(
 ) : Action {
     override val cost: Int = 1
     override fun compile(generator: CodeGenerator) {
-        generator.generate(DefaultEmulator.lda.build(mapOf("val" to value)))
+        generator.generate(DefaultEmulator.lda_constant.build(mapOf("val" to value)))
         generator.generate(DefaultEmulator.pusha.build())
     }
 }

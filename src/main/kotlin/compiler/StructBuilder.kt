@@ -10,17 +10,17 @@ class StructBuilder(
     private var currentSize = byte(0)
     private val fields = mutableMapOf<String, StructDataField>()
 
-    fun addMember(member: PrimitiveMemberDeclaration) {
+    fun addMember(member: PrimitiveMemberDeclaration): StructBuilder {
         val typeTemplate: DataType = if (member.type.isEmpty())
             DEFAULT_TYPE
         else
             typeProvider.getType(member.type)
 
         val fieldType = typeTemplate.instantiate(member.explicitNew)
-        addMember(member.name, fieldType)
+        return addMember(member.name, fieldType)
     }
 
-    fun addMember(name: String, type: DataType) {
+    fun addMember(name: String, type: DataType): StructBuilder {
 
         if (name in fields) {
             throw CompileError("Duplicate field: $name")
@@ -28,6 +28,7 @@ class StructBuilder(
 
         fields[name] = StructDataField(name, currentSize, type)
         currentSize = byte(currentSize + type.size)
+        return this
     }
 
     fun hasField(name: String): Boolean {

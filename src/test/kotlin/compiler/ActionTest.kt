@@ -60,14 +60,14 @@ class ActionTest {
             flattened,
             CompositeAction(
                 LoadRegister(5u),
-                PrintFromRegister.PrintAction()
+                Print.PrintAction()
             )
         )
         val generator = CodeGenerator()
         flattened.compile(generator)
         assertIterableEquals(
             generator.resultingCode,
-            listOf(DefaultEmulator.lda.id, 5u, DefaultEmulator.print.id)
+            listOf(DefaultEmulator.lda_constant.id, 5u, DefaultEmulator.print.id)
         )
     }
 
@@ -81,7 +81,7 @@ class ActionTest {
             flattened,
             CompositeAction(
                 FieldByteToRegister.FieldByteToRegisterAction(dummyFrame.getField("var1")),
-                PrintFromRegister.PrintAction()
+                Print.PrintAction()
             )
         )
     }
@@ -108,7 +108,7 @@ class ActionTest {
         flattened.compile(generator)
         assertIterableEquals(
             generator.resultingCode,
-            bytes(DefaultEmulator.lda.id.toInt(), 4, DefaultEmulator.sta_fp_offset.id.toInt(), 0)
+            bytes(DefaultEmulator.lda_constant.id.toInt(), 4, DefaultEmulator.sta_fp_offset.id.toInt(), 0)
         )
     }
 
@@ -125,7 +125,7 @@ class ActionTest {
                     LoadRegister(5u),
                     AdditionProvider.AdditionAction(),
                 ),
-                PrintFromRegister.PrintAction()
+                Print.PrintAction()
             )
         )
     }
@@ -272,5 +272,31 @@ class ActionTest {
                 builder.buildStatement(AssignNode(MemberAccess(Identifier("t"), "member2"), ConstantNode(4)))
             )
         )
+    }
+
+    @Test
+    fun testDerefAddress() {
+        val myType = StructBuilder(dummyTypeContainer).addMember("value", byteType).getStruct("myType")
+
+        val function = FunctionInfo(
+            0u, "test",
+            StructBuilder(TypeContainer(listOf(myType))).addMember("field", Pointer(myType)).getFields(),
+            emptyList(),
+            voidType, 0u, 0u, 0u
+        )
+
+        val builder = ActionBuilder(function, dummyFunctions)
+        assertIterableEquals(
+            listOf(
+                FieldByteToRegister.FieldByteToRegisterAction(StructDataField("field", 0u, Pointer(myType))),
+                DerefByte.DerefByteAction(StructDataField("value", 0u, byteType)),
+                Print.PrintAction()
+            ),
+            flatten(
+                builder.buildStatement(PrintNode(MemberDeref(Identifier("field"), "value")))
+            )
+        )
+
+
     }
 }

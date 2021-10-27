@@ -38,7 +38,7 @@ interface ActionConverter {
     }
 }
 
-class PrintFromRegister : ActionConverter {
+class Print : ActionConverter {
 
     data class PrintAction(
         override val cost: Int = 1
@@ -127,7 +127,8 @@ fun calculateFrameMemberOffset(node: ValueNode, function: FunctionInfo): StructD
         currentOffset = byte(currentOffset + field.offset)
         currentType = field.type
     }
-    return StructDataField(fieldDescription, currentOffset, byteType)
+
+    return StructDataField(fieldDescription, currentOffset, currentType)
 }
 
 class AssignFrameByte : ActionConverter {
@@ -166,6 +167,46 @@ class AssignFrameByte : ActionConverter {
     }
 }
 
+class DerefByte : ActionConverter {
+
+    data class DerefByteAction(
+        val derefField: StructDataField,
+    ) : Action {
+        override val cost: Int = 1
+        override fun compile(generator: CodeGenerator) {
+            generator.generate(
+                DefaultEmulator.lda_at_a_offset.build(
+                    mapOf("offset" to derefField.offset)
+                )
+            )
+        }
+    }
+
+    override fun putInRegister(node: ValueNode, type: DataType, builder: ActionBuilder): Action? {
+
+        if (node !is MemberDeref)
+            return null
+        if (type != byteType)
+            return null
+
+        val member = node.member
+        val baseMember = calculateFrameMemberOffset(node.left, builder.currentFunction) ?: return null
+
+        val ptr = baseMember.type
+        if (ptr !is Pointer) throw CompileError("Cannot deref type of $type")
+
+
+        if (ptr.type !is StructType) throw CompileError("Cannot deref member $member from ${ptr.type}")
+
+        val field = ptr.type.getField(member)
+
+        return CompositeAction(
+            FieldByteToRegister.FieldByteToRegisterAction(baseMember),
+            DerefByteAction(field)
+        )
+    }
+}
+
 class FieldByteToRegister : ActionConverter {
     data class FieldByteToRegisterAction(
         val field: StructDataField,
@@ -173,7 +214,7 @@ class FieldByteToRegister : ActionConverter {
         override val cost: Int = 1
         override fun compile(generator: CodeGenerator) {
             generator.generate(
-                DefaultEmulator.lda_fp_offset.build(
+                DefaultEmulator.lda_at_fp_offset.build(
                     mapOf("offset" to field.offset)
                 )
             )
@@ -190,6 +231,8 @@ class FieldByteToRegister : ActionConverter {
             return null
 
         val field = calculateFrameMemberOffset(node, builder.currentFunction) ?: return null
+        if (field.type != byteType)
+            return null
 
         return FieldByteToRegisterAction(field)
     }
@@ -213,9 +256,45 @@ class PutRegisterOnStack : ActionConverter {
     }
 }
 
+class PutPointerOnStack : ActionConverter {
+
+    override fun putOnStack(node: ValueNode, type: DataType, builder: ActionBuilder): Action? {
+        if (type !is Pointer) return null
+        val action = builder.getActionInRegister(node, type) ?: return null
+        return CompositeAction(
+            action, PushRegister(),
+        )
+
+    }
+}
+
+class FieldToPointer : ActionConverter {
+    data class FieldDerefAction(
+        val field: StructDataField,
+    ) : Action {
+        override val cost: Int = 1
+        override fun compile(generator: CodeGenerator) {
+            generator.generate(
+                DefaultEmulator.lda_fp_offset.build(
+                    mapOf("offset" to field.offset)
+                )
+            )
+        }
+    }
+
+    override fun putInRegister(node: ValueNode, type: DataType, builder: ActionBuilder): Action? {
+        if (type !is Pointer) return null
+
+        val field = calculateFrameMemberOffset(node, builder.currentFunction) ?: return null
+        if (field.type != type.type) return null
+
+        return FieldDerefAction(field)
+    }
+}
+
 val actions = listOf(
     PutConstantInRegister(),
-    PrintFromRegister(),
+    Print(),
     PutByteOnStack(),
     AssignFrameByte(),
     FieldByteToRegister(),
@@ -225,6 +304,9 @@ val actions = listOf(
 
     NotEqualProvider(),
     CallProvider(),
+    DerefByte(),
+    FieldToPointer(),
+    PutPointerOnStack(),
 )
 
 class ActionBuilder(

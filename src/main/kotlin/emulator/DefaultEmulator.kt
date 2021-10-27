@@ -24,18 +24,29 @@ class DefaultEmulator : Emulator(instructionSet) {
             it.print(it.a)
             false
         }
-        val lda = instructionSet.createInstruction("LDA #val", group = LOAD_STORE) {
+        val lda_constant = instructionSet.createInstruction("LDA #val", group = LOAD_STORE) {
             it.a = it.getIncPC()
             false
         }
 
-        val lda_fp_offset = instructionSet.createInstruction("LDA FP, #offset", group = LOAD_STORE) {
+        val lda_at_fp_offset = instructionSet.createInstruction("LDA [FP #offset]", group = LOAD_STORE) {
             val offset = it.getIncPC()
             it.a = it.getMemoryAt(it.fp + offset)
             false
         }
 
-        val sta_fp_offset = instructionSet.createInstruction("STA FP, #offset", group = LOAD_STORE) {
+        val lda_at_a_offset = instructionSet.createInstruction("LDA [A #offset]", group = LOAD_STORE) {
+            val offset = it.getIncPC()
+            it.a = it.getMemoryAt(it.a + offset)
+            false
+        }
+        val lda_fp_offset = instructionSet.createInstruction("LDA FP #offset", group = LOAD_STORE) {
+            val offset = it.getIncPC()
+            it.a = (it.fp + offset).toUByte()
+            false
+        }
+
+        val sta_fp_offset = instructionSet.createInstruction("STA [FP #offset]", group = LOAD_STORE) {
             val offset = it.getIncPC()
             it.setMemoryAt(it.fp.toInt() + offset.toInt(), it.a)
             false
