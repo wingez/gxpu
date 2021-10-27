@@ -3,13 +3,14 @@ package se.wingez.compiler
 import se.wingez.ast.*
 import se.wingez.byte
 
+const val POINTER_SIZE = 1
+
 const val SP_STACK_SIZE = 1
 const val PC_STACK_SIZE = 1
 const val STACK_START = 255
 
 
 class FunctionInfo(
-    size: UByte,
     val memoryPosition: UByte,
     name: String,
     fields: Map<String, StructDataField>,
@@ -18,7 +19,7 @@ class FunctionInfo(
     val sizeOfParameters: UByte,
     val sizeOfMeta: UByte,
     val sizeOfVars: UByte,
-) : StructType(size, name, fields) {
+) : StructType(name, fields) {
     val sizeOfReturn = returnType.size
     val hasReturnSize = sizeOfReturn > 0u
 
@@ -32,39 +33,39 @@ fun calculateFrameLayout(
     memoryPosition: UByte,
 ): FunctionInfo {
     // We first calculate the offsets from the top. Then we reverse it when we know the total size
-    val fieldsOffsetFromTop = mutableMapOf<String, StructDataField>()
+    val fieldBuilder = StructBuilder(typeProvider)
 
-    val returnType = typeProvider.getType(node.returnType)
+    // TODO: handle explicit new
+    val returnType = typeProvider.getType(node.returnType).instantiate(false)
     if (returnType != voidType) {
-        fieldsOffsetFromTop["result"] = StructDataField("result", 0u, returnType)
+        fieldBuilder.addMember("result", returnType)
     }
 
-    val sizeOfRet = returnType.size
-    var currentSize = sizeOfRet.toInt()
-    var sizeOfParams = 0
-
+    val sizeOfRet = fieldBuilder.getCurrentSize()
     val parameterNames = mutableListOf<String>()
+
     for (arg in node.arguments) {
-        if (arg.name in parameterNames) throw CompileError("Duplicate parameter")
+        if (arg.explicitNew) {
+            throw CompileError("Explicit new not allowed for parameters")
+        }
 
+        val paramType = typeProvider.getType(arg.type).instantiate(false)
+        fieldBuilder.addMember(arg.name, paramType)
         parameterNames.add(arg.name)
-        val paramType = typeProvider.getType(arg.type)
-        fieldsOffsetFromTop[arg.name] = StructDataField(arg.name, byte(currentSize), paramType)
-        currentSize += paramType.size.toInt()
-        sizeOfParams += paramType.size.toInt()
+
     }
+    val sizeOfParams = fieldBuilder.getCurrentSize() - sizeOfRet
 
-    val sizeOfMeta = stackFrameType.size
-    currentSize += sizeOfMeta.toInt()
-
-    var sizeOfVars = 0
-
+    // Make space for pc+fp
+    fieldBuilder.addMember("frame", stackFrameType)
+    val sizeOfMeta = fieldBuilder.getCurrentSize() - sizeOfRet - sizeOfParams
 
     // Traverse recursively. Can probably be flattened but meh
     fun traverseNode(nodeToVisit: NodeContainer) {
         for (visitNode in nodeToVisit.getNodes()) {
             var name: String
             var typeName: String
+            var explicitNew: Boolean
 
             if (visitNode is AssignNode) {
                 if (visitNode.target !is Identifier) {
@@ -74,9 +75,16 @@ fun calculateFrameLayout(
                 }
                 name = visitNode.target.name
                 typeName = visitNode.type
+                explicitNew = visitNode.explicitNew
+
+                if (fieldBuilder.hasField(name))
+                // TODO check type here perhaps??
+                    continue
+
             } else if (visitNode is PrimitiveMemberDeclaration) {
                 name = visitNode.name
                 typeName = visitNode.type
+                explicitNew = visitNode.explicitNew
             } else {
                 if (visitNode is NodeContainer) {
                     traverseNode(visitNode)
@@ -84,24 +92,18 @@ fun calculateFrameLayout(
                 continue
             }
 
-            val type = typeProvider.getType(typeName)
-            if (name in fieldsOffsetFromTop) {
-                // TODO: Do something here??
-            } else {
-                fieldsOffsetFromTop[name] = StructDataField(name, byte(currentSize), type)
-                currentSize += type.size.toInt()
-                sizeOfVars += type.size.toInt()
-            }
+            val type = typeProvider.getType(typeName).instantiate(explicitNew)
+            fieldBuilder.addMember(name, type)
         }
     }
-
-
     traverseNode(node)
+    val sizeOfVars = fieldBuilder.getCurrentSize() - sizeOfRet - sizeOfParams - sizeOfMeta
 
-    //Reverse the offsets
+    //We've built the frame from top to buttom (param first, variables last). But on the stack the order is reversed
+    //So we need to flip all offsets so it's relative to the bottom instead
     val fields = mutableMapOf<String, StructDataField>()
-    fieldsOffsetFromTop.forEach {
-        val offset = currentSize - it.value.type.size.toInt() - it.value.offset.toInt()
+    fieldBuilder.getFields().forEach {
+        val offset = fieldBuilder.getCurrentSize() - it.value.type.size.toInt() - it.value.offset.toInt()
         fields[it.key] = StructDataField(it.value.name, byte(offset), it.value.type)
     }
 
@@ -112,14 +114,13 @@ fun calculateFrameLayout(
 
 
     return FunctionInfo(
-        byte(currentSize),
         memoryPosition,
         node.name,
         fields,
         parameters,
         returnType,
         byte(sizeOfParams),
-        sizeOfMeta,
+        byte(sizeOfMeta),
         byte(sizeOfVars),
     )
 

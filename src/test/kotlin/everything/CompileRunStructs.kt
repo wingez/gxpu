@@ -13,7 +13,7 @@ class CompileRunStructs {
             member2:byte
           
           def main():
-            a:type1
+            a:new type1
             
             a.member2=5
             a.member1=2
@@ -34,7 +34,7 @@ class CompileRunStructs {
             member2:byte
           
           def main():
-            a:type1
+            a:new type1
             
             a.member2=5
             a.member1=2
@@ -55,10 +55,10 @@ class CompileRunStructs {
             
           struct parent:
             parent1:byte
-            child:children
+            child: new children
           
           def main():
-            a:parent
+            a:new parent
             
             a.parent1=1
             (a.child).child1=2

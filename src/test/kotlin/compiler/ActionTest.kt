@@ -22,7 +22,7 @@ class ActionTest {
 
 
     private val dummyFrame = FunctionInfo(
-        3u, 0u, "dummyFrame",
+        0u, "dummyFrame",
         mapOf("var1" to StructDataField("var1", 0u, byteType)),
         emptyList(),
         voidType, 2u, 1u, 0u
@@ -160,7 +160,7 @@ class ActionTest {
 
     @Test
     fun testCall() {
-        val emptyFunction = FunctionInfo(2u, 0u, "test", emptyMap(), emptyList(), voidType, 0u, 2u, 0u)
+        val emptyFunction = FunctionInfo(0u, "test", emptyMap(), emptyList(), voidType, 0u, 2u, 0u)
         val builder = ActionBuilder(dummyFrame, FunctionContainer(listOf(emptyFunction)))
 
 
@@ -182,7 +182,6 @@ class ActionTest {
     @Test
     fun testCallParameter() {
         val functionWithParameter = FunctionInfo(
-            3u,
             0u,
             "test",
             emptyMap(),
@@ -214,7 +213,7 @@ class ActionTest {
     @Test
     fun testCallReturnType() {
 
-        val functionWithReturn = FunctionInfo(3u, 0u, "test", emptyMap(), emptyList(), byteType, 0u, 2u, 0u)
+        val functionWithReturn = FunctionInfo(0u, "test", emptyMap(), emptyList(), byteType, 0u, 2u, 0u)
         val builder = ActionBuilder(dummyFrame, FunctionContainer(listOf(functionWithReturn)))
 
         //No params, return byte
@@ -243,13 +242,13 @@ class ActionTest {
     fun testAssignStruct() {
 
         val myType = StructType(
-            2u, "myType", mapOf(
+            "myType", mapOf(
                 "member1" to StructDataField("member1", 0u, byteType),
                 "member2" to StructDataField("member2", 1u, byteType),
             )
         )
         val function = FunctionInfo(
-            4u, 0u, "test",
+            0u, "test",
             mapOf("t" to StructDataField("t", 0u, myType)), emptyList(), voidType, 0u, 2u, 2u
         )
 

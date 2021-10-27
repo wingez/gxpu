@@ -1,5 +1,6 @@
 package se.wingez.compiler
 
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertIterableEquals
 import org.junit.jupiter.api.Test
@@ -47,7 +48,8 @@ internal class FunctionInfoTest {
         assertEquals(layout.size, byte(2))
         assertEquals(layout.sizeOfVars, byte(0))
         assertEquals(layout.sizeOfParameters, byte(0))
-        assertEquals(layout.fields, emptyMap<String, StructDataField>())
+        assertThat(layout.fields).hasSize(1)
+        assertThat(layout.fields).containsEntry("frame", StructDataField("frame", 0u, stackFrameType))
     }
 
     @Test
@@ -61,7 +63,12 @@ internal class FunctionInfoTest {
         assertEquals(layout.size, byte(3))
         assertEquals(layout.sizeOfVars, byte(0))
         assertEquals(layout.sizeOfParameters, byte(1))
-        assertEquals(layout.fields, mapOf("test" to StructDataField("test", 2u, byteType)))
+        assertEquals(
+            layout.fields, mapOf(
+                "frame" to StructDataField("frame", 0u, stackFrameType),
+                "test" to StructDataField("test", 2u, byteType)
+            )
+        )
     }
 
     @Test
@@ -75,7 +82,7 @@ internal class FunctionInfoTest {
         assertEquals(layout.size, byte(3))
         assertEquals(layout.sizeOfVars, byte(1))
         assertEquals(layout.sizeOfParameters, byte(0))
-        assertEquals(layout.fields, mapOf("var" to StructDataField("var", 0u, byteType)))
+        assertThat(layout.fields).containsEntry("var", StructDataField("var", 0u, byteType))
     }
 
     @Test
@@ -94,6 +101,7 @@ internal class FunctionInfoTest {
         assertEquals(layout.sizeOfParameters, byte(0))
         assertEquals(
             layout.fields, mapOf(
+                "frame" to StructDataField("frame", 2u, stackFrameType),
                 "var1" to StructDataField("var1", 0u, byteType),
                 "var" to StructDataField("var", 1u, byteType),
             )
@@ -113,16 +121,19 @@ internal class FunctionInfoTest {
         assertEquals(layout.sizeOfParameters, byte(1))
         assertEquals(
             layout.fields, mapOf(
+                "frame" to StructDataField("frame", 1u, stackFrameType),
                 "var2" to StructDataField("var2", 3u, byteType),
                 "var" to StructDataField("var", 0u, byteType),
             )
         )
 
         assertIterableEquals(
-            layout.getDescription(), listOf(
+            listOf(
                 "  0: var: byte",
-                "  3: var2: byte"
-            )
+                "  1: frame: stackFrame",
+                "  3: var2: byte",
+            ),
+            layout.getDescription(),
         )
     }
 
