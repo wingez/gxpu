@@ -82,7 +82,7 @@ class Compiler : TypeProvider, FunctionProvider {
 
         val functionInfo = calculateFrameLayout(node, this, byte(generator.currentSize))
 
-        val builder = FunctionBuilder(generator, functionInfo, ActionBuilder(functionInfo, this))
+        val builder = FunctionBuilder(generator, functionInfo, ActionBuilder(functionInfo, this, this))
 
         if (functionInfo.name in functions) {
             throw CompileError("Function ${functionInfo.name} already exists")

@@ -35,6 +35,9 @@ data class ConstantNode(val value: Int) : ValueNode() {
     }
 }
 
+data class SizeofNode(val type: String) : ValueNode()
+
+
 data class CallNode(
     val targetName: String,
     val parameters: List<ValueNode>

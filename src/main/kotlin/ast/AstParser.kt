@@ -274,6 +274,12 @@ class AstParser(private val tokens: List<Token>) {
                 val member = consumeIdentifier()
                 Identifier(member)
             }
+        } else if (peekIs(TokenKeywordSizeof)) {
+            consume()
+            consumeType(TokenLeftParenthesis)
+            val type = consumeIdentifier()
+            consumeType(TokenRightParenthesis)
+            firstResult = SizeofNode(type)
         } else {
             throw ParserError("Cannot parse to value provider: ${peek()}")
         }
@@ -292,7 +298,7 @@ class AstParser(private val tokens: List<Token>) {
 
             val secondResult = parseValueProvider()
 
-            if (!(hasParenthesis || secondResult is Identifier || secondResult is ConstantNode))
+            if (!(hasParenthesis || secondResult is Identifier || secondResult is ConstantNode || secondResult is SizeofNode))
                 throw ParserError("Operation too complex for now. Use more parentheses")
 
             val operation = when (nextToken) {

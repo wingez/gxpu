@@ -247,4 +247,13 @@ internal class AstParserTest {
             )
         )
     }
+
+    @Test
+    fun testSizeof() {
+        assertEquals(
+            SingleOperationNode(Operation.Addition, ConstantNode(5), SizeofNode("byte")),
+            parserFromLine("5+sizeof(byte)").parseValueProvider()
+        )
+
+    }
 }
