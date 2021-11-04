@@ -52,7 +52,7 @@ class ActionTest {
 
     @Test
     fun testPrintConstant() {
-        val builder = ActionBuilder(dummyFrame, dummyFunctions)
+        val builder = ActionBuilder(dummyFrame, dummyFunctions, dummyTypeContainer)
         val node = PrintNode(ConstantNode(5))
         val flattened = builder.buildStatement(node)
 
@@ -82,7 +82,7 @@ class ActionTest {
 
     @Test
     fun testPrintVariable() {
-        val builder = ActionBuilder(dummyFrame, dummyFunctions)
+        val builder = ActionBuilder(dummyFrame, dummyFunctions, dummyTypeContainer)
         val node = PrintNode(Identifier("var1"))
         val flattened = flatten(builder.buildStatement(node))
 
@@ -104,7 +104,7 @@ class ActionTest {
 
     @Test
     fun testAssignConstant() {
-        val builder = ActionBuilder(dummyFrame, dummyFunctions)
+        val builder = ActionBuilder(dummyFrame, dummyFunctions, dummyTypeContainer)
         val node = AssignNode(Identifier("var2"), ConstantNode(5))
         assertThrows<CompileError> {
             builder.buildStatement(node)
@@ -148,7 +148,7 @@ class ActionTest {
 
     @Test
     fun testAddition() {
-        val builder = ActionBuilder(dummyFrame, dummyFunctions)
+        val builder = ActionBuilder(dummyFrame, dummyFunctions, dummyTypeContainer)
         val node = PrintNode(SingleOperationNode(Operation.Addition, ConstantNode(5), ConstantNode(10)))
 
         assertEquals(
@@ -170,7 +170,7 @@ class ActionTest {
 
     @Test
     fun testNotEqual() {
-        val builder = ActionBuilder(dummyFrame, dummyFunctions)
+        val builder = ActionBuilder(dummyFrame, dummyFunctions, dummyTypeContainer)
         val node = SingleOperationNode(Operation.NotEquals, ConstantNode(5), ConstantNode(10))
 
         assertEquals(
@@ -195,7 +195,7 @@ class ActionTest {
     @Test
     @Ignore
     fun testConditionMustBeComparison() {
-        val builder = ActionBuilder(dummyFrame, dummyFunctions)
+        val builder = ActionBuilder(dummyFrame, dummyFunctions, dummyTypeContainer)
         val node = ConstantNode(5)
 //        assertNull(builder.getActionInRegister(node, compareType))
         val node2 = SingleOperationNode(Operation.Addition, ConstantNode(5), ConstantNode(10))
@@ -205,7 +205,7 @@ class ActionTest {
     @Test
     fun testCall() {
         val emptyFunction = FunctionInfo(0u, "test", emptyMap(), emptyList(), voidType, 0u, 2u, 0u)
-        val builder = ActionBuilder(dummyFrame, FunctionContainer(listOf(emptyFunction)))
+        val builder = ActionBuilder(dummyFrame, FunctionContainer(listOf(emptyFunction)), dummyTypeContainer)
 
 
         //No params no return
@@ -235,7 +235,7 @@ class ActionTest {
             2u,
             0u
         )
-        val builder = ActionBuilder(dummyFrame, FunctionContainer(listOf(functionWithParameter)))
+        val builder = ActionBuilder(dummyFrame, FunctionContainer(listOf(functionWithParameter)), dummyTypeContainer)
 
 
         //1 parameter no return
@@ -259,7 +259,7 @@ class ActionTest {
     fun testCallReturnType() {
 
         val functionWithReturn = FunctionInfo(0u, "test", emptyMap(), emptyList(), byteType, 0u, 2u, 0u)
-        val builder = ActionBuilder(dummyFrame, FunctionContainer(listOf(functionWithReturn)))
+        val builder = ActionBuilder(dummyFrame, FunctionContainer(listOf(functionWithReturn)), dummyTypeContainer)
 
         //No params, return byte
         assertIterableEquals(
@@ -295,7 +295,7 @@ class ActionTest {
             mapOf("t" to StructDataField("t", 0u, myType)), emptyList(), voidType, 0u, 2u, 2u
         )
 
-        val builder = ActionBuilder(function, dummyFunctions)
+        val builder = ActionBuilder(function, dummyFunctions, dummyTypeContainer)
 
         assertEquals(
             listOf(
@@ -342,7 +342,7 @@ class ActionTest {
             voidType, 0u, 0u, 0u
         )
 
-        val builder = ActionBuilder(function, dummyFunctions)
+        val builder = ActionBuilder(function, dummyFunctions, dummyTypeContainer)
         assertEquals(
             listOf(
                 LoadRegisterFP(),
@@ -376,7 +376,7 @@ class ActionTest {
         )
 
 
-        val builder = ActionBuilder(function, dummyFunctions)
+        val builder = ActionBuilder(function, dummyFunctions, dummyTypeContainer)
 
         assertEquals(
             listOf(

@@ -73,4 +73,21 @@ class CompileRunStructs {
         runProgramCheckOutput(program, 1, 2, 3)
     }
 
+    @Test
+    fun testSizeOf() {
+        val program = """
+          struct type:
+            child1:byte
+            child2:byte
+            
+          
+          def main():
+            print(sizeof(byte))
+            print(sizeof(type))
+            print(sizeof(type)+5)
+     
+    """
+        runProgramCheckOutput(program, 1, 2, 7)
+    }
+
 }

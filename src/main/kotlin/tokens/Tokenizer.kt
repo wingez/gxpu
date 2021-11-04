@@ -45,6 +45,7 @@ enum class TokenType {
     GreaterSign,
     NotEqual,
     Deref,
+    SizeOf,
 }
 
 val TokenEOL = ExpressionSeparator(TokenType.EOL)
@@ -65,6 +66,7 @@ val TokenKeywordElse = Token(TokenType.KeywordElse)
 val TokenKeywordReturn = Token(TokenType.KeywordReturn)
 val TokenKeywordStruct = Token(TokenType.KeywordStruct)
 val TokenKeywordNew = Token(TokenType.KeywordNew)
+val TokenKeywordSizeof = Token(TokenType.SizeOf)
 val TokenBeginBlock = Token(TokenType.BeginBlock)
 val TokenEndBlock = Token(TokenType.EndBlock)
 val TokenPlusSign = TokenSingleOperation(TokenType.PlusSign)
@@ -270,6 +272,7 @@ fun toToken(text: String): Token {
         "return" -> TokenKeywordReturn
         "struct" -> TokenKeywordStruct
         "new" -> TokenKeywordNew
+        "sizeof" -> TokenKeywordSizeof
         else -> TokenIdentifier(text)
     }
 }

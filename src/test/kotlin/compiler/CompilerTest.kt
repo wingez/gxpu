@@ -29,7 +29,7 @@ fun buildBody(body: String): List<UByte> {
     val frame = calculateFrameLayout(node, dummyTypeContainer, 0u)
 
     val generator = CodeGenerator()
-    val function = FunctionBuilder(generator, frame, ActionBuilder(frame, dummyFunctions))
+    val function = FunctionBuilder(generator, frame, ActionBuilder(frame, dummyFunctions, dummyTypeContainer))
     function.buildNodes(node.body)
 
     return generator.resultingCode

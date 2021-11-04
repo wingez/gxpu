@@ -68,6 +68,16 @@ class PutByteOnStack : ActionConverter {
     }
 }
 
+class SizeofToInt : ActionConverter {
+    override fun putOnStack(node: ValueNode, type: DataType, builder: ActionBuilder): Action? {
+        if (node !is SizeofNode) return null
+
+        val provideType = builder.getType(node.type)
+        val size = provideType.size
+
+        return builder.getActionOnStack(ConstantNode(size.toInt()), type)
+    }
+}
 
 
 enum class MemberAccessAction {
@@ -156,8 +166,6 @@ fun pushAddress(topNode: ValueNode, function: FunctionInfo, expectedType: DataTy
 }
 
 
-
-
 class AssignFrameByte : ActionConverter {
 
 
@@ -235,18 +243,25 @@ val actions = listOf(
     NotEqualProvider(),
     CallProvider(),
     FieldToPointer(),
+    SizeofToInt(),
 )
 
 class ActionBuilder(
     private val function: FunctionInfo,
     private val functionProvider: FunctionProvider,
-) : FunctionProvider {
+    private val typeProvider: TypeProvider,
+) : FunctionProvider, TypeProvider {
     val currentFunction: FunctionInfo
         get() = function
 
     override fun getFunction(name: String): FunctionInfo {
         return functionProvider.getFunction(name)
     }
+
+    override fun getType(name: String): DataType {
+        return typeProvider.getType(name)
+    }
+
 
     fun getActionOnStack(
         node: ValueNode,
