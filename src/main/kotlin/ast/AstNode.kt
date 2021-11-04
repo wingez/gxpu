@@ -14,6 +14,7 @@ data class PrimitiveMemberDeclaration(
     val name: String,
     val type: String,
     val explicitNew: Boolean = false,
+    val isArray: Boolean = false,
 ) : StatementNode()
 
 

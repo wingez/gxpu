@@ -123,4 +123,25 @@ class AstParserStructTest {
             parserFromLine("a->test = s").parseAssignment()
         )
     }
+
+    @Test
+    fun testStructArray() {
+
+        assertEquals(
+            parserFromFile(
+                """
+        struct tmp:
+          member1: byte[]
+          member2: str[]
+            
+        """
+            ).parseStruct(), StructNode(
+                "tmp", listOf(
+                    PrimitiveMemberDeclaration("member1", "byte", isArray = true),
+                    PrimitiveMemberDeclaration("member2", "str", isArray = true),
+                )
+            )
+        )
+    }
+
 }
