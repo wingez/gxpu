@@ -119,13 +119,20 @@ class AstParser(private val tokens: List<Token>) {
 
         var explicitNew = false
         var type = ""
+        var array = false
 
         if (peekIs(TokenColon, consumeMatch = true)) {
             explicitNew = peekIs(TokenKeywordNew, consumeMatch = true)
             type = consumeIdentifier()
 
+            if (peekIs(TokenLeftBracket)) {
+                consumeType(TokenLeftBracket)
+                consumeType(TokenRightBracket)
+                array = true
+            }
+
         }
-        return PrimitiveMemberDeclaration(name, type, explicitNew)
+        return PrimitiveMemberDeclaration(name, type, explicitNew, array)
     }
 
     fun parseFunctionDefinition(): FunctionNode {
