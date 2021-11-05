@@ -6,6 +6,7 @@ import org.junit.jupiter.api.assertThrows
 import se.wingez.ast.*
 import se.wingez.compiler.actions.*
 import se.wingez.emulator.DefaultEmulator
+import kotlin.test.Ignore
 
 class FunctionContainer(
     private val functions: List<FunctionInfo>
@@ -192,6 +193,7 @@ class ActionTest {
     }
 
     @Test
+    @Ignore
     fun testConditionMustBeComparison() {
         val builder = ActionBuilder(dummyFrame, dummyFunctions)
         val node = ConstantNode(5)
