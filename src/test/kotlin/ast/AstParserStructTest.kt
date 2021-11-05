@@ -144,4 +144,17 @@ class AstParserStructTest {
         )
     }
 
+
+    @Test
+    fun testArrayAccess() {
+        assertEquals(
+            ArrayAccess(Identifier("test"), ConstantNode(5)),
+            parserFromLine("test[5]").parseValueProvider()
+        )
+
+        assertEquals(
+            ArrayAccess(Identifier("test"), SingleOperationNode(Operation.Addition, ConstantNode(5), ConstantNode(5))),
+            parserFromLine("test[5+5]").parseValueProvider()
+        )
+    }
 }

@@ -285,6 +285,14 @@ class AstParser(private val tokens: List<Token>) {
         }
 
         val nextToken = peek()
+
+        if (nextToken == TokenLeftBracket) {
+            consume()
+            val indexNode = parseValueProvider()
+            consumeType(TokenRightBracket)
+            return ArrayAccess(firstResult, indexNode)
+        }
+
         if (nextToken is ExpressionSeparator) {
             return firstResult
         }
