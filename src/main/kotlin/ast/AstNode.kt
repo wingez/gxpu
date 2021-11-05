@@ -109,3 +109,8 @@ data class MemberDeref(
     val left: ValueNode,
     val member: String,
 ) : ValueNode()
+
+data class ArrayAccess(
+    val left: ValueNode,
+    val index: ValueNode,
+) : ValueNode()
