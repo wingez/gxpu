@@ -51,10 +51,15 @@ class DefaultEmulator : Emulator(instructionSet) {
             it.a = (it.fp + offset).toUByte()
             false
         }
-        val lda_at_sp_offset = instructionSet.createInstruction("LDA [[SP #offset]]", group = LOAD_STORE) {
+        val lda_at_sp_offset_deref = instructionSet.createInstruction("LDA [[SP #offset]]", group = LOAD_STORE) {
             val offset = it.getIncPC()
             val addr = it.getMemoryAt((it.sp + offset).toInt())
-            it.a = it.getMemoryAt(addr).toUByte()
+            it.a = it.getMemoryAt(addr)
+            false
+        }
+        val lda_at_sp_offset = instructionSet.createInstruction("LDA [SP #offset]", group = LOAD_STORE) {
+            val offset = it.getIncPC()
+            it.a = it.getMemoryAt((it.sp + offset).toInt())
             false
         }
 
@@ -86,6 +91,11 @@ class DefaultEmulator : Emulator(instructionSet) {
             it.push(it.a)
             false
         }
+        val pushsp = instructionSet.createInstruction("PUSHSP", group = STACK) {
+            it.push(it.sp)
+            false
+        }
+
         val popa = instructionSet.createInstruction("POPA", group = STACK) {
             it.a = it.pop()
             false
@@ -95,6 +105,12 @@ class DefaultEmulator : Emulator(instructionSet) {
             it.sp = (it.sp - value).toUByte()
             false
         }
+
+        val sub_sp_a = instructionSet.createInstruction("SUBSP A", group = STACK) {
+            it.sp = (it.sp - it.a).toUByte()
+            false
+        }
+
         val add_sp = instructionSet.createInstruction("ADDSP #val", group = STACK) {
             val value = it.getIncPC()
             it.sp = (it.sp + value).toUByte()
@@ -152,7 +168,7 @@ class DefaultEmulator : Emulator(instructionSet) {
             false
         }
 
-        val adda_sp = instructionSet.createInstruction("ADDA SP #offset", group = ARITHMETIC) {
+        val adda_sp = instructionSet.createInstruction("ADDA [SP #offset]", group = ARITHMETIC) {
             val offset = it.getIncPC()
             it.a = (it.a + it.getMemoryAt(it.sp + offset)).toUByte()
             false
