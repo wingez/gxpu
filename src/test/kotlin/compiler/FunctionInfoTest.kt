@@ -137,4 +137,17 @@ internal class FunctionInfoTest {
         )
     }
 
+    @Test
+    fun testArrayField() {
+        val layout = getLayout(
+            """
+            def main():
+              arr:byte[]
+              arr = createArray(8)
+        """
+        )
+
+        assertThat(layout.fields).containsValue(StructDataField("arr", 0u, Pointer(ArrayType(byteType))))
+    }
+
 }

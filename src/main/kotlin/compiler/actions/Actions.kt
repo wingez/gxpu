@@ -85,7 +85,22 @@ enum class MemberAccessAction {
     Deref,
 }
 
-fun pushAddress(topNode: ValueNode, function: FunctionInfo, expectedType: DataType): Action {
+data class PushAddressResult(
+    val action: Action,
+    val resultingType: DataType,
+)
+
+fun pushAddressCheckType(topNode: ValueNode, function: FunctionInfo, expectedType: DataType): Action {
+
+    val pushResult = pushAddress(topNode, function)
+
+    if (pushResult.resultingType != expectedType) {
+        throw CompileError("Expected type to be $expectedType")
+    }
+    return pushResult.action
+}
+
+fun pushAddress(topNode: ValueNode, function: FunctionInfo): PushAddressResult {
 
     val result = mutableListOf<Action>(LoadRegisterFP())
 
@@ -119,8 +134,6 @@ fun pushAddress(topNode: ValueNode, function: FunctionInfo, expectedType: DataTy
             }
         }
 
-
-
         when (action) {
             MemberAccessAction.Access -> {
                 if (currentType !is StructType) {
@@ -139,7 +152,7 @@ fun pushAddress(topNode: ValueNode, function: FunctionInfo, expectedType: DataTy
                 if (currentType !is Pointer) {
                     throw CompileError("Cannot deref non-pointer")
                 }
-                if (currentType.type !is StructType) {
+                if (currentType.type !is FieldContainer) {
                     throw CompileError("Cannot access member of $currentType")
                 }
 
@@ -157,12 +170,10 @@ fun pushAddress(topNode: ValueNode, function: FunctionInfo, expectedType: DataTy
     }
 
     val resultingType = buildRecursive(topNode, function)
-    if (resultingType != expectedType) {
-        throw CompileError("Expected type to be $expectedType")
-    }
 
     result.add(PushRegister())
-    return CompositeAction(*result.toTypedArray())
+
+    return PushAddressResult(CompositeAction(*result.toTypedArray()), resultingType)
 }
 
 
@@ -176,7 +187,7 @@ class AssignFrameByte : ActionConverter {
             return null
         }
 
-        val pushMemberAddress = pushAddress(node.target, builder.currentFunction, byteType)
+        val pushMemberAddress = pushAddressCheckType(node.target, builder.currentFunction, byteType)
 
         val putValueOnStack = builder.getActionOnStack(node.value, byteType) ?: return null
 
@@ -190,7 +201,98 @@ class AssignFrameByte : ActionConverter {
     }
 }
 
+class CreateArray : ActionConverter {
+
+    data class MakeSpaceOnStack(
+        override val cost: Int = 1,
+    ) : Action {
+        override fun compile(generator: CodeGenerator) {
+            generator.generate(DefaultEmulator.sub_sp_a.build())
+        }
+    }
+
+    data class RemoveSpaceOnStack(
+        val amount: UByte,
+        override val cost: Int = 1,
+    ) : Action {
+        override fun compile(generator: CodeGenerator) {
+            generator.generate(DefaultEmulator.add_sp.build(mapOf("val" to amount)))
+        }
+    }
+
+
+    data class PushStackPointer(
+        override val cost: Int = 1,
+    ) : Action {
+        override fun compile(generator: CodeGenerator) {
+            generator.generate(DefaultEmulator.pushsp.build())
+        }
+    }
+
+    override fun buildStatement(node: StatementNode, builder: ActionBuilder): Action? {
+
+        if (node !is AssignNode) return null
+        node.value ?: return null
+
+        val callNode = node.value
+
+        if (callNode !is CallNode) return null
+        if (callNode.targetName != "createArray") return null
+        if (callNode.parameters.size != 1) return null
+
+        val actions = mutableListOf<Action>()
+
+        //size on stack
+        actions.add(builder.getActionOnStack(callNode.parameters[0], byteType) ?: return null)
+        //Pop the size from the stack
+        actions.add(PopRegister())
+        //Size is now in a register
+        //TODO: multiply with element size
+        //Make space for array
+        actions.add(MakeSpaceOnStack())
+
+        //Push the size-value to the array struct
+        actions.add(PushRegister())
+
+        //Push stackpointer, this is the pointer to the new array
+        actions.add(PushStackPointer())
+
+        val address = pushAddress(node.target, builder.currentFunction)
+        if (address.resultingType !is Pointer) return null
+        if (address.resultingType.type != ArrayType(byteType))
+            throw CompileError("Not supported yet")
+
+        //Push address
+        actions.add(address.action)
+
+        //Load array position, which is at offset 1
+        actions.add(ByteToStack.LoadRegisterStackAddress(1u))
+
+        //Store address at array-pointer-position
+        actions.add(StoreRegisterAtStackAddress(0u))
+
+        //Restore stack
+        actions.add(RemoveSpaceOnStack(2u))
+
+        return CompositeAction(*actions.toTypedArray())
+    }
+}
+
+
 class ByteToStack : ActionConverter {
+    data class LoadRegisterStackAddressDeref(
+        val offset: UByte,
+    ) : Action {
+        override val cost: Int = 1
+        override fun compile(generator: CodeGenerator) {
+            generator.generate(
+                DefaultEmulator.lda_at_sp_offset_deref.build(
+                    mapOf("offset" to offset)
+                )
+            )
+        }
+    }
+
     data class LoadRegisterStackAddress(
         val offset: UByte,
     ) : Action {
@@ -204,6 +306,7 @@ class ByteToStack : ActionConverter {
         }
     }
 
+
     override fun putOnStack(
         node: ValueNode,
         type: DataType,
@@ -213,11 +316,11 @@ class ByteToStack : ActionConverter {
 
         if (type != byteType) return null
 
-        val pushMemberAddress = pushAddress(node, builder.currentFunction, byteType)
+        val pushMemberAddress = pushAddressCheckType(node, builder.currentFunction, byteType)
 
         return CompositeAction(
             pushMemberAddress,
-            LoadRegisterStackAddress(0u),
+            LoadRegisterStackAddressDeref(0u),
             PopThrow(),
             PushRegister(),
         )
@@ -228,11 +331,12 @@ class FieldToPointer : ActionConverter {
     override fun putOnStack(node: ValueNode, type: DataType, builder: ActionBuilder): Action? {
         if (type !is Pointer) return null
 
-        return pushAddress(node, builder.currentFunction, type.type)
+        return pushAddressCheckType(node, builder.currentFunction, type.type)
     }
 }
 
 val actions = listOf(
+    CreateArray(),
     Print(),
     PutByteOnStack(),
     AssignFrameByte(),

@@ -54,11 +54,11 @@ data class LoadRegisterFP(
 }
 
 data class AddRegister(
-    val offset: UByte,
+    val value: UByte,
     override val cost: Int = 1,
 ) : Action {
     override fun compile(generator: CodeGenerator) {
-        generator.generate(DefaultEmulator.adda.build(mapOf("val" to offset)))
+        generator.generate(DefaultEmulator.adda.build(mapOf("val" to value)))
     }
 }
 

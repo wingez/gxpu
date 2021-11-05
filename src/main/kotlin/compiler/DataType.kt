@@ -10,6 +10,12 @@ interface DataType {
     fun instantiate(explicitNew: Boolean): DataType
 }
 
+interface FieldContainer {
+    fun hasField(field: String): Boolean
+    fun getField(field: String): StructDataField
+    fun getDescription(): List<String>
+}
+
 
 interface TypeProvider {
     fun getType(name: String): DataType
@@ -38,7 +44,7 @@ data class Pointer(
 ) : DataType {
     override val size: UByte = byte(POINTER_SIZE)
     override val name: String
-        get() = "Pointer<${type.name}"
+        get() = "Pointer<${type.name}>"
 
     override fun instantiate(explicitNew: Boolean): DataType {
         if (explicitNew) {
@@ -55,16 +61,30 @@ data class StructDataField(
     val type: DataType,
 )
 
+private fun describeFields(fields: Map<String, StructDataField>): List<String> {
+
+    val result = mutableListOf<String>()
+    val items = fields.entries.toList()
+
+    items.sortedBy { it.value.offset }.forEach { field ->
+        val offset = field.value.offset.toString().padStart(3)
+        result.add("$offset: ${field.key}: ${field.value.type.name}")
+    }
+
+    return result
+}
+
+
 open class StructType(
     override val name: String,
     val fields: Map<String, StructDataField>,
-) : DataType {
+) : DataType, FieldContainer {
 
-    fun hasField(field: String): Boolean {
+    override fun hasField(field: String): Boolean {
         return field in fields
     }
 
-    fun getField(field: String): StructDataField {
+    override fun getField(field: String): StructDataField {
         return fields.getValue(field)
     }
 
@@ -79,16 +99,8 @@ open class StructType(
     }
 
 
-    fun getDescription(): List<String> {
-        val result = mutableListOf<String>()
-        val items = fields.entries.toList()
-
-        items.sortedBy { it.value.offset }.forEach { field ->
-            val offset = field.value.offset.toString().padStart(3)
-            result.add("$offset: ${field.key}: ${field.value.type.name}")
-        }
-
-        return result
+    override fun getDescription(): List<String> {
+        return describeFields(fields)
     }
 
     override fun equals(other: Any?): Boolean {
@@ -107,4 +119,46 @@ open class StructType(
         result = 31 * result + fields.hashCode()
         return result
     }
+}
+
+data class ArrayType(
+    val type: DataType,
+
+    ) : DataType, FieldContainer {
+
+
+    override val size: UByte
+        get() = 0u //Should not matter since we're never instantiating anyways
+
+    override val name: String
+        get() = "Array<${type.name}>"
+
+    override fun getDescription(): List<String> {
+        return describeFields(
+            mapOf(
+                "size" to StructDataField("size", 0u, byteType),
+                "array" to StructDataField("array", 1u, byteType),
+            )
+        )
+    }
+
+    override fun instantiate(explicitNew: Boolean): DataType {
+        if (explicitNew) {
+            throw CompileError("Cannot instantiate array directly")
+        }
+        return Pointer(this)
+    }
+
+    // A single field: size
+    override fun getField(field: String): StructDataField {
+        if (!hasField(field))
+            throw NoSuchElementException(field)
+        return StructDataField("size", 0u, byteType)
+    }
+
+    override fun hasField(field: String): Boolean {
+        return field == "size"
+    }
+
+
 }

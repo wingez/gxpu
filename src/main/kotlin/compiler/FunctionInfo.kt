@@ -66,6 +66,7 @@ fun calculateFrameLayout(
             var name: String
             var typeName: String
             var explicitNew: Boolean
+            var isArray = false
 
             if (visitNode is AssignNode) {
                 if (visitNode.target !is Identifier) {
@@ -85,6 +86,7 @@ fun calculateFrameLayout(
                 name = visitNode.name
                 typeName = visitNode.type
                 explicitNew = visitNode.explicitNew
+                isArray = visitNode.isArray
             } else {
                 if (visitNode is NodeContainer) {
                     traverseNode(visitNode)
@@ -92,7 +94,12 @@ fun calculateFrameLayout(
                 continue
             }
 
-            val type = typeProvider.getType(typeName).instantiate(explicitNew)
+            var type = typeProvider.getType(typeName)
+            if (isArray) {
+                type = ArrayType(type)
+            }
+
+            type = type.instantiate(explicitNew)
             fieldBuilder.addMember(name, type)
         }
     }

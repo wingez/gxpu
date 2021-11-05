@@ -91,7 +91,7 @@ class ActionTest {
                 LoadRegisterFP(),
                 AddRegister(0u),
                 PushRegister(),
-                ByteToStack.LoadRegisterStackAddress(0u),
+                ByteToStack.LoadRegisterStackAddressDeref(0u),
                 PopThrow(),
                 PushRegister(),
                 PopRegister(),
@@ -350,7 +350,7 @@ class ActionTest {
                 DerefByteAction(0u),
                 AddRegister(0u),
                 PushRegister(),
-                ByteToStack.LoadRegisterStackAddress(0u),
+                ByteToStack.LoadRegisterStackAddressDeref(0u),
                 PopThrow(),
                 PushRegister(),
                 PopRegister(),
@@ -396,6 +396,42 @@ class ActionTest {
                     AssignNode(
                         MemberDeref(Identifier("field"), "value"),
                         ConstantNode(5)
+                    )
+                )
+            )
+        )
+    }
+
+    @Test
+    fun testCreateArray() {
+        val function = FunctionInfo(
+            0u, "test",
+            StructBuilder(dummyTypeContainer).addMember("arr", Pointer(ArrayType(byteType))).getFields(),
+            emptyList(),
+            voidType, 0u, 0u, 0u
+        )
+
+        val builder2 = ActionBuilder(function, dummyFunctions, dummyTypeContainer)
+        assertEquals(
+            listOf(
+                ConstantRegister(5u),
+                PushRegister(),
+                PopRegister(),
+                CreateArray.MakeSpaceOnStack(),
+                PushRegister(),
+                CreateArray.PushStackPointer(),
+                LoadRegisterFP(),
+                AddRegister(0u),
+                PushRegister(),
+                ByteToStack.LoadRegisterStackAddress(1u),
+                StoreRegisterAtStackAddress(0u),
+                CreateArray.RemoveSpaceOnStack(2u)
+            ),
+            flatten(
+                builder2.buildStatement(
+                    AssignNode(
+                        Identifier("arr"),
+                        CallNode("createArray", listOf(ConstantNode(5))),
                     )
                 )
             )
