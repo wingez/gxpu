@@ -79,10 +79,12 @@ class InteractiveDebugger(
 
         val instructions = emulator.instructionSet.disassembleWithIndex(initialCode).entries.sortedBy { it.key }
 
-        val currentIndex = instructions.find { it.key == emulator.pc.toInt() }?.key ?: throw AssertionError()
+        val currentIndex = instructions.indexOfFirst { it.key == emulator.pc.toInt() }
+        if (currentIndex == -1)
+            throw AssertionError()
 
         val startPos = max(0, currentIndex - 15)
-        val endPos = min(instructions.size, startPos + 30)
+        val endPos = min(instructions.size, startPos + 38)
 
         (startPos until endPos).forEachIndexed { i, position ->
 
