@@ -48,7 +48,7 @@ class AdditionProvider : ArithmeticProvider(Operation.Addition) {
         override val cost: Int = 2
     ) : Action {
         override fun compile(generator: CodeGenerator) {
-            // Add right which is top if stack
+            // Add  top of stack to A
             generator.generate(DefaultEmulator.adda_sp.build(mapOf("offset" to 0u)))
 
         }

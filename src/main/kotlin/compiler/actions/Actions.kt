@@ -90,7 +90,7 @@ class AssignFrameByte : ActionConverter {
             return null
         }
 
-        val pushMemberAddress = pushAddressCheckType(node.target, builder.currentFunction, byteType)
+        val pushMemberAddress = pushAddressCheckType(node.target, builder.currentFunction, byteType, builder)
 
         val putValueOnStack = builder.getActionOnStack(node.value, byteType) ?: return null
 
@@ -160,7 +160,7 @@ class CreateArray : ActionConverter {
         //Push stackpointer, this is the pointer to the new array
         actions.add(PushStackPointer())
 
-        val address = pushAddress(node.target, builder.currentFunction)
+        val address = pushAddress(node.target, builder.currentFunction, builder)
         if (address.resultingType !is Pointer) return null
         if (address.resultingType.type != ArrayType(byteType))
             throw CompileError("Not supported yet")
@@ -215,11 +215,11 @@ class ByteToStack : ActionConverter {
         type: DataType,
         builder: ActionBuilder
     ): Action? {
-        if (node !is Identifier && node !is MemberAccess && node !is MemberDeref) return null
+        if (node !is Identifier && node !is MemberAccess && node !is MemberDeref && node !is ArrayAccess) return null
 
         if (type != byteType) return null
 
-        val pushMemberAddress = pushAddressCheckType(node, builder.currentFunction, byteType)
+        val pushMemberAddress = pushAddressCheckType(node, builder.currentFunction, byteType, builder)
 
         return CompositeAction(
             pushMemberAddress,
@@ -230,11 +230,30 @@ class ByteToStack : ActionConverter {
     }
 }
 
+class PushPointer : ActionConverter {
+    override fun putOnStack(node: ValueNode, type: DataType, builder: ActionBuilder): Action? {
+        if (type !is Pointer) return null
+
+        val addressResult = pushAddress(node, builder.currentFunction, builder)
+        if (addressResult.resultingType != type) return null
+
+        return CompositeAction(
+            addressResult.action,
+            ByteToStack.LoadRegisterStackAddressDeref(0u),
+            PopThrow(),
+            PushRegister(),
+        )
+    }
+}
+
 class FieldToPointer : ActionConverter {
     override fun putOnStack(node: ValueNode, type: DataType, builder: ActionBuilder): Action? {
         if (type !is Pointer) return null
 
-        return pushAddressCheckType(node, builder.currentFunction, type.type)
+        val addressResult = pushAddress(node, builder.currentFunction, builder)
+        if (addressResult.resultingType != type.type) return null
+
+        return addressResult.action
     }
 }
 
@@ -251,6 +270,7 @@ val actions = listOf(
     CallProvider(),
     FieldToPointer(),
     SizeofToInt(),
+    PushPointer(),
 )
 
 class ActionBuilder(

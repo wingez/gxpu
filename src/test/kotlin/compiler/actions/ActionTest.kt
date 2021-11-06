@@ -436,5 +436,67 @@ class ActionTest {
                 )
             )
         )
+
+
+    }
+
+    @Test
+    fun testAccessArray() {
+        val function = FunctionInfo(
+            0u, "test",
+            StructBuilder(dummyTypeContainer).addMember("arr", Pointer(ArrayType(byteType))).getFields(),
+            emptyList(),
+            voidType, 0u, 0u, 0u
+        )
+
+        val builder2 = ActionBuilder(function, dummyFunctions, dummyTypeContainer)
+        assertEquals(
+            listOf(
+                LoadRegisterFP(),
+                AddRegister(0u),
+                DerefByteAction(0u),
+                PushRegister(),
+                ConstantRegister(5u),
+                PushRegister(),
+                PopRegister(),
+                AddRegister(1u),
+                AdditionProvider.AdditionAction(),
+                PopThrow(),
+                PushRegister(),
+                ByteToStack.LoadRegisterStackAddressDeref(0u),
+                PopThrow(),
+                PushRegister()
+            ),
+            flatten(
+                kotlin.test.assertNotNull(
+                    builder2.getActionOnStack(ArrayAccess(Identifier("arr"), ConstantNode(5)), byteType)
+                )
+            )
+        )
+    }
+
+    @Test
+    fun pushPointer() {
+        val function = FunctionInfo(
+            0u, "test",
+            StructBuilder(dummyTypeContainer).addMember("arr", Pointer(ArrayType(byteType))).getFields(),
+            emptyList(),
+            voidType, 0u, 0u, 0u
+        )
+        val builder = ActionBuilder(function, dummyFunctions, dummyTypeContainer)
+
+        assertEquals(
+            listOf(
+                LoadRegisterFP(),
+                AddRegister(0u),
+                PushRegister(),
+                ByteToStack.LoadRegisterStackAddressDeref(0u),
+                PopThrow(),
+                PushRegister()
+            ),
+            flatten(
+                kotlin.test.assertNotNull(builder.getActionOnStack(Identifier("arr"), Pointer(ArrayType(byteType))))
+            )
+        )
     }
 }

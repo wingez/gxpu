@@ -3,7 +3,6 @@ package se.wingez.everything
 import org.junit.jupiter.api.Assertions.assertIterableEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import se.wingez.tokens.TokenEndBlock
 import se.wingez.ast.AstParser
 import se.wingez.bytes
 import se.wingez.compiler.CompileError
@@ -11,8 +10,10 @@ import se.wingez.compiler.Compiler
 import se.wingez.compiler.buildSingleMainFunction
 import se.wingez.emulator.DefaultEmulator
 import se.wingez.emulator.EmulatorCyclesExceeded
+import se.wingez.tokens.TokenEndBlock
 import se.wingez.tokens.parseFile
 import java.io.StringReader
+import kotlin.test.assertEquals
 
 
 fun runBodyCheckOutput(program: String, vararg result: Int) {
@@ -38,7 +39,7 @@ fun runProgramCheckOutput(program: String, vararg result: Int) {
     emulator.setAllMemory(c.generator.resultingCode)
     emulator.run()
 
-    assertIterableEquals(bytes(*result), emulator.outputStream)
+    assertEquals(bytes(*result), emulator.outputStream)
 }
 
 class CompileRunTest {
