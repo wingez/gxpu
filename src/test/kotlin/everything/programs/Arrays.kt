@@ -28,4 +28,22 @@ class ArrayTests {
     """
         runProgramCheckOutput(program, 5, 10, 15)
     }
+
+    @Test
+    fun testEditArrayInFunction() {
+        val program = """
+          def editArray(arr:byte[]):
+            arr[0]=100
+            
+          def main():
+            arr:byte[]
+            arr = createArray(3)
+            arr[0]=5
+            
+            editArray(arr)
+            print(arr[0])
+    """
+        runProgramCheckOutput(program, 100)
+    }
+
 }
