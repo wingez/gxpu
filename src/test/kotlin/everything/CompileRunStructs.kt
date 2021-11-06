@@ -107,4 +107,22 @@ class CompileRunStructs {
         runProgramCheckOutput(program, 8, 2)
     }
 
+    @Test
+    fun testWriteArray() {
+        val program = """
+          def main():
+            arr:byte[]
+            arr = createArray(8)
+            
+            arr[0] = 8
+            arr[1] = 2
+            
+            print(arr->size)
+            print(arr[1])
+            print(arr[0])
+            
+        """
+        runProgramCheckOutput(program, 8, 2, 8)
+    }
+
 }

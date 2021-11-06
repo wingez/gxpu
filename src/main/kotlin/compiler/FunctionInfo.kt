@@ -49,7 +49,11 @@ fun calculateFrameLayout(
             throw CompileError("Explicit new not allowed for parameters")
         }
 
-        val paramType = typeProvider.getType(arg.type).instantiate(false)
+        var paramType = typeProvider.getType(arg.type)
+        if (arg.isArray) {
+            paramType = ArrayType(paramType)
+        }
+        paramType = paramType.instantiate(false)
         fieldBuilder.addMember(arg.name, paramType)
         parameterNames.add(arg.name)
 

@@ -2,6 +2,7 @@ package se.wingez.ast
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertDoesNotThrow
 import se.wingez.tokens.*
 import java.io.StringReader
 
@@ -254,6 +255,18 @@ internal class AstParserTest {
             SingleOperationNode(Operation.Addition, ConstantNode(5), SizeofNode("byte")),
             parserFromLine("5+sizeof(byte)").parseValueProvider()
         )
+    }
 
+    @Test
+    fun renameMe() {
+        assertDoesNotThrow {
+            parserFromFile(
+                """
+            while (counter) != (arr -> size):
+              print(arr[counter])
+            
+        """
+            ).parseWhileStatement()
+        }
     }
 }
