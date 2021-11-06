@@ -188,8 +188,12 @@ class InstructionSet(val maxSize: UByte = Instruction.MAX_SIZE) {
     }
 
     fun disassemble(code: List<UByte>): List<String> {
+        return disassembleWithIndex(code).entries.sortedBy { it.key }.map { it.value }
+    }
+
+    fun disassembleWithIndex(code: List<UByte>): Map<Int, String> {
         var index = 0
-        val result = mutableListOf<String>()
+        val result = mutableMapOf<Int, String>()
 
         while (index < code.size) {
             val instructionId = code[index]
@@ -202,12 +206,13 @@ class InstructionSet(val maxSize: UByte = Instruction.MAX_SIZE) {
                 out = out.replace("#$it", "#$value")
             }
 
+            result[index] = out
             index += instr.size
-            result.add(out)
 
         }
         return result
     }
+
 
     fun describeInstructions(): Iterable<String> {
         val groupKeySelector = { instruction: Instruction -> instruction.group }

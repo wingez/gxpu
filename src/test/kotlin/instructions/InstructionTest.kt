@@ -176,6 +176,32 @@ internal class InstructionTest {
         assertIterableEquals(i.disassemble(code), expected)
     }
 
+    @Test
+    fun testDisassembleWithIndices() {
+        val i = InstructionSet()
+        i.addInstruction(Instruction("test #ins", emulate = emptyEmulate, id = 1u))
+        i.addInstruction(Instruction("TEst2 #ins #asd", emulate = emptyEmulate, id = 2u))
+        i.addInstruction(Instruction("second", emulate = emptyEmulate, id = 3u))
+
+        val code = bytes(
+            1, 15,
+            3,
+            3,
+            2, 6, 3,
+            1, 14
+        )
+
+        val expected = mapOf(
+            0 to "test #15",
+            2 to "second",
+            3 to "second",
+            4 to "TEst2 #6 #3",
+            7 to "test #14",
+        )
+
+        assertEquals(expected, i.disassembleWithIndex(code))
+    }
+
 
     @Test
     fun testPrintInstructions() {
