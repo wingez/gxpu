@@ -61,7 +61,7 @@ class ActionTest {
             CompositeAction(
                 PushConstant(5u),
                 PopRegister(),
-                Print.PrintAction()
+                PrintAction()
             )
         )
         val generator = CodeGenerator()
@@ -91,11 +91,11 @@ class ActionTest {
                 LoadRegisterFP(),
                 AddRegister(0u),
                 PushRegister(),
-                ByteToStack.LoadRegisterStackAddressDeref(0u),
+                LoadRegisterStackAddressDeref(0u),
                 PopThrow(),
                 PushRegister(),
                 PopRegister(),
-                Print.PrintAction()
+                PrintAction()
             ),
             flattened
         )
@@ -158,11 +158,11 @@ class ActionTest {
                 ConstantRegister(5u),
                 PushRegister(),
                 PopRegister(),
-                AdditionProvider.AdditionAction(),
+                AdditionAction(),
                 PopThrow(),
                 PushRegister(),
                 PopRegister(),
-                Print.PrintAction()
+                PrintAction()
             ),
             flatten(builder.buildStatement(node)),
         )
@@ -180,11 +180,11 @@ class ActionTest {
                 ConstantRegister(5u),
                 PushRegister(),
                 PopRegister(),
-                SubtractionProvider.SubtractionAction(),
+                SubtractionAction(),
                 PopThrow(),
                 PushRegister(),
                 PopRegister(),
-                NotEqualProvider.NotEqualCompare()
+                NotEqualCompare()
             ),
             flatten(
                 builder.buildStatement(node)
@@ -211,9 +211,9 @@ class ActionTest {
         //No params no return
         assertIterableEquals(
             listOf(
-                CallProvider.PlaceReturnValueOnStack(voidType),
-                CallProvider.CallAction(emptyFunction),
-                CallProvider.PopArguments(emptyFunction),
+                PlaceReturnValueOnStack(voidType),
+                CallAction(emptyFunction),
+                PopArguments(emptyFunction),
             ), flatten(
                 builder.getActionOnStack(
                     CallNode("test", emptyList()),
@@ -241,11 +241,11 @@ class ActionTest {
         //1 parameter no return
         assertIterableEquals(
             listOf(
-                CallProvider.PlaceReturnValueOnStack(voidType),
+                PlaceReturnValueOnStack(voidType),
                 ConstantRegister(5u),
                 PushRegister(),
-                CallProvider.CallAction(functionWithParameter),
-                CallProvider.PopArguments(functionWithParameter),
+                CallAction(functionWithParameter),
+                PopArguments(functionWithParameter),
             ), flatten(
                 builder.getActionOnStack(
                     CallNode("test", listOf(ConstantNode(5))),
@@ -264,9 +264,9 @@ class ActionTest {
         //No params, return byte
         assertIterableEquals(
             listOf(
-                CallProvider.PlaceReturnValueOnStack(byteType),
-                CallProvider.CallAction(functionWithReturn),
-                CallProvider.PopArguments(functionWithReturn),
+                PlaceReturnValueOnStack(byteType),
+                CallAction(functionWithReturn),
+                PopArguments(functionWithReturn),
             ), flatten(
                 builder.getActionOnStack(
                     CallNode("test", emptyList()),
@@ -350,11 +350,11 @@ class ActionTest {
                 DerefByteAction(0u),
                 AddRegister(0u),
                 PushRegister(),
-                ByteToStack.LoadRegisterStackAddressDeref(0u),
+                LoadRegisterStackAddressDeref(0u),
                 PopThrow(),
                 PushRegister(),
                 PopRegister(),
-                Print.PrintAction()
+                PrintAction()
             ),
             flatten(
                 builder.buildStatement(PrintNode(MemberDeref(Identifier("field"), "value")))
@@ -417,15 +417,15 @@ class ActionTest {
                 ConstantRegister(5u),
                 PushRegister(),
                 PopRegister(),
-                CreateArray.MakeSpaceOnStack(),
+                MakeSpaceOnStack(),
                 PushRegister(),
-                CreateArray.PushStackPointer(),
+                PushStackPointer(),
                 LoadRegisterFP(),
                 AddRegister(0u),
                 PushRegister(),
-                ByteToStack.LoadRegisterStackAddress(1u),
+                LoadRegisterStackAddress(1u),
                 StoreRegisterAtStackAddress(0u),
-                CreateArray.RemoveSpaceOnStack(2u)
+                RemoveSpaceOnStack(2u)
             ),
             flatten(
                 builder2.buildStatement(
@@ -460,10 +460,10 @@ class ActionTest {
                 PushRegister(),
                 PopRegister(),
                 AddRegister(1u),
-                AdditionProvider.AdditionAction(),
+                AdditionAction(),
                 PopThrow(),
                 PushRegister(),
-                ByteToStack.LoadRegisterStackAddressDeref(0u),
+                LoadRegisterStackAddressDeref(0u),
                 PopThrow(),
                 PushRegister()
             ),
@@ -490,7 +490,7 @@ class ActionTest {
                 LoadRegisterFP(),
                 AddRegister(0u),
                 PushRegister(),
-                ByteToStack.LoadRegisterStackAddressDeref(0u),
+                LoadRegisterStackAddressDeref(0u),
                 PopThrow(),
                 PushRegister()
             ),

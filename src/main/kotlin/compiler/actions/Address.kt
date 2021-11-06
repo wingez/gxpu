@@ -104,7 +104,7 @@ private class AddressCalculator(
         result.add(AddRegister(1u))
 
         // Add index to previous value
-        result.add(AdditionProvider.AdditionAction())
+        result.add(AdditionAction())
         // Pop previous value from stack. we should only store in A
         result.add(PopThrow())
 
