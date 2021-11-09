@@ -4,6 +4,17 @@ import se.wingez.tokens.*
 
 class ParserError(message: String) : Exception(message)
 
+
+val operationPriorities = mapOf(
+    TokenLeftBracket to 10,
+    TokenPlusSign to 5,
+    TokenMinusSign to 5,
+    TokenNotEqual to 1,
+    TokenDeref to 10,
+    TokenDot to 10,
+)
+
+
 class AstParser(private val tokens: List<Token>) {
     companion object {
         const val VOID_TYPE_NAME = "void"
@@ -256,19 +267,17 @@ class AstParser(private val tokens: List<Token>) {
         return ReturnNode(value)
     }
 
-    fun parseValueProvider(): ValueNode {
-        val firstResult: ValueNode
-        var hasParenthesis = false
-        if (peekIs(TokenLeftParenthesis, true)) {
-            hasParenthesis = true
-            firstResult = parseValueProvider()
-            consumeType(TokenRightParenthesis, "Mismatched parenthesis")
+    private fun parseSingleValue(): ValueNode {
 
+        if (peekIs(TokenLeftParenthesis, true)) {
+            val result = parseValueProvider()
+            consumeType(TokenRightParenthesis, "Mismatched parenthesis")
+            return result
         } else if (peekIs<TokenNumericConstant>()) {
-            firstResult = ConstantNode.fromToken(consumeType())
+            return ConstantNode.fromToken(consumeType())
         } else if (peekIs<TokenIdentifier>()) {
             val callNode = tryParse { parseCall(false) }
-            firstResult = if (callNode != null)
+            return if (callNode != null)
                 callNode
             else {
                 val member = consumeIdentifier()
@@ -279,47 +288,68 @@ class AstParser(private val tokens: List<Token>) {
             consumeType(TokenLeftParenthesis)
             val type = consumeIdentifier()
             consumeType(TokenRightParenthesis)
-            firstResult = SizeofNode(type)
+            return SizeofNode(type)
         } else {
             throw ParserError("Cannot parse to value provider: ${peek()}")
         }
-
-        val nextToken = peek()
-
-        if (nextToken == TokenLeftBracket) {
-            consume()
-            val indexNode = parseValueProvider()
-            consumeType(TokenRightBracket)
-            return ArrayAccess(firstResult, indexNode)
-        }
-
-        if (nextToken is ExpressionSeparator) {
-            return firstResult
-        }
-        if (nextToken is TokenSingleOperation) {
-            consume()
-
-            when (nextToken) {
-                TokenDot -> return MemberAccess(firstResult, consumeIdentifier())
-                TokenDeref -> return MemberDeref(firstResult, consumeIdentifier())
-            }
-
-            val secondResult = parseValueProvider()
-
-            if (!(hasParenthesis || secondResult is Identifier || secondResult is ConstantNode || secondResult is SizeofNode))
-                throw ParserError("Operation too complex for now. Use more parentheses")
-
-            val operation = when (nextToken) {
-                TokenPlusSign -> Operation.Addition
-                TokenMinusSign -> Operation.Subtraction
-                TokenNotEqual -> Operation.NotEquals
-                else -> throw ParserError("Dont know how to parse $nextToken")
-            }
-            return SingleOperationNode(operation, firstResult, secondResult)
-        }
-        throw ParserError("$nextToken was not expected")
     }
 
+    fun parseValueProvider(): ValueNode {
+
+
+        val values = mutableListOf(parseSingleValue())
+        val operations = mutableListOf<Token>()
+        while (!peekIs<ExpressionSeparator>()) {
+            val operatorToken = consume()
+            operations.add(operatorToken)
+
+
+            //Close array access
+            if (operatorToken == TokenLeftBracket) {
+                values.add(parseValueProvider())
+                consumeType(TokenRightBracket)
+            } else {
+                values.add(parseSingleValue())
+            }
+        }
+
+        while (values.size > 1) {
+            var highestPriority = 0
+            var index = 0
+
+            operations.forEachIndexed { i, token ->
+                if (operationPriorities.getValue(token) > highestPriority) {
+                    highestPriority = operationPriorities.getValue(token)
+                    index = i
+                }
+            }
+            val first = values.removeAt(index)
+            val second = values.removeAt(index)
+            val operatorToken = operations.removeAt(index)
+
+            fun secondAsIdentifier(): String {
+                if (second !is Identifier) {
+                    throw ParserError("Expected identifier, not ${operatorToken}")
+                }
+                return second.name
+            }
+
+            val result = when (operatorToken) {
+                TokenPlusSign -> SingleOperationNode(Operation.Addition, first, second)
+                TokenMinusSign -> SingleOperationNode(Operation.Subtraction, first, second)
+                TokenNotEqual -> SingleOperationNode(Operation.NotEquals, first, second)
+                TokenDeref -> MemberDeref(first, secondAsIdentifier())
+                TokenDot -> MemberAccess(first, secondAsIdentifier())
+                TokenLeftBracket -> ArrayAccess(first, second)
+                else -> throw ParserError("You have messed up badly... ${operatorToken}")
+            }
+
+            values.add(index, result)
+
+        }
+
+        return values.first()
+    }
 
     fun parseCall(shouldConsumeEol: Boolean): CallNode {
         val targetName = consumeType<TokenIdentifier>().target

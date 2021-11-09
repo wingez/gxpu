@@ -51,7 +51,7 @@ enum class TokenType {
 val TokenEOL = ExpressionSeparator(TokenType.EOL)
 val TokenLeftParenthesis = ExpressionSeparator(TokenType.LeftParenthesis)
 val TokenRightParenthesis = ExpressionSeparator(TokenType.RightParenthesis)
-val TokenLeftBracket = ExpressionSeparator(TokenType.LeftBracket)
+val TokenLeftBracket = Token(TokenType.LeftBracket)
 val TokenRightBracket = ExpressionSeparator(TokenType.RightBracket)
 val TokenComma = ExpressionSeparator(TokenType.Comma)
 val TokenColon = ExpressionSeparator(TokenType.Colon)

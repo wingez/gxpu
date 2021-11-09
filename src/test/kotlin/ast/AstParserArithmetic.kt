@@ -6,6 +6,10 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 
+fun value(text: String): ValueNode {
+    return parserFromFile(text).parseValueProvider()
+}
+
 
 class AstParserArithmetic {
     @Test
@@ -48,23 +52,12 @@ class AstParserArithmetic {
             assertThrows<ParserError> { parserFromLine("(5+10").parseValueProvider() })
             .hasMessageContaining("Mismatched parenthesis")
 
-        assertThat(
-            assertThrows<ParserError> { parserFromLine("5+10+3").parseValueProvider() })
-            .hasMessageContaining("too complex")
-
         assertDoesNotThrow { parserFromLine("(5+10)+(3+3)").parseValueProvider() }
 
-        assertThat(
-            assertThrows<ParserError> { parserFromLine("5+10+3").parseValueProvider() })
-            .hasMessageContaining("too complex")
     }
 
     @Test
     fun testTriple() {
-        assertThrows<ParserError> {
-            parserFromFile("5+5+10").parseValueProvider()
-        }
-
         assertEquals(
             parserFromFile("(5+5)+10").parseValueProvider(),
 
@@ -75,5 +68,26 @@ class AstParserArithmetic {
             )
         )
     }
+
+    @Test
+    fun testAssociation() {
+        assertEquals(
+            SingleOperationNode(
+                Operation.Addition,
+                SingleOperationNode(Operation.Addition, ConstantNode(5), ConstantNode(6)),
+                ConstantNode(7)
+            ),
+            value("5+6+7")
+        )
+        assertEquals(
+            SingleOperationNode(
+                Operation.NotEquals,
+                SingleOperationNode(Operation.Addition, ConstantNode(5), ConstantNode(6)),
+                SingleOperationNode(Operation.Addition, ConstantNode(7), ConstantNode(8)),
+            ),
+            value("5+6!=7+8")
+        )
+    }
+
 
 }

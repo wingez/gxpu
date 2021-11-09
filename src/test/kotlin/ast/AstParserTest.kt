@@ -258,7 +258,7 @@ internal class AstParserTest {
     }
 
     @Test
-    fun renameMe() {
+    fun testComplexCondition() {
         assertDoesNotThrow {
             parserFromFile(
                 """
