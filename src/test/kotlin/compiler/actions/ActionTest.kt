@@ -7,7 +7,6 @@ import se.wingez.ast.*
 import se.wingez.byte
 import se.wingez.compiler.actions.*
 import se.wingez.emulator.DefaultEmulator
-import kotlin.test.Ignore
 
 class FunctionContainer(
     private val functions: List<FunctionInfo>
@@ -195,16 +194,6 @@ class ActionTest {
                 builder.buildStatement(node)
             )
         )
-    }
-
-    @Test
-    @Ignore
-    fun testConditionMustBeComparison() {
-        val builder = ActionBuilder(dummyFrame, dummyFunctions, dummyTypeContainer)
-        val node = ConstantNode(5)
-//        assertNull(builder.getActionInRegister(node, compareType))
-        val node2 = SingleOperationNode(Operation.Addition, ConstantNode(5), ConstantNode(10))
-//        assertNull(builder.getActionInRegister(node2, compareType))
     }
 
     @Test
