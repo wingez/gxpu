@@ -241,9 +241,9 @@ class ActionTest {
         assertIterableEquals(
             listOf(
                 AllocSpaceOnStack(voidType.size),
+                AllocSpaceOnStack(0u),
                 ConstantRegister(5u),
                 PushRegister(),
-                AllocSpaceOnStack(0u),
                 CallAction(functionWithParameter),
                 RemoveSpaceOnStack(functionWithParameter.sizeOfParameters),
             ), flatten(

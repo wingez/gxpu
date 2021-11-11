@@ -103,8 +103,8 @@ internal class FunctionInfoTest {
         assertEquals(
             StructBuilder(dummyTypeContainer)
                 .addMember("frame", stackFrameType)
-                .addMember("var", byteType)
                 .addMember("param", byteType)
+                .addMember("var", byteType)
                 .addMember("result", byteType)
                 .getFields(), layout.fields
         )
@@ -149,17 +149,18 @@ internal class FunctionInfoTest {
         assertEquals(
             layout.fields, mapOf(
                 "result" to StructDataField("result", 4u, voidType),
+                "var" to StructDataField("var", 3u, byteType),
+
+                "var2" to StructDataField("var2", 2u, byteType),
                 "frame" to StructDataField("frame", 0u, stackFrameType),
-                "var2" to StructDataField("var2", 3u, byteType),
-                "var" to StructDataField("var", 2u, byteType),
             )
         )
 
         assertIterableEquals(
             listOf(
                 "  0: frame: stackFrame",
-                "  2: var: byte",
-                "  3: var2: byte",
+                "  2: var2: byte",
+                "  3: var: byte",
                 "  4: result: void",
             ),
             layout.getDescription(),

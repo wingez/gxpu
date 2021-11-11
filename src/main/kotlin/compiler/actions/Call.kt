@@ -56,6 +56,9 @@ fun callToStack(node: ValueNode, type: DataType, builder: ActionBuilder): Action
     //Make space for return value
     actions.add(AllocSpaceOnStack(function.sizeOfReturn))
 
+    //make space for frame
+    actions.add(AllocSpaceOnStack(function.sizeOfVars))
+
     //place arguments
     for ((parameter, paramInfo) in node.parameters.zip(function.parameters)) {
         val action = builder.getActionOnStack(parameter, paramInfo.type)
@@ -63,8 +66,7 @@ fun callToStack(node: ValueNode, type: DataType, builder: ActionBuilder): Action
         actions.add(action)
     }
 
-    //make space for frame
-    actions.add(AllocSpaceOnStack(function.sizeOfVars))
+
 
     //Call
     actions.add(CallAction(function))

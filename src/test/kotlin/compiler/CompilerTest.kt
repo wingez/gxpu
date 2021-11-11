@@ -250,10 +250,11 @@ class CompilerTest {
         
         ADDSP #1
         SUBSP #0
+        SUBSP #0
+
         LDA FP #0
         ADDA #2
         PUSHA
-        SUBSP #0
         
         CALL #9
         ADDSP #1

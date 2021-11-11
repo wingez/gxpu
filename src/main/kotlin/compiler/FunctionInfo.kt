@@ -58,8 +58,8 @@ fun calculateFrameLayout(
 
     fieldBuilder.addMember("result", returnType)
 
-    val parameterNames = mutableListOf<String>()
-
+    // Figure out what parameters to use. But we should not add them to the layout until we've added the local variables
+    val parameters = mutableListOf<Pair<String, DataType>>()
     for (arg in node.arguments) {
         if (arg.explicitNew) {
             throw CompileError("Explicit new not allowed for parameters")
@@ -70,10 +70,11 @@ fun calculateFrameLayout(
             paramType = ArrayType(paramType)
         }
         paramType = paramType.instantiate(false)
-        fieldBuilder.addMember(arg.name, paramType)
-        parameterNames.add(arg.name)
-
+        parameters.add(Pair(arg.name, paramType))
     }
+
+
+
 
     // Traverse recursively. Can probably be flattened but meh
     fun traverseNode(nodeToVisit: NodeContainer) {
@@ -93,9 +94,6 @@ fun calculateFrameLayout(
                 typeName = visitNode.type
                 explicitNew = visitNode.explicitNew
 
-                if (fieldBuilder.hasField(name))
-                // TODO check type here perhaps??
-                    continue
 
             } else if (visitNode is PrimitiveMemberDeclaration) {
                 name = visitNode.name
@@ -109,6 +107,10 @@ fun calculateFrameLayout(
                 continue
             }
 
+            if (fieldBuilder.hasField(name) || parameters.any { it.first == name })
+            // TODO check type here perhaps??
+                continue
+
             var type = typeProvider.getType(typeName)
             if (isArray) {
                 type = ArrayType(type)
@@ -119,6 +121,10 @@ fun calculateFrameLayout(
         }
     }
     traverseNode(node)
+
+    //Place parameters in layout
+    parameters.forEach { fieldBuilder.addMember(it.first, it.second) }
+
 
     // Make space for pc+fp
     fieldBuilder.addMember("frame", stackFrameType)
@@ -131,8 +137,7 @@ fun calculateFrameLayout(
         fields[it.key] = StructDataField(it.value.name, byte(offset), it.value.type)
     }
 
-
-
+    val parameterNames = parameters.map { it.first }
 
     return FunctionInfo(
         memoryPosition,
