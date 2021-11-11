@@ -1,6 +1,5 @@
 package se.wingez.compiler
 
-import org.junit.jupiter.api.Assertions.assertIterableEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import se.wingez.ast.FunctionNode
@@ -12,6 +11,7 @@ import se.wingez.compiler.actions.ActionBuilder
 import se.wingez.emulator.DefaultEmulator
 import se.wingez.tokens.parseFile
 import java.io.StringReader
+import kotlin.test.assertEquals
 
 
 fun buildSingleMainFunction(nodes: List<StatementNode>): List<UByte> {
@@ -45,11 +45,12 @@ fun buildProgram(body: String): List<UByte> {
 }
 
 fun shouldMatch(code: List<UByte>, expected: List<UByte>) {
-    assertIterableEquals(code, expected) {
-        (listOf("SDisassembled: ") + DefaultEmulator().instructionSet.disassemble(code)).joinToString(
+    assertEquals(
+        code, expected,
+        (listOf("Disassembled: ") + DefaultEmulator().instructionSet.disassemble(code)).joinToString(
             "\n"
         )
-    }
+    )
 }
 
 fun bodyShouldMatchAssembled(body: String, expectedAssembly: String) {
@@ -75,28 +76,29 @@ class CompilerTest {
         #Expected
         ldfp #255
         ldsp #255
+        subsp #0
+        subsp #0
         call #7
         exit
 
-        ldfp sp
         ret
          */
 
         val code = buildSingleMainFunction(emptyList())
-        assertIterableEquals(
-            code, listOf(
+        assertEquals(
+            listOf(
                 // Init stack and frame
                 DefaultEmulator.ldfp.id, byte(255),
                 DefaultEmulator.ldsp.id, byte(255),
+                // Place local vars
+                DefaultEmulator.sub_sp.id, byte(0),
                 // Call
-                DefaultEmulator.call_addr.id, byte(7),
+                DefaultEmulator.call_addr.id, byte(9),
                 // On return
                 DefaultEmulator.exit.id,
                 //Start of function
-                DefaultEmulator.ldfp_sp.id,
-                // Frame size is 0
                 DefaultEmulator.ret.id,
-            )
+            ), code
         )
     }
 
@@ -190,17 +192,18 @@ class CompilerTest {
         val expected = """
         LDFP #255
         LDSP #255
-        CALL #12
+        SUBSP #0
+        CALL #13
         exit
         # test1 
-        LDFP SP
         LDA #10
         out
         RET
         #main
-       
-        LDFP SP
-        CALL #7
+        SUBSP #0
+        SUBSP #0
+        CALL #9
+        ADDSP #0
         LDA #3
         out
         ret
@@ -223,10 +226,10 @@ class CompilerTest {
         val expected = """
         LDFP #255
         LDSP #255
-        CALL #23
+        SUBSP #1
+        CALL #24
         exit
         # test1 
-        LDFP SP
         LDA FP #0
         ADDA #2
         LDA [A #0]
@@ -238,24 +241,24 @@ class CompilerTest {
         RET
         
         # main
-        SUBSP #1
-        LDFP SP
         LDA FP #0
-        ADDA #0
+        ADDA #2
         ADDA #0
         PUSHA
         LDA #11
         STA [[SP #0]]
         
         ADDSP #1
+        SUBSP #0
         LDA FP #0
-        ADDA #0
+        ADDA #2
         PUSHA
+        SUBSP #0
         
-        CALL #7
+        CALL #9
         ADDSP #1
         
-        ret #1
+        ret
          
         """
         val body = """
@@ -275,6 +278,4 @@ class CompilerTest {
 
         programShouldMatchAssembled(body, expected)
     }
-
-
 }

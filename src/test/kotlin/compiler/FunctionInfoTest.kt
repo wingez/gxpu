@@ -82,7 +82,7 @@ internal class FunctionInfoTest {
         assertEquals(layout.size, byte(3))
         assertEquals(layout.sizeOfVars, byte(1))
         assertEquals(layout.sizeOfParameters, byte(0))
-        assertThat(layout.fields).containsEntry("var", StructDataField("var", 0u, byteType))
+        assertThat(layout.fields).containsEntry("var", StructDataField("var", 2u, byteType))
     }
 
     @Test
@@ -101,9 +101,9 @@ internal class FunctionInfoTest {
         assertEquals(layout.sizeOfParameters, byte(0))
         assertEquals(
             layout.fields, mapOf(
-                "frame" to StructDataField("frame", 2u, stackFrameType),
-                "var1" to StructDataField("var1", 0u, byteType),
-                "var" to StructDataField("var", 1u, byteType),
+                "frame" to StructDataField("frame", 0u, stackFrameType),
+                "var1" to StructDataField("var1", 2u, byteType),
+                "var" to StructDataField("var", 3u, byteType),
             )
         )
     }
@@ -121,16 +121,16 @@ internal class FunctionInfoTest {
         assertEquals(layout.sizeOfParameters, byte(1))
         assertEquals(
             layout.fields, mapOf(
-                "frame" to StructDataField("frame", 1u, stackFrameType),
+                "frame" to StructDataField("frame", 0u, stackFrameType),
                 "var2" to StructDataField("var2", 3u, byteType),
-                "var" to StructDataField("var", 0u, byteType),
+                "var" to StructDataField("var", 2u, byteType),
             )
         )
 
         assertIterableEquals(
             listOf(
-                "  0: var: byte",
-                "  1: frame: stackFrame",
+                "  0: frame: stackFrame",
+                "  2: var: byte",
                 "  3: var2: byte",
             ),
             layout.getDescription(),
@@ -147,7 +147,7 @@ internal class FunctionInfoTest {
         """
         )
 
-        assertThat(layout.fields).containsValue(StructDataField("arr", 0u, Pointer(ArrayType(byteType))))
+        assertThat(layout.fields).containsValue(StructDataField("arr", 2u, Pointer(ArrayType(byteType))))
     }
 
 }

@@ -121,25 +121,15 @@ class DefaultEmulator : Emulator(instructionSet) {
             val addr = it.getIncPC()
             it.push(it.fp)
             it.push(it.pc)
+            it.fp = it.sp
             it.pc = addr
             false
         }
 
-        private fun retGeneric(emulator: Emulator, size: UByte) {
-            emulator.sp = emulator.fp
-            emulator.sp = (size + emulator.sp).toUByte()
-
-            emulator.pc = emulator.pop()
-            emulator.fp = emulator.pop()
-        }
-
         val ret = instructionSet.createInstruction("RET", group = FLOW_CONTROL) {
-            retGeneric(it, 0u)
-            false
-        }
-        val ret_frame = instructionSet.createInstruction("RET #size", group = FLOW_CONTROL) {
-            val size = it.getIncPC()
-            retGeneric(it, size)
+            it.sp = it.fp
+            it.pc = it.pop()
+            it.fp = it.pop()
             false
         }
 

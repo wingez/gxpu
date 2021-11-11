@@ -31,12 +31,7 @@ class FunctionBuilder(
         if (node.value != null) {
             throw NotImplementedError()
         }
-
-        if (functionInfo.sizeOfVars > 0u) {
-            generator.generate(DefaultEmulator.ret_frame.build(mapOf("size" to functionInfo.sizeOfVars)))
-        } else {
-            generator.generate(DefaultEmulator.ret.build())
-        }
+        generator.generate(DefaultEmulator.ret.build())
     }
 
     private fun optimizeGenerate(action: Action) {
@@ -95,13 +90,6 @@ class FunctionBuilder(
     }
 
     fun buildBody(nodes: Iterable<StatementNode>) {
-        // Make space on stack for local variables
-        if (functionInfo.sizeOfVars > 0u) {
-            generator.generate(DefaultEmulator.sub_sp.build(mapOf("val" to functionInfo.sizeOfVars)))
-        }
-        //Move fp to sp = bottom of frame
-        generator.generate(DefaultEmulator.ldfp_sp.build())
-
         buildNodes(nodes)
 
         handleReturn(ReturnNode())

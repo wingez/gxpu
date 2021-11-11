@@ -153,7 +153,7 @@ internal class EmulatorBasicTest {
 
         assertEquals(e.getMemoryAt(25 - 1), byte(25))
         assertEquals(e.getMemoryAt(25 - 2), byte(6))
-        assertEquals(e.fp, byte(25))
+        assertEquals(e.fp, byte(23))
         assertEquals(e.sp, byte(23))
     }
 

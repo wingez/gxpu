@@ -47,18 +47,32 @@ data class PrintAction(
 }
 
 
-data class MakeSpaceOnStack(
+data class AllocDynamicSpaceOnStack(
     override val cost: Int = 1,
 ) : Action {
+    /**
+     * Space should be in a-register
+     */
     override fun compile(generator: CodeGenerator) {
         generator.generate(DefaultEmulator.sub_sp_a.build())
     }
 }
 
+data class AllocSpaceOnStack(
+    val space: UByte,
+) : Action {
+    override val cost: Int = 1
+
+    override fun compile(generator: CodeGenerator) {
+        generator.generate(DefaultEmulator.sub_sp.build(mapOf("val" to space)))
+    }
+}
+
 data class RemoveSpaceOnStack(
     val amount: UByte,
-    override val cost: Int = 1,
 ) : Action {
+    override val cost: Int = 1
+
     override fun compile(generator: CodeGenerator) {
         generator.generate(DefaultEmulator.add_sp.build(mapOf("val" to amount)))
     }
@@ -145,7 +159,7 @@ fun createArray(node: StatementNode, builder: ActionBuilder): Action? {
     //Size is now in a register
     //TODO: multiply with element size
     //Make space for array
-    actions.add(MakeSpaceOnStack())
+    actions.add(AllocDynamicSpaceOnStack())
 
     //Push the size-value to the array struct
     actions.add(PushRegister())

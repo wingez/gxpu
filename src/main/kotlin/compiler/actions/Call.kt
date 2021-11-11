@@ -3,21 +3,10 @@ package se.wingez.compiler.actions
 import se.wingez.ast.CallNode
 import se.wingez.ast.StatementNode
 import se.wingez.ast.ValueNode
+import se.wingez.byte
 import se.wingez.compiler.*
 import se.wingez.emulator.DefaultEmulator
 
-
-data class PlaceReturnValueOnStack(
-    val type: DataType,
-    override val cost: Int = 1,
-) : Action {
-    override fun compile(generator: CodeGenerator) {
-        // Place return value
-        if (type.size > 0u) {
-            generator.generate(DefaultEmulator.sub_sp.build(mapOf("val" to type.size)))
-        }
-    }
-}
 
 data class CallAction(
     val function: FunctionInfo,
@@ -25,18 +14,6 @@ data class CallAction(
 ) : Action {
     override fun compile(generator: CodeGenerator) {
         generator.generate(DefaultEmulator.call_addr.build(mapOf("addr" to function.memoryPosition)))
-    }
-}
-
-data class PopArguments(
-    val function: FunctionInfo,
-    override val cost: Int = 1,
-) : Action {
-    override fun compile(generator: CodeGenerator) {
-        val paramSize = function.sizeOfParameters
-        if (paramSize > 0u) {
-            generator.generate(DefaultEmulator.add_sp.build(mapOf("val" to paramSize)))
-        }
     }
 }
 
@@ -77,7 +54,7 @@ fun callToStack(node: ValueNode, type: DataType, builder: ActionBuilder): Action
     val actions = mutableListOf<Action>()
 
     //Make space for return value
-    actions.add(PlaceReturnValueOnStack(function.returnType))
+    actions.add(AllocSpaceOnStack(function.sizeOfReturn))
 
     //place arguments
     for ((parameter, paramInfo) in node.parameters.zip(function.parameters)) {
@@ -85,11 +62,15 @@ fun callToStack(node: ValueNode, type: DataType, builder: ActionBuilder): Action
             ?: throw CompileError("Type mismatch: ${paramInfo.type}")
         actions.add(action)
     }
+
+    //make space for frame
+    actions.add(AllocSpaceOnStack(function.sizeOfVars))
+
     //Call
     actions.add(CallAction(function))
 
-    //Pop arguments
-    actions.add(PopArguments(function))
+    //Pop arguments and vars
+    actions.add(RemoveSpaceOnStack(byte(function.sizeOfVars + function.sizeOfParameters)))
     return CompositeAction(*actions.toTypedArray())
 }
 

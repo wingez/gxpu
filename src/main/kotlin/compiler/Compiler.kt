@@ -107,6 +107,7 @@ class Compiler : TypeProvider, FunctionProvider {
         generator.generate(DefaultEmulator.ldfp.build(mapOf("val" to byte(STACK_START))))
         generator.generate(DefaultEmulator.ldsp.build(mapOf("val" to byte(STACK_START))))
 
+        val allocMainFrame = generator.makeSpaceFor(DefaultEmulator.sub_sp)
         val callMain = generator.makeSpaceFor(DefaultEmulator.call_addr)
         generator.generate(DefaultEmulator.exit.build())
 
@@ -125,6 +126,11 @@ class Compiler : TypeProvider, FunctionProvider {
 
         val mainFunction = functions.getValue(MAIN_NAME)
 
+        if (mainFunction.sizeOfParameters != byte(0)) {
+            throw AssertionError()
+        }
+
+        allocMainFrame.generate(mapOf("val" to mainFunction.sizeOfVars))
         callMain.generate(mapOf("addr" to mainFunction.memoryPosition))
 
         return generator.resultingCode

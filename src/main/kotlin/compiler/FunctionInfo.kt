@@ -60,9 +60,6 @@ fun calculateFrameLayout(
     }
     val sizeOfParams = fieldBuilder.getCurrentSize() - sizeOfRet
 
-    // Make space for pc+fp
-    fieldBuilder.addMember("frame", stackFrameType)
-    val sizeOfMeta = fieldBuilder.getCurrentSize() - sizeOfRet - sizeOfParams
 
     // Traverse recursively. Can probably be flattened but meh
     fun traverseNode(nodeToVisit: NodeContainer) {
@@ -108,7 +105,12 @@ fun calculateFrameLayout(
         }
     }
     traverseNode(node)
-    val sizeOfVars = fieldBuilder.getCurrentSize() - sizeOfRet - sizeOfParams - sizeOfMeta
+    val sizeOfVars = fieldBuilder.getCurrentSize() - sizeOfRet - sizeOfParams
+
+    // Make space for pc+fp
+    fieldBuilder.addMember("frame", stackFrameType)
+    val sizeOfMeta = fieldBuilder.getCurrentSize() - sizeOfRet - sizeOfParams - sizeOfVars
+
 
     //We've built the frame from top to buttom (param first, variables last). But on the stack the order is reversed
     //So we need to flip all offsets so it's relative to the bottom instead

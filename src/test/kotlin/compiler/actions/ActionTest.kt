@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import se.wingez.ast.*
+import se.wingez.byte
 import se.wingez.compiler.actions.*
 import se.wingez.emulator.DefaultEmulator
 import kotlin.test.Ignore
@@ -211,9 +212,10 @@ class ActionTest {
         //No params no return
         assertIterableEquals(
             listOf(
-                PlaceReturnValueOnStack(voidType),
+                AllocSpaceOnStack(voidType.size),
+                AllocSpaceOnStack(0u),
                 CallAction(emptyFunction),
-                PopArguments(emptyFunction),
+                RemoveSpaceOnStack(0u)
             ), flatten(
                 builder.getActionOnStack(
                     CallNode("test", emptyList()),
@@ -231,7 +233,7 @@ class ActionTest {
             emptyMap(),
             listOf(StructDataField("param", 0u, byteType)),
             voidType,
-            0u,
+            1u,
             2u,
             0u
         )
@@ -241,11 +243,12 @@ class ActionTest {
         //1 parameter no return
         assertIterableEquals(
             listOf(
-                PlaceReturnValueOnStack(voidType),
+                AllocSpaceOnStack(voidType.size),
                 ConstantRegister(5u),
                 PushRegister(),
+                AllocSpaceOnStack(0u),
                 CallAction(functionWithParameter),
-                PopArguments(functionWithParameter),
+                RemoveSpaceOnStack(functionWithParameter.sizeOfParameters),
             ), flatten(
                 builder.getActionOnStack(
                     CallNode("test", listOf(ConstantNode(5))),
@@ -264,9 +267,10 @@ class ActionTest {
         //No params, return byte
         assertIterableEquals(
             listOf(
-                PlaceReturnValueOnStack(byteType),
+                AllocSpaceOnStack(byteType.size),
+                AllocSpaceOnStack(0u),
                 CallAction(functionWithReturn),
-                PopArguments(functionWithReturn),
+                RemoveSpaceOnStack(byte(functionWithReturn.sizeOfVars + functionWithReturn.sizeOfParameters))
             ), flatten(
                 builder.getActionOnStack(
                     CallNode("test", emptyList()),
@@ -417,7 +421,7 @@ class ActionTest {
                 ConstantRegister(5u),
                 PushRegister(),
                 PopRegister(),
-                MakeSpaceOnStack(),
+                AllocDynamicSpaceOnStack(),
                 PushRegister(),
                 PushStackPointer(),
                 LoadRegisterFP(),
