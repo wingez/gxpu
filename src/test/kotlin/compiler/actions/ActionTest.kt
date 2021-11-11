@@ -24,9 +24,13 @@ class ActionTest {
 
     private val dummyFrame = FunctionInfo(
         0u, "dummyFrame",
-        mapOf("var1" to StructDataField("var1", 0u, byteType)),
+        mapOf(
+            "var1" to StructDataField("var1", 0u, byteType),
+            "frame" to StructDataField("frame", 0u, stackFrameType),
+            "result" to StructDataField("result", 2u, voidType),
+        ),
         emptyList(),
-        voidType, 2u, 1u, 0u
+        voidType
     )
 
     @Test
@@ -205,7 +209,13 @@ class ActionTest {
 
     @Test
     fun testCall() {
-        val emptyFunction = FunctionInfo(0u, "test", emptyMap(), emptyList(), voidType, 0u, 2u, 0u)
+        val emptyFunction = FunctionInfo(
+            0u,
+            "test",
+            mapOf("frame" to StructDataField("struct", 0u, stackFrameType)),
+            emptyList(),
+            voidType
+        )
         val builder = ActionBuilder(dummyFrame, FunctionContainer(listOf(emptyFunction)), dummyTypeContainer)
 
 
@@ -230,12 +240,10 @@ class ActionTest {
         val functionWithParameter = FunctionInfo(
             0u,
             "test",
-            emptyMap(),
-            listOf(StructDataField("param", 0u, byteType)),
+            StructBuilder(dummyTypeContainer).addMember("frame", stackFrameType).addMember("param", byteType)
+                .getFields(),
+            listOf("param"),
             voidType,
-            1u,
-            2u,
-            0u
         )
         val builder = ActionBuilder(dummyFrame, FunctionContainer(listOf(functionWithParameter)), dummyTypeContainer)
 
@@ -261,7 +269,14 @@ class ActionTest {
     @Test
     fun testCallReturnType() {
 
-        val functionWithReturn = FunctionInfo(0u, "test", emptyMap(), emptyList(), byteType, 0u, 2u, 0u)
+        val functionWithReturn = FunctionInfo(
+            0u,
+            "test",
+            StructBuilder(dummyTypeContainer).addMember("frame", stackFrameType).addMember("result", byteType)
+                .getFields(),
+            emptyList(),
+            byteType
+        )
         val builder = ActionBuilder(dummyFrame, FunctionContainer(listOf(functionWithReturn)), dummyTypeContainer)
 
         //No params, return byte
@@ -296,7 +311,7 @@ class ActionTest {
             .getStruct("myType")
         val function = FunctionInfo(
             0u, "test",
-            mapOf("t" to StructDataField("t", 0u, myType)), emptyList(), voidType, 0u, 2u, 2u
+            mapOf("t" to StructDataField("t", 0u, myType)), emptyList(), voidType
         )
 
         val builder = ActionBuilder(function, dummyFunctions, dummyTypeContainer)
@@ -341,16 +356,18 @@ class ActionTest {
 
         val function = FunctionInfo(
             0u, "test",
-            StructBuilder(TypeContainer(listOf(myType))).addMember("field", Pointer(myType)).getFields(),
+            StructBuilder(TypeContainer(listOf(myType)))
+                .addMember("frame", stackFrameType)
+                .addMember("field", Pointer(myType)).getFields(),
             emptyList(),
-            voidType, 0u, 0u, 0u
+            voidType
         )
 
         val builder = ActionBuilder(function, dummyFunctions, dummyTypeContainer)
         assertEquals(
             listOf(
                 LoadRegisterFP(),
-                AddRegister(0u),
+                AddRegister(2u),
                 DerefByteAction(0u),
                 AddRegister(0u),
                 PushRegister(),
@@ -374,9 +391,11 @@ class ActionTest {
 
         val function = FunctionInfo(
             0u, "test",
-            StructBuilder(TypeContainer(listOf(myType))).addMember("field", Pointer(myType)).getFields(),
+            StructBuilder(TypeContainer(listOf(myType)))
+                .addMember("frame", stackFrameType)
+                .addMember("field", Pointer(myType)).getFields(),
             emptyList(),
-            voidType, 0u, 0u, 0u
+            voidType
         )
 
 
@@ -385,7 +404,7 @@ class ActionTest {
         assertEquals(
             listOf(
                 LoadRegisterFP(),
-                AddRegister(0u),
+                AddRegister(2u),
                 DerefByteAction(0u),
                 AddRegister(0u),
                 PushRegister(),
@@ -410,9 +429,10 @@ class ActionTest {
     fun testCreateArray() {
         val function = FunctionInfo(
             0u, "test",
-            StructBuilder(dummyTypeContainer).addMember("arr", Pointer(ArrayType(byteType))).getFields(),
+            StructBuilder(dummyTypeContainer).addMember("arr", Pointer(ArrayType(byteType)))
+                .addMember("frame", stackFrameType).getFields(),
             emptyList(),
-            voidType, 0u, 0u, 0u
+            voidType
         )
 
         val builder2 = ActionBuilder(function, dummyFunctions, dummyTypeContainer)
@@ -448,9 +468,12 @@ class ActionTest {
     fun testAccessArray() {
         val function = FunctionInfo(
             0u, "test",
-            StructBuilder(dummyTypeContainer).addMember("arr", Pointer(ArrayType(byteType))).getFields(),
+            mapOf(
+                "arr" to StructDataField("arr", 0u, Pointer(ArrayType(byteType))),
+                "frame" to StructDataField("frame", 1u, stackFrameType)
+            ),
             emptyList(),
-            voidType, 0u, 0u, 0u
+            voidType
         )
 
         val builder2 = ActionBuilder(function, dummyFunctions, dummyTypeContainer)
@@ -483,16 +506,18 @@ class ActionTest {
     fun pushPointer() {
         val function = FunctionInfo(
             0u, "test",
-            StructBuilder(dummyTypeContainer).addMember("arr", Pointer(ArrayType(byteType))).getFields(),
+            StructBuilder(dummyTypeContainer)
+                .addMember("frame", stackFrameType)
+                .addMember("arr", Pointer(ArrayType(byteType))).getFields(),
             emptyList(),
-            voidType, 0u, 0u, 0u
+            voidType
         )
         val builder = ActionBuilder(function, dummyFunctions, dummyTypeContainer)
 
         assertEquals(
             listOf(
                 LoadRegisterFP(),
-                AddRegister(0u),
+                AddRegister(2u),
                 PushRegister(),
                 LoadRegisterStackAddressDeref(0u),
                 PopThrow(),

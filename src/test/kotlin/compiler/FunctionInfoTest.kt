@@ -48,7 +48,7 @@ internal class FunctionInfoTest {
         assertEquals(layout.size, byte(2))
         assertEquals(layout.sizeOfVars, byte(0))
         assertEquals(layout.sizeOfParameters, byte(0))
-        assertThat(layout.fields).hasSize(1)
+        assertThat(layout.fields).hasSize(2)
         assertThat(layout.fields).containsEntry("frame", StructDataField("frame", 0u, stackFrameType))
     }
 
@@ -65,6 +65,7 @@ internal class FunctionInfoTest {
         assertEquals(layout.sizeOfParameters, byte(1))
         assertEquals(
             layout.fields, mapOf(
+                "result" to StructDataField("result", 3u, voidType),
                 "frame" to StructDataField("frame", 0u, stackFrameType),
                 "test" to StructDataField("test", 2u, byteType)
             )
@@ -86,6 +87,31 @@ internal class FunctionInfoTest {
     }
 
     @Test
+    fun testVarParamReturn() {
+        val layout = getLayout(
+            """
+            def test1(param:byte): byte
+              var=5
+    """
+        )
+        assertEquals(layout.size, byte(5))
+        assertEquals(layout.sizeOfVars, byte(1))
+        assertEquals(layout.sizeOfReturn, byte(1))
+        assertEquals(layout.sizeOfMeta, byte(2))
+        assertEquals(layout.sizeOfParameters, byte(1))
+
+        assertEquals(
+            StructBuilder(dummyTypeContainer)
+                .addMember("frame", stackFrameType)
+                .addMember("var", byteType)
+                .addMember("param", byteType)
+                .addMember("result", byteType)
+                .getFields(), layout.fields
+        )
+
+    }
+
+    @Test
     fun testIf() {
         val layout = getLayout(
             """
@@ -101,6 +127,7 @@ internal class FunctionInfoTest {
         assertEquals(layout.sizeOfParameters, byte(0))
         assertEquals(
             layout.fields, mapOf(
+                "result" to StructDataField("result", 4u, voidType),
                 "frame" to StructDataField("frame", 0u, stackFrameType),
                 "var1" to StructDataField("var1", 2u, byteType),
                 "var" to StructDataField("var", 3u, byteType),
@@ -121,6 +148,7 @@ internal class FunctionInfoTest {
         assertEquals(layout.sizeOfParameters, byte(1))
         assertEquals(
             layout.fields, mapOf(
+                "result" to StructDataField("result", 4u, voidType),
                 "frame" to StructDataField("frame", 0u, stackFrameType),
                 "var2" to StructDataField("var2", 3u, byteType),
                 "var" to StructDataField("var", 2u, byteType),
@@ -132,6 +160,7 @@ internal class FunctionInfoTest {
                 "  0: frame: stackFrame",
                 "  2: var: byte",
                 "  3: var2: byte",
+                "  4: result: void",
             ),
             layout.getDescription(),
         )

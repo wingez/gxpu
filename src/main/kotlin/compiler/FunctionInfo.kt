@@ -14,15 +14,30 @@ class FunctionInfo(
     val memoryPosition: UByte,
     name: String,
     fields: Map<String, StructDataField>,
-    val parameters: List<StructDataField>,
+    parameterNames: List<String>,
     val returnType: DataType,
-    val sizeOfParameters: UByte,
-    val sizeOfMeta: UByte,
-    val sizeOfVars: UByte,
-) : StructType(name, fields) {
-    val sizeOfReturn = returnType.size
-    val hasReturnSize = sizeOfReturn > 0u
 
+    ) : StructType(name, fields) {
+    val sizeOfReturn = returnType.size
+
+    val sizeOfParameters: UByte
+    val sizeOfMeta: UByte
+    val sizeOfVars: UByte
+
+    val parameters: List<StructDataField>
+
+    init {
+
+        parameters = parameterNames.map { getField(it) }
+
+        // TODO check overflow
+        sizeOfParameters = byte(parameters.sumOf { it.type.size.toInt() })
+        sizeOfMeta = stackFrameType.size
+
+        // Fields include parameters and returnPC
+        sizeOfVars =
+            byte(fields.values.sumOf { it.type.size.toInt() } - sizeOfParameters.toInt() - sizeOfMeta.toInt() - sizeOfReturn.toInt())
+    }
 
 }
 
@@ -35,13 +50,14 @@ fun calculateFrameLayout(
     // We first calculate the offsets from the top. Then we reverse it when we know the total size
     val fieldBuilder = StructBuilder(typeProvider)
 
+    val returnType = if (node.returnType.isEmpty())
+        voidType
+    else
     // TODO: handle explicit new
-    val returnType = typeProvider.getType(node.returnType).instantiate(false)
-    if (returnType != voidType) {
-        fieldBuilder.addMember("result", returnType)
-    }
+        typeProvider.getType(node.returnType).instantiate(false)
 
-    val sizeOfRet = fieldBuilder.getCurrentSize()
+    fieldBuilder.addMember("result", returnType)
+
     val parameterNames = mutableListOf<String>()
 
     for (arg in node.arguments) {
@@ -58,8 +74,6 @@ fun calculateFrameLayout(
         parameterNames.add(arg.name)
 
     }
-    val sizeOfParams = fieldBuilder.getCurrentSize() - sizeOfRet
-
 
     // Traverse recursively. Can probably be flattened but meh
     fun traverseNode(nodeToVisit: NodeContainer) {
@@ -105,12 +119,9 @@ fun calculateFrameLayout(
         }
     }
     traverseNode(node)
-    val sizeOfVars = fieldBuilder.getCurrentSize() - sizeOfRet - sizeOfParams
 
     // Make space for pc+fp
     fieldBuilder.addMember("frame", stackFrameType)
-    val sizeOfMeta = fieldBuilder.getCurrentSize() - sizeOfRet - sizeOfParams - sizeOfVars
-
 
     //We've built the frame from top to buttom (param first, variables last). But on the stack the order is reversed
     //So we need to flip all offsets so it's relative to the bottom instead
@@ -120,21 +131,14 @@ fun calculateFrameLayout(
         fields[it.key] = StructDataField(it.value.name, byte(offset), it.value.type)
     }
 
-    val parameters = mutableListOf<StructDataField>()
-    for (paramName in parameterNames) {
-        parameters.add(fields.getValue(paramName))
-    }
+
 
 
     return FunctionInfo(
         memoryPosition,
         node.name,
         fields,
-        parameters,
-        returnType,
-        byte(sizeOfParams),
-        byte(sizeOfMeta),
-        byte(sizeOfVars),
+        parameterNames, returnType
     )
 
 }
