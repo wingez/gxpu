@@ -18,7 +18,7 @@ fun parserFromFile(file: String): AstParser {
     return AstParser(parseFile(StringReader(file)))
 }
 
-fun parseExpressions(tokens: List<Token>): List<StatementNode> {
+fun parseExpressions(tokens: List<Token>): List<AstNode> {
     return AstParser(tokens + listOf(TokenEndBlock)).parseStatementsUntilEndblock()
 }
 
@@ -148,7 +148,7 @@ internal class AstParserTest {
 
         assertEquals(
             parserFromLine("return 5+a").parseReturnStatement(),
-            ReturnNode(SingleOperationNode(Operation.Addition, ConstantNode(5), Identifier("a")))
+            ReturnNode(OperationNode(NodeTypes.Addition, ConstantNode(5), Identifier("a")))
         )
     }
 
@@ -219,9 +219,9 @@ internal class AstParserTest {
             """
             ).parseIfStatement(),
             IfNode(
-                SingleOperationNode(
-                    Operation.NotEquals,
-                    SingleOperationNode(Operation.Subtraction, Identifier("a"), ConstantNode(2)),
+                OperationNode(
+                    NodeTypes.NotEquals,
+                    OperationNode(NodeTypes.Subtraction, Identifier("a"), ConstantNode(2)),
                     ConstantNode(0)
                 ),
                 listOf(PrintNode(ConstantNode(5))),
@@ -252,7 +252,7 @@ internal class AstParserTest {
     @Test
     fun testSizeof() {
         assertEquals(
-            SingleOperationNode(Operation.Addition, ConstantNode(5), SizeofNode("byte")),
+            OperationNode(NodeTypes.Addition, ConstantNode(5), SizeofNode("byte")),
             parserFromLine("5+sizeof(byte)").parseValueProvider()
         )
     }

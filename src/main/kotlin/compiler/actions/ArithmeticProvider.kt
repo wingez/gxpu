@@ -1,9 +1,8 @@
 package se.wingez.compiler.actions
 
-import se.wingez.ast.Operation
-import se.wingez.ast.SingleOperationNode
-import se.wingez.ast.StatementNode
-import se.wingez.ast.ValueNode
+import se.wingez.ast.AstNode
+import se.wingez.ast.NodeTypes
+import se.wingez.ast.OperationNode
 import se.wingez.compiler.CodeGenerator
 import se.wingez.compiler.DataType
 import se.wingez.compiler.byteType
@@ -43,13 +42,13 @@ data class NotEqualCompare(
  * Result should be stored in A and Stack should not be touched
  */
 
-fun arithmeticToStack(node: ValueNode, type: DataType, builder: ActionBuilder): Action? {
-    if (node !is SingleOperationNode) return null
+fun arithmeticToStack(node: AstNode, type: DataType, builder: ActionBuilder): Action? {
+    if (node !is OperationNode) return null
     else if (type != byteType) return null
 
-    val operationAction = when (node.operation) {
-        Operation.Addition -> AdditionAction()
-        Operation.Subtraction -> SubtractionAction()
+    val operationAction = when (node.type) {
+        NodeTypes.Addition -> AdditionAction()
+        NodeTypes.Subtraction -> SubtractionAction()
         else -> return null
     }
 
@@ -66,13 +65,13 @@ fun arithmeticToStack(node: ValueNode, type: DataType, builder: ActionBuilder): 
     )
 }
 
-fun notEqualCompare(node: StatementNode, builder: ActionBuilder): Action? {
-    if (node !is SingleOperationNode) return null
-    if (node.operation != Operation.NotEquals) return null
+fun notEqualCompare(node: AstNode, builder: ActionBuilder): Action? {
+    if (node !is OperationNode) return null
+    if (node.type != NodeTypes.NotEquals) return null
 
     val subtractToStack = builder.getActionOnStack(
-        SingleOperationNode(
-            Operation.Subtraction, node.left, node.right
+        OperationNode(
+            NodeTypes.Subtraction, node.left, node.right
         ), byteType
     ) ?: return null
 

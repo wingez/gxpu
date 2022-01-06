@@ -87,7 +87,7 @@ data class PushStackPointer(
     }
 }
 
-fun printStatement(node: StatementNode, builder: ActionBuilder): Action? {
+fun printStatement(node: AstNode, builder: ActionBuilder): Action? {
     if (node !is PrintNode)
         return null
 
@@ -99,7 +99,7 @@ fun printStatement(node: StatementNode, builder: ActionBuilder): Action? {
     )
 }
 
-fun putByteOnStack(node: ValueNode, type: DataType, builder: ActionBuilder): Action? {
+fun putByteOnStack(node: AstNode, type: DataType, builder: ActionBuilder): Action? {
     //TODO remove?? and split to lda+ push???
     if (node !is ConstantNode || type != byteType) {
         return null
@@ -108,22 +108,19 @@ fun putByteOnStack(node: ValueNode, type: DataType, builder: ActionBuilder): Act
 }
 
 
-fun sizeOfToStack(node: ValueNode, type: DataType, builder: ActionBuilder): Action? {
+fun sizeOfToStack(node: AstNode, type: DataType, builder: ActionBuilder): Action? {
     if (node !is SizeofNode) return null
 
-    val provideType = builder.getType(node.type)
+    val provideType = builder.getType(node.typeOf)
     val size = provideType.size
 
     return builder.getActionOnStack(ConstantNode(size.toInt()), type)
 }
 
 
-fun assignFrameByte(node: StatementNode, builder: ActionBuilder): Action? {
+fun assignFrameByte(node: AstNode, builder: ActionBuilder): Action? {
     if (node !is AssignNode)
         return null
-    if (node.value == null) {
-        return null
-    }
 
     val pushMemberAddress = pushAddressCheckType(node.target, builder.currentFunction, byteType, builder)
 
@@ -139,10 +136,9 @@ fun assignFrameByte(node: StatementNode, builder: ActionBuilder): Action? {
 }
 
 
-fun createArray(node: StatementNode, builder: ActionBuilder): Action? {
+fun createArray(node: AstNode, builder: ActionBuilder): Action? {
 
     if (node !is AssignNode) return null
-    node.value ?: return null
 
     val callNode = node.value
 
@@ -188,7 +184,7 @@ fun createArray(node: StatementNode, builder: ActionBuilder): Action? {
 }
 
 
-fun byteToStack(node: ValueNode, type: DataType, builder: ActionBuilder): Action? {
+fun byteToStack(node: AstNode, type: DataType, builder: ActionBuilder): Action? {
     if (node !is Identifier && node !is MemberAccess && node !is MemberDeref && node !is ArrayAccess) return null
 
     if (type != byteType) return null
@@ -204,7 +200,7 @@ fun byteToStack(node: ValueNode, type: DataType, builder: ActionBuilder): Action
 }
 
 
-fun pushPointer(node: ValueNode, type: DataType, builder: ActionBuilder): Action? {
+fun pushPointer(node: AstNode, type: DataType, builder: ActionBuilder): Action? {
     if (type !is Pointer) return null
 
     val addressResult = pushAddress(node, builder.currentFunction, builder)
@@ -218,7 +214,7 @@ fun pushPointer(node: ValueNode, type: DataType, builder: ActionBuilder): Action
     )
 }
 
-fun fieldToPointer(node: ValueNode, type: DataType, builder: ActionBuilder): Action? {
+fun fieldToPointer(node: AstNode, type: DataType, builder: ActionBuilder): Action? {
     if (type !is Pointer) return null
 
     val addressResult = pushAddress(node, builder.currentFunction, builder)
@@ -227,8 +223,8 @@ fun fieldToPointer(node: ValueNode, type: DataType, builder: ActionBuilder): Act
     return addressResult.action
 }
 
-typealias statementBuilder = (StatementNode, ActionBuilder) -> Action?
-typealias stackValueBuilder = (ValueNode, DataType, ActionBuilder) -> Action?
+typealias statementBuilder = (AstNode, ActionBuilder) -> Action?
+typealias stackValueBuilder = (AstNode, DataType, ActionBuilder) -> Action?
 
 private val statementBuilders = mutableListOf<Pair<String, statementBuilder>>(
     Pair("createArray", ::createArray),
@@ -267,7 +263,7 @@ class ActionBuilder(
 
 
     fun getActionOnStack(
-        node: ValueNode,
+        node: AstNode,
         type: DataType,
     ): Action? {
         for ((name, action) in stackBuilders) {
@@ -276,7 +272,7 @@ class ActionBuilder(
         return null
     }
 
-    fun buildStatement(node: StatementNode): Action {
+    fun buildStatement(node: AstNode): Action {
         for ((name, action) in statementBuilders) {
             action.invoke(node, this)?.also { return it }
         }

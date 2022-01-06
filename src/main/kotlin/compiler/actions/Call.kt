@@ -1,8 +1,7 @@
 package se.wingez.compiler.actions
 
+import se.wingez.ast.AstNode
 import se.wingez.ast.CallNode
-import se.wingez.ast.StatementNode
-import se.wingez.ast.ValueNode
 import se.wingez.byte
 import se.wingez.compiler.*
 import se.wingez.emulator.DefaultEmulator
@@ -29,7 +28,7 @@ data class PopResult(
 }
 
 
-fun callStatement(node: StatementNode, builder: ActionBuilder): Action? {
+fun callStatement(node: AstNode, builder: ActionBuilder): Action? {
     if (node !is CallNode) return null
 
     val function = builder.getFunction(node.targetName)
@@ -41,7 +40,7 @@ fun callStatement(node: StatementNode, builder: ActionBuilder): Action? {
     )
 }
 
-fun callToStack(node: ValueNode, type: DataType, builder: ActionBuilder): Action? {
+fun callToStack(node: AstNode, type: DataType, builder: ActionBuilder): Action? {
     if (node !is CallNode) return null
 
     val function = builder.getFunction(node.targetName)

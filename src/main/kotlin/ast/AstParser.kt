@@ -172,8 +172,8 @@ class AstParser(private val tokens: List<Token>) {
         return FunctionNode(name, parameters, statements, returnType)
     }
 
-    fun parseStatementsUntilEndblock(): List<StatementNode> {
-        val expressions = mutableListOf<StatementNode>()
+    fun parseStatementsUntilEndblock(): List<AstNode> {
+        val expressions = mutableListOf<AstNode>()
 
         while (!peekIs(TokenEndBlock, true)) {
             if (peekIs(TokenEOL, true))
@@ -187,7 +187,7 @@ class AstParser(private val tokens: List<Token>) {
 
     }
 
-    fun parseStatement(): StatementNode {
+    fun parseStatement(): AstNode {
         tryParse(this::parseAssignment)?.also { return it }
         tryParse(this::parseAssignmentNoInit)?.also { return it }
         tryParse(this::parsePrint)?.also { return it }
@@ -267,7 +267,7 @@ class AstParser(private val tokens: List<Token>) {
         return ReturnNode(value)
     }
 
-    private fun parseSingleValue(): ValueNode {
+    private fun parseSingleValue(): AstNode {
 
         if (peekIs(TokenLeftParenthesis, true)) {
             val result = parseValueProvider()
@@ -294,7 +294,7 @@ class AstParser(private val tokens: List<Token>) {
         }
     }
 
-    fun parseValueProvider(): ValueNode {
+    fun parseValueProvider(): AstNode {
 
 
         val values = mutableListOf(parseSingleValue())
@@ -328,20 +328,20 @@ class AstParser(private val tokens: List<Token>) {
             val operatorToken = operations.removeAt(index)
 
             fun secondAsIdentifier(): String {
-                if (second !is Identifier) {
-                    throw ParserError("Expected identifier, not ${operatorToken}")
+                if (second.type != NodeTypes.Identifier) {
+                    throw ParserError("Expected identifier, not $operatorToken")
                 }
-                return second.name
+                return second.data as String
             }
 
             val result = when (operatorToken) {
-                TokenPlusSign -> SingleOperationNode(Operation.Addition, first, second)
-                TokenMinusSign -> SingleOperationNode(Operation.Subtraction, first, second)
-                TokenNotEqual -> SingleOperationNode(Operation.NotEquals, first, second)
+                TokenPlusSign -> OperationNode(NodeTypes.Addition, first, second)
+                TokenMinusSign -> OperationNode(NodeTypes.Subtraction, first, second)
+                TokenNotEqual -> OperationNode(NodeTypes.NotEquals, first, second)
                 TokenDeref -> MemberDeref(first, secondAsIdentifier())
                 TokenDot -> MemberAccess(first, secondAsIdentifier())
                 TokenLeftBracket -> ArrayAccess(first, second)
-                else -> throw ParserError("You have messed up badly... ${operatorToken}")
+                else -> throw ParserError("You have messed up badly... $operatorToken")
             }
 
             values.add(index, result)
@@ -355,7 +355,7 @@ class AstParser(private val tokens: List<Token>) {
         val targetName = consumeType<TokenIdentifier>().target
         consumeType(TokenLeftParenthesis)
 
-        val parameters = mutableListOf<ValueNode>()
+        val parameters = mutableListOf<AstNode>()
 
         while (!peekIs(TokenRightParenthesis, true)) {
             val paramValue = parseValueProvider()

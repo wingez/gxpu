@@ -50,35 +50,35 @@ fun calculateFrameLayout(
     // We first calculate the offsets from the top. Then we reverse it when we know the total size
     val fieldBuilder = StructBuilder(typeProvider)
 
-    val returnType = if (node.returnType.isEmpty())
+    val returnType = if (node.functionData.returnType.isEmpty())
         voidType
     else
     // TODO: handle explicit new
-        typeProvider.getType(node.returnType).instantiate(false)
+        typeProvider.getType(node.functionData.returnType).instantiate(false)
 
     fieldBuilder.addMember("result", returnType)
 
     // Figure out what parameters to use. But we should not add them to the layout until we've added the local variables
     val parameters = mutableListOf<Pair<String, DataType>>()
-    for (arg in node.arguments) {
-        if (arg.explicitNew) {
+    for (arg in node.functionData.arguments) {
+        if (arg.memberData.explicitNew) {
             throw CompileError("Explicit new not allowed for parameters")
         }
 
-        var paramType = typeProvider.getType(arg.type)
-        if (arg.isArray) {
+        var paramType = typeProvider.getType(arg.memberData.type)
+        if (arg.memberData.isArray) {
             paramType = ArrayType(paramType)
         }
         paramType = paramType.instantiate(false)
-        parameters.add(Pair(arg.name, paramType))
+        parameters.add(Pair(arg.memberData.name, paramType))
     }
 
 
 
 
     // Traverse recursively. Can probably be flattened but meh
-    fun traverseNode(nodeToVisit: NodeContainer) {
-        for (visitNode in nodeToVisit.getNodes()) {
+    fun traverseNode(nodeToVisit: AstNode) {
+        for (visitNode in nodeToVisit) {
             var name: String
             var typeName: String
             var explicitNew: Boolean
@@ -91,17 +91,17 @@ fun calculateFrameLayout(
                     continue
                 }
                 name = visitNode.target.name
-                typeName = visitNode.type
-                explicitNew = visitNode.explicitNew
+                typeName = visitNode.assignData.type
+                explicitNew = visitNode.assignData.explicitNew
 
 
             } else if (visitNode is PrimitiveMemberDeclaration) {
-                name = visitNode.name
-                typeName = visitNode.type
-                explicitNew = visitNode.explicitNew
-                isArray = visitNode.isArray
+                name = visitNode.memberData.name
+                typeName = visitNode.memberData.type
+                explicitNew = visitNode.memberData.explicitNew
+                isArray = visitNode.memberData.isArray
             } else {
-                if (visitNode is NodeContainer) {
+                if (visitNode.hasChildren()) {
                     traverseNode(visitNode)
                 }
                 continue
@@ -141,7 +141,7 @@ fun calculateFrameLayout(
 
     return FunctionInfo(
         memoryPosition,
-        node.name,
+        node.functionData.name,
         fields,
         parameterNames, returnType
     )
