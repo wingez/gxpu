@@ -19,21 +19,21 @@ private class AddressCalculator(
 
 
     // Recursive because we want to start with the innermost node
-    private fun buildRecursive(currentNode: ValueNode, providedType: DataType): DataType {
+    private fun buildRecursive(currentNode: AstNode, providedType: DataType): DataType {
         when (currentNode) {
             is Identifier -> {
                 return access(providedType, currentNode.name)
             }
             is MemberAccess -> {
-                val nextType = buildRecursive(currentNode.left, providedType)
+                val nextType = buildRecursive(currentNode.parent, providedType)
                 return access(nextType, currentNode.member)
             }
             is MemberDeref -> {
-                val nextType = buildRecursive(currentNode.left, providedType)
+                val nextType = buildRecursive(currentNode.parent, providedType)
                 return deref(nextType, currentNode.member)
             }
             is ArrayAccess -> {
-                val nextType = buildRecursive(currentNode.left, providedType)
+                val nextType = buildRecursive(currentNode.parent, providedType)
                 return arrayAccess(nextType, currentNode.index)
             }
             else -> {
@@ -76,7 +76,7 @@ private class AddressCalculator(
         return field.type
     }
 
-    private fun arrayAccess(currentType: DataType, indexNode: ValueNode): DataType {
+    private fun arrayAccess(currentType: DataType, indexNode: AstNode): DataType {
         // Deref and access index
         if (currentType !is Pointer) {
             throw CompileError("Cannot deref non-pointer")
@@ -112,7 +112,7 @@ private class AddressCalculator(
     }
 
 
-    fun build(node: ValueNode, topType: DataType): PushAddressResult {
+    fun build(node: AstNode, topType: DataType): PushAddressResult {
         val resultingType = buildRecursive(node, topType)
         result.add(PushRegister())
 
@@ -124,7 +124,7 @@ private class AddressCalculator(
 
 
 fun pushAddressCheckType(
-    topNode: ValueNode,
+    topNode: AstNode,
     function: FunctionInfo,
     expectedType: DataType,
     builder: ActionBuilder
@@ -138,6 +138,6 @@ fun pushAddressCheckType(
     return pushResult.action
 }
 
-fun pushAddress(topNode: ValueNode, function: FunctionInfo, builder: ActionBuilder): PushAddressResult {
+fun pushAddress(topNode: AstNode, function: FunctionInfo, builder: ActionBuilder): PushAddressResult {
     return AddressCalculator(builder).build(topNode, function)
 }

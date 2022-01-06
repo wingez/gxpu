@@ -153,7 +153,7 @@ class ActionTest {
     @Test
     fun testAddition() {
         val builder = ActionBuilder(dummyFrame, dummyFunctions, dummyTypeContainer)
-        val node = PrintNode(SingleOperationNode(Operation.Addition, ConstantNode(5), ConstantNode(10)))
+        val node = PrintNode(OperationNode(NodeTypes.Addition, ConstantNode(5), ConstantNode(10)))
 
         assertEquals(
             listOf(
@@ -175,7 +175,7 @@ class ActionTest {
     @Test
     fun testNotEqual() {
         val builder = ActionBuilder(dummyFrame, dummyFunctions, dummyTypeContainer)
-        val node = SingleOperationNode(Operation.NotEquals, ConstantNode(5), ConstantNode(10))
+        val node = OperationNode(NodeTypes.NotEquals, ConstantNode(5), ConstantNode(10))
 
         assertEquals(
             listOf(

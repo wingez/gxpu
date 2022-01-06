@@ -89,7 +89,7 @@ class Compiler : TypeProvider, FunctionProvider {
         }
         functions[functionInfo.name] = functionInfo
 
-        builder.buildBody(node.getNodes())
+        builder.buildBody(node.childNodes)
 
         return functionInfo
 

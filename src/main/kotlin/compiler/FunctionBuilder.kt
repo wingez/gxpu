@@ -17,18 +17,18 @@ class FunctionBuilder(
     val functionInfo: FunctionInfo,
     private val actionBuilder: ActionBuilder,
 ) {
-    fun buildNodes(nodes: Iterable<StatementNode>) {
+    fun buildNodes(nodes: Iterable<AstNode>) {
         for (node in nodes) {
             buildStatement(node)
         }
     }
 
-    fun handleStatement(node: StatementNode) {
+    fun handleStatement(node: AstNode) {
         optimizeGenerate(actionBuilder.buildStatement(node))
     }
 
     fun handleReturn(node: ReturnNode) {
-        if (node.value != null) {
+        if (node.hasValue()) {
             throw NotImplementedError()
         }
         generator.generate(DefaultEmulator.ret.build())
@@ -46,7 +46,7 @@ class FunctionBuilder(
 
         optimizeGenerate(actionBuilder.buildStatement(node.condition))
         val jumpToFalseCondition = generator.makeSpaceFor(DefaultEmulator.jump_zero)
-        buildNodes(node.body)
+        buildNodes(node.ifBody)
 
         val jumpToEnd = if (node.hasElse) generator.makeSpaceFor(DefaultEmulator.jump) else null
 
@@ -74,7 +74,7 @@ class FunctionBuilder(
     }
 
 
-    fun buildStatement(node: StatementNode) {
+    fun buildStatement(node: AstNode) {
 
         when (node) {
             is PrintNode -> handleStatement(node)
@@ -89,7 +89,7 @@ class FunctionBuilder(
         }
     }
 
-    fun buildBody(nodes: Iterable<StatementNode>) {
+    fun buildBody(nodes: Iterable<AstNode>) {
         buildNodes(nodes)
 
         handleReturn(ReturnNode())
