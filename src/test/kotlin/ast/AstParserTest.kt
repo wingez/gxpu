@@ -250,14 +250,6 @@ internal class AstParserTest {
     }
 
     @Test
-    fun testSizeof() {
-        assertEquals(
-            OperationNode(NodeTypes.Addition, ConstantNode(5), SizeofNode("byte")),
-            parserFromLine("5+sizeof(byte)").parseValueProvider()
-        )
-    }
-
-    @Test
     fun testComplexCondition() {
         assertDoesNotThrow {
             parserFromFile(

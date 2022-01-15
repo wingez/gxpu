@@ -13,7 +13,6 @@ enum class NodeTypes {
     Assign,
     Print,
     Constant,
-    SizeOf,
     Call,
     Function,
     If,
@@ -121,9 +120,6 @@ class ConstantNode(val value: Int) : AstNode(NodeTypes.Constant, value, emptyLis
         }
     }
 }
-
-class SizeofNode(val typeOf: String) : AstNode(NodeTypes.SizeOf, typeOf, emptyList())
-
 
 class CallNode(
     val targetName: String,
