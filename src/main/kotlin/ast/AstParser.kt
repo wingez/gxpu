@@ -283,12 +283,6 @@ class AstParser(private val tokens: List<Token>) {
                 val member = consumeIdentifier()
                 Identifier(member)
             }
-        } else if (peekIs(TokenKeywordSizeof)) {
-            consume()
-            consumeType(TokenLeftParenthesis)
-            val type = consumeIdentifier()
-            consumeType(TokenRightParenthesis)
-            return SizeofNode(type)
         } else {
             throw ParserError("Cannot parse to value provider: ${peek()}")
         }

@@ -107,17 +107,6 @@ fun putByteOnStack(node: AstNode, type: DataType, builder: ActionBuilder): Actio
     return PushConstant(byte(node.value))
 }
 
-
-fun sizeOfToStack(node: AstNode, type: DataType, builder: ActionBuilder): Action? {
-    if (node !is SizeofNode) return null
-
-    val provideType = builder.getType(node.typeOf)
-    val size = provideType.size
-
-    return builder.getActionOnStack(ConstantNode(size.toInt()), type)
-}
-
-
 fun assignFrameByte(node: AstNode, builder: ActionBuilder): Action? {
     if (node !is AssignNode)
         return null
@@ -241,7 +230,6 @@ private val stackBuilders = mutableListOf<Pair<String, stackValueBuilder>>(
     Pair("arithmeticToStack", ::arithmeticToStack),
     Pair("callToStack", ::callToStack),
     Pair("pushPointer", ::pushPointer),
-    Pair("sizeof", ::sizeOfToStack)
 )
 
 
