@@ -57,7 +57,7 @@ class ActionTest {
     @Test
     fun testPrintConstant() {
         val builder = ActionBuilder(dummyFrame, dummyFunctions, dummyTypeContainer)
-        val node = PrintNode(ConstantNode(5))
+        val node = PrintNode(constant(5))
         val flattened = builder.buildStatement(node)
 
         assertEquals(
@@ -109,11 +109,11 @@ class ActionTest {
     @Test
     fun testAssignConstant() {
         val builder = ActionBuilder(dummyFrame, dummyFunctions, dummyTypeContainer)
-        val node = AssignNode(identifier("var2"), ConstantNode(5))
+        val node = AssignNode(identifier("var2"), constant(5))
         assertThrows<CompileError> {
             builder.buildStatement(node)
         }
-        val node2 = AssignNode(identifier("var1"), ConstantNode(4))
+        val node2 = AssignNode(identifier("var1"), constant(4))
         val actions = builder.buildStatement(node2)
 
         assertEquals(
@@ -153,7 +153,7 @@ class ActionTest {
     @Test
     fun testAddition() {
         val builder = ActionBuilder(dummyFrame, dummyFunctions, dummyTypeContainer)
-        val node = PrintNode(AstNode.fromOperation(NodeTypes.Addition, ConstantNode(5), ConstantNode(10)))
+        val node = PrintNode(AstNode.fromOperation(NodeTypes.Addition, constant(5), constant(10)))
 
         assertEquals(
             listOf(
@@ -175,7 +175,7 @@ class ActionTest {
     @Test
     fun testNotEqual() {
         val builder = ActionBuilder(dummyFrame, dummyFunctions, dummyTypeContainer)
-        val node = AstNode.fromOperation(NodeTypes.NotEquals, ConstantNode(5), ConstantNode(10))
+        val node = AstNode.fromOperation(NodeTypes.NotEquals, constant(5), constant(10))
 
         assertEquals(
             listOf(
@@ -248,7 +248,7 @@ class ActionTest {
                 RemoveSpaceOnStack(functionWithParameter.sizeOfParameters),
             ), flatten(
                 builder.getActionOnStack(
-                    CallNode("test", listOf(ConstantNode(5))),
+                    CallNode("test", listOf(constant(5))),
                     voidType
                 ) ?: throw AssertionError("Not found")
             )
@@ -318,7 +318,7 @@ class ActionTest {
                 PopThrow()
             ),
             flatten(
-                builder.buildStatement(AssignNode(MemberAccess(identifier("t"), "member1"), ConstantNode(5)))
+                builder.buildStatement(AssignNode(MemberAccess(identifier("t"), "member1"), constant(5)))
             )
         )
         assertIterableEquals(
@@ -334,7 +334,7 @@ class ActionTest {
                 PopThrow()
 
             ), flatten(
-                builder.buildStatement(AssignNode(MemberAccess(identifier("t"), "member2"), ConstantNode(4)))
+                builder.buildStatement(AssignNode(MemberAccess(identifier("t"), "member2"), constant(4)))
             )
         )
     }
@@ -407,7 +407,7 @@ class ActionTest {
                 builder.buildStatement(
                     AssignNode(
                         MemberDeref(identifier("field"), "value"),
-                        ConstantNode(5)
+                        constant(5)
                     )
                 )
             )
@@ -444,7 +444,7 @@ class ActionTest {
                 builder2.buildStatement(
                     AssignNode(
                         identifier("arr"),
-                        CallNode("createArray", listOf(ConstantNode(5))),
+                        CallNode("createArray", listOf(constant(5))),
                     )
                 )
             )
@@ -485,7 +485,7 @@ class ActionTest {
             ),
             flatten(
                 kotlin.test.assertNotNull(
-                    builder2.getActionOnStack(ArrayAccess(identifier("arr"), ConstantNode(5)), byteType)
+                    builder2.getActionOnStack(ArrayAccess(identifier("arr"), constant(5)), byteType)
                 )
             )
         )

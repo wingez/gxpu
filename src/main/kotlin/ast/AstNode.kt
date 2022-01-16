@@ -1,7 +1,5 @@
 package se.wingez.ast
 
-import se.wingez.tokens.TokenNumericConstant
-
 enum class NodeTypes {
     Body,
     Identifier,
@@ -73,6 +71,15 @@ open class AstNode(
         return IdentifierNode(this)
     }
 
+    class ConstantNode(val node: AstNode) {
+        val value
+            get() = node.data as Int
+    }
+
+    fun asConstant(): ConstantNode {
+        return ConstantNode(this)
+    }
+
     companion object {
 
 
@@ -88,10 +95,12 @@ open class AstNode(
             return AstNode(NodeTypes.Identifier, name)
         }
 
+        fun fromConstant(value: Int): AstNode {
+            return AstNode(NodeTypes.Constant, value, emptyList())
+        }
 
     }
 }
-
 
 
 class PrimitiveMemberDeclaration(name: String, type: String, explicitNew: Boolean = false, isArray: Boolean = false) :
@@ -132,13 +141,6 @@ class PrintNode(target: AstNode) : AstNode(NodeTypes.Print, null, listOf(target)
     val target get() = childNodes[0]
 }
 
-class ConstantNode(val value: Int) : AstNode(NodeTypes.Constant, value, emptyList()) {
-    companion object {
-        fun fromToken(token: TokenNumericConstant): ConstantNode {
-            return ConstantNode(value = token.value)
-        }
-    }
-}
 
 class CallNode(
     val targetName: String,
