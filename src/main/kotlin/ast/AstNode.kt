@@ -80,6 +80,10 @@ open class AstNode(
         return ConstantNode(this)
     }
 
+    fun asMemberDeclaration(): MemberDeclarationData {
+        return data as MemberDeclarationData
+    }
+
     companion object {
 
 
@@ -99,25 +103,21 @@ open class AstNode(
             return AstNode(NodeTypes.Constant, value, emptyList())
         }
 
+        fun fromMemberDeclaration(memberdata: MemberDeclarationData): AstNode {
+            return AstNode(
+                NodeTypes.MemberDeclaration, memberdata
+            )
+        }
+
     }
 }
 
-
-class PrimitiveMemberDeclaration(name: String, type: String, explicitNew: Boolean = false, isArray: Boolean = false) :
-    AstNode(
-        NodeTypes.MemberDeclaration, MemberData(name, type, explicitNew, isArray)
-    ) {
-
-    data class MemberData(
-        val name: String,
-        val type: String,
-        val explicitNew: Boolean = false,
-        val isArray: Boolean = false,
-    )
-
-    val memberData get() = data as MemberData
-}
-
+data class MemberDeclarationData(
+    val name: String,
+    val type: String,
+    val explicitNew: Boolean = false,
+    val isArray: Boolean = false,
+)
 
 class AssignNode(
     target: AstNode,
@@ -152,14 +152,14 @@ class CallNode(
 
 class FunctionNode(
     name: String,
-    arguments: List<PrimitiveMemberDeclaration>,
+    arguments: List<AstNode>,
     body: List<AstNode>,
     returnType: String,
 ) : AstNode(NodeTypes.Function, FunctionData(name, arguments, returnType), body) {
 
     data class FunctionData(
         val name: String,
-        val arguments: List<PrimitiveMemberDeclaration>,
+        val arguments: List<AstNode>,
         val returnType: String,
     )
 
@@ -219,7 +219,7 @@ class ReturnNode(
 
 class StructNode(
     val name: String,
-    members: List<PrimitiveMemberDeclaration>,
+    members: List<AstNode>,
 ) : AstNode(NodeTypes.Struct, name, members)
 
 class MemberAccess(

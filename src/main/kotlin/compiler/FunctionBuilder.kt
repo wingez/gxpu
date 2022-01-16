@@ -76,6 +76,11 @@ class FunctionBuilder(
 
     fun buildStatement(node: AstNode) {
 
+        if (node.type == NodeTypes.MemberDeclaration) {
+            // TODO: what should we do here???
+            return
+        }
+
         when (node) {
             is PrintNode -> handleStatement(node)
             is ReturnNode -> handleReturn(node)
@@ -83,8 +88,7 @@ class FunctionBuilder(
             is IfNode -> handleIf(node)
             is WhileNode -> handleWhile(node)
             is CallNode -> handleStatement(node)
-            is PrimitiveMemberDeclaration -> {
-            }
+
             else -> throw CompileError("Dont know how to parse $node")
         }
     }

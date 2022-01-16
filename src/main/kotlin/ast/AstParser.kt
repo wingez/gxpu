@@ -122,7 +122,7 @@ class AstParser(private val tokens: List<Token>) {
         return null
     }
 
-    private fun parsePrimitiveMemberDeclaration(): PrimitiveMemberDeclaration {
+    private fun parsePrimitiveMemberDeclaration(): AstNode {
         /**
         Parses 'val:type' or 'val' or 'val:new type'
          */
@@ -143,7 +143,9 @@ class AstParser(private val tokens: List<Token>) {
             }
 
         }
-        return PrimitiveMemberDeclaration(name, type, explicitNew, array)
+        val memberData = MemberDeclarationData(name, type, explicitNew, array)
+
+        return AstNode.fromMemberDeclaration(memberData)
     }
 
     fun parseFunctionDefinition(): FunctionNode {
@@ -151,7 +153,7 @@ class AstParser(private val tokens: List<Token>) {
         val name = consumeType<TokenIdentifier>().target
         consumeType(TokenLeftParenthesis)
 
-        val parameters = mutableListOf<PrimitiveMemberDeclaration>()
+        val parameters = mutableListOf<AstNode>()
         while (!peekIs(TokenRightParenthesis, true)) {
             val member = parsePrimitiveMemberDeclaration()
             parameters.add(member)
@@ -207,7 +209,7 @@ class AstParser(private val tokens: List<Token>) {
         return AssignNode(target, valueNode)
     }
 
-    private fun parseAssignmentNoInit(): PrimitiveMemberDeclaration {
+    private fun parseAssignmentNoInit(): AstNode {
         val value = parsePrimitiveMemberDeclaration()
         consumeType(TokenEOL)
         return value
@@ -372,7 +374,7 @@ class AstParser(private val tokens: List<Token>) {
         consumeType(TokenEOL)
         consumeType(TokenBeginBlock)
 
-        val members = mutableListOf<PrimitiveMemberDeclaration>()
+        val members = mutableListOf<AstNode>()
 
         while (!peekIs(TokenEndBlock, true)) {
             if (peekIs(TokenEOL, true))

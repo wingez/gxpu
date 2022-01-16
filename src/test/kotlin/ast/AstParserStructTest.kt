@@ -18,8 +18,8 @@ class AstParserStructTest {
         """
             ).parseStruct(), StructNode(
                 "tmp", listOf(
-                    PrimitiveMemberDeclaration("member1", ""),
-                    PrimitiveMemberDeclaration("member2", "")
+                    variable("member1", ""),
+                    variable("member2", "")
                 )
             )
         )
@@ -33,8 +33,8 @@ class AstParserStructTest {
         """
             ).parseStruct(), StructNode(
                 "tmp", listOf(
-                    PrimitiveMemberDeclaration("member1", "byte"),
-                    PrimitiveMemberDeclaration("member2", "int"),
+                    variable("member1", "byte"),
+                    variable("member2", "int"),
                 )
             )
         )
@@ -48,7 +48,7 @@ class AstParserStructTest {
         """
             ).parseStruct(), StructNode(
                 "tmp", listOf(
-                    PrimitiveMemberDeclaration("member1", "int", true),
+                    variable("member1", "int", explicitNew = true),
                 )
             )
         )
@@ -84,7 +84,7 @@ class AstParserStructTest {
             FunctionNode(
                 "main", emptyList(),
                 listOf(
-                    PrimitiveMemberDeclaration("a", "type1"),
+                    variable("a", "type1"),
                     AssignNode(
                         MemberAccess(identifier("a"), "member1"),
                         constant(2)
@@ -137,8 +137,8 @@ class AstParserStructTest {
         """
             ).parseStruct(), StructNode(
                 "tmp", listOf(
-                    PrimitiveMemberDeclaration("member1", "byte", isArray = true),
-                    PrimitiveMemberDeclaration("member2", "str", isArray = true),
+                    variable("member1", "byte", isArray = true),
+                    variable("member2", "str", isArray = true),
                 )
             )
         )
