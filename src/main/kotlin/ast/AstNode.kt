@@ -176,7 +176,6 @@ data class AstNode(
         fun fromAssign(
             target: AstNode,
             value: AstNode,
-            // TODO: remove these
         ): AstNode {
             return AstNode(NodeTypes.Assign, null, listOf(target, value))
         }
