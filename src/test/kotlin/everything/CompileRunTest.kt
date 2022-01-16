@@ -55,7 +55,7 @@ class CompileRunTest {
     @Test
     fun testPrintVariable() {
         val code = """
-            var=5
+            var:byte=5
             print(var)
         """
         runBodyCheckOutput(code, 5)
@@ -64,8 +64,8 @@ class CompileRunTest {
     @Test
     fun testPrintManyVariables() {
         val code = """
-            var=5
-            var1=10
+            var:byte=5
+            var1:byte=10
             print(var)
             print(var1)
         """
@@ -75,7 +75,7 @@ class CompileRunTest {
     @Test
     fun testReassignVariable() {
         val code = """
-            var=5
+            var:byte=5
             print(var)
             var=3
             print(var)
@@ -86,7 +86,7 @@ class CompileRunTest {
     @Test
     fun testVariableIncrement() {
         val code = """
-            var=5
+            var:byte=5
             print(var)
             var= var+1
             print(var)
@@ -97,8 +97,8 @@ class CompileRunTest {
     @Test
     fun testVariableMove() {
         val code = """
-            var1=2
-            var2 = var1
+            var1:byte=2
+            var2:byte = var1
             var1 = 1
             print(var2)
             print(var1)
@@ -133,7 +133,7 @@ class CompileRunTest {
     @Test
     fun testWhileDecrement() {
         val code = """
-        var = 5
+        var:byte = 5
         while var!=0:
           print(var)
           var=var-1
@@ -153,7 +153,7 @@ class CompileRunTest {
         runBodyCheckOutput(body, 1, 2)
 
         body = """
-        a=3
+        a:byte=3
         while a!=0:
           if (a-2)!=0:
             print(8)

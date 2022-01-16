@@ -66,7 +66,6 @@ data class AstNode(
     class AssignNode(val node: AstNode) {
         val target = node.childNodes[0]
         val value = node.childNodes[1]
-        val assignData = node.data as AssignData
     }
 
     fun asAssign(): AssignNode {
@@ -178,10 +177,8 @@ data class AstNode(
             target: AstNode,
             value: AstNode,
             // TODO: remove these
-            type: String = "",
-            explicitNew: Boolean = false,
         ): AstNode {
-            return AstNode(NodeTypes.Assign, AssignData(type, explicitNew), listOf(target, value))
+            return AstNode(NodeTypes.Assign, null, listOf(target, value))
         }
 
         fun fromPrint(target: AstNode): AstNode {
@@ -240,11 +237,6 @@ data class MemberDeclarationData(
     val type: String,
     val explicitNew: Boolean = false,
     val isArray: Boolean = false,
-)
-
-data class AssignData(
-    val type: String,
-    val explicitNew: Boolean,
 )
 
 data class FunctionData(

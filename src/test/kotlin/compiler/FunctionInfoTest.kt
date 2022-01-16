@@ -77,7 +77,7 @@ internal class FunctionInfoTest {
         val layout = getLayout(
             """
             def test1():
-              var=5
+              var:byte=5
     """
         )
         assertEquals(layout.size, byte(3))
@@ -91,7 +91,7 @@ internal class FunctionInfoTest {
         val layout = getLayout(
             """
             def test1(param:byte): byte
-              var=5
+              var:byte=5
     """
         )
         assertEquals(layout.size, byte(5))

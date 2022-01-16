@@ -10,7 +10,7 @@ class ArrayTests {
     fun testPrintArray() {
         val program = """
           def printArray(arr:byte[]):
-            counter=0
+            counter:byte=0
             while (counter) != (arr -> size):
               print(arr[counter])
               counter = counter+1

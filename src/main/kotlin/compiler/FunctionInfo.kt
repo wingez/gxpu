@@ -82,46 +82,28 @@ fun calculateFrameLayout(
     // Traverse recursively. Can probably be flattened but meh
     fun traverseNode(nodeToVisit: AstNode) {
         for (visitNode in nodeToVisit) {
-            var name: String
-            var typeName: String
-            var explicitNew: Boolean
-            var isArray = false
-
-            if (visitNode.type == NodeTypes.Assign) {
-                val assignNode = visitNode.asAssign()
-                if (assignNode.target.type != NodeTypes.Identifier) {
-                    // TODO what should happen here??
-                    //throw CompileError("To complex for now")
-                    continue
-                }
-                name = assignNode.target.asIdentifier()
-                typeName = assignNode.assignData.type
-                explicitNew = assignNode.assignData.explicitNew
-
-
-            } else if (visitNode.type == NodeTypes.MemberDeclaration) {
-                val memberData = visitNode.asMemberDeclaration()
-                name = memberData.name
-                typeName = memberData.type
-                explicitNew = memberData.explicitNew
-                isArray = memberData.isArray
-            } else {
+            if (visitNode.type != NodeTypes.MemberDeclaration) {
                 if (visitNode.hasChildren()) {
                     traverseNode(visitNode)
                 }
                 continue
             }
 
+            val memberData = visitNode.asMemberDeclaration()
+            val name = memberData.name
+            val typeName = memberData.type
+
+
             if (fieldBuilder.hasField(name) || parameters.any { it.first == name })
             // TODO check type here perhaps??
                 continue
 
             var type = typeProvider.getType(typeName)
-            if (isArray) {
+            if (memberData.isArray) {
                 type = ArrayType(type)
             }
 
-            type = type.instantiate(explicitNew)
+            type = type.instantiate(memberData.explicitNew)
             fieldBuilder.addMember(name, type)
         }
     }
