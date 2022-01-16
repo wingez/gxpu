@@ -133,14 +133,15 @@ fun createArray(node: AstNode, builder: ActionBuilder): Action? {
 
     val callNode = node.asAssign().value
 
-    if (callNode !is CallNode) return null
-    if (callNode.targetName != "createArray") return null
-    if (callNode.parameters.size != 1) return null
+    if (callNode.type != NodeTypes.Call) return null
+    val callInfo = callNode.asCall()
+    if (callInfo.targetName != "createArray") return null
+    if (callInfo.parameters.size != 1) return null
 
     val actions = mutableListOf<Action>()
 
     //size on stack
-    actions.add(builder.getActionOnStack(callNode.parameters[0], byteType) ?: return null)
+    actions.add(builder.getActionOnStack(callInfo.parameters[0], byteType) ?: return null)
     //Pop the size from the stack
     actions.add(PopRegister())
     //Size is now in a register

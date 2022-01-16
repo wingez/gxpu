@@ -42,6 +42,10 @@ fun variable(name: String, type: String, explicitNew: Boolean = false, isArray: 
     return AstNode.fromMemberDeclaration(MemberDeclarationData(name, type, explicitNew, isArray))
 }
 
+fun call(target: String, parameters: List<AstNode>): AstNode {
+    return AstNode.fromCall(target, parameters)
+}
+
 internal class AstParserTest {
     @Test
     fun testManyEOL() {
@@ -172,7 +176,7 @@ internal class AstParserTest {
     fun testCallNoParameters() {
         assertEquals(
             parserFromLine("func()").parseCall(true),
-            CallNode("func", emptyList())
+            call("func", emptyList())
         )
     }
 
@@ -180,12 +184,12 @@ internal class AstParserTest {
     fun testCallParameters() {
         assertEquals(
             parserFromLine("func(5)").parseCall(true),
-            CallNode("func", listOf(constant(5)))
+            call("func", listOf(constant(5)))
         )
 
         assertEquals(
             parserFromLine("func(5,10,test)").parseCall(true),
-            CallNode(
+            call(
                 "func", listOf(
                     constant(5),
                     constant(10),
@@ -199,7 +203,7 @@ internal class AstParserTest {
     fun testAssignCall() {
         assertEquals(
             parserFromLine("a=test()").parseAssignment(),
-            AstNode.fromAssign(identifier("a"), CallNode("test", emptyList()))
+            AstNode.fromAssign(identifier("a"), call("test", emptyList()))
         )
     }
 

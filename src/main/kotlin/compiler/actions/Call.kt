@@ -1,7 +1,7 @@
 package se.wingez.compiler.actions
 
 import se.wingez.ast.AstNode
-import se.wingez.ast.CallNode
+import se.wingez.ast.NodeTypes
 import se.wingez.byte
 import se.wingez.compiler.*
 import se.wingez.emulator.DefaultEmulator
@@ -29,9 +29,9 @@ data class PopResult(
 
 
 fun callStatement(node: AstNode, builder: ActionBuilder): Action? {
-    if (node !is CallNode) return null
+    if (node.type != NodeTypes.Call) return null
 
-    val function = builder.getFunction(node.targetName)
+    val function = builder.getFunction(node.asCall().targetName)
     if (function.returnType != voidType) return null
 
     val callAction = callToStack(node, function.returnType, builder) ?: return null
@@ -41,13 +41,14 @@ fun callStatement(node: AstNode, builder: ActionBuilder): Action? {
 }
 
 fun callToStack(node: AstNode, type: DataType, builder: ActionBuilder): Action? {
-    if (node !is CallNode) return null
+    if (node.type != NodeTypes.Call) return null
+    val callInfo = node.asCall()
 
-    val function = builder.getFunction(node.targetName)
+    val function = builder.getFunction(callInfo.targetName)
 
     if (function.returnType != type) return null
 
-    if (function.parameters.size != node.parameters.size) {
+    if (function.parameters.size != callInfo.parameters.size) {
         throw CompileError("Wrong amount of parameters provided")
     }
     val actions = mutableListOf<Action>()
@@ -59,7 +60,7 @@ fun callToStack(node: AstNode, type: DataType, builder: ActionBuilder): Action? 
     actions.add(AllocSpaceOnStack(function.sizeOfVars))
 
     //place arguments
-    for ((parameter, paramInfo) in node.parameters.zip(function.parameters)) {
+    for ((parameter, paramInfo) in callInfo.parameters.zip(function.parameters)) {
         val action = builder.getActionOnStack(parameter, paramInfo.type)
             ?: throw CompileError("Type mismatch: ${paramInfo.type}")
         actions.add(action)
