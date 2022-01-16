@@ -16,7 +16,7 @@ class AstParserArithmetic {
     fun testBasic() {
         assertEquals(
             parserFromFile("5+10").parseValueProvider(),
-            OperationNode(NodeTypes.Addition, ConstantNode(5), ConstantNode(10))
+            AstNode.fromOperation(NodeTypes.Addition, ConstantNode(5), ConstantNode(10))
         )
     }
 
@@ -25,7 +25,7 @@ class AstParserArithmetic {
     fun testWithIdentifier() {
         assertEquals(
             parserFromFile("2+test").parseValueProvider(),
-            OperationNode(NodeTypes.Addition, ConstantNode(2), Identifier("test"))
+            AstNode.fromOperation(NodeTypes.Addition, ConstantNode(2), Identifier("test"))
         )
     }
 
@@ -33,7 +33,7 @@ class AstParserArithmetic {
     fun notEqual() {
         assertEquals(
             parserFromFile("2!=0").parseValueProvider(),
-            OperationNode(NodeTypes.NotEquals, ConstantNode(2), ConstantNode(0))
+            AstNode.fromOperation(NodeTypes.NotEquals, ConstantNode(2), ConstantNode(0))
         )
     }
 
@@ -45,7 +45,7 @@ class AstParserArithmetic {
         )
         assertEquals(
             parserFromLine("(5+var)").parseValueProvider(),
-            OperationNode(NodeTypes.Addition, ConstantNode(5), Identifier("var"))
+            AstNode.fromOperation(NodeTypes.Addition, ConstantNode(5), Identifier("var"))
         )
 
         assertThat(
@@ -61,9 +61,9 @@ class AstParserArithmetic {
         assertEquals(
             parserFromFile("(5+5)+10").parseValueProvider(),
 
-            OperationNode(
+            AstNode.fromOperation(
                 NodeTypes.Addition,
-                OperationNode(NodeTypes.Addition, ConstantNode(5), ConstantNode(5)),
+                AstNode.fromOperation(NodeTypes.Addition, ConstantNode(5), ConstantNode(5)),
                 ConstantNode(10)
             )
         )
@@ -72,18 +72,18 @@ class AstParserArithmetic {
     @Test
     fun testAssociation() {
         assertEquals(
-            OperationNode(
+            AstNode.fromOperation(
                 NodeTypes.Addition,
-                OperationNode(NodeTypes.Addition, ConstantNode(5), ConstantNode(6)),
+                AstNode.fromOperation(NodeTypes.Addition, ConstantNode(5), ConstantNode(6)),
                 ConstantNode(7)
             ),
             value("5+6+7")
         )
         assertEquals(
-            OperationNode(
+            AstNode.fromOperation(
                 NodeTypes.NotEquals,
-                OperationNode(NodeTypes.Addition, ConstantNode(5), ConstantNode(6)),
-                OperationNode(NodeTypes.Addition, ConstantNode(7), ConstantNode(8)),
+                AstNode.fromOperation(NodeTypes.Addition, ConstantNode(5), ConstantNode(6)),
+                AstNode.fromOperation(NodeTypes.Addition, ConstantNode(7), ConstantNode(8)),
             ),
             value("5+6!=7+8")
         )
