@@ -335,9 +335,9 @@ class AstParser(private val tokens: List<Token>) {
                 TokenPlusSign -> AstNode.fromOperation(NodeTypes.Addition, first, second)
                 TokenMinusSign -> AstNode.fromOperation(NodeTypes.Subtraction, first, second)
                 TokenNotEqual -> AstNode.fromOperation(NodeTypes.NotEquals, first, second)
-                TokenDeref -> MemberDeref(first, secondAsIdentifier())
-                TokenDot -> MemberAccess(first, secondAsIdentifier())
-                TokenLeftBracket -> ArrayAccess(first, second)
+                TokenDeref -> AstNode(NodeTypes.MemberDeref, secondAsIdentifier(), listOf(first))
+                TokenDot -> AstNode(NodeTypes.MemberAccess, secondAsIdentifier(), listOf(first))
+                TokenLeftBracket -> AstNode.fromArrayAccess(first, second)
                 else -> throw ParserError("You have messed up badly... $operatorToken")
             }
 

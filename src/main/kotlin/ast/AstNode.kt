@@ -161,6 +161,14 @@ open class AstNode(
         return ReturnNode(this)
     }
 
+    class ArrayAccess(val node: AstNode) {
+        val parent get() = node.childNodes[0]
+        val index get() = node.childNodes[1]
+    }
+
+    fun asArrayAccess(): ArrayAccess {
+        return ArrayAccess(this)
+    }
 
     companion object {
 
@@ -237,6 +245,13 @@ open class AstNode(
         fun fromStruct(name: String, arguments: List<AstNode>): AstNode {
             return AstNode(NodeTypes.Struct, name, arguments)
         }
+
+        fun fromArrayAccess(
+            parent: AstNode,
+            index: AstNode
+        ): AstNode {
+            return AstNode(NodeTypes.ArrayAccess, null, listOf(parent, index))
+        }
     }
 }
 
@@ -257,25 +272,3 @@ data class FunctionData(
     val arguments: List<AstNode>,
     val returnType: String,
 )
-
-class MemberAccess(
-    parent: AstNode,
-    val member: String
-) : AstNode(NodeTypes.MemberAccess, member, listOf(parent)) {
-    val parent get() = childNodes[0]
-}
-
-class MemberDeref(
-    parent: AstNode,
-    val member: String,
-) : AstNode(NodeTypes.MemberDeref, member, listOf(parent)) {
-    val parent get() = childNodes[0]
-}
-
-class ArrayAccess(
-    parent: AstNode,
-    index: AstNode,
-) : AstNode(NodeTypes.ArrayAccess, null, listOf(parent, index)) {
-    val parent get() = childNodes[0]
-    val index get() = childNodes[1]
-}

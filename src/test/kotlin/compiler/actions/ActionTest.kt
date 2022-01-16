@@ -318,7 +318,7 @@ class ActionTest {
                 PopThrow()
             ),
             flatten(
-                builder.buildStatement(AstNode.fromAssign(MemberAccess(identifier("t"), "member1"), constant(5)))
+                builder.buildStatement(AstNode.fromAssign(memberAccess(identifier("t"), "member1"), constant(5)))
             )
         )
         assertIterableEquals(
@@ -334,7 +334,7 @@ class ActionTest {
                 PopThrow()
 
             ), flatten(
-                builder.buildStatement(AstNode.fromAssign(MemberAccess(identifier("t"), "member2"), constant(4)))
+                builder.buildStatement(AstNode.fromAssign(memberAccess(identifier("t"), "member2"), constant(4)))
             )
         )
     }
@@ -367,7 +367,7 @@ class ActionTest {
                 PrintAction()
             ),
             flatten(
-                builder.buildStatement(AstNode.fromPrint(MemberDeref(identifier("field"), "value")))
+                builder.buildStatement(AstNode.fromPrint(memberDeref(identifier("field"), "value")))
             )
         )
     }
@@ -406,7 +406,7 @@ class ActionTest {
             flatten(
                 builder.buildStatement(
                     AstNode.fromAssign(
-                        MemberDeref(identifier("field"), "value"),
+                        memberDeref(identifier("field"), "value"),
                         constant(5)
                     )
                 )
@@ -485,7 +485,7 @@ class ActionTest {
             ),
             flatten(
                 kotlin.test.assertNotNull(
-                    builder2.getActionOnStack(ArrayAccess(identifier("arr"), constant(5)), byteType)
+                    builder2.getActionOnStack(AstNode.fromArrayAccess(identifier("arr"), constant(5)), byteType)
                 )
             )
         )

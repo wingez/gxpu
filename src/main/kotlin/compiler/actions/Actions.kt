@@ -1,6 +1,7 @@
 package se.wingez.compiler.actions
 
-import se.wingez.ast.*
+import se.wingez.ast.AstNode
+import se.wingez.ast.NodeTypes
 import se.wingez.byte
 import se.wingez.compiler.*
 import se.wingez.emulator.DefaultEmulator
@@ -177,7 +178,7 @@ fun createArray(node: AstNode, builder: ActionBuilder): Action? {
 
 
 fun byteToStack(node: AstNode, type: DataType, builder: ActionBuilder): Action? {
-    if (node.type != NodeTypes.Identifier && node !is MemberAccess && node !is MemberDeref && node !is ArrayAccess) return null
+    if (node.type != NodeTypes.Identifier && node.type != NodeTypes.MemberAccess && node.type != NodeTypes.MemberDeref && node.type != NodeTypes.ArrayAccess) return null
 
     if (type != byteType) return null
 

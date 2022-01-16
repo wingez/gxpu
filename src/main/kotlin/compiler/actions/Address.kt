@@ -1,6 +1,7 @@
 package se.wingez.compiler.actions
 
-import se.wingez.ast.*
+import se.wingez.ast.AstNode
+import se.wingez.ast.NodeTypes
 import se.wingez.compiler.*
 
 
@@ -21,22 +22,22 @@ private class AddressCalculator(
     // Recursive because we want to start with the innermost node
     private fun buildRecursive(currentNode: AstNode, providedType: DataType): DataType {
 
-        if (currentNode.type == NodeTypes.Identifier) {
-            return access(providedType, currentNode.asIdentifier().name)
-        }
+        when (currentNode.type) {
+            NodeTypes.Identifier -> {
+                return access(providedType, currentNode.asIdentifier().name)
+            }
 
-        when (currentNode) {
-            is MemberAccess -> {
-                val nextType = buildRecursive(currentNode.parent, providedType)
-                return access(nextType, currentNode.member)
+            NodeTypes.MemberAccess -> {
+                val nextType = buildRecursive(currentNode.childNodes[0], providedType)
+                return access(nextType, currentNode.data as String)
             }
-            is MemberDeref -> {
-                val nextType = buildRecursive(currentNode.parent, providedType)
-                return deref(nextType, currentNode.member)
+            NodeTypes.MemberDeref -> {
+                val nextType = buildRecursive(currentNode.childNodes[0], providedType)
+                return deref(nextType, currentNode.data as String)
             }
-            is ArrayAccess -> {
-                val nextType = buildRecursive(currentNode.parent, providedType)
-                return arrayAccess(nextType, currentNode.index)
+            NodeTypes.ArrayAccess -> {
+                val nextType = buildRecursive(currentNode.asArrayAccess().parent, providedType)
+                return arrayAccess(nextType, currentNode.asArrayAccess().index)
             }
             else -> {
                 throw CompileError("Cannot calculate address from node $currentNode")
