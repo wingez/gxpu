@@ -109,6 +109,59 @@ open class AstNode(
         return this.data as FunctionData
     }
 
+    class IfNode(
+        val node: AstNode,
+    ) {
+        val condition
+            get() = node.childNodes[0]
+
+        val ifBody
+            get() = node.childNodes[1].childNodes
+
+        val elseBody
+            get() = node.childNodes[2].childNodes
+
+        val hasElse
+            get() = node.childNodes[2].hasChildren()
+    }
+
+    fun asIf(): IfNode {
+        return IfNode(this)
+    }
+
+    class WhileNode(
+        val node: AstNode
+    ) {
+        val condition
+            get() = node.childNodes[0]
+        val body
+            get() = node.childNodes[1].childNodes
+    }
+
+    fun asWhile(): WhileNode {
+        return WhileNode(this)
+    }
+
+    class ReturnNode(val node: AstNode) {
+        fun hasValue(): Boolean {
+            return node.hasChildren()
+
+        }
+
+        val value: AstNode
+            get() {
+                if (!hasValue())
+                // TODO: type
+                    throw Exception("Return node has no value")
+                return node.childNodes[0]
+            }
+    }
+
+    fun asReturn(): ReturnNode {
+        return ReturnNode(this)
+    }
+
+
     companion object {
 
 
@@ -159,6 +212,27 @@ open class AstNode(
         ): AstNode {
             return AstNode(NodeTypes.Function, FunctionData(name, arguments, returnType), body)
         }
+
+        fun fromIf(
+            condition: AstNode,
+            body: List<AstNode>,
+            elseBody: List<AstNode>,
+        ): AstNode {
+            return AstNode(NodeTypes.If, null, listOf(condition, fromBody(body), fromBody(elseBody)))
+        }
+
+        fun fromWhile(
+            condition: AstNode,
+            body: List<AstNode>,
+        ): AstNode {
+            return AstNode(NodeTypes.While, null, listOf(condition, fromBody(body)))
+        }
+
+        fun fromReturn(
+            value: AstNode? = null,
+        ): AstNode {
+            return AstNode(NodeTypes.Return, null, if (value != null) listOf(value) else emptyList())
+        }
     }
 }
 
@@ -180,56 +254,6 @@ data class FunctionData(
     val returnType: String,
 )
 
-class IfNode(
-    condition: AstNode,
-    body: List<AstNode>,
-    elseBody: List<AstNode>,
-) : AstNode(NodeTypes.If, null, listOf(condition, AstNode.fromBody(body), AstNode.fromBody(elseBody))) {
-
-
-    val condition
-        get() = childNodes[0]
-
-    val ifBody
-        get() = childNodes[1].childNodes
-
-    val elseBody
-        get() = childNodes[2].childNodes
-
-    val hasElse
-        get() = childNodes[2].hasChildren()
-
-}
-
-class WhileNode(
-    condition: AstNode,
-    body: List<AstNode>,
-) : AstNode(
-    NodeTypes.While, null, listOf(condition, AstNode.fromBody(body))
-) {
-    val condition
-        get() = childNodes[0]
-    val body
-        get() = childNodes[1].childNodes
-}
-
-class ReturnNode(
-    value: AstNode? = null,
-) : AstNode(NodeTypes.Return, null, if (value != null) listOf(value) else emptyList()) {
-
-    fun hasValue(): Boolean {
-        return hasChildren()
-    }
-
-    val value: AstNode
-        get() {
-            if (!hasValue())
-            // TODO: type
-                throw Exception("Return node has no value")
-            return childNodes[0]
-        }
-
-}
 
 class StructNode(
     val name: String,

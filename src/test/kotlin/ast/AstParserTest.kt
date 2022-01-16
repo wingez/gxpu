@@ -167,12 +167,12 @@ internal class AstParserTest {
     fun testReturn() {
         assertEquals(
             parserFromLine("return").parseReturnStatement(),
-            ReturnNode()
+            AstNode.fromReturn()
         )
 
         assertEquals(
             parserFromLine("return 5+a").parseReturnStatement(),
-            ReturnNode(AstNode.fromOperation(NodeTypes.Addition, constant(5), identifier("a")))
+            AstNode.fromReturn(AstNode.fromOperation(NodeTypes.Addition, constant(5), identifier("a")))
         )
     }
 
@@ -220,7 +220,7 @@ internal class AstParserTest {
             print(5)
         """
             ).parseWhileStatement(),
-            WhileNode(constant(1), printBody)
+            AstNode.fromWhile(constant(1), printBody)
         )
     }
 
@@ -233,7 +233,7 @@ internal class AstParserTest {
               print(5)
         """
             ).parseIfStatement(),
-            IfNode(constant(1), printBody, emptyList())
+            AstNode.fromIf(constant(1), printBody, emptyList())
         )
         assertEquals(
             parserFromFile(
@@ -242,7 +242,7 @@ internal class AstParserTest {
               print(5)
             """
             ).parseIfStatement(),
-            IfNode(
+            AstNode.fromIf(
                 AstNode.fromOperation(
                     NodeTypes.NotEquals,
                     AstNode.fromOperation(NodeTypes.Subtraction, identifier("a"), constant(2)),
@@ -266,7 +266,7 @@ internal class AstParserTest {
     
         """
             ).parseIfStatement(),
-            IfNode(
+            AstNode.fromIf(
                 identifier("a"), printBody,
                 listOf(AstNode.fromPrint(constant(0)))
             )
