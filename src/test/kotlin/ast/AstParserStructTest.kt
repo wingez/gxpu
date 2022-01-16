@@ -3,6 +3,11 @@ package se.wingez.ast
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
+fun struct(name: String, members: List<AstNode>): AstNode {
+    return AstNode.fromStruct(name, members)
+}
+
+
 class AstParserStructTest {
 
     @Test
@@ -16,7 +21,7 @@ class AstParserStructTest {
           member2
             
         """
-            ).parseStruct(), StructNode(
+            ).parseStruct(), struct(
                 "tmp", listOf(
                     variable("member1", ""),
                     variable("member2", "")
@@ -31,7 +36,7 @@ class AstParserStructTest {
           member2:int
             
         """
-            ).parseStruct(), StructNode(
+            ).parseStruct(), struct(
                 "tmp", listOf(
                     variable("member1", "byte"),
                     variable("member2", "int"),
@@ -46,13 +51,14 @@ class AstParserStructTest {
           member1:new int
             
         """
-            ).parseStruct(), StructNode(
+            ).parseStruct(), struct(
                 "tmp", listOf(
                     variable("member1", "int", explicitNew = true),
                 )
             )
         )
     }
+
 
     @Test
     fun testStructAssign() {
@@ -135,7 +141,7 @@ class AstParserStructTest {
           member2: str[]
             
         """
-            ).parseStruct(), StructNode(
+            ).parseStruct(), struct(
                 "tmp", listOf(
                     variable("member1", "byte", isArray = true),
                     variable("member2", "str", isArray = true),

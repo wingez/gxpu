@@ -2,7 +2,6 @@ package se.wingez.compiler
 
 import se.wingez.ast.AstNode
 import se.wingez.ast.NodeTypes
-import se.wingez.ast.StructNode
 import se.wingez.byte
 import se.wingez.compiler.actions.ActionBuilder
 import se.wingez.emulator.DefaultEmulator
@@ -95,7 +94,7 @@ class Compiler : TypeProvider, FunctionProvider {
 
     }
 
-    fun buildStruct(node: StructNode) {
+    fun buildStruct(node: AstNode) {
         val struct = buildStruct(node, this)
         if (struct.name in types) {
             throw CompileError("Function ${struct.name} already exists")
@@ -112,15 +111,10 @@ class Compiler : TypeProvider, FunctionProvider {
         generator.generate(DefaultEmulator.exit.build())
 
         for (node in nodes) {
-            if (node.type == NodeTypes.Function) {
-                buildFunction(node)
-                continue
-            }
-
-            when (node) {
-                is StructNode -> buildStruct(node)
+            when (node.type) {
+                NodeTypes.Function -> buildFunction(node)
+                NodeTypes.Struct -> buildStruct(node)
                 else -> throw CompileError("Dont know what to do with $node")
-
             }
         }
 
