@@ -274,7 +274,8 @@ class AstParser(private val tokens: List<Token>) {
             consumeType(TokenRightParenthesis, "Mismatched parenthesis")
             return result
         } else if (peekIs<TokenNumericConstant>()) {
-            return ConstantNode.fromToken(consumeType())
+            val constant = consumeType<TokenNumericConstant>().value
+            return AstNode.fromConstant(constant)
         } else if (peekIs<TokenIdentifier>()) {
             val callNode = tryParse { parseCall(false) }
             return if (callNode != null)

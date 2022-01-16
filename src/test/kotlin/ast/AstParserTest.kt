@@ -23,7 +23,7 @@ fun parseExpressions(tokens: List<Token>): List<AstNode> {
 }
 
 private fun assign(to: String, value: Int): AssignNode {
-    return AssignNode(identifier(to), ConstantNode(value))
+    return AssignNode(identifier(to), constant(value))
 }
 
 internal class AstParserTest {
@@ -46,7 +46,7 @@ internal class AstParserTest {
     @Test
     fun testExpressionPrint() {
         val node = AstParser(parseLine("print(5)")).parseStatement()
-        assertEquals(node, PrintNode(ConstantNode(5)))
+        assertEquals(node, PrintNode(constant(5)))
     }
 
     fun getFuncTokens(vararg parameters: String): List<Token> {
@@ -68,7 +68,7 @@ internal class AstParserTest {
         )
     }
 
-    private val printBody = listOf(PrintNode(ConstantNode(5)))
+    private val printBody = listOf(PrintNode(constant(5)))
 
 
     @Test
@@ -148,7 +148,7 @@ internal class AstParserTest {
 
         assertEquals(
             parserFromLine("return 5+a").parseReturnStatement(),
-            ReturnNode(AstNode.fromOperation(NodeTypes.Addition, ConstantNode(5), identifier("a")))
+            ReturnNode(AstNode.fromOperation(NodeTypes.Addition, constant(5), identifier("a")))
         )
     }
 
@@ -164,15 +164,15 @@ internal class AstParserTest {
     fun testCallParameters() {
         assertEquals(
             parserFromLine("func(5)").parseCall(true),
-            CallNode("func", listOf(ConstantNode(5)))
+            CallNode("func", listOf(constant(5)))
         )
 
         assertEquals(
             parserFromLine("func(5,10,test)").parseCall(true),
             CallNode(
                 "func", listOf(
-                    ConstantNode(5),
-                    ConstantNode(10),
+                    constant(5),
+                    constant(10),
                     identifier("test"),
                 )
             )
@@ -196,7 +196,7 @@ internal class AstParserTest {
             print(5)
         """
             ).parseWhileStatement(),
-            WhileNode(ConstantNode(1), printBody)
+            WhileNode(constant(1), printBody)
         )
     }
 
@@ -209,7 +209,7 @@ internal class AstParserTest {
               print(5)
         """
             ).parseIfStatement(),
-            IfNode(ConstantNode(1), printBody, emptyList())
+            IfNode(constant(1), printBody, emptyList())
         )
         assertEquals(
             parserFromFile(
@@ -221,10 +221,10 @@ internal class AstParserTest {
             IfNode(
                 AstNode.fromOperation(
                     NodeTypes.NotEquals,
-                    AstNode.fromOperation(NodeTypes.Subtraction, identifier("a"), ConstantNode(2)),
-                    ConstantNode(0)
+                    AstNode.fromOperation(NodeTypes.Subtraction, identifier("a"), constant(2)),
+                    constant(0)
                 ),
-                listOf(PrintNode(ConstantNode(5))),
+                listOf(PrintNode(constant(5))),
                 emptyList()
             )
         )
@@ -244,7 +244,7 @@ internal class AstParserTest {
             ).parseIfStatement(),
             IfNode(
                 identifier("a"), printBody,
-                listOf(PrintNode(ConstantNode(0)))
+                listOf(PrintNode(constant(0)))
             )
         )
     }

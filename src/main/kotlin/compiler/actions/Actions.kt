@@ -101,10 +101,10 @@ fun printStatement(node: AstNode, builder: ActionBuilder): Action? {
 
 fun putByteOnStack(node: AstNode, type: DataType, builder: ActionBuilder): Action? {
     //TODO remove?? and split to lda+ push???
-    if (node !is ConstantNode || type != byteType) {
+    if (node.type != NodeTypes.Constant || type != byteType) {
         return null
     }
-    return PushConstant(byte(node.value))
+    return PushConstant(byte(node.asConstant().value))
 }
 
 fun assignFrameByte(node: AstNode, builder: ActionBuilder): Action? {

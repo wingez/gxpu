@@ -64,7 +64,7 @@ class AstParserStructTest {
         """
             ).parseAssignment(), AssignNode(
                 MemberAccess(identifier("member"), "i"),
-                ConstantNode(5)
+                constant(5)
             )
         )
     }
@@ -87,11 +87,11 @@ class AstParserStructTest {
                     PrimitiveMemberDeclaration("a", "type1"),
                     AssignNode(
                         MemberAccess(identifier("a"), "member1"),
-                        ConstantNode(2)
+                        constant(2)
                     ),
                     AssignNode(
                         MemberAccess(identifier("a"), "member2"),
-                        ConstantNode(1)
+                        constant(1)
                     )
                 ), "void"
             )
@@ -148,14 +148,14 @@ class AstParserStructTest {
     @Test
     fun testArrayAccess() {
         assertEquals(
-            ArrayAccess(identifier("test"), ConstantNode(5)),
+            ArrayAccess(identifier("test"), constant(5)),
             parserFromLine("test[5]").parseValueProvider()
         )
 
         assertEquals(
             ArrayAccess(
                 AstNode.fromIdentifier("test"),
-                AstNode.fromOperation(NodeTypes.Addition, ConstantNode(5), ConstantNode(5))
+                AstNode.fromOperation(NodeTypes.Addition, constant(5), constant(5))
             ),
             parserFromLine("test[5+5]").parseValueProvider()
         )
