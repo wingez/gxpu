@@ -23,7 +23,7 @@ enum class NodeTypes {
 }
 
 
-class AstNode(
+data class AstNode(
     val type: NodeTypes,
     val data: Any?,
     val childNodes: List<AstNode> = emptyList(),
@@ -31,20 +31,6 @@ class AstNode(
 
     fun hasChildren(): Boolean {
         return childNodes.isNotEmpty()
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (other !is AstNode)
-            return false
-
-        return type == other.type && data == other.data && childNodes == other.childNodes
-    }
-
-    override fun hashCode(): Int {
-        var result = type.hashCode()
-        result = 31 * result + (data?.hashCode() ?: 0)
-        result = 31 * result + childNodes.hashCode()
-        return result
     }
 
     override fun iterator(): Iterator<AstNode> {
@@ -60,15 +46,8 @@ class AstNode(
         return OperationNode(this)
     }
 
-    class IdentifierNode(val node: AstNode) {
-        val name: String
-            get() {
-                return node.data as String
-            }
-    }
-
-    fun asIdentifier(): IdentifierNode {
-        return IdentifierNode(this)
+    fun asIdentifier(): String {
+        return data as String
     }
 
     class ConstantNode(val node: AstNode) {
@@ -198,6 +177,7 @@ class AstNode(
         fun fromAssign(
             target: AstNode,
             value: AstNode,
+            // TODO: remove these
             type: String = "",
             explicitNew: Boolean = false,
         ): AstNode {

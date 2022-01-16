@@ -26,7 +26,7 @@ class CompileRunCall {
     @Test
     fun testCallSingleParameter() {
         val program = """
-          def test(val):
+          def test(val:byte):
             print(val)
           
           def main():
@@ -40,7 +40,7 @@ class CompileRunCall {
     @Test
     fun testCallManyParameters() {
         val program = """
-            def test(param1,param2):
+            def test(param1:byte,param2:byte):
               print(param2+1)
               print(param1)
               
@@ -57,12 +57,12 @@ class CompileRunCall {
     @Test
     fun testCallManyVariables() {
         val program = """
-            def test(arg1,arg2,arg3):
-              v = arg1+arg2
+            def test(arg1:byte,arg2:byte,arg3:byte):
+              v:byte = arg1+arg2
               print(v+arg3)
               
             def main():
-              var = 2
+              var:byte = 2
               test(1,var,3)
               test(1,var,var) 
             

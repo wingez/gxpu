@@ -27,7 +27,7 @@ private fun assign(to: String, value: Int): AstNode {
 }
 
 fun value(text: String): AstNode {
-    return parserFromFile(text).parseValueProvider()
+    return parserFromFile(text).parseExpressionUntilSeparator()
 }
 
 fun identifier(name: String): AstNode {
@@ -38,7 +38,7 @@ fun constant(value: Int): AstNode {
     return AstNode.fromConstant(value)
 }
 
-fun variable(name: String, type: String, explicitNew: Boolean = false, isArray: Boolean = false): AstNode {
+fun variable(name: String, type: String = "byte", explicitNew: Boolean = false, isArray: Boolean = false): AstNode {
     return AstNode.fromMemberDeclaration(MemberDeclarationData(name, type, explicitNew, isArray))
 }
 
@@ -63,14 +63,14 @@ internal class AstParserTest {
     @Test
     fun testExpressionAssignment() {
         val tokens = listOf(TokenIdentifier("Test"), TokenAssign, TokenNumericConstant(4), TokenEOL)
-        val node = AstParser(tokens).parseStatement()
-        assertEquals(node, assign("Test", 4))
+        val node = AstParser(tokens).parseExpression()
+        assertEquals(node, listOf(assign("Test", 4)))
     }
 
     @Test
     fun testExpressionPrint() {
-        val node = AstParser(parseLine("print(5)")).parseStatement()
-        assertEquals(node, AstNode.fromPrint(constant(5)))
+        val node = AstParser(parseLine("print(5)")).parseExpression()
+        assertEquals(node, listOf(AstNode.fromPrint(constant(5))))
     }
 
     fun getFuncTokens(vararg parameters: String): List<Token> {
@@ -80,6 +80,8 @@ internal class AstParserTest {
 
         parameters.forEachIndexed { index, param ->
             tokens.add(TokenIdentifier(param))
+            tokens.add(TokenColon)
+            tokens.add(TokenIdentifier("byte"))
             if (index != numParams) {
                 tokens.add(TokenComma)
             }
@@ -108,7 +110,7 @@ internal class AstParserTest {
         assertEquals(
             AstParser(getFuncTokens("param1")).parseFunctionDefinition(),
             function(
-                "test", arguments = listOf(variable("param1", "")),
+                "test", arguments = listOf(variable("param1")),
                 body = printBody, "void"
             )
         )
@@ -120,9 +122,9 @@ internal class AstParserTest {
             AstParser(getFuncTokens("param1", "param2", "param3")).parseFunctionDefinition(),
             function(
                 "test", arguments = listOf(
-                    variable("param1", ""),
-                    variable("param2", ""),
-                    variable("param3", ""),
+                    variable("param1"),
+                    variable("param2"),
+                    variable("param3"),
                 ), body = printBody, "void"
             )
         )
@@ -179,25 +181,27 @@ internal class AstParserTest {
     @Test
     fun testCallNoParameters() {
         assertEquals(
-            parserFromLine("func()").parseCall(true),
-            call("func", emptyList())
+            parserFromLine("func()").parseExpression(),
+            listOf(call("func", emptyList()))
         )
     }
 
     @Test
     fun testCallParameters() {
         assertEquals(
-            parserFromLine("func(5)").parseCall(true),
-            call("func", listOf(constant(5)))
+            parserFromLine("func(5)").parseExpression(),
+            listOf(call("func", listOf(constant(5))))
         )
 
         assertEquals(
-            parserFromLine("func(5,10,test)").parseCall(true),
-            call(
-                "func", listOf(
-                    constant(5),
-                    constant(10),
-                    identifier("test"),
+            parserFromLine("func(5,10,test)").parseExpression(),
+            listOf(
+                call(
+                    "func", listOf(
+                        constant(5),
+                        constant(10),
+                        identifier("test"),
+                    )
                 )
             )
         )
@@ -206,8 +210,8 @@ internal class AstParserTest {
     @Test
     fun testAssignCall() {
         assertEquals(
-            parserFromLine("a=test()").parseAssignment(),
-            AstNode.fromAssign(identifier("a"), call("test", emptyList()))
+            parserFromLine("a=test()").parseExpression(),
+            listOf(AstNode.fromAssign(identifier("a"), call("test", emptyList())))
         )
     }
 

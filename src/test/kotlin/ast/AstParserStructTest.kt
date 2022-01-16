@@ -24,14 +24,14 @@ class AstParserStructTest {
             parserFromFile(
                 """
         struct tmp:
-          member1
-          member2
+          member1:byte
+          member2:byte
             
         """
             ).parseStruct(), struct(
                 "tmp", listOf(
-                    variable("member1", ""),
-                    variable("member2", "")
+                    variable("member1"),
+                    variable("member2")
                 )
             )
         )
@@ -73,11 +73,12 @@ class AstParserStructTest {
             parserFromFile(
                 """
         member.i=5
-            
         """
-            ).parseAssignment(), AstNode.fromAssign(
-                memberAccess(identifier("member"), "i"),
-                constant(5)
+            ).parseExpression(), listOf(
+                AstNode.fromAssign(
+                    memberAccess(identifier("member"), "i"),
+                    constant(5)
+                )
             )
         )
     }
@@ -118,10 +119,12 @@ class AstParserStructTest {
                 """
         a=s.member
         """
-            ).parseAssignment(),
-            AstNode.fromAssign(
-                identifier("a"),
-                memberAccess(identifier("s"), "member")
+            ).parseExpression(),
+            listOf(
+                AstNode.fromAssign(
+                    identifier("a"),
+                    memberAccess(identifier("s"), "member")
+                )
             ),
         )
     }
@@ -129,11 +132,13 @@ class AstParserStructTest {
     @Test
     fun testStructMemberDeref() {
         assertEquals(
-            AstNode.fromAssign(
-                memberDeref(identifier("a"), "test"),
-                identifier("s")
+            listOf(
+                AstNode.fromAssign(
+                    memberDeref(identifier("a"), "test"),
+                    identifier("s")
+                )
             ),
-            parserFromLine("a->test = s").parseAssignment()
+            parserFromLine("a->test = s").parseExpression()
         )
     }
 
@@ -162,7 +167,7 @@ class AstParserStructTest {
     fun testArrayAccess() {
         assertEquals(
             AstNode.fromArrayAccess(identifier("test"), constant(5)),
-            parserFromLine("test[5]").parseValueProvider()
+            parserFromLine("test[5]").parseExpressionUntilSeparator()
         )
 
         assertEquals(
@@ -170,7 +175,7 @@ class AstParserStructTest {
                 AstNode.fromIdentifier("test"),
                 AstNode.fromOperation(NodeTypes.Addition, constant(5), constant(5))
             ),
-            parserFromLine("test[5+5]").parseValueProvider()
+            parserFromLine("test[5+5]").parseExpressionUntilSeparator()
         )
     }
 }

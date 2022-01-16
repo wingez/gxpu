@@ -94,7 +94,7 @@ fun calculateFrameLayout(
                     //throw CompileError("To complex for now")
                     continue
                 }
-                name = assignNode.target.asIdentifier().name
+                name = assignNode.target.asIdentifier()
                 typeName = assignNode.assignData.type
                 explicitNew = assignNode.assignData.explicitNew
 

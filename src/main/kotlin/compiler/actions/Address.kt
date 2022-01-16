@@ -24,7 +24,7 @@ private class AddressCalculator(
 
         when (currentNode.type) {
             NodeTypes.Identifier -> {
-                return access(providedType, currentNode.asIdentifier().name)
+                return access(providedType, currentNode.asIdentifier())
             }
 
             NodeTypes.MemberAccess -> {

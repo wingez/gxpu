@@ -70,14 +70,6 @@ class AstParser(private val tokens: List<Token>) {
         return consumeType<TokenIdentifier>().target
     }
 
-    private fun savepoint(): Int {
-        return index
-    }
-
-    private fun restore(savepoint: Int) {
-        index = savepoint
-    }
-
     private fun hasMoreToParse(): Boolean {
         return index < tokens.size
     }
@@ -91,61 +83,41 @@ class AstParser(private val tokens: List<Token>) {
             if (peekIs(TokenEOL, consumeMatch = true))
                 continue
 
-            var tok: AstNode?
-            tok = tryParse(this::parseFunctionDefinition)
-            if (tok != null) {
-                result.add(tok)
-                continue
-            }
-            tok = tryParse(this::parseStruct)
-            if (tok != null) {
-                result.add(tok)
-                continue
-            }
-
-
-            throw ParserError("Could not parse")
-
+            result.addAll(parseNextNode())
         }
         return result
     }
 
-    private fun <T> tryParse(toCall: () -> T): T? {
+    fun parseNextNode(): List<AstNode> {
+        val result = mutableListOf<AstNode>()
 
-        val savepoint = savepoint()
-        try {
-            return toCall()
-        } catch (e: ParserError) {
-            restore(savepoint)
+        when (peek().type) {
+            TokenType.KeywordPrint -> result.add(parsePrint())
+            TokenType.KeywordDef -> result.add(parseFunctionDefinition())
+            TokenType.KeywordStruct -> result.add(parseStruct())
+
+            TokenType.KeywordIf -> result.add(parseIfStatement())
+            TokenType.KeywordWhile -> result.add(parseWhileStatement())
+
+            TokenType.KeywordReturn -> result.add(parseReturnStatement())
+
+            else -> result.addAll(parseExpression())
         }
 
-        return null
+        return result
     }
 
     private fun parsePrimitiveMemberDeclaration(): AstNode {
         /**
         Parses 'val:type' or 'val' or 'val:new type'
          */
-        val name = consumeIdentifier()
 
-        var explicitNew = false
-        var type = ""
-        var array = false
-
-        if (peekIs(TokenColon, consumeMatch = true)) {
-            explicitNew = peekIs(TokenKeywordNew, consumeMatch = true)
-            type = consumeIdentifier()
-
-            if (peekIs(TokenLeftBracket)) {
-                consumeType(TokenLeftBracket)
-                consumeType(TokenRightBracket)
-                array = true
-            }
-
+        val node = parseExpression()[0]
+        if (node.type != NodeTypes.MemberDeclaration) {
+            throw ParserError("Expected memberdeclaration, not $node")
         }
-        val memberData = MemberDeclarationData(name, type, explicitNew, array)
+        return node
 
-        return AstNode.fromMemberDeclaration(memberData)
     }
 
     fun parseFunctionDefinition(): AstNode {
@@ -181,44 +153,18 @@ class AstParser(private val tokens: List<Token>) {
             if (peekIs(TokenEOL, true))
                 continue
 
-            val newStatement = parseStatement()
-            expressions.add(newStatement)
+            val newExpressions = parseNextNode()
+            expressions.addAll(newExpressions)
         }
 
         return expressions
 
     }
 
-    fun parseStatement(): AstNode {
-        tryParse(this::parseAssignment)?.also { return it }
-        tryParse(this::parseAssignmentNoInit)?.also { return it }
-        tryParse(this::parsePrint)?.also { return it }
-        tryParse { parseCall(true) }?.also { return it }
-        tryParse(this::parseIfStatement)?.also { return it }
-        tryParse(this::parseWhileStatement)?.also { return it }
-        tryParse(this::parseReturnStatement)?.also { return it }
-
-        throw ParserError("Dont know how to parse ${peek()}")
-    }
-
-    fun parseAssignment(): AstNode {
-        val target = parseValueProvider()
-        consumeType(TokenAssign)
-        val valueNode = parseValueProvider()
-        consumeType(TokenEOL)
-        return AstNode.fromAssign(target, valueNode)
-    }
-
-    private fun parseAssignmentNoInit(): AstNode {
-        val value = parsePrimitiveMemberDeclaration()
-        consumeType(TokenEOL)
-        return value
-    }
-
     fun parsePrint(): AstNode {
         consumeType(TokenKeywordPrint)
         consumeType(TokenLeftParenthesis)
-        val target = parseValueProvider()
+        val target = parseExpressionUntilSeparator()
         consumeType(TokenRightParenthesis)
         consumeType(TokenEOL)
         return AstNode.fromPrint(target)
@@ -226,7 +172,7 @@ class AstParser(private val tokens: List<Token>) {
 
     fun parseIfStatement(): AstNode {
         consumeType(TokenKeywordIf)
-        val condition = parseValueProvider()
+        val condition = parseExpressionUntilSeparator()
 
         consumeType(TokenColon)
         consumeType(TokenEOL)
@@ -250,7 +196,7 @@ class AstParser(private val tokens: List<Token>) {
 
     fun parseWhileStatement(): AstNode {
         consumeType(TokenKeywordWhile)
-        val condition = parseValueProvider()
+        val condition = parseExpressionUntilSeparator()
 
         consumeType(TokenColon)
         consumeType(TokenEOL)
@@ -264,34 +210,101 @@ class AstParser(private val tokens: List<Token>) {
     fun parseReturnStatement(): AstNode {
         consumeType(TokenKeywordReturn)
 
-        val value = if (!peekIs(TokenEOL)) parseValueProvider() else null
+        val value = if (!peekIs(TokenEOL)) parseExpressionUntilSeparator() else null
         consumeType(TokenEOL)
         return AstNode.fromReturn(value)
+    }
+
+    fun parseExpression(): List<AstNode> {
+        var first = parseExpressionUntilSeparator()
+
+        if (peekIs(TokenEOL)) {
+            return listOf(first)
+        }
+
+
+        if (peekIs(TokenColon, consumeMatch = true)) {
+            val explicitNew = peekIs(TokenKeywordNew, consumeMatch = true)
+            val type = consumeIdentifier()
+            var array = false
+
+            if (peekIs(TokenLeftBracket)) {
+                consumeType(TokenLeftBracket)
+                consumeType(TokenRightBracket)
+                array = true
+            }
+            if (first.type != NodeTypes.Identifier) {
+                throw ParserError("Expected membername, not $first")
+            }
+
+            first = AstNode.fromMemberDeclaration(
+                MemberDeclarationData(
+                    first.asIdentifier(), type, explicitNew, array
+                )
+            )
+        }
+
+        if (peekIs(TokenAssign, consumeMatch = true)) {
+            val right = parseExpressionUntilSeparator()
+
+            if (first.type == NodeTypes.MemberDeclaration) {
+
+                return listOf(
+                    first,
+                    AstNode.fromAssign(
+                        AstNode.fromIdentifier(first.asMemberDeclaration().name),
+                        right,
+                    )
+                )
+            }
+
+            first = AstNode.fromAssign(
+                first, right
+            )
+        }
+
+        return listOf(first)
+
     }
 
     private fun parseSingleValue(): AstNode {
 
         if (peekIs(TokenLeftParenthesis, true)) {
-            val result = parseValueProvider()
+            val result = parseExpressionUntilSeparator()
             consumeType(TokenRightParenthesis, "Mismatched parenthesis")
             return result
         } else if (peekIs<TokenNumericConstant>()) {
             val constant = consumeType<TokenNumericConstant>().value
             return AstNode.fromConstant(constant)
         } else if (peekIs<TokenIdentifier>()) {
-            val callNode = tryParse { parseCall(false) }
-            return if (callNode != null)
-                callNode
-            else {
-                val member = consumeIdentifier()
-                AstNode.fromIdentifier(member)
+
+            val identifier = consumeIdentifier()
+
+            if (peekIs(TokenLeftParenthesis, consumeMatch = true)) {
+                val parameters = mutableListOf<AstNode>()
+
+                while (!peekIs(TokenRightParenthesis, true)) {
+                    val paramValue = parseExpressionUntilSeparator()
+                    parameters.add(paramValue)
+
+                    peekIs(TokenComma, true)
+                }
+
+                return AstNode.fromCall(identifier, parameters)
             }
+
+            return AstNode.fromIdentifier(identifier)
+        } else if (peekIs(TokenKeywordPrint, consumeMatch = true)) {
+            consumeType(TokenLeftParenthesis)
+            val argument = parseExpressionUntilSeparator()
+            consumeType(TokenRightParenthesis)
+            return AstNode.fromPrint(argument)
         } else {
             throw ParserError("Cannot parse to value provider: ${peek()}")
         }
     }
 
-    fun parseValueProvider(): AstNode {
+    fun parseExpressionUntilSeparator(): AstNode {
 
 
         val values = mutableListOf(parseSingleValue())
@@ -303,7 +316,7 @@ class AstParser(private val tokens: List<Token>) {
 
             //Close array access
             if (operatorToken == TokenLeftBracket) {
-                values.add(parseValueProvider())
+                values.add(parseExpressionUntilSeparator())
                 consumeType(TokenRightBracket)
             } else {
                 values.add(parseSingleValue())
@@ -348,24 +361,6 @@ class AstParser(private val tokens: List<Token>) {
         return values.first()
     }
 
-    fun parseCall(shouldConsumeEol: Boolean): AstNode {
-        val targetName = consumeType<TokenIdentifier>().target
-        consumeType(TokenLeftParenthesis)
-
-        val parameters = mutableListOf<AstNode>()
-
-        while (!peekIs(TokenRightParenthesis, true)) {
-            val paramValue = parseValueProvider()
-            parameters.add(paramValue)
-
-            peekIs(TokenComma, true)
-        }
-
-        if (shouldConsumeEol)
-            consumeType(TokenEOL)
-
-        return AstNode.fromCall(targetName, parameters)
-    }
 
     fun parseStruct(): AstNode {
         consumeType(TokenKeywordStruct)

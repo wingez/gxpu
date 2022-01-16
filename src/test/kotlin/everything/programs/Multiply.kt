@@ -8,8 +8,8 @@ class Multiply {
     @Test
     fun multiply() {
         val program = """
-          def mul(a,b):byte
-            result=0
+          def mul(a:byte,b:byte):byte
+            result:byte=0
             while b!=0:
               result=result+a
               b=b-1
