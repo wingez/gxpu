@@ -224,7 +224,7 @@ class AstParser(private val tokens: List<Token>) {
         return AstNode.fromPrint(target)
     }
 
-    fun parseIfStatement(): IfNode {
+    fun parseIfStatement(): AstNode {
         consumeType(TokenKeywordIf)
         val condition = parseValueProvider()
 
@@ -245,10 +245,10 @@ class AstParser(private val tokens: List<Token>) {
             emptyList()
         }
 
-        return IfNode(condition, statements, elseStatements)
+        return AstNode.fromIf(condition, statements, elseStatements)
     }
 
-    fun parseWhileStatement(): WhileNode {
+    fun parseWhileStatement(): AstNode {
         consumeType(TokenKeywordWhile)
         val condition = parseValueProvider()
 
@@ -258,15 +258,15 @@ class AstParser(private val tokens: List<Token>) {
 
         val statements = parseStatementsUntilEndblock()
 
-        return WhileNode(condition, statements)
+        return AstNode.fromWhile(condition, statements)
     }
 
-    fun parseReturnStatement(): ReturnNode {
+    fun parseReturnStatement(): AstNode {
         consumeType(TokenKeywordReturn)
 
         val value = if (!peekIs(TokenEOL)) parseValueProvider() else null
         consumeType(TokenEOL)
-        return ReturnNode(value)
+        return AstNode.fromReturn(value)
     }
 
     private fun parseSingleValue(): AstNode {

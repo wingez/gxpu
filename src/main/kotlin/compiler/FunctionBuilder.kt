@@ -1,6 +1,7 @@
 package se.wingez.compiler
 
-import se.wingez.ast.*
+import se.wingez.ast.AstNode
+import se.wingez.ast.NodeTypes
 import se.wingez.byte
 import se.wingez.compiler.actions.Action
 import se.wingez.compiler.actions.ActionBuilder
@@ -27,8 +28,8 @@ class FunctionBuilder(
         optimizeGenerate(actionBuilder.buildStatement(node))
     }
 
-    fun handleReturn(node: ReturnNode) {
-        if (node.hasValue()) {
+    fun handleReturn(node: AstNode) {
+        if (node.asReturn().hasValue()) {
             throw NotImplementedError()
         }
         generator.generate(DefaultEmulator.ret.build())
@@ -42,19 +43,20 @@ class FunctionBuilder(
         }
     }
 
-    private fun handleIf(node: IfNode) {
+    private fun handleIf(node: AstNode) {
+        val ifData = node.asIf()
 
-        optimizeGenerate(actionBuilder.buildStatement(node.condition))
+        optimizeGenerate(actionBuilder.buildStatement(ifData.condition))
         val jumpToFalseCondition = generator.makeSpaceFor(DefaultEmulator.jump_zero)
-        buildNodes(node.ifBody)
+        buildNodes(ifData.ifBody)
 
-        val jumpToEnd = if (node.hasElse) generator.makeSpaceFor(DefaultEmulator.jump) else null
+        val jumpToEnd = if (ifData.hasElse) generator.makeSpaceFor(DefaultEmulator.jump) else null
 
         //TODO size
         jumpToFalseCondition.generate(mapOf("addr" to generator.currentSize.toUByte()))
 
-        if (node.hasElse) {
-            buildNodes(node.elseBody)
+        if (ifData.hasElse) {
+            buildNodes(ifData.elseBody)
             jumpToEnd ?: throw AssertionError()
             //TODO size
             jumpToEnd.generate(mapOf("addr" to generator.currentSize.toUByte()))
@@ -62,12 +64,12 @@ class FunctionBuilder(
     }
 
 
-    private fun handleWhile(node: WhileNode) {
+    private fun handleWhile(node: AstNode) {
         val startOfBlock = byte(generator.currentSize)
-        optimizeGenerate(actionBuilder.buildStatement(node.condition))
+        optimizeGenerate(actionBuilder.buildStatement(node.asWhile().condition))
         val jumpToExit = generator.makeSpaceFor(DefaultEmulator.jump_zero)
 
-        buildNodes(node.body)
+        buildNodes(node.asWhile().body)
         //TODO size
         generator.generate(DefaultEmulator.jump.build(mapOf("addr" to startOfBlock)))
         jumpToExit.generate(mapOf("addr" to byte(generator.currentSize)))
@@ -76,27 +78,22 @@ class FunctionBuilder(
 
     fun buildStatement(node: AstNode) {
 
-        if (node.type == NodeTypes.MemberDeclaration) {
+
+        when (node.type) {
             // TODO: what should we do here???
-            return
-        }
-        if (node.type == NodeTypes.Assign || node.type == NodeTypes.Print || node.type == NodeTypes.Call) {
-            handleStatement(node)
-            return
-        }
-
-        when (node) {
-            is ReturnNode -> handleReturn(node)
-            is IfNode -> handleIf(node)
-            is WhileNode -> handleWhile(node)
-
+            NodeTypes.MemberDeclaration -> return
+            NodeTypes.Assign, NodeTypes.Print, NodeTypes.Call -> handleStatement(node)
+            NodeTypes.Return -> handleReturn(node)
+            NodeTypes.If -> handleIf(node)
+            NodeTypes.While -> handleWhile(node)
             else -> throw CompileError("Dont know how to parse $node")
+
         }
     }
 
     fun buildBody(nodes: Iterable<AstNode>) {
         buildNodes(nodes)
 
-        handleReturn(ReturnNode())
+        handleReturn(AstNode.fromReturn())
     }
 }
