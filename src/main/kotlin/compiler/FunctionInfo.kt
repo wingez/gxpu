@@ -1,7 +1,6 @@
 package se.wingez.compiler
 
 import se.wingez.ast.AstNode
-import se.wingez.ast.FunctionNode
 import se.wingez.ast.NodeTypes
 import se.wingez.byte
 
@@ -45,24 +44,25 @@ class FunctionInfo(
 
 
 fun calculateFrameLayout(
-    node: FunctionNode,
+    node: AstNode,
     typeProvider: TypeProvider,
     memoryPosition: UByte,
 ): FunctionInfo {
     // We first calculate the offsets from the top. Then we reverse it when we know the total size
     val fieldBuilder = StructBuilder(typeProvider)
+    val functionData = node.asFunction()
 
-    val returnType = if (node.functionData.returnType.isEmpty())
+    val returnType = if (functionData.returnType.isEmpty())
         voidType
     else
     // TODO: handle explicit new
-        typeProvider.getType(node.functionData.returnType).instantiate(false)
+        typeProvider.getType(functionData.returnType).instantiate(false)
 
     fieldBuilder.addMember("result", returnType)
 
     // Figure out what parameters to use. But we should not add them to the layout until we've added the local variables
     val parameters = mutableListOf<Pair<String, DataType>>()
-    for (arg in node.functionData.arguments) {
+    for (arg in functionData.arguments) {
         val memberData = arg.asMemberDeclaration()
         if (memberData.explicitNew) {
             throw CompileError("Explicit new not allowed for parameters")
@@ -146,7 +146,7 @@ fun calculateFrameLayout(
 
     return FunctionInfo(
         memoryPosition,
-        node.functionData.name,
+        functionData.name,
         fields,
         parameterNames, returnType
     )

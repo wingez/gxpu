@@ -46,6 +46,10 @@ fun call(target: String, parameters: List<AstNode>): AstNode {
     return AstNode.fromCall(target, parameters)
 }
 
+fun function(name: String, arguments: List<AstNode>, body: List<AstNode>, returnType: String): AstNode {
+    return AstNode.fromFunction(name, arguments, body, returnType)
+}
+
 internal class AstParserTest {
     @Test
     fun testManyEOL() {
@@ -95,7 +99,7 @@ internal class AstParserTest {
     fun testParseFunction() {
         assertEquals(
             AstParser(getFuncTokens()).parseFunctionDefinition(),
-            FunctionNode("test", emptyList(), printBody, "void")
+            function("test", emptyList(), printBody, "void")
         )
     }
 
@@ -103,7 +107,7 @@ internal class AstParserTest {
     fun testParseFunctionSingleParameter() {
         assertEquals(
             AstParser(getFuncTokens("param1")).parseFunctionDefinition(),
-            FunctionNode(
+            function(
                 "test", arguments = listOf(variable("param1", "")),
                 body = printBody, "void"
             )
@@ -114,7 +118,7 @@ internal class AstParserTest {
     fun testParseFunctionMultipleParameters() {
         assertEquals(
             AstParser(getFuncTokens("param1", "param2", "param3")).parseFunctionDefinition(),
-            FunctionNode(
+            function(
                 "test", arguments = listOf(
                     variable("param1", ""),
                     variable("param2", ""),
@@ -136,7 +140,7 @@ internal class AstParserTest {
         )
         assertEquals(
             AstParser(tokens).parseFunctionDefinition(),
-            FunctionNode(
+            function(
                 "test", arguments = listOf(variable("param", "type")),
                 body = printBody, "void"
             )
@@ -155,7 +159,7 @@ internal class AstParserTest {
         )
         assertEquals(
             AstParser(tokens).parseFunctionDefinition(),
-            FunctionNode("test", emptyList(), printBody, "byte")
+            function("test", emptyList(), printBody, "byte")
         )
     }
 

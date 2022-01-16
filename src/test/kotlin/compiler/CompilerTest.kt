@@ -3,7 +3,7 @@ package se.wingez.compiler
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import se.wingez.ast.AstNode
-import se.wingez.ast.FunctionNode
+import se.wingez.ast.function
 import se.wingez.ast.parseExpressions
 import se.wingez.ast.parserFromFile
 import se.wingez.byte
@@ -15,7 +15,7 @@ import kotlin.test.assertEquals
 
 
 fun buildSingleMainFunction(nodes: List<AstNode>): List<UByte> {
-    val node = FunctionNode("main", emptyList(), nodes, "")
+    val node = function("main", emptyList(), nodes, "")
     val c = Compiler()
     return c.buildProgram(listOf(node))
 }
@@ -25,7 +25,7 @@ fun buildBody(body: String): List<UByte> {
     val nodes = parseExpressions(tokens)
 
 
-    val node = FunctionNode("main", emptyList(), nodes, "")
+    val node = function("main", emptyList(), nodes, "")
     val frame = calculateFrameLayout(node, dummyTypeContainer, 0u)
 
     val generator = CodeGenerator()
