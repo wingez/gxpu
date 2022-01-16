@@ -53,11 +53,29 @@ open class AstNode(
         return childNodes.iterator()
     }
 
+    class OperationNode(val node: AstNode) {
+        val left get() = node.childNodes[0]
+        val right get() = node.childNodes[1]
+    }
+
     fun asOperation(): OperationNode {
         return OperationNode(this)
     }
 
+    class IdentifierNode(val node: AstNode) {
+        val name: String
+            get() {
+                return node.data as String
+            }
+    }
+
+    fun asIdentifier(): IdentifierNode {
+        return IdentifierNode(this)
+    }
+
     companion object {
+
+
         fun fromOperation(type: NodeTypes, left: AstNode, right: AstNode): AstNode {
             return AstNode(type, null, listOf(left, right))
         }
@@ -66,21 +84,15 @@ open class AstNode(
             return AstNode(NodeTypes.Body, null, body)
         }
 
+        fun fromIdentifier(name: String): AstNode {
+            return AstNode(NodeTypes.Identifier, name)
+        }
+
+
     }
 }
 
-class OperationNode(val node: AstNode) {
-    val left get() = node.childNodes[0]
-    val right get() = node.childNodes[1]
-}
 
-
-class Identifier(name: String) : AstNode(NodeTypes.Identifier, name) {
-    val name: String
-        get() {
-            return data as String
-        }
-}
 
 class PrimitiveMemberDeclaration(name: String, type: String, explicitNew: Boolean = false, isArray: Boolean = false) :
     AstNode(

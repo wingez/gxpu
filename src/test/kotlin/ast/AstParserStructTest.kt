@@ -63,7 +63,7 @@ class AstParserStructTest {
             
         """
             ).parseAssignment(), AssignNode(
-                MemberAccess(Identifier("member"), "i"),
+                MemberAccess(identifier("member"), "i"),
                 ConstantNode(5)
             )
         )
@@ -86,11 +86,11 @@ class AstParserStructTest {
                 listOf(
                     PrimitiveMemberDeclaration("a", "type1"),
                     AssignNode(
-                        MemberAccess(Identifier("a"), "member1"),
+                        MemberAccess(identifier("a"), "member1"),
                         ConstantNode(2)
                     ),
                     AssignNode(
-                        MemberAccess(Identifier("a"), "member2"),
+                        MemberAccess(identifier("a"), "member2"),
                         ConstantNode(1)
                     )
                 ), "void"
@@ -107,8 +107,8 @@ class AstParserStructTest {
         """
             ).parseAssignment(),
             AssignNode(
-                Identifier("a"),
-                MemberAccess(Identifier("s"), "member")
+                identifier("a"),
+                MemberAccess(identifier("s"), "member")
             ),
         )
     }
@@ -117,8 +117,8 @@ class AstParserStructTest {
     fun testStructMemberDeref() {
         assertEquals(
             AssignNode(
-                MemberDeref(Identifier("a"), "test"),
-                Identifier("s")
+                MemberDeref(identifier("a"), "test"),
+                identifier("s")
             ),
             parserFromLine("a->test = s").parseAssignment()
         )
@@ -148,13 +148,13 @@ class AstParserStructTest {
     @Test
     fun testArrayAccess() {
         assertEquals(
-            ArrayAccess(Identifier("test"), ConstantNode(5)),
+            ArrayAccess(identifier("test"), ConstantNode(5)),
             parserFromLine("test[5]").parseValueProvider()
         )
 
         assertEquals(
             ArrayAccess(
-                Identifier("test"),
+                AstNode.fromIdentifier("test"),
                 AstNode.fromOperation(NodeTypes.Addition, ConstantNode(5), ConstantNode(5))
             ),
             parserFromLine("test[5+5]").parseValueProvider()

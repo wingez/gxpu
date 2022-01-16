@@ -10,6 +10,9 @@ fun value(text: String): AstNode {
     return parserFromFile(text).parseValueProvider()
 }
 
+fun identifier(name: String): AstNode {
+    return AstNode.fromIdentifier(name)
+}
 
 class AstParserArithmetic {
     @Test
@@ -25,7 +28,7 @@ class AstParserArithmetic {
     fun testWithIdentifier() {
         assertEquals(
             parserFromFile("2+test").parseValueProvider(),
-            AstNode.fromOperation(NodeTypes.Addition, ConstantNode(2), Identifier("test"))
+            AstNode.fromOperation(NodeTypes.Addition, ConstantNode(2), identifier("test"))
         )
     }
 
@@ -45,7 +48,7 @@ class AstParserArithmetic {
         )
         assertEquals(
             parserFromLine("(5+var)").parseValueProvider(),
-            AstNode.fromOperation(NodeTypes.Addition, ConstantNode(5), Identifier("var"))
+            AstNode.fromOperation(NodeTypes.Addition, ConstantNode(5), identifier("var"))
         )
 
         assertThat(

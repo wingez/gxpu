@@ -174,7 +174,7 @@ fun createArray(node: AstNode, builder: ActionBuilder): Action? {
 
 
 fun byteToStack(node: AstNode, type: DataType, builder: ActionBuilder): Action? {
-    if (node !is Identifier && node !is MemberAccess && node !is MemberDeref && node !is ArrayAccess) return null
+    if (node.type != NodeTypes.Identifier && node !is MemberAccess && node !is MemberDeref && node !is ArrayAccess) return null
 
     if (type != byteType) return null
 
