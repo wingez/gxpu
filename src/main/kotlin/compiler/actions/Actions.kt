@@ -108,12 +108,14 @@ fun putByteOnStack(node: AstNode, type: DataType, builder: ActionBuilder): Actio
 }
 
 fun assignFrameByte(node: AstNode, builder: ActionBuilder): Action? {
-    if (node !is AssignNode)
+    if (node.type != NodeTypes.Assign)
         return null
 
-    val pushMemberAddress = pushAddressCheckType(node.target, builder.currentFunction, byteType, builder)
+    val assign = node.asAssign()
 
-    val putValueOnStack = builder.getActionOnStack(node.value, byteType) ?: return null
+    val pushMemberAddress = pushAddressCheckType(assign.target, builder.currentFunction, byteType, builder)
+
+    val putValueOnStack = builder.getActionOnStack(assign.value, byteType) ?: return null
 
     return CompositeAction(
         pushMemberAddress,
@@ -127,9 +129,9 @@ fun assignFrameByte(node: AstNode, builder: ActionBuilder): Action? {
 
 fun createArray(node: AstNode, builder: ActionBuilder): Action? {
 
-    if (node !is AssignNode) return null
+    if (node.type != NodeTypes.Assign) return null
 
-    val callNode = node.value
+    val callNode = node.asAssign().value
 
     if (callNode !is CallNode) return null
     if (callNode.targetName != "createArray") return null
@@ -152,7 +154,7 @@ fun createArray(node: AstNode, builder: ActionBuilder): Action? {
     //Push stackpointer, this is the pointer to the new array
     actions.add(PushStackPointer())
 
-    val address = pushAddress(node.target, builder.currentFunction, builder)
+    val address = pushAddress(node.asAssign().target, builder.currentFunction, builder)
     if (address.resultingType !is Pointer) return null
     if (address.resultingType.type != ArrayType(byteType))
         throw CompileError("Not supported yet")

@@ -84,6 +84,17 @@ open class AstNode(
         return data as MemberDeclarationData
     }
 
+    class AssignNode(val node: AstNode) {
+        val target = node.childNodes[0]
+        val value = node.childNodes[1]
+        val assignData = node.data as AssignData
+    }
+
+    fun asAssign(): AssignNode {
+        return AssignNode(this)
+    }
+
+
     companion object {
 
 
@@ -103,10 +114,19 @@ open class AstNode(
             return AstNode(NodeTypes.Constant, value, emptyList())
         }
 
-        fun fromMemberDeclaration(memberdata: MemberDeclarationData): AstNode {
+        fun fromMemberDeclaration(memberData: MemberDeclarationData): AstNode {
             return AstNode(
-                NodeTypes.MemberDeclaration, memberdata
+                NodeTypes.MemberDeclaration, memberData
             )
+        }
+
+        fun fromAssign(
+            target: AstNode,
+            value: AstNode,
+            type: String = "",
+            explicitNew: Boolean = false,
+        ): AstNode {
+            return AstNode(NodeTypes.Assign, AssignData(type, explicitNew), listOf(target, value))
         }
 
     }
@@ -119,23 +139,10 @@ data class MemberDeclarationData(
     val isArray: Boolean = false,
 )
 
-class AssignNode(
-    target: AstNode,
-    value: AstNode,
-    type: String = "",
-    explicitNew: Boolean = false,
-
-    ) : AstNode(NodeTypes.Assign, AssignData(type, explicitNew), listOf(target, value)) {
-    data class AssignData(
-        val type: String,
-        val explicitNew: Boolean,
-    )
-
-    val target = childNodes[0]
-    val value = childNodes[1]
-
-    val assignData = data as AssignData
-}
+data class AssignData(
+    val type: String,
+    val explicitNew: Boolean,
+)
 
 class PrintNode(target: AstNode) : AstNode(NodeTypes.Print, null, listOf(target)) {
     val target get() = childNodes[0]

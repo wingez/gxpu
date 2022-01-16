@@ -80,11 +80,14 @@ class FunctionBuilder(
             // TODO: what should we do here???
             return
         }
+        if (node.type == NodeTypes.Assign) {
+            handleStatement(node)
+            return
+        }
 
         when (node) {
             is PrintNode -> handleStatement(node)
             is ReturnNode -> handleReturn(node)
-            is AssignNode -> handleStatement(node)
             is IfNode -> handleIf(node)
             is WhileNode -> handleWhile(node)
             is CallNode -> handleStatement(node)
