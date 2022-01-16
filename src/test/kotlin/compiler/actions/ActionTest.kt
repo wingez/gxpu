@@ -57,7 +57,7 @@ class ActionTest {
     @Test
     fun testPrintConstant() {
         val builder = ActionBuilder(dummyFrame, dummyFunctions, dummyTypeContainer)
-        val node = PrintNode(constant(5))
+        val node = AstNode.fromPrint(constant(5))
         val flattened = builder.buildStatement(node)
 
         assertEquals(
@@ -87,7 +87,7 @@ class ActionTest {
     @Test
     fun testPrintVariable() {
         val builder = ActionBuilder(dummyFrame, dummyFunctions, dummyTypeContainer)
-        val node = PrintNode(identifier("var1"))
+        val node = AstNode.fromPrint(identifier("var1"))
         val flattened = flatten(builder.buildStatement(node))
 
         assertEquals(
@@ -153,7 +153,7 @@ class ActionTest {
     @Test
     fun testAddition() {
         val builder = ActionBuilder(dummyFrame, dummyFunctions, dummyTypeContainer)
-        val node = PrintNode(AstNode.fromOperation(NodeTypes.Addition, constant(5), constant(10)))
+        val node = AstNode.fromPrint(AstNode.fromOperation(NodeTypes.Addition, constant(5), constant(10)))
 
         assertEquals(
             listOf(
@@ -367,7 +367,7 @@ class ActionTest {
                 PrintAction()
             ),
             flatten(
-                builder.buildStatement(PrintNode(MemberDeref(identifier("field"), "value")))
+                builder.buildStatement(AstNode.fromPrint(MemberDeref(identifier("field"), "value")))
             )
         )
     }

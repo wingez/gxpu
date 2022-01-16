@@ -62,7 +62,7 @@ internal class AstParserTest {
     @Test
     fun testExpressionPrint() {
         val node = AstParser(parseLine("print(5)")).parseStatement()
-        assertEquals(node, PrintNode(constant(5)))
+        assertEquals(node, AstNode.fromPrint(constant(5)))
     }
 
     fun getFuncTokens(vararg parameters: String): List<Token> {
@@ -84,7 +84,7 @@ internal class AstParserTest {
         )
     }
 
-    private val printBody = listOf(PrintNode(constant(5)))
+    private val printBody = listOf(AstNode.fromPrint(constant(5)))
 
 
     @Test
@@ -240,7 +240,7 @@ internal class AstParserTest {
                     AstNode.fromOperation(NodeTypes.Subtraction, identifier("a"), constant(2)),
                     constant(0)
                 ),
-                listOf(PrintNode(constant(5))),
+                listOf(AstNode.fromPrint(constant(5))),
                 emptyList()
             )
         )
@@ -260,7 +260,7 @@ internal class AstParserTest {
             ).parseIfStatement(),
             IfNode(
                 identifier("a"), printBody,
-                listOf(PrintNode(constant(0)))
+                listOf(AstNode.fromPrint(constant(0)))
             )
         )
     }

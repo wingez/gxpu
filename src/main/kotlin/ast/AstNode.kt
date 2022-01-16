@@ -129,6 +129,10 @@ open class AstNode(
             return AstNode(NodeTypes.Assign, AssignData(type, explicitNew), listOf(target, value))
         }
 
+        fun fromPrint(target: AstNode): AstNode {
+            return AstNode(NodeTypes.Print, null, listOf(target))
+        }
+
     }
 }
 
@@ -143,11 +147,6 @@ data class AssignData(
     val type: String,
     val explicitNew: Boolean,
 )
-
-class PrintNode(target: AstNode) : AstNode(NodeTypes.Print, null, listOf(target)) {
-    val target get() = childNodes[0]
-}
-
 
 class CallNode(
     val targetName: String,

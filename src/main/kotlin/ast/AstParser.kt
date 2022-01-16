@@ -215,13 +215,13 @@ class AstParser(private val tokens: List<Token>) {
         return value
     }
 
-    fun parsePrint(): PrintNode {
+    fun parsePrint(): AstNode {
         consumeType(TokenKeywordPrint)
         consumeType(TokenLeftParenthesis)
         val target = parseValueProvider()
         consumeType(TokenRightParenthesis)
         consumeType(TokenEOL)
-        return PrintNode(target)
+        return AstNode.fromPrint(target)
     }
 
     fun parseIfStatement(): IfNode {

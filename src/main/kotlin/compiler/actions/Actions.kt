@@ -88,10 +88,10 @@ data class PushStackPointer(
 }
 
 fun printStatement(node: AstNode, builder: ActionBuilder): Action? {
-    if (node !is PrintNode)
+    if (node.type != NodeTypes.Print)
         return null
 
-    val value = builder.getActionOnStack(node.target, byteType) ?: return null
+    val value = builder.getActionOnStack(node.childNodes[0], byteType) ?: return null
     return CompositeAction(
         value,
         PopRegister(),
