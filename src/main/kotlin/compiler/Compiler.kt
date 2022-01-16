@@ -1,7 +1,7 @@
 package se.wingez.compiler
 
 import se.wingez.ast.AstNode
-import se.wingez.ast.FunctionNode
+import se.wingez.ast.NodeTypes
 import se.wingez.ast.StructNode
 import se.wingez.byte
 import se.wingez.compiler.actions.ActionBuilder
@@ -76,7 +76,7 @@ class Compiler : TypeProvider, FunctionProvider {
     }
 
 
-    fun buildFunction(node: FunctionNode): FunctionInfo {
+    fun buildFunction(node: AstNode): FunctionInfo {
 
         assertValidFunctionNode(node)
 
@@ -112,8 +112,12 @@ class Compiler : TypeProvider, FunctionProvider {
         generator.generate(DefaultEmulator.exit.build())
 
         for (node in nodes) {
+            if (node.type == NodeTypes.Function) {
+                buildFunction(node)
+                continue
+            }
+
             when (node) {
-                is FunctionNode -> buildFunction(node)
                 is StructNode -> buildStruct(node)
                 else -> throw CompileError("Dont know what to do with $node")
 

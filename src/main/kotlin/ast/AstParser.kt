@@ -148,7 +148,7 @@ class AstParser(private val tokens: List<Token>) {
         return AstNode.fromMemberDeclaration(memberData)
     }
 
-    fun parseFunctionDefinition(): FunctionNode {
+    fun parseFunctionDefinition(): AstNode {
         consumeType(TokenKeywordDef)
         val name = consumeType<TokenIdentifier>().target
         consumeType(TokenLeftParenthesis)
@@ -171,7 +171,7 @@ class AstParser(private val tokens: List<Token>) {
 
         val statements = parseStatementsUntilEndblock()
 
-        return FunctionNode(name, parameters, statements, returnType)
+        return AstNode.fromFunction(name, parameters, statements, returnType)
     }
 
     fun parseStatementsUntilEndblock(): List<AstNode> {

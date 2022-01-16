@@ -81,7 +81,7 @@ class AstParserStructTest {
           a.member2=1
         """
             ).parseFunctionDefinition(),
-            FunctionNode(
+            function(
                 "main", emptyList(),
                 listOf(
                     variable("a", "type1"),

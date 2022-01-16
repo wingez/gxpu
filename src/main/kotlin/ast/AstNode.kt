@@ -105,6 +105,10 @@ open class AstNode(
         return CallNode(this)
     }
 
+    fun asFunction(): FunctionData {
+        return this.data as FunctionData
+    }
+
     companion object {
 
 
@@ -147,7 +151,14 @@ open class AstNode(
             return AstNode(NodeTypes.Call, targetName, parameters)
         }
 
-
+        fun fromFunction(
+            name: String,
+            arguments: List<AstNode>,
+            body: List<AstNode>,
+            returnType: String,
+        ): AstNode {
+            return AstNode(NodeTypes.Function, FunctionData(name, arguments, returnType), body)
+        }
     }
 }
 
@@ -163,22 +174,11 @@ data class AssignData(
     val explicitNew: Boolean,
 )
 
-
-class FunctionNode(
-    name: String,
-    arguments: List<AstNode>,
-    body: List<AstNode>,
-    returnType: String,
-) : AstNode(NodeTypes.Function, FunctionData(name, arguments, returnType), body) {
-
-    data class FunctionData(
-        val name: String,
-        val arguments: List<AstNode>,
-        val returnType: String,
-    )
-
-    val functionData = data as FunctionData
-}
+data class FunctionData(
+    val name: String,
+    val arguments: List<AstNode>,
+    val returnType: String,
+)
 
 class IfNode(
     condition: AstNode,

@@ -1,10 +1,10 @@
 package se.wingez.compiler
 
-import se.wingez.ast.FunctionNode
+import se.wingez.ast.AstNode
 
 const val MAIN_NAME = "main"
 
-fun assertValidFunctionNode(node: FunctionNode) {
+fun assertValidFunctionNode(node: AstNode) {
 
 }
 
