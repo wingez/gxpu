@@ -7,6 +7,13 @@ fun struct(name: String, members: List<AstNode>): AstNode {
     return AstNode.fromStruct(name, members)
 }
 
+fun memberAccess(v: AstNode, member: String): AstNode {
+    return AstNode(NodeTypes.MemberAccess, member, listOf(v))
+}
+
+fun memberDeref(v: AstNode, member: String): AstNode {
+    return AstNode(NodeTypes.MemberDeref, member, listOf(v))
+}
 
 class AstParserStructTest {
 
@@ -69,7 +76,7 @@ class AstParserStructTest {
             
         """
             ).parseAssignment(), AstNode.fromAssign(
-                MemberAccess(identifier("member"), "i"),
+                memberAccess(identifier("member"), "i"),
                 constant(5)
             )
         )
@@ -92,11 +99,11 @@ class AstParserStructTest {
                 listOf(
                     variable("a", "type1"),
                     AstNode.fromAssign(
-                        MemberAccess(identifier("a"), "member1"),
+                        memberAccess(identifier("a"), "member1"),
                         constant(2)
                     ),
                     AstNode.fromAssign(
-                        MemberAccess(identifier("a"), "member2"),
+                        memberAccess(identifier("a"), "member2"),
                         constant(1)
                     )
                 ), "void"
@@ -114,7 +121,7 @@ class AstParserStructTest {
             ).parseAssignment(),
             AstNode.fromAssign(
                 identifier("a"),
-                MemberAccess(identifier("s"), "member")
+                memberAccess(identifier("s"), "member")
             ),
         )
     }
@@ -123,7 +130,7 @@ class AstParserStructTest {
     fun testStructMemberDeref() {
         assertEquals(
             AstNode.fromAssign(
-                MemberDeref(identifier("a"), "test"),
+                memberDeref(identifier("a"), "test"),
                 identifier("s")
             ),
             parserFromLine("a->test = s").parseAssignment()
@@ -154,12 +161,12 @@ class AstParserStructTest {
     @Test
     fun testArrayAccess() {
         assertEquals(
-            ArrayAccess(identifier("test"), constant(5)),
+            AstNode.fromArrayAccess(identifier("test"), constant(5)),
             parserFromLine("test[5]").parseValueProvider()
         )
 
         assertEquals(
-            ArrayAccess(
+            AstNode.fromArrayAccess(
                 AstNode.fromIdentifier("test"),
                 AstNode.fromOperation(NodeTypes.Addition, constant(5), constant(5))
             ),
