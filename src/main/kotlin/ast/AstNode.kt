@@ -94,6 +94,16 @@ open class AstNode(
         return AssignNode(this)
     }
 
+    class CallNode(
+        val node: AstNode
+    ) {
+        val targetName = node.data as String
+        val parameters get() = node.childNodes
+    }
+
+    fun asCall(): CallNode {
+        return CallNode(this)
+    }
 
     companion object {
 
@@ -133,6 +143,11 @@ open class AstNode(
             return AstNode(NodeTypes.Print, null, listOf(target))
         }
 
+        fun fromCall(targetName: String, parameters: List<AstNode>): AstNode {
+            return AstNode(NodeTypes.Call, targetName, parameters)
+        }
+
+
     }
 }
 
@@ -147,13 +162,6 @@ data class AssignData(
     val type: String,
     val explicitNew: Boolean,
 )
-
-class CallNode(
-    val targetName: String,
-    parameters: List<AstNode>
-) : AstNode(NodeTypes.Call, targetName, parameters) {
-    val parameters get() = childNodes
-}
 
 
 class FunctionNode(

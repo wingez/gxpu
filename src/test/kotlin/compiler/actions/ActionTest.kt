@@ -217,7 +217,7 @@ class ActionTest {
                 RemoveSpaceOnStack(0u)
             ), flatten(
                 builder.getActionOnStack(
-                    CallNode("test", emptyList()),
+                    call("test", emptyList()),
                     voidType
                 ) ?: throw AssertionError("Not found")
             )
@@ -248,7 +248,7 @@ class ActionTest {
                 RemoveSpaceOnStack(functionWithParameter.sizeOfParameters),
             ), flatten(
                 builder.getActionOnStack(
-                    CallNode("test", listOf(constant(5))),
+                    call("test", listOf(constant(5))),
                     voidType
                 ) ?: throw AssertionError("Not found")
             )
@@ -277,7 +277,7 @@ class ActionTest {
                 RemoveSpaceOnStack(byte(functionWithReturn.sizeOfVars + functionWithReturn.sizeOfParameters))
             ), flatten(
                 builder.getActionOnStack(
-                    CallNode("test", emptyList()),
+                    call("test", emptyList()),
                     byteType
                 ) ?: throw AssertionError("Not found")
             )
@@ -285,7 +285,7 @@ class ActionTest {
         //Test wrong return type
         assertNull(
             builder.getActionOnStack(
-                CallNode("test", emptyList()),
+                call("test", emptyList()),
                 voidType
             )
         )
@@ -444,7 +444,7 @@ class ActionTest {
                 builder2.buildStatement(
                     AstNode.fromAssign(
                         identifier("arr"),
-                        CallNode("createArray", listOf(constant(5))),
+                        call("createArray", listOf(constant(5))),
                     )
                 )
             )

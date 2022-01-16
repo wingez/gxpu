@@ -80,7 +80,7 @@ class FunctionBuilder(
             // TODO: what should we do here???
             return
         }
-        if (node.type == NodeTypes.Assign || node.type == NodeTypes.Print) {
+        if (node.type == NodeTypes.Assign || node.type == NodeTypes.Print || node.type == NodeTypes.Call) {
             handleStatement(node)
             return
         }
@@ -89,7 +89,6 @@ class FunctionBuilder(
             is ReturnNode -> handleReturn(node)
             is IfNode -> handleIf(node)
             is WhileNode -> handleWhile(node)
-            is CallNode -> handleStatement(node)
 
             else -> throw CompileError("Dont know how to parse $node")
         }

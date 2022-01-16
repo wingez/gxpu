@@ -348,7 +348,7 @@ class AstParser(private val tokens: List<Token>) {
         return values.first()
     }
 
-    fun parseCall(shouldConsumeEol: Boolean): CallNode {
+    fun parseCall(shouldConsumeEol: Boolean): AstNode {
         val targetName = consumeType<TokenIdentifier>().target
         consumeType(TokenLeftParenthesis)
 
@@ -364,7 +364,7 @@ class AstParser(private val tokens: List<Token>) {
         if (shouldConsumeEol)
             consumeType(TokenEOL)
 
-        return CallNode(targetName, parameters)
+        return AstNode.fromCall(targetName, parameters)
     }
 
     fun parseStruct(): StructNode {
