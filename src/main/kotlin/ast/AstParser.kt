@@ -367,7 +367,7 @@ class AstParser(private val tokens: List<Token>) {
         return AstNode.fromCall(targetName, parameters)
     }
 
-    fun parseStruct(): StructNode {
+    fun parseStruct(): AstNode {
         consumeType(TokenKeywordStruct)
         val name = consumeIdentifier()
         consumeType(TokenColon)
@@ -382,7 +382,7 @@ class AstParser(private val tokens: List<Token>) {
 
             members.add(parsePrimitiveMemberDeclaration())
         }
-        return StructNode(name, members)
+        return AstNode.fromStruct(name, members)
     }
 
 }

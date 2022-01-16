@@ -1,9 +1,9 @@
 package se.wingez.compiler
 
+import se.wingez.ast.AstNode
 import se.wingez.ast.MemberDeclarationData
 import se.wingez.ast.NodeTypes
 import se.wingez.ast.ParserError
-import se.wingez.ast.StructNode
 import se.wingez.byte
 
 class StructBuilder(
@@ -51,7 +51,7 @@ class StructBuilder(
 }
 
 
-fun buildStruct(node: StructNode, typeProvider: TypeProvider): StructType {
+fun buildStruct(node: AstNode, typeProvider: TypeProvider): StructType {
     val builder = StructBuilder(typeProvider)
     for (member in node.childNodes) {
         if (member.type != NodeTypes.MemberDeclaration)
@@ -59,5 +59,5 @@ fun buildStruct(node: StructNode, typeProvider: TypeProvider): StructType {
         builder.addMember(member.asMemberDeclaration())
     }
 
-    return builder.getStruct(node.name)
+    return builder.getStruct(node.data as String)
 }

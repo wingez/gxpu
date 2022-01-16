@@ -233,6 +233,10 @@ open class AstNode(
         ): AstNode {
             return AstNode(NodeTypes.Return, null, if (value != null) listOf(value) else emptyList())
         }
+
+        fun fromStruct(name: String, arguments: List<AstNode>): AstNode {
+            return AstNode(NodeTypes.Struct, name, arguments)
+        }
     }
 }
 
@@ -253,12 +257,6 @@ data class FunctionData(
     val arguments: List<AstNode>,
     val returnType: String,
 )
-
-
-class StructNode(
-    val name: String,
-    members: List<AstNode>,
-) : AstNode(NodeTypes.Struct, name, members)
 
 class MemberAccess(
     parent: AstNode,
