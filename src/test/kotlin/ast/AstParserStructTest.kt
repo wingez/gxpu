@@ -153,7 +153,10 @@ class AstParserStructTest {
         )
 
         assertEquals(
-            ArrayAccess(Identifier("test"), OperationNode(NodeTypes.Addition, ConstantNode(5), ConstantNode(5))),
+            ArrayAccess(
+                Identifier("test"),
+                AstNode.fromOperation(NodeTypes.Addition, ConstantNode(5), ConstantNode(5))
+            ),
             parserFromLine("test[5+5]").parseValueProvider()
         )
     }

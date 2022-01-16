@@ -52,20 +52,27 @@ open class AstNode(
     override fun iterator(): Iterator<AstNode> {
         return childNodes.iterator()
     }
+
+    fun asOperation(): OperationNode {
+        return OperationNode(this)
+    }
+
+    companion object {
+        fun fromOperation(type: NodeTypes, left: AstNode, right: AstNode): AstNode {
+            return AstNode(type, null, listOf(left, right))
+        }
+
+        fun fromBody(body: List<AstNode>): AstNode {
+            return AstNode(NodeTypes.Body, null, body)
+        }
+
+    }
 }
 
-class OperationNode(
-    type: NodeTypes,
-    left: AstNode,
-    right: AstNode
-) : AstNode
-    (type, null, listOf(left, right)) {
-    val left get() = childNodes[0]
-    val right get() = childNodes[1]
-
+class OperationNode(val node: AstNode) {
+    val left get() = node.childNodes[0]
+    val right get() = node.childNodes[1]
 }
-
-class BodyNode(body: List<AstNode>) : AstNode(NodeTypes.Body, null, body)
 
 
 class Identifier(name: String) : AstNode(NodeTypes.Identifier, name) {
@@ -149,7 +156,7 @@ class IfNode(
     condition: AstNode,
     body: List<AstNode>,
     elseBody: List<AstNode>,
-) : AstNode(NodeTypes.If, null, listOf(condition, BodyNode(body), BodyNode(elseBody))) {
+) : AstNode(NodeTypes.If, null, listOf(condition, AstNode.fromBody(body), AstNode.fromBody(elseBody))) {
 
 
     val condition
@@ -170,7 +177,7 @@ class WhileNode(
     condition: AstNode,
     body: List<AstNode>,
 ) : AstNode(
-    NodeTypes.While, null, listOf(condition, BodyNode(body))
+    NodeTypes.While, null, listOf(condition, AstNode.fromBody(body))
 ) {
     val condition
         get() = childNodes[0]

@@ -329,9 +329,9 @@ class AstParser(private val tokens: List<Token>) {
             }
 
             val result = when (operatorToken) {
-                TokenPlusSign -> OperationNode(NodeTypes.Addition, first, second)
-                TokenMinusSign -> OperationNode(NodeTypes.Subtraction, first, second)
-                TokenNotEqual -> OperationNode(NodeTypes.NotEquals, first, second)
+                TokenPlusSign -> AstNode.fromOperation(NodeTypes.Addition, first, second)
+                TokenMinusSign -> AstNode.fromOperation(NodeTypes.Subtraction, first, second)
+                TokenNotEqual -> AstNode.fromOperation(NodeTypes.NotEquals, first, second)
                 TokenDeref -> MemberDeref(first, secondAsIdentifier())
                 TokenDot -> MemberAccess(first, secondAsIdentifier())
                 TokenLeftBracket -> ArrayAccess(first, second)

@@ -2,7 +2,6 @@ package se.wingez.compiler.actions
 
 import se.wingez.ast.AstNode
 import se.wingez.ast.NodeTypes
-import se.wingez.ast.OperationNode
 import se.wingez.compiler.CodeGenerator
 import se.wingez.compiler.DataType
 import se.wingez.compiler.byteType
@@ -43,8 +42,7 @@ data class NotEqualCompare(
  */
 
 fun arithmeticToStack(node: AstNode, type: DataType, builder: ActionBuilder): Action? {
-    if (node !is OperationNode) return null
-    else if (type != byteType) return null
+    if (type != byteType) return null
 
     val operationAction = when (node.type) {
         NodeTypes.Addition -> AdditionAction()
@@ -52,8 +50,10 @@ fun arithmeticToStack(node: AstNode, type: DataType, builder: ActionBuilder): Ac
         else -> return null
     }
 
-    val putRightOnStack = builder.getActionOnStack(node.right, byteType) ?: return null
-    val putLeftOnStack = builder.getActionOnStack(node.left, byteType) ?: return null
+    val operation = node.asOperation()
+
+    val putRightOnStack = builder.getActionOnStack(operation.right, byteType) ?: return null
+    val putLeftOnStack = builder.getActionOnStack(operation.left, byteType) ?: return null
 
     return CompositeAction(
         putRightOnStack,
@@ -66,12 +66,12 @@ fun arithmeticToStack(node: AstNode, type: DataType, builder: ActionBuilder): Ac
 }
 
 fun notEqualCompare(node: AstNode, builder: ActionBuilder): Action? {
-    if (node !is OperationNode) return null
     if (node.type != NodeTypes.NotEquals) return null
 
+    val operation = node.asOperation()
     val subtractToStack = builder.getActionOnStack(
-        OperationNode(
-            NodeTypes.Subtraction, node.left, node.right
+        AstNode.fromOperation(
+            NodeTypes.Subtraction, operation.left, operation.right
         ), byteType
     ) ?: return null
 
