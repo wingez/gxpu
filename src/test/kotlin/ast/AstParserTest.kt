@@ -26,6 +26,22 @@ private fun assign(to: String, value: Int): AssignNode {
     return AssignNode(identifier(to), constant(value))
 }
 
+fun value(text: String): AstNode {
+    return parserFromFile(text).parseValueProvider()
+}
+
+fun identifier(name: String): AstNode {
+    return AstNode.fromIdentifier(name)
+}
+
+fun constant(value: Int): AstNode {
+    return AstNode.fromConstant(value)
+}
+
+fun variable(name: String, type: String, explicitNew: Boolean = false, isArray: Boolean = false): AstNode {
+    return AstNode.fromMemberDeclaration(MemberDeclarationData(name, type, explicitNew, isArray))
+}
+
 internal class AstParserTest {
     @Test
     fun testManyEOL() {
@@ -84,7 +100,7 @@ internal class AstParserTest {
         assertEquals(
             AstParser(getFuncTokens("param1")).parseFunctionDefinition(),
             FunctionNode(
-                "test", arguments = listOf(PrimitiveMemberDeclaration("param1", "")),
+                "test", arguments = listOf(variable("param1", "")),
                 body = printBody, "void"
             )
         )
@@ -96,9 +112,9 @@ internal class AstParserTest {
             AstParser(getFuncTokens("param1", "param2", "param3")).parseFunctionDefinition(),
             FunctionNode(
                 "test", arguments = listOf(
-                    PrimitiveMemberDeclaration("param1", ""),
-                    PrimitiveMemberDeclaration("param2", ""),
-                    PrimitiveMemberDeclaration("param3", ""),
+                    variable("param1", ""),
+                    variable("param2", ""),
+                    variable("param3", ""),
                 ), body = printBody, "void"
             )
         )
@@ -117,7 +133,7 @@ internal class AstParserTest {
         assertEquals(
             AstParser(tokens).parseFunctionDefinition(),
             FunctionNode(
-                "test", arguments = listOf(PrimitiveMemberDeclaration("param", "type")),
+                "test", arguments = listOf(variable("param", "type")),
                 body = printBody, "void"
             )
         )

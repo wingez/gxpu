@@ -1,6 +1,9 @@
 package se.wingez.compiler
 
-import se.wingez.ast.*
+import se.wingez.ast.AssignNode
+import se.wingez.ast.AstNode
+import se.wingez.ast.FunctionNode
+import se.wingez.ast.NodeTypes
 import se.wingez.byte
 
 const val POINTER_SIZE = 1
@@ -61,16 +64,17 @@ fun calculateFrameLayout(
     // Figure out what parameters to use. But we should not add them to the layout until we've added the local variables
     val parameters = mutableListOf<Pair<String, DataType>>()
     for (arg in node.functionData.arguments) {
-        if (arg.memberData.explicitNew) {
+        val memberData = arg.asMemberDeclaration()
+        if (memberData.explicitNew) {
             throw CompileError("Explicit new not allowed for parameters")
         }
 
-        var paramType = typeProvider.getType(arg.memberData.type)
-        if (arg.memberData.isArray) {
+        var paramType = typeProvider.getType(memberData.type)
+        if (memberData.isArray) {
             paramType = ArrayType(paramType)
         }
         paramType = paramType.instantiate(false)
-        parameters.add(Pair(arg.memberData.name, paramType))
+        parameters.add(Pair(memberData.name, paramType))
     }
 
 
@@ -95,11 +99,12 @@ fun calculateFrameLayout(
                 explicitNew = visitNode.assignData.explicitNew
 
 
-            } else if (visitNode is PrimitiveMemberDeclaration) {
-                name = visitNode.memberData.name
-                typeName = visitNode.memberData.type
-                explicitNew = visitNode.memberData.explicitNew
-                isArray = visitNode.memberData.isArray
+            } else if (visitNode.type == NodeTypes.MemberDeclaration) {
+                val memberData = visitNode.asMemberDeclaration()
+                name = memberData.name
+                typeName = memberData.type
+                explicitNew = memberData.explicitNew
+                isArray = memberData.isArray
             } else {
                 if (visitNode.hasChildren()) {
                     traverseNode(visitNode)

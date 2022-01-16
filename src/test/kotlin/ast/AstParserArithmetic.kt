@@ -6,18 +6,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 
-fun value(text: String): AstNode {
-    return parserFromFile(text).parseValueProvider()
-}
-
-fun identifier(name: String): AstNode {
-    return AstNode.fromIdentifier(name)
-}
-
-fun constant(value: Int): AstNode {
-    return AstNode.fromConstant(value)
-}
-
 class AstParserArithmetic {
     @Test
     fun testBasic() {
