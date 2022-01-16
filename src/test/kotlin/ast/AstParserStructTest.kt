@@ -62,7 +62,7 @@ class AstParserStructTest {
         member.i=5
             
         """
-            ).parseAssignment(), AssignNode(
+            ).parseAssignment(), AstNode.fromAssign(
                 MemberAccess(identifier("member"), "i"),
                 constant(5)
             )
@@ -85,11 +85,11 @@ class AstParserStructTest {
                 "main", emptyList(),
                 listOf(
                     variable("a", "type1"),
-                    AssignNode(
+                    AstNode.fromAssign(
                         MemberAccess(identifier("a"), "member1"),
                         constant(2)
                     ),
-                    AssignNode(
+                    AstNode.fromAssign(
                         MemberAccess(identifier("a"), "member2"),
                         constant(1)
                     )
@@ -106,7 +106,7 @@ class AstParserStructTest {
         a=s.member
         """
             ).parseAssignment(),
-            AssignNode(
+            AstNode.fromAssign(
                 identifier("a"),
                 MemberAccess(identifier("s"), "member")
             ),
@@ -116,7 +116,7 @@ class AstParserStructTest {
     @Test
     fun testStructMemberDeref() {
         assertEquals(
-            AssignNode(
+            AstNode.fromAssign(
                 MemberDeref(identifier("a"), "test"),
                 identifier("s")
             ),

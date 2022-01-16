@@ -22,8 +22,8 @@ fun parseExpressions(tokens: List<Token>): List<AstNode> {
     return AstParser(tokens + listOf(TokenEndBlock)).parseStatementsUntilEndblock()
 }
 
-private fun assign(to: String, value: Int): AssignNode {
-    return AssignNode(identifier(to), constant(value))
+private fun assign(to: String, value: Int): AstNode {
+    return AstNode.fromAssign(identifier(to), constant(value))
 }
 
 fun value(text: String): AstNode {
@@ -199,7 +199,7 @@ internal class AstParserTest {
     fun testAssignCall() {
         assertEquals(
             parserFromLine("a=test()").parseAssignment(),
-            AssignNode(identifier("a"), CallNode("test", emptyList()))
+            AstNode.fromAssign(identifier("a"), CallNode("test", emptyList()))
         )
     }
 

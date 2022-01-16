@@ -109,11 +109,11 @@ class ActionTest {
     @Test
     fun testAssignConstant() {
         val builder = ActionBuilder(dummyFrame, dummyFunctions, dummyTypeContainer)
-        val node = AssignNode(identifier("var2"), constant(5))
+        val node = AstNode.fromAssign(identifier("var2"), constant(5))
         assertThrows<CompileError> {
             builder.buildStatement(node)
         }
-        val node2 = AssignNode(identifier("var1"), constant(4))
+        val node2 = AstNode.fromAssign(identifier("var1"), constant(4))
         val actions = builder.buildStatement(node2)
 
         assertEquals(
@@ -318,7 +318,7 @@ class ActionTest {
                 PopThrow()
             ),
             flatten(
-                builder.buildStatement(AssignNode(MemberAccess(identifier("t"), "member1"), constant(5)))
+                builder.buildStatement(AstNode.fromAssign(MemberAccess(identifier("t"), "member1"), constant(5)))
             )
         )
         assertIterableEquals(
@@ -334,7 +334,7 @@ class ActionTest {
                 PopThrow()
 
             ), flatten(
-                builder.buildStatement(AssignNode(MemberAccess(identifier("t"), "member2"), constant(4)))
+                builder.buildStatement(AstNode.fromAssign(MemberAccess(identifier("t"), "member2"), constant(4)))
             )
         )
     }
@@ -405,7 +405,7 @@ class ActionTest {
             ),
             flatten(
                 builder.buildStatement(
-                    AssignNode(
+                    AstNode.fromAssign(
                         MemberDeref(identifier("field"), "value"),
                         constant(5)
                     )
@@ -442,7 +442,7 @@ class ActionTest {
             ),
             flatten(
                 builder2.buildStatement(
-                    AssignNode(
+                    AstNode.fromAssign(
                         identifier("arr"),
                         CallNode("createArray", listOf(constant(5))),
                     )

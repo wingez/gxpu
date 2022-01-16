@@ -1,6 +1,5 @@
 package se.wingez.compiler
 
-import se.wingez.ast.AssignNode
 import se.wingez.ast.AstNode
 import se.wingez.ast.FunctionNode
 import se.wingez.ast.NodeTypes
@@ -88,15 +87,16 @@ fun calculateFrameLayout(
             var explicitNew: Boolean
             var isArray = false
 
-            if (visitNode is AssignNode) {
-                if (visitNode.target.type != NodeTypes.Identifier) {
+            if (visitNode.type == NodeTypes.Assign) {
+                val assignNode = visitNode.asAssign()
+                if (assignNode.target.type != NodeTypes.Identifier) {
                     // TODO what should happen here??
                     //throw CompileError("To complex for now")
                     continue
                 }
-                name = visitNode.target.asIdentifier().name
-                typeName = visitNode.assignData.type
-                explicitNew = visitNode.assignData.explicitNew
+                name = assignNode.target.asIdentifier().name
+                typeName = assignNode.assignData.type
+                explicitNew = assignNode.assignData.explicitNew
 
 
             } else if (visitNode.type == NodeTypes.MemberDeclaration) {

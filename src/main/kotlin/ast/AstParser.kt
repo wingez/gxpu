@@ -201,12 +201,12 @@ class AstParser(private val tokens: List<Token>) {
         throw ParserError("Dont know how to parse ${peek()}")
     }
 
-    fun parseAssignment(): AssignNode {
+    fun parseAssignment(): AstNode {
         val target = parseValueProvider()
         consumeType(TokenAssign)
         val valueNode = parseValueProvider()
         consumeType(TokenEOL)
-        return AssignNode(target, valueNode)
+        return AstNode.fromAssign(target, valueNode)
     }
 
     private fun parseAssignmentNoInit(): AstNode {
