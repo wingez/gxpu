@@ -281,7 +281,7 @@ class AstParser(private val tokens: List<Token>) {
                 callNode
             else {
                 val member = consumeIdentifier()
-                Identifier(member)
+                AstNode.fromIdentifier(member)
             }
         } else {
             throw ParserError("Cannot parse to value provider: ${peek()}")

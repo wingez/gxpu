@@ -85,12 +85,12 @@ fun calculateFrameLayout(
             var isArray = false
 
             if (visitNode is AssignNode) {
-                if (visitNode.target !is Identifier) {
+                if (visitNode.target.type != NodeTypes.Identifier) {
                     // TODO what should happen here??
                     //throw CompileError("To complex for now")
                     continue
                 }
-                name = visitNode.target.name
+                name = visitNode.target.asIdentifier().name
                 typeName = visitNode.assignData.type
                 explicitNew = visitNode.assignData.explicitNew
 

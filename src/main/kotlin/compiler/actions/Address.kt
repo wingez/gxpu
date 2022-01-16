@@ -20,10 +20,12 @@ private class AddressCalculator(
 
     // Recursive because we want to start with the innermost node
     private fun buildRecursive(currentNode: AstNode, providedType: DataType): DataType {
+
+        if (currentNode.type == NodeTypes.Identifier) {
+            return access(providedType, currentNode.asIdentifier().name)
+        }
+
         when (currentNode) {
-            is Identifier -> {
-                return access(providedType, currentNode.name)
-            }
             is MemberAccess -> {
                 val nextType = buildRecursive(currentNode.parent, providedType)
                 return access(nextType, currentNode.member)

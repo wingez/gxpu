@@ -87,7 +87,7 @@ class ActionTest {
     @Test
     fun testPrintVariable() {
         val builder = ActionBuilder(dummyFrame, dummyFunctions, dummyTypeContainer)
-        val node = PrintNode(Identifier("var1"))
+        val node = PrintNode(identifier("var1"))
         val flattened = flatten(builder.buildStatement(node))
 
         assertEquals(
@@ -109,11 +109,11 @@ class ActionTest {
     @Test
     fun testAssignConstant() {
         val builder = ActionBuilder(dummyFrame, dummyFunctions, dummyTypeContainer)
-        val node = AssignNode(Identifier("var2"), ConstantNode(5))
+        val node = AssignNode(identifier("var2"), ConstantNode(5))
         assertThrows<CompileError> {
             builder.buildStatement(node)
         }
-        val node2 = AssignNode(Identifier("var1"), ConstantNode(4))
+        val node2 = AssignNode(identifier("var1"), ConstantNode(4))
         val actions = builder.buildStatement(node2)
 
         assertEquals(
@@ -318,7 +318,7 @@ class ActionTest {
                 PopThrow()
             ),
             flatten(
-                builder.buildStatement(AssignNode(MemberAccess(Identifier("t"), "member1"), ConstantNode(5)))
+                builder.buildStatement(AssignNode(MemberAccess(identifier("t"), "member1"), ConstantNode(5)))
             )
         )
         assertIterableEquals(
@@ -334,7 +334,7 @@ class ActionTest {
                 PopThrow()
 
             ), flatten(
-                builder.buildStatement(AssignNode(MemberAccess(Identifier("t"), "member2"), ConstantNode(4)))
+                builder.buildStatement(AssignNode(MemberAccess(identifier("t"), "member2"), ConstantNode(4)))
             )
         )
     }
@@ -367,7 +367,7 @@ class ActionTest {
                 PrintAction()
             ),
             flatten(
-                builder.buildStatement(PrintNode(MemberDeref(Identifier("field"), "value")))
+                builder.buildStatement(PrintNode(MemberDeref(identifier("field"), "value")))
             )
         )
     }
@@ -406,7 +406,7 @@ class ActionTest {
             flatten(
                 builder.buildStatement(
                     AssignNode(
-                        MemberDeref(Identifier("field"), "value"),
+                        MemberDeref(identifier("field"), "value"),
                         ConstantNode(5)
                     )
                 )
@@ -443,7 +443,7 @@ class ActionTest {
             flatten(
                 builder2.buildStatement(
                     AssignNode(
-                        Identifier("arr"),
+                        identifier("arr"),
                         CallNode("createArray", listOf(ConstantNode(5))),
                     )
                 )
@@ -485,7 +485,7 @@ class ActionTest {
             ),
             flatten(
                 kotlin.test.assertNotNull(
-                    builder2.getActionOnStack(ArrayAccess(Identifier("arr"), ConstantNode(5)), byteType)
+                    builder2.getActionOnStack(ArrayAccess(identifier("arr"), ConstantNode(5)), byteType)
                 )
             )
         )
@@ -513,7 +513,7 @@ class ActionTest {
                 PushRegister()
             ),
             flatten(
-                kotlin.test.assertNotNull(builder.getActionOnStack(Identifier("arr"), Pointer(ArrayType(byteType))))
+                kotlin.test.assertNotNull(builder.getActionOnStack(identifier("arr"), Pointer(ArrayType(byteType))))
             )
         )
     }
