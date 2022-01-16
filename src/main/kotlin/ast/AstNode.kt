@@ -23,7 +23,7 @@ enum class NodeTypes {
 }
 
 
-open class AstNode(
+class AstNode(
     val type: NodeTypes,
     val data: Any?,
     val childNodes: List<AstNode> = emptyList(),
