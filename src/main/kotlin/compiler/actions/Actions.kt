@@ -2,7 +2,6 @@ package se.wingez.compiler.actions
 
 import se.wingez.ast.AstNode
 import se.wingez.ast.NodeTypes
-import se.wingez.byte
 import se.wingez.compiler.*
 import se.wingez.emulator.DefaultEmulator
 
@@ -14,7 +13,7 @@ interface Action {
 }
 
 data class LoadRegisterStackAddressDeref(
-    val offset: UByte,
+    val offset: Int,
 ) : Action {
     override val cost: Int = 1
     override fun compile(generator: CodeGenerator) {
@@ -27,7 +26,7 @@ data class LoadRegisterStackAddressDeref(
 }
 
 data class LoadRegisterStackAddress(
-    val offset: UByte,
+    val offset: Int,
 ) : Action {
     override val cost: Int = 1
     override fun compile(generator: CodeGenerator) {
@@ -60,7 +59,7 @@ data class AllocDynamicSpaceOnStack(
 }
 
 data class AllocSpaceOnStack(
-    val space: UByte,
+    val space: Int,
 ) : Action {
     override val cost: Int = 1
 
@@ -70,7 +69,7 @@ data class AllocSpaceOnStack(
 }
 
 data class RemoveSpaceOnStack(
-    val amount: UByte,
+    val amount: Int,
 ) : Action {
     override val cost: Int = 1
 
@@ -105,7 +104,7 @@ fun putByteOnStack(node: AstNode, type: DataType, builder: ActionBuilder): Actio
     if (node.type != NodeTypes.Constant || type != byteType) {
         return null
     }
-    return PushConstant(byte(node.asConstant().value))
+    return PushConstant(node.asConstant().value)
 }
 
 fun assignFrameByte(node: AstNode, builder: ActionBuilder): Action? {
@@ -122,7 +121,7 @@ fun assignFrameByte(node: AstNode, builder: ActionBuilder): Action? {
         pushMemberAddress,
         putValueOnStack,
         PopRegister(),
-        StoreRegisterAtStackAddress(0u),
+        StoreRegisterAtStackAddress(0),
         PopThrow(),
     )
 }
@@ -165,13 +164,13 @@ fun createArray(node: AstNode, builder: ActionBuilder): Action? {
     actions.add(address.action)
 
     //Load array position, which is at offset 1
-    actions.add(LoadRegisterStackAddress(1u))
+    actions.add(LoadRegisterStackAddress(1))
 
     //Store address at array-pointer-position
-    actions.add(StoreRegisterAtStackAddress(0u))
+    actions.add(StoreRegisterAtStackAddress(0))
 
     //Restore stack
-    actions.add(RemoveSpaceOnStack(2u))
+    actions.add(RemoveSpaceOnStack(2))
 
     return CompositeAction(*actions.toTypedArray())
 }
@@ -186,7 +185,7 @@ fun byteToStack(node: AstNode, type: DataType, builder: ActionBuilder): Action? 
 
     return CompositeAction(
         pushMemberAddress,
-        LoadRegisterStackAddressDeref(0u),
+        LoadRegisterStackAddressDeref(0),
         PopThrow(),
         PushRegister(),
     )
@@ -201,7 +200,7 @@ fun pushPointer(node: AstNode, type: DataType, builder: ActionBuilder): Action? 
 
     return CompositeAction(
         addressResult.action,
-        LoadRegisterStackAddressDeref(0u),
+        LoadRegisterStackAddressDeref(0),
         PopThrow(),
         PushRegister(),
     )

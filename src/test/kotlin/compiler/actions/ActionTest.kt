@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import se.wingez.ast.*
-import se.wingez.byte
 import se.wingez.compiler.actions.*
 import se.wingez.emulator.DefaultEmulator
 
@@ -22,11 +21,11 @@ class ActionTest {
 
 
     private val dummyFrame = FunctionInfo(
-        0u, "dummyFrame",
+        0, "dummyFrame",
         mapOf(
-            "var1" to StructDataField("var1", 0u, byteType),
-            "frame" to StructDataField("frame", 0u, stackFrameType),
-            "result" to StructDataField("result", 2u, voidType),
+            "var1" to StructDataField("var1", 0, byteType),
+            "frame" to StructDataField("frame", 0, stackFrameType),
+            "result" to StructDataField("result", 2, voidType),
         ),
         emptyList(),
         voidType
@@ -34,20 +33,20 @@ class ActionTest {
 
     @Test
     fun testFlatten() {
-        fun a(value: UByte): Action {
+        fun a(value: Int): Action {
             return ConstantRegister(value)
         }
 
         assertIterableEquals(
             listOf(
-                a(1u),
-                a(2u),
-                a(3u),
+                a(1),
+                a(2),
+                a(3),
             ),
             flatten(
                 CompositeAction(
-                    CompositeAction(a(1u), a(2u)),
-                    a(3u)
+                    CompositeAction(a(1), a(2)),
+                    a(3)
                 )
             )
         )
@@ -63,7 +62,7 @@ class ActionTest {
         assertEquals(
             flattened,
             CompositeAction(
-                PushConstant(5u),
+                PushConstant(5),
                 PopRegister(),
                 PrintAction()
             )
@@ -93,9 +92,9 @@ class ActionTest {
         assertEquals(
             listOf(
                 LoadRegisterFP(),
-                AddRegister(0u),
+                AddRegister(0),
                 PushRegister(),
-                LoadRegisterStackAddressDeref(0u),
+                LoadRegisterStackAddressDeref(0),
                 PopThrow(),
                 PushRegister(),
                 PopRegister(),
@@ -119,12 +118,12 @@ class ActionTest {
         assertEquals(
             listOf(
                 LoadRegisterFP(),
-                AddRegister(0u),
+                AddRegister(0),
                 PushRegister(),
-                ConstantRegister(4u),
+                ConstantRegister(4),
                 PushRegister(),
                 PopRegister(),
-                StoreRegisterAtStackAddress(0u),
+                StoreRegisterAtStackAddress(0),
                 PopThrow(),
             ),
 
@@ -157,9 +156,9 @@ class ActionTest {
 
         assertEquals(
             listOf(
-                ConstantRegister(10u),
+                ConstantRegister(10),
                 PushRegister(),
-                ConstantRegister(5u),
+                ConstantRegister(5),
                 PushRegister(),
                 PopRegister(),
                 AdditionAction(),
@@ -179,9 +178,9 @@ class ActionTest {
 
         assertEquals(
             listOf(
-                ConstantRegister(10u),
+                ConstantRegister(10),
                 PushRegister(),
-                ConstantRegister(5u),
+                ConstantRegister(5),
                 PushRegister(),
                 PopRegister(),
                 SubtractionAction(),
@@ -199,9 +198,9 @@ class ActionTest {
     @Test
     fun testCall() {
         val emptyFunction = FunctionInfo(
-            0u,
+            0,
             "test",
-            mapOf("frame" to StructDataField("struct", 0u, stackFrameType)),
+            mapOf("frame" to StructDataField("struct", 0, stackFrameType)),
             emptyList(),
             voidType
         )
@@ -212,9 +211,9 @@ class ActionTest {
         assertIterableEquals(
             listOf(
                 AllocSpaceOnStack(voidType.size),
-                AllocSpaceOnStack(0u),
+                AllocSpaceOnStack(0),
                 CallAction(emptyFunction),
-                RemoveSpaceOnStack(0u)
+                RemoveSpaceOnStack(0)
             ), flatten(
                 builder.getActionOnStack(
                     call("test", emptyList()),
@@ -227,7 +226,7 @@ class ActionTest {
     @Test
     fun testCallParameter() {
         val functionWithParameter = FunctionInfo(
-            0u,
+            0,
             "test",
             StructBuilder(dummyTypeContainer).addMember("frame", stackFrameType).addMember("param", byteType)
                 .getFields(),
@@ -241,8 +240,8 @@ class ActionTest {
         assertIterableEquals(
             listOf(
                 AllocSpaceOnStack(voidType.size),
-                AllocSpaceOnStack(0u),
-                ConstantRegister(5u),
+                AllocSpaceOnStack(0),
+                ConstantRegister(5),
                 PushRegister(),
                 CallAction(functionWithParameter),
                 RemoveSpaceOnStack(functionWithParameter.sizeOfParameters),
@@ -259,7 +258,7 @@ class ActionTest {
     fun testCallReturnType() {
 
         val functionWithReturn = FunctionInfo(
-            0u,
+            0,
             "test",
             StructBuilder(dummyTypeContainer).addMember("frame", stackFrameType).addMember("result", byteType)
                 .getFields(),
@@ -272,9 +271,9 @@ class ActionTest {
         assertIterableEquals(
             listOf(
                 AllocSpaceOnStack(byteType.size),
-                AllocSpaceOnStack(0u),
+                AllocSpaceOnStack(0),
                 CallAction(functionWithReturn),
-                RemoveSpaceOnStack(byte(functionWithReturn.sizeOfVars + functionWithReturn.sizeOfParameters))
+                RemoveSpaceOnStack(functionWithReturn.sizeOfVars + functionWithReturn.sizeOfParameters)
             ), flatten(
                 builder.getActionOnStack(
                     call("test", emptyList()),
@@ -299,8 +298,8 @@ class ActionTest {
             .addMember("member2", byteType)
             .getStruct("myType")
         val function = FunctionInfo(
-            0u, "test",
-            mapOf("t" to StructDataField("t", 0u, myType)), emptyList(), voidType
+            0, "test",
+            mapOf("t" to StructDataField("t", 0, myType)), emptyList(), voidType
         )
 
         val builder = ActionBuilder(function, dummyFunctions, dummyTypeContainer)
@@ -308,13 +307,13 @@ class ActionTest {
         assertEquals(
             listOf(
                 LoadRegisterFP(1),
-                AddRegister(0u),
-                AddRegister(0u),
+                AddRegister(0),
+                AddRegister(0),
                 PushRegister(),
-                ConstantRegister(5u),
+                ConstantRegister(5),
                 PushRegister(),
                 PopRegister(),
-                StoreRegisterAtStackAddress(0u),
+                StoreRegisterAtStackAddress(0),
                 PopThrow()
             ),
             flatten(
@@ -324,13 +323,13 @@ class ActionTest {
         assertIterableEquals(
             listOf(
                 LoadRegisterFP(1),
-                AddRegister(0u),
-                AddRegister(1u),
+                AddRegister(0),
+                AddRegister(1),
                 PushRegister(),
-                ConstantRegister(4u),
+                ConstantRegister(4),
                 PushRegister(),
                 PopRegister(),
-                StoreRegisterAtStackAddress(0u),
+                StoreRegisterAtStackAddress(0),
                 PopThrow()
 
             ), flatten(
@@ -344,7 +343,7 @@ class ActionTest {
         val myType = StructBuilder(dummyTypeContainer).addMember("value", byteType).getStruct("myType")
 
         val function = FunctionInfo(
-            0u, "test",
+            0, "test",
             StructBuilder(TypeContainer(listOf(myType)))
                 .addMember("frame", stackFrameType)
                 .addMember("field", Pointer(myType)).getFields(),
@@ -356,11 +355,11 @@ class ActionTest {
         assertEquals(
             listOf(
                 LoadRegisterFP(),
-                AddRegister(2u),
-                DerefByteAction(0u),
-                AddRegister(0u),
+                AddRegister(2),
+                DerefByteAction(0),
+                AddRegister(0),
                 PushRegister(),
-                LoadRegisterStackAddressDeref(0u),
+                LoadRegisterStackAddressDeref(0),
                 PopThrow(),
                 PushRegister(),
                 PopRegister(),
@@ -379,7 +378,7 @@ class ActionTest {
         val myType = StructBuilder(dummyTypeContainer).addMember("value", byteType).getStruct("myType")
 
         val function = FunctionInfo(
-            0u, "test",
+            0, "test",
             StructBuilder(TypeContainer(listOf(myType)))
                 .addMember("frame", stackFrameType)
                 .addMember("field", Pointer(myType)).getFields(),
@@ -393,14 +392,14 @@ class ActionTest {
         assertEquals(
             listOf(
                 LoadRegisterFP(),
-                AddRegister(2u),
-                DerefByteAction(0u),
-                AddRegister(0u),
+                AddRegister(2),
+                DerefByteAction(0),
+                AddRegister(0),
                 PushRegister(),
-                ConstantRegister(5u),
+                ConstantRegister(5),
                 PushRegister(),
                 PopRegister(),
-                StoreRegisterAtStackAddress(0u),
+                StoreRegisterAtStackAddress(0),
                 PopThrow()
             ),
             flatten(
@@ -417,7 +416,7 @@ class ActionTest {
     @Test
     fun testCreateArray() {
         val function = FunctionInfo(
-            0u, "test",
+            0, "test",
             StructBuilder(dummyTypeContainer).addMember("arr", Pointer(ArrayType(byteType)))
                 .addMember("frame", stackFrameType).getFields(),
             emptyList(),
@@ -427,18 +426,18 @@ class ActionTest {
         val builder2 = ActionBuilder(function, dummyFunctions, dummyTypeContainer)
         assertEquals(
             listOf(
-                ConstantRegister(5u),
+                ConstantRegister(5),
                 PushRegister(),
                 PopRegister(),
                 AllocDynamicSpaceOnStack(),
                 PushRegister(),
                 PushStackPointer(),
                 LoadRegisterFP(),
-                AddRegister(0u),
+                AddRegister(0),
                 PushRegister(),
-                LoadRegisterStackAddress(1u),
-                StoreRegisterAtStackAddress(0u),
-                RemoveSpaceOnStack(2u)
+                LoadRegisterStackAddress(1),
+                StoreRegisterAtStackAddress(0),
+                RemoveSpaceOnStack(2)
             ),
             flatten(
                 builder2.buildStatement(
@@ -456,10 +455,10 @@ class ActionTest {
     @Test
     fun testAccessArray() {
         val function = FunctionInfo(
-            0u, "test",
+            0, "test",
             mapOf(
-                "arr" to StructDataField("arr", 0u, Pointer(ArrayType(byteType))),
-                "frame" to StructDataField("frame", 1u, stackFrameType)
+                "arr" to StructDataField("arr", 0, Pointer(ArrayType(byteType))),
+                "frame" to StructDataField("frame", 1, stackFrameType)
             ),
             emptyList(),
             voidType
@@ -469,17 +468,17 @@ class ActionTest {
         assertEquals(
             listOf(
                 LoadRegisterFP(),
-                AddRegister(0u),
-                DerefByteAction(0u),
+                AddRegister(0),
+                DerefByteAction(0),
                 PushRegister(),
-                ConstantRegister(5u),
+                ConstantRegister(5),
                 PushRegister(),
                 PopRegister(),
-                AddRegister(1u),
+                AddRegister(1),
                 AdditionAction(),
                 PopThrow(),
                 PushRegister(),
-                LoadRegisterStackAddressDeref(0u),
+                LoadRegisterStackAddressDeref(0),
                 PopThrow(),
                 PushRegister()
             ),
@@ -494,7 +493,7 @@ class ActionTest {
     @Test
     fun pushPointer() {
         val function = FunctionInfo(
-            0u, "test",
+            0, "test",
             StructBuilder(dummyTypeContainer)
                 .addMember("frame", stackFrameType)
                 .addMember("arr", Pointer(ArrayType(byteType))).getFields(),
@@ -506,9 +505,9 @@ class ActionTest {
         assertEquals(
             listOf(
                 LoadRegisterFP(),
-                AddRegister(2u),
+                AddRegister(2),
                 PushRegister(),
-                LoadRegisterStackAddressDeref(0u),
+                LoadRegisterStackAddressDeref(0),
                 PopThrow(),
                 PushRegister()
             ),

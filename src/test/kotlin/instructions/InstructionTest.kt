@@ -81,26 +81,34 @@ internal class InstructionTest {
         val mnem1 = "LDA [FP #5]"
         val mnem2 = "LDA FP #4"
 
-        assertEquals(i.assembleMnemonic(mnem1), lda_at_fp_offset.build(mapOf("offset" to 5u)))
-        assertEquals(i.assembleMnemonic(mnem2), lda_fp_offset.build(mapOf("offset" to 4u)))
+        assertEquals(i.assembleMnemonic(mnem1), lda_at_fp_offset.build(mapOf("offset" to 5)))
+        assertEquals(i.assembleMnemonic(mnem2), lda_fp_offset.build(mapOf("offset" to 4)))
+    }
+
+    @Test
+    fun testVariableSizes() {
+        val i = Instruction("test #a, ##b", emptyEmulate)
+        assertEquals(listOf("a", "b"), i.variableOrder)
+        assertEquals(mapOf("a" to 1, "b" to 2), i.variableSizes)
+        assertEquals(i.size, 4)
     }
 
     @Test
     fun testBuild() {
         assertIterableEquals(Instruction("test", emptyEmulate, 0u).build(), listOf<UByte>(0u))
-        assertIterableEquals(Instruction("test #test", emptyEmulate, 5u).build(mapOf("test" to 6u)), bytes(5, 6))
+        assertIterableEquals(Instruction("test #test", emptyEmulate, 5u).build(mapOf("test" to 6)), bytes(5, 6))
         assertIterableEquals(
             Instruction("test #a #b", emptyEmulate, 7u, variableOrder = listOf("b", "a")).build(
-                mapOf("a" to 2u, "b" to 3u)
+                mapOf("a" to 2, "b" to 3)
             ), bytes(7, 3, 2)
         )
 
         val i = Instruction("test #a, #b", emptyEmulate)
         assertThrows(InstructionBuilderError::class.java) {
-            i.build(mapOf("a" to 6u))
+            i.build(mapOf("a" to 6))
         }
         assertThrows(InstructionBuilderError::class.java) {
-            i.build(mapOf("a" to 6u, "b" to 4u, "c" to 10u))
+            i.build(mapOf("a" to 6, "b" to 4, "c" to 10))
         }
     }
 
@@ -122,6 +130,14 @@ internal class InstructionTest {
         assertIterableEquals(i.assembleMnemonic("test    #5   #6"), bytes(2, 5, 6))
 
         assertIterableEquals(i.assembleMnemonic("    "), bytes())
+    }
+
+    @Test
+    fun testAssembleMnemonicSizes() {
+        val i = InstructionSet()
+        i.addInstruction(Instruction("test ##var, #val", emptyEmulate, 0u))
+
+        assertIterableEquals(bytes(0, 0x02, 0x1, 8), i.assembleMnemonic("test ##258 #8"))
     }
 
     @Test

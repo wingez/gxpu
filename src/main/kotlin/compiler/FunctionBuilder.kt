@@ -2,7 +2,6 @@ package se.wingez.compiler
 
 import se.wingez.ast.AstNode
 import se.wingez.ast.NodeTypes
-import se.wingez.byte
 import se.wingez.compiler.actions.Action
 import se.wingez.compiler.actions.ActionBuilder
 import se.wingez.compiler.actions.flatten
@@ -53,26 +52,26 @@ class FunctionBuilder(
         val jumpToEnd = if (ifData.hasElse) generator.makeSpaceFor(DefaultEmulator.jump) else null
 
         //TODO size
-        jumpToFalseCondition.generate(mapOf("addr" to generator.currentSize.toUByte()))
+        jumpToFalseCondition.generate(mapOf("addr" to generator.currentSize))
 
         if (ifData.hasElse) {
             buildNodes(ifData.elseBody)
             jumpToEnd ?: throw AssertionError()
             //TODO size
-            jumpToEnd.generate(mapOf("addr" to generator.currentSize.toUByte()))
+            jumpToEnd.generate(mapOf("addr" to generator.currentSize))
         }
     }
 
 
     private fun handleWhile(node: AstNode) {
-        val startOfBlock = byte(generator.currentSize)
+        val startOfBlock = generator.currentSize
         optimizeGenerate(actionBuilder.buildStatement(node.asWhile().condition))
         val jumpToExit = generator.makeSpaceFor(DefaultEmulator.jump_zero)
 
         buildNodes(node.asWhile().body)
         //TODO size
         generator.generate(DefaultEmulator.jump.build(mapOf("addr" to startOfBlock)))
-        jumpToExit.generate(mapOf("addr" to byte(generator.currentSize)))
+        jumpToExit.generate(mapOf("addr" to generator.currentSize))
     }
 
 

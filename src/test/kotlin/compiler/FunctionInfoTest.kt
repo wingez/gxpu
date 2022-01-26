@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertIterableEquals
 import org.junit.jupiter.api.Test
 import se.wingez.ast.AstParser
-import se.wingez.byte
 import se.wingez.tokens.parseFile
 import java.io.StringReader
 
@@ -33,7 +32,7 @@ internal class FunctionInfoTest {
     fun getLayout(program: String, types: List<DataType> = defaultTypes): FunctionInfo {
         val node = AstParser(parseFile(StringReader(program))).parseFunctionDefinition()
 
-        return calculateFrameLayout(node, TypeContainer(types), 0u)
+        return calculateFrameLayout(node, TypeContainer(types), 0)
 
     }
 
@@ -45,11 +44,11 @@ internal class FunctionInfoTest {
               print(5)
     """
         )
-        assertEquals(layout.size, byte(2))
-        assertEquals(layout.sizeOfVars, byte(0))
-        assertEquals(layout.sizeOfParameters, byte(0))
+        assertEquals(layout.size, 2)
+        assertEquals(layout.sizeOfVars, 0)
+        assertEquals(layout.sizeOfParameters, 0)
         assertThat(layout.fields).hasSize(2)
-        assertThat(layout.fields).containsEntry("frame", StructDataField("frame", 0u, stackFrameType))
+        assertThat(layout.fields).containsEntry("frame", StructDataField("frame", 0, stackFrameType))
     }
 
     @Test
@@ -60,14 +59,14 @@ internal class FunctionInfoTest {
               print(5)
     """
         )
-        assertEquals(layout.size, byte(3))
-        assertEquals(layout.sizeOfVars, byte(0))
-        assertEquals(layout.sizeOfParameters, byte(1))
+        assertEquals(layout.size, 3)
+        assertEquals(layout.sizeOfVars, 0)
+        assertEquals(layout.sizeOfParameters, 1)
         assertEquals(
             layout.fields, mapOf(
-                "result" to StructDataField("result", 3u, voidType),
-                "frame" to StructDataField("frame", 0u, stackFrameType),
-                "test" to StructDataField("test", 2u, byteType)
+                "result" to StructDataField("result", 3, voidType),
+                "frame" to StructDataField("frame", 0, stackFrameType),
+                "test" to StructDataField("test", 2, byteType)
             )
         )
     }
@@ -80,10 +79,10 @@ internal class FunctionInfoTest {
               var:byte=5
     """
         )
-        assertEquals(layout.size, byte(3))
-        assertEquals(layout.sizeOfVars, byte(1))
-        assertEquals(layout.sizeOfParameters, byte(0))
-        assertThat(layout.fields).containsEntry("var", StructDataField("var", 2u, byteType))
+        assertEquals(layout.size, 3)
+        assertEquals(layout.sizeOfVars, 1)
+        assertEquals(layout.sizeOfParameters, 0)
+        assertThat(layout.fields).containsEntry("var", StructDataField("var", 2, byteType))
     }
 
     @Test
@@ -94,11 +93,11 @@ internal class FunctionInfoTest {
               var:byte=5
     """
         )
-        assertEquals(layout.size, byte(5))
-        assertEquals(layout.sizeOfVars, byte(1))
-        assertEquals(layout.sizeOfReturn, byte(1))
-        assertEquals(layout.sizeOfMeta, byte(2))
-        assertEquals(layout.sizeOfParameters, byte(1))
+        assertEquals(layout.size, 5)
+        assertEquals(layout.sizeOfVars, 1)
+        assertEquals(layout.sizeOfReturn, 1)
+        assertEquals(layout.sizeOfMeta, 2)
+        assertEquals(layout.sizeOfParameters, 1)
 
         assertEquals(
             StructBuilder(dummyTypeContainer)
@@ -122,15 +121,15 @@ internal class FunctionInfoTest {
                 var1:byte=3
     """
         )
-        assertEquals(layout.size, byte(4))
-        assertEquals(layout.sizeOfVars, byte(2))
-        assertEquals(layout.sizeOfParameters, byte(0))
+        assertEquals(layout.size, 4)
+        assertEquals(layout.sizeOfVars, 2)
+        assertEquals(layout.sizeOfParameters, 0)
         assertEquals(
             layout.fields, mapOf(
-                "result" to StructDataField("result", 4u, voidType),
-                "frame" to StructDataField("frame", 0u, stackFrameType),
-                "var1" to StructDataField("var1", 2u, byteType),
-                "var" to StructDataField("var", 3u, byteType),
+                "result" to StructDataField("result", 4, voidType),
+                "frame" to StructDataField("frame", 0, stackFrameType),
+                "var1" to StructDataField("var1", 2, byteType),
+                "var" to StructDataField("var", 3, byteType),
             )
         )
     }
@@ -143,16 +142,16 @@ internal class FunctionInfoTest {
               var:byte=1
             """
         )
-        assertEquals(layout.size, byte(4))
-        assertEquals(layout.sizeOfVars, byte(1))
-        assertEquals(layout.sizeOfParameters, byte(1))
+        assertEquals(layout.size, 4)
+        assertEquals(layout.sizeOfVars, 1)
+        assertEquals(layout.sizeOfParameters, 1)
         assertEquals(
             layout.fields, mapOf(
-                "result" to StructDataField("result", 4u, voidType),
-                "var" to StructDataField("var", 3u, byteType),
+                "result" to StructDataField("result", 4, voidType),
+                "var" to StructDataField("var", 3, byteType),
 
-                "var2" to StructDataField("var2", 2u, byteType),
-                "frame" to StructDataField("frame", 0u, stackFrameType),
+                "var2" to StructDataField("var2", 2, byteType),
+                "frame" to StructDataField("frame", 0, stackFrameType),
             )
         )
 
@@ -177,7 +176,7 @@ internal class FunctionInfoTest {
         """
         )
 
-        assertThat(layout.fields).containsValue(StructDataField("arr", 2u, Pointer(ArrayType(byteType))))
+        assertThat(layout.fields).containsValue(StructDataField("arr", 2, Pointer(ArrayType(byteType))))
     }
 
 }

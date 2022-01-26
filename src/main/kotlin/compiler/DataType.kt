@@ -1,10 +1,7 @@
 package se.wingez.compiler
 
-import se.wingez.byte
-
-
 interface DataType {
-    val size: UByte
+    val size: Int
     val name: String
 
     fun instantiate(explicitNew: Boolean): DataType
@@ -22,7 +19,7 @@ interface TypeProvider {
 }
 
 data class PrimitiveDatatype(
-    override val size: UByte,
+    override val size: Int,
     override val name: String
 ) : DataType {
     override fun instantiate(explicitNew: Boolean): DataType {
@@ -32,17 +29,17 @@ data class PrimitiveDatatype(
     }
 }
 
-val byteType = PrimitiveDatatype(1u, "byte")
-val voidType = PrimitiveDatatype(0u, "void")
-val stackFrameType = PrimitiveDatatype(byte(SP_STACK_SIZE + PC_STACK_SIZE), "stackFrame")
-val compareType = PrimitiveDatatype(0u, "compare")
+val byteType = PrimitiveDatatype(1, "byte")
+val voidType = PrimitiveDatatype(0, "void")
+val stackFrameType = PrimitiveDatatype(SP_STACK_SIZE + PC_STACK_SIZE, "stackFrame")
+val compareType = PrimitiveDatatype(0, "compare")
 
 val DEFAULT_TYPE = byteType
 
 data class Pointer(
     val type: DataType
 ) : DataType {
-    override val size: UByte = byte(POINTER_SIZE)
+    override val size: Int = POINTER_SIZE
     override val name: String
         get() = "Pointer<${type.name}>"
 
@@ -57,7 +54,7 @@ data class Pointer(
 
 data class StructDataField(
     val name: String,
-    val offset: UByte,
+    val offset: Int,
     val type: DataType,
 )
 
@@ -88,8 +85,8 @@ open class StructType(
         return fields.getValue(field)
     }
 
-    override val size: UByte
-        get() = byte(fields.values.sumOf { it.type.size.toInt() })
+    override val size: Int
+        get() = fields.values.sumOf { it.type.size }
 
     override fun instantiate(explicitNew: Boolean): DataType {
         if (explicitNew) {
@@ -127,8 +124,8 @@ data class ArrayType(
     ) : DataType, FieldContainer {
 
 
-    override val size: UByte
-        get() = 0u //Should not matter since we're never instantiating anyways
+    override val size: Int
+        get() = 0 //Should not matter since we're never instantiating anyways
 
     override val name: String
         get() = "Array<${type.name}>"
@@ -136,8 +133,8 @@ data class ArrayType(
     override fun getDescription(): List<String> {
         return describeFields(
             mapOf(
-                "size" to StructDataField("size", 0u, byteType),
-                "array" to StructDataField("array", 1u, byteType),
+                "size" to StructDataField("size", 0, byteType),
+                "array" to StructDataField("array", 1, byteType),
             )
         )
     }
@@ -153,7 +150,7 @@ data class ArrayType(
     override fun getField(field: String): StructDataField {
         if (!hasField(field))
             throw NoSuchElementException(field)
-        return StructDataField("size", 0u, byteType)
+        return StructDataField("size", 0, byteType)
     }
 
     override fun hasField(field: String): Boolean {

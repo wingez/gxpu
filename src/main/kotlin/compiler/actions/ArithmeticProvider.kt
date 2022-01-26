@@ -13,7 +13,7 @@ data class SubtractionAction(
 ) : Action {
     override fun compile(generator: CodeGenerator) {
         //Left already on stack
-        generator.generate(DefaultEmulator.suba_sp.build(mapOf("offset" to 0u)))
+        generator.generate(DefaultEmulator.suba_sp.build(mapOf("offset" to 0)))
     }
 }
 
@@ -22,7 +22,7 @@ data class AdditionAction(
 ) : Action {
     override fun compile(generator: CodeGenerator) {
         // Add  top of stack to A
-        generator.generate(DefaultEmulator.adda_sp.build(mapOf("offset" to 0u)))
+        generator.generate(DefaultEmulator.adda_sp.build(mapOf("offset" to 0)))
 
     }
 }

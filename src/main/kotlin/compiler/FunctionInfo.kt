@@ -2,7 +2,6 @@ package se.wingez.compiler
 
 import se.wingez.ast.AstNode
 import se.wingez.ast.NodeTypes
-import se.wingez.byte
 
 const val POINTER_SIZE = 1
 
@@ -12,7 +11,7 @@ const val STACK_START = 255
 
 
 class FunctionInfo(
-    val memoryPosition: UByte,
+    val memoryPosition: Int,
     name: String,
     fields: Map<String, StructDataField>,
     parameterNames: List<String>,
@@ -21,9 +20,9 @@ class FunctionInfo(
     ) : StructType(name, fields) {
     val sizeOfReturn = returnType.size
 
-    val sizeOfParameters: UByte
-    val sizeOfMeta: UByte
-    val sizeOfVars: UByte
+    val sizeOfParameters: Int
+    val sizeOfMeta: Int
+    val sizeOfVars: Int
 
     val parameters: List<StructDataField>
 
@@ -32,12 +31,12 @@ class FunctionInfo(
         parameters = parameterNames.map { getField(it) }
 
         // TODO check overflow
-        sizeOfParameters = byte(parameters.sumOf { it.type.size.toInt() })
+        sizeOfParameters = parameters.sumOf { it.type.size }
         sizeOfMeta = stackFrameType.size
 
         // Fields include parameters and returnPC
         sizeOfVars =
-            byte(fields.values.sumOf { it.type.size.toInt() } - sizeOfParameters.toInt() - sizeOfMeta.toInt() - sizeOfReturn.toInt())
+            fields.values.sumOf { it.type.size } - sizeOfParameters - sizeOfMeta - sizeOfReturn
     }
 
 }
@@ -46,7 +45,7 @@ class FunctionInfo(
 fun calculateFrameLayout(
     node: AstNode,
     typeProvider: TypeProvider,
-    memoryPosition: UByte,
+    memoryPosition: Int,
 ): FunctionInfo {
     // We first calculate the offsets from the top. Then we reverse it when we know the total size
     val fieldBuilder = StructBuilder(typeProvider)
@@ -116,12 +115,12 @@ fun calculateFrameLayout(
     // Make space for pc+fp
     fieldBuilder.addMember("frame", stackFrameType)
 
-    //We've built the frame from top to buttom (param first, variables last). But on the stack the order is reversed
-    //So we need to flip all offsets so it's relative to the bottom instead
+    //We've built the frame from top to bottom (param first, variables last). But on the stack the order is reversed
+    //So we need to flip all offsets, so it's relative to the bottom instead
     val fields = mutableMapOf<String, StructDataField>()
     fieldBuilder.getFields().forEach {
-        val offset = fieldBuilder.getCurrentSize() - it.value.type.size.toInt() - it.value.offset.toInt()
-        fields[it.key] = StructDataField(it.value.name, byte(offset), it.value.type)
+        val offset = fieldBuilder.getCurrentSize() - it.value.type.size - it.value.offset
+        fields[it.key] = StructDataField(it.value.name, offset, it.value.type)
     }
 
     val parameterNames = parameters.map { it.first }

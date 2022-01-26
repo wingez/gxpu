@@ -74,7 +74,7 @@ private class AddressCalculator(
 
         val field = currentType.type.getField(memberName)
 
-        result.add(DerefByteAction(0u))
+        result.add(DerefByteAction(0))
         result.add(AddRegister(field.offset))
         return field.type
     }
@@ -94,7 +94,7 @@ private class AddressCalculator(
         }
 
 
-        result.add(DerefByteAction(0u))
+        result.add(DerefByteAction(0))
         result.add(PushRegister())
 
         val calculateIndex = builder.getActionOnStack(indexNode, byteType) ?: throw CompileError("BAd index")
@@ -104,7 +104,7 @@ private class AddressCalculator(
         result.add(PopRegister())
         // Add 1 to handle size-field of array
 
-        result.add(AddRegister(1u))
+        result.add(AddRegister(1))
 
         // Add index to previous value
         result.add(AdditionAction())

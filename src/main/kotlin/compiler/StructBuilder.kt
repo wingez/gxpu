@@ -4,12 +4,11 @@ import se.wingez.ast.AstNode
 import se.wingez.ast.MemberDeclarationData
 import se.wingez.ast.NodeTypes
 import se.wingez.ast.ParserError
-import se.wingez.byte
 
 class StructBuilder(
     private val typeProvider: TypeProvider,
 ) {
-    private var currentSize = byte(0)
+    private var currentSize = 0
     private val fields = mutableMapOf<String, StructDataField>()
 
     fun addMember(memberData: MemberDeclarationData): StructBuilder {
@@ -29,7 +28,7 @@ class StructBuilder(
         }
 
         fields[name] = StructDataField(name, currentSize, type)
-        currentSize = byte(currentSize + type.size)
+        currentSize += type.size
         return this
     }
 
@@ -46,7 +45,7 @@ class StructBuilder(
     }
 
     fun getCurrentSize(): Int {
-        return currentSize.toInt()
+        return currentSize
     }
 }
 

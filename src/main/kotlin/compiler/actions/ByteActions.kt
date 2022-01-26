@@ -13,7 +13,7 @@ data class PopRegister(
 
 
 data class ConstantRegister(
-    val value: UByte
+    val value: Int
 ) : Action {
     override val cost: Int = 1
     override fun compile(generator: CodeGenerator) {
@@ -21,7 +21,7 @@ data class ConstantRegister(
     }
 }
 
-fun PushConstant(value: UByte): Action {
+fun PushConstant(value: Int): Action {
     return CompositeAction(
         ConstantRegister(value),
         PushRegister(),
@@ -49,12 +49,12 @@ data class LoadRegisterFP(
     override val cost: Int = 1
 ) : Action {
     override fun compile(generator: CodeGenerator) {
-        generator.generate(DefaultEmulator.lda_fp_offset.build(mapOf("offset" to 0u)))
+        generator.generate(DefaultEmulator.lda_fp_offset.build(mapOf("offset" to 0)))
     }
 }
 
 data class AddRegister(
-    val value: UByte,
+    val value: Int,
     override val cost: Int = 1,
 ) : Action {
     override fun compile(generator: CodeGenerator) {
@@ -63,7 +63,7 @@ data class AddRegister(
 }
 
 data class StoreRegisterAtStackAddress(
-    val offset: UByte,
+    val offset: Int,
 ) : Action {
     /**
      * Expects Value to be in A, address on top of stack.
@@ -80,7 +80,7 @@ data class StoreRegisterAtStackAddress(
 }
 
 data class DerefByteAction(
-    val offset: UByte,
+    val offset: Int,
 ) : Action {
     /**
      * Derefs a pointer in A Register.

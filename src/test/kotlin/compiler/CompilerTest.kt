@@ -26,7 +26,7 @@ fun buildBody(body: String): List<UByte> {
 
 
     val node = function("main", emptyList(), nodes, "")
-    val frame = calculateFrameLayout(node, dummyTypeContainer, 0u)
+    val frame = calculateFrameLayout(node, dummyTypeContainer, 0)
 
     val generator = CodeGenerator()
     val function = FunctionBuilder(generator, frame, ActionBuilder(frame, dummyFunctions, dummyTypeContainer))

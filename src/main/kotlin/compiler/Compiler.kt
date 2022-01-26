@@ -2,7 +2,6 @@ package se.wingez.compiler
 
 import se.wingez.ast.AstNode
 import se.wingez.ast.NodeTypes
-import se.wingez.byte
 import se.wingez.compiler.actions.ActionBuilder
 import se.wingez.emulator.DefaultEmulator
 import se.wingez.instructions.Instruction
@@ -12,7 +11,7 @@ data class GenerateLater(
     val pos: Int,
     private val generator: CodeGenerator
 ) {
-    fun generate(args: Map<String, UByte> = emptyMap()) {
+    fun generate(args: Map<String, Int> = emptyMap()) {
         generator.generateAt(instruction.build(args), pos)
     }
 }
@@ -79,7 +78,7 @@ class Compiler : TypeProvider, FunctionProvider {
 
         assertValidFunctionNode(node)
 
-        val functionInfo = calculateFrameLayout(node, this, byte(generator.currentSize))
+        val functionInfo = calculateFrameLayout(node, this, generator.currentSize)
 
         val builder = FunctionBuilder(generator, functionInfo, ActionBuilder(functionInfo, this, this))
 
@@ -103,8 +102,8 @@ class Compiler : TypeProvider, FunctionProvider {
     }
 
     fun buildProgram(nodes: List<AstNode>): List<UByte> {
-        generator.generate(DefaultEmulator.ldfp.build(mapOf("val" to byte(STACK_START))))
-        generator.generate(DefaultEmulator.ldsp.build(mapOf("val" to byte(STACK_START))))
+        generator.generate(DefaultEmulator.ldfp.build(mapOf("val" to STACK_START)))
+        generator.generate(DefaultEmulator.ldsp.build(mapOf("val" to STACK_START)))
 
         val allocMainFrame = generator.makeSpaceFor(DefaultEmulator.sub_sp)
         val callMain = generator.makeSpaceFor(DefaultEmulator.call_addr)
@@ -124,7 +123,7 @@ class Compiler : TypeProvider, FunctionProvider {
 
         val mainFunction = functions.getValue(MAIN_NAME)
 
-        if (mainFunction.sizeOfParameters != byte(0)) {
+        if (mainFunction.sizeOfParameters != 0) {
             throw AssertionError()
         }
 

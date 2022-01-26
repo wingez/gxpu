@@ -2,7 +2,6 @@ package se.wingez.compiler.actions
 
 import se.wingez.ast.AstNode
 import se.wingez.ast.NodeTypes
-import se.wingez.byte
 import se.wingez.compiler.*
 import se.wingez.emulator.DefaultEmulator
 
@@ -21,7 +20,7 @@ data class PopResult(
     override val cost: Int = 1,
 ) : Action {
     override fun compile(generator: CodeGenerator) {
-        if (type.size > 0u) {
+        if (type.size > 0) {
             generator.generate(DefaultEmulator.add_sp.build(mapOf("val" to type.size)))
         }
     }
@@ -72,7 +71,7 @@ fun callToStack(node: AstNode, type: DataType, builder: ActionBuilder): Action? 
     actions.add(CallAction(function))
 
     //Pop arguments and vars
-    actions.add(RemoveSpaceOnStack(byte(function.sizeOfVars + function.sizeOfParameters)))
+    actions.add(RemoveSpaceOnStack(function.sizeOfVars + function.sizeOfParameters))
     return CompositeAction(*actions.toTypedArray())
 }
 

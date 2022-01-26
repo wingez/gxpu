@@ -16,6 +16,7 @@ data class Instruction(
     var id: UByte = AUTO_INDEX_ASSIGMENT,
     val group: String = "",
     var variableOrder: List<String> = emptyList(),
+    var variableSizes: Map<String, Int> = emptyMap()
 ) {
     companion object {
         const val AUTO_INDEX_ASSIGMENT: UByte = 255u
@@ -29,29 +30,51 @@ data class Instruction(
         val words = splitMany(mnemonic, listOf(" ", ",", "[", "]"))
         name = words[0]
 
-        val variables = words.filter { '#' in it }.map { it.trimStart('#', '-') }.toList()
+        val variables = words.filter { '#' in it }.map {
+            Pair(it.trimStart('#', '-'), it.count { it == '#' })
+        }.toList()
+
+        val variableNames = variables.map { it.first }
+
         if (variableOrder.isNotEmpty()) {
             // Check so all necessary variables is provided
-            if (variableOrder.toSet() != variables.toSet()) {
+            if (variableOrder.toSet() != variables.map { it.first }.toSet()) {
                 throw RegisterInstructionError("VariablesOrder should contain ${variables.toSet()}")
             }
         } else {
-            variableOrder = variables
+            variableOrder = variableNames
         }
+
+        variableSizes = variables.toMap()
+
     }
 
     val size
-        get() = 1 + variableOrder.size
+        get() = 1 + variableOrder.sumOf { variableSizes.getValue(it) }
 
 
-    fun build(args: Map<String, UByte> = emptyMap()): List<UByte> {
+    fun build(args: Map<String, Int> = emptyMap()): List<UByte> {
         val mutableArgs = args.toMutableMap()
         val result = mutableListOf(id)
         for (variableName in variableOrder) {
             if (variableName !in args) {
                 throw InstructionBuilderError("A variable with name $variableName must be provided")
             }
-            result.add(mutableArgs.getValue(variableName))
+
+            var value = mutableArgs.getValue(variableName)
+            val size = variableSizes.getValue(variableName)
+            val maxVal = (1 shl (size * 8)) - 1
+
+            if (value < 0 || value > maxVal) {
+                throw InstructionBuilderError("Variable $variableName must be within (0, $maxVal), not $value")
+            }
+
+            for (i in 0 until size) {
+                result.add((value and 0xff).toUByte())
+                value = value shr 8
+
+            }
+
             mutableArgs.remove(variableName)
         }
         if (mutableArgs.isNotEmpty()) {
@@ -139,7 +162,7 @@ class InstructionSet(val maxSize: UByte = Instruction.MAX_SIZE) {
 
         for (instr in getInstructions()) {
 
-            val variables = mutableMapOf<String, UByte>()
+            val variables = mutableMapOf<String, Int>()
 
             val templateSplit =
                 splitMany(adjustForBrackets(instr.mnemonic), MNEMONIC_DELIMITERS).filter { it.isNotEmpty() }
@@ -165,7 +188,8 @@ class InstructionSet(val maxSize: UByte = Instruction.MAX_SIZE) {
                         break
                     }
 
-                    variables[templateWord.substring(index + 1)] = mnemWord.substring(index + 1).toUByte()
+                    variables[templateWord.substring(index).trimStart('#')] =
+                        mnemWord.substring(index).trimStart('#').toInt()
 
                 } else if (templateWord.lowercase() != mnemWord.lowercase()) {
                     allMatch = false

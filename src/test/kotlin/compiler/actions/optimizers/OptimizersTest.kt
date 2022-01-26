@@ -13,10 +13,10 @@ internal class OptimizersTest {
     @Test
     fun testRemovePushPop() {
         val list = mutableListOf(
-            PrintAction(), ConstantRegister(5u), PushRegister(), PopRegister(), ConstantRegister(5u)
+            PrintAction(), ConstantRegister(5), PushRegister(), PopRegister(), ConstantRegister(5)
         )
         val expected = listOf(
-            PrintAction(), ConstantRegister(5u), ConstantRegister(5u)
+            PrintAction(), ConstantRegister(5), ConstantRegister(5)
         )
         assertTrue(removePushPop(list))
         assertEquals(

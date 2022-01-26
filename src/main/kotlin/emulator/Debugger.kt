@@ -67,7 +67,7 @@ class InteractiveDebugger(
         var bestMatch: FunctionInfo? = null
 
         for (func in functions) {
-            if (func.memoryPosition <= emulator.pc) {
+            if (func.memoryPosition <= emulator.pc.toInt()) {
                 if (bestMatch == null || func.memoryPosition > bestMatch.memoryPosition)
                     bestMatch = func
             }
@@ -94,7 +94,7 @@ class InteractiveDebugger(
 
 
             for (f in functions) {
-                if (mempos == f.memoryPosition.toInt()) {
+                if (mempos == f.memoryPosition) {
                     labels.add(f.name)
                 }
             }
@@ -138,7 +138,7 @@ class InteractiveDebugger(
 
             if (function != null) {
                 for (field in function.fields.values) {
-                    if (i == emulator.fp.toInt() + field.offset.toInt()) {
+                    if (i == emulator.fp.toInt() + field.offset) {
                         labels.add("$functionName.${field.name}")
                     }
                 }

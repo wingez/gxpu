@@ -13,8 +13,8 @@ class BuildStructTest {
         assertEquals(
             StructType(
                 "type1", mapOf(
-                    "member1" to StructDataField("member1", 0u, byteType),
-                    "member2" to StructDataField("member2", 1u, byteType),
+                    "member1" to StructDataField("member1", 0, byteType),
+                    "member2" to StructDataField("member2", 1, byteType),
                 )
             ),
             buildStruct(
