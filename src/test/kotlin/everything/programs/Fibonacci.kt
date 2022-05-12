@@ -14,7 +14,7 @@ class Fibonacci {
             c:byte=0
     
             counter:byte=0
-            while (10-counter)!=0:
+            while (10-counter):
               print(a)
               c=a+b
               b=a

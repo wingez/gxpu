@@ -129,8 +129,7 @@ class CompilerTest {
 
         expected = """
         push #5
-        cpy [SP #0] [FP #2]
-        addsp #1
+        pop [FP #2]
         ret
         """
 
@@ -139,6 +138,23 @@ class CompilerTest {
         """
         bodyShouldMatchAssembled(body, expected)
 
+    }
+
+    @Test
+    fun testCopy() {
+        val expected = """
+        PUSH #5
+        POP[FP #3]
+        PUSH [FP #3]
+        POP [FP #2]
+        RET
+        """
+
+        val body = """
+          val1:byte=5
+          val2:byte=val1
+        """
+        bodyShouldMatchAssembled(body, expected)
     }
 
     @Test

@@ -155,5 +155,48 @@ fun calculateSignature(
         parameterNames,
         returnType,
     )
+}
 
+private data class SignatureEntry(
+    val name: String,
+    val type: DataType,
+)
+
+class SignatureBuilder(val name: String) {
+    private val parameters = mutableListOf<SignatureEntry>()
+    private val fields = mutableListOf<SignatureEntry>()
+    private var returnType: DataType = voidType
+
+    fun addParameter(name: String, type: DataType): SignatureBuilder {
+        parameters.add(SignatureEntry(name, type))
+        return this
+    }
+
+    fun addField(name: String, type: DataType): SignatureBuilder {
+        parameters.add(SignatureEntry(name, type))
+        return this
+    }
+
+    fun setReturnType(type: DataType): SignatureBuilder {
+        returnType = type
+        return this
+    }
+
+    fun getSignature(): FunctionSignature {
+
+        val builder = StructBuilder()
+        builder.addMember("frame", stackFrameType)
+        for ((name, type) in fields) {
+            builder.addMember(name, type)
+        }
+        for ((name, type) in parameters) {
+            builder.addMember(name, type)
+        }
+        builder.addMember("result", returnType)
+
+        return FunctionSignature(
+            name,
+            builder.getFields(), parameters.map { it.name }, returnType
+        )
+    }
 }

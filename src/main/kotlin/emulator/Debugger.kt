@@ -68,7 +68,7 @@ class InteractiveDebugger(
 
         for (func in functions) {
             if (func.value <= emulator.pc.toInt()) {
-                if (bestMatch == null || func.value > functions.getValue(func.key))
+                if (bestMatch == null || func.value > functions.getValue(bestMatch))
                     bestMatch = func.key
             }
         }

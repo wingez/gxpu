@@ -27,9 +27,11 @@ fun bytes(vararg bytes: Int): List<UByte> {
 }
 
 fun byte(value: Int): UByte {
-    if (value !in 0..255)
-        throw AssertionError()
-    return value.toUByte()
+    val wrappedVal = value % 0x100
+//
+//    if (wrappedVal !in 0..255)
+//        throw AssertionError()
+    return wrappedVal.toUByte()
 }
 
 fun byte(value: UInt): UByte {
