@@ -1,7 +1,7 @@
 package se.wingez.compiler
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import se.wingez.ast.AstNode
 import se.wingez.ast.function
 import se.wingez.ast.parseExpressions
@@ -160,19 +160,17 @@ class CompilerTest {
     @Test
     fun testIfNoElse() {
         val expected = """
-        lda #0
-        pusha
-        lda #5
-        suba sp #0
-        addsp #1
-        tsta
-        
-        jmpz #15
-        lda #1
-        out
+        PUSH #5
+        TST POP
+       
+        jmpz #11
+        PUSH #1
+        CALL #0
+        ADDSP #1
+        RET
         """
         val body = """
-          if 5!=0:
+          if 5:
             print(1)
         """
         bodyShouldMatchAssembled(body, expected)
@@ -181,23 +179,20 @@ class CompilerTest {
     @Test
     fun testIfElse() {
         val expected = """
-        lda #0
-        pusha
-        lda #5
-        suba sp #0
-        addsp #1
-        tsta
-        
-        jmpz #17
-        lda #1
-        out
-        jmp #20
-        lda #2
-        out
-            
+        PUSH #5
+        TST POP
+        JMPZ #13
+        PUSH #1
+        CALL #0
+        ADDSP #1
+        JMP #19
+        PUSH #2
+        CALL #0
+        ADDSP #1
+        RET
         """
         val body = """
-          if 5!=0:
+          if 5:
             print(1)
           else:
             print(2)
@@ -209,37 +204,21 @@ class CompilerTest {
     @Test
     fun testWhile() {
         val expected = """
-        lda #0
-        pusha
-        lda #5
-        suba sp #0
-        addsp #1
-        tsta
-        
-        jmpz #17
-        lda #1
-        out
-        jmp #0
-         
+        PUSH #5
+        TST POP
+        JMPZ #13
+        PUSH #1
+        CALL #0
+        ADDSP #1
+        JMP #0
+        RET 
         """
         val body = """
-          while 5!=0:
+          while 5:
             print(1)
         """
 
         bodyShouldMatchAssembled(body, expected)
-    }
-
-    @Test
-    fun testIfConditionMustBeComparison() {
-        val code = """
-            if 2:
-              print(6)
-        """
-        assertThrows<CompileError> {
-            buildBody(code)
-        }
-
     }
 
     @Test
@@ -280,6 +259,7 @@ class CompilerTest {
     }
 
     @Test
+    @Disabled("Not implemented yet")
     fun testPointerDeref() {
         val expected = """
         LDFP #255

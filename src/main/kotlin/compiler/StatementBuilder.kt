@@ -77,24 +77,15 @@ fun findStoreAddress(target: AstNode, functionInfo: FunctionSignature): Int {
 
 }
 
-fun buildStatement(
+fun putOnStack(
     node: AstNode,
     functionInfo: FunctionSignature,
     generator: CodeGenerator,
-    functionProvider: FunctionProvider
-) {
-
-    val valueProviderNode: AstNode
-    val isAssignment = node.type == NodeTypes.Assign
-
-    if (isAssignment) {
-        valueProviderNode = node.asAssign().value
-    } else {
-        valueProviderNode = node
-    }
+    functionProvider: FunctionProvider,
+): DataType {
 
 
-    val (actions, resultType) = flatten(valueProviderNode, functionProvider)
+    val (actions, resultType) = flatten(node, functionProvider)
 
     for (action in actions) {
         when (action) {
@@ -120,20 +111,43 @@ fun buildStatement(
         }
     }
 
-    // Handle result
-    if (isAssignment) {
+    return resultType
+}
 
-        if (resultType != byteType) {
-            throw AssertionError()
-        }
+fun buildAssignment(
+    node: AstNode,
+    functionInfo: FunctionSignature,
+    generator: CodeGenerator,
+    functionProvider: FunctionProvider,
+) {
 
-        val storeOffset = findStoreAddress(node.asAssign().target, functionInfo)
-        generator.generate(
-            DefaultEmulator.memcpy_stack_to_frame.build(
-                mapOf("spoffset" to 0, "fpoffset" to storeOffset)
-            )
-        )
+    val valueProviderNode = node.asAssign().value
+    val resultType = putOnStack(valueProviderNode, functionInfo, generator, functionProvider)
+
+    if (resultType != byteType) {
+        throw AssertionError()
     }
+
+    val storeOffset = findStoreAddress(node.asAssign().target, functionInfo)
+    generator.generate(
+        DefaultEmulator.memcpy_stack_to_frame.build(
+            mapOf("spoffset" to 0, "fpoffset" to storeOffset)
+        )
+    )
+    // pop value of stack
+    if (resultType.size > 0) {
+        generator.generate(DefaultEmulator.add_sp.build(mapOf("val" to resultType.size)))
+    }
+}
+
+fun buildNoResultStatement(
+    node: AstNode,
+    functionInfo: FunctionSignature,
+    generator: CodeGenerator,
+    functionProvider: FunctionProvider,
+) {
+
+    val resultType = putOnStack(node, functionInfo, generator, functionProvider)
 
     // pop value of stack
     if (resultType.size > 0) {

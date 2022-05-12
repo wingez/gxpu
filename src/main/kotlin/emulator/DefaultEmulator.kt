@@ -159,6 +159,12 @@ class DefaultEmulator : Emulator(instructionSet) {
             false
         }
 
+        val test_pop = instructionSet.createInstruction("TST POP", group = FLOW_CONTROL) {
+            val value = it.pop()
+            it.zeroFlag = value == byte(0)
+            false
+        }
+
         val adda = instructionSet.createInstruction("ADDA #val", group = ARITHMETIC) {
             val value = it.getIncPC()
             it.a = (it.a + value).toUByte()
