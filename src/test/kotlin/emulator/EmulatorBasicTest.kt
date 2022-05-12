@@ -29,15 +29,13 @@ internal class EmulatorBasicTest {
             throw EmulatorInvalidInstructionError("Invalid instruction 0")
         }
         i.createInstruction("exit", 1u) {
-            true
+            it.halt()
         }
         i.createInstruction("print", 2u) {
             it.print(it.a)
-            false
         }
         i.createInstruction("LDA #val", 3u) {
             it.a = it.getIncPC()
-            false
         }
         dummyInstructions = i
     }
