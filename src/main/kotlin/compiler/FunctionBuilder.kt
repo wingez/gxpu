@@ -37,9 +37,12 @@ private class FunctionBuilder(
     }
 
     fun handleStatement(node: AstNode) {
-        buildStatement(node, functionInfo, generator, functionProvider)
 
-
+        if (node.type == NodeTypes.Assign) {
+            buildAssignment(node, functionInfo, generator, functionProvider)
+        } else {
+            buildNoResultStatement(node, functionInfo, generator, functionProvider)
+        }
     }
 
     fun handleReturn(node: AstNode) {
@@ -52,22 +55,22 @@ private class FunctionBuilder(
     private fun handleIf(node: AstNode) {
         val ifData = node.asIf()
 
-        assert(false)
-        //TODO
-        // optimizeGenerate(actionBuilder.buildStatement(ifData.condition))
+        putOnStack(ifData.condition, functionInfo, generator, functionProvider)
+
+        generator.generate(DefaultEmulator.test_pop.build())
         val jumpToFalseCondition = generator.makeSpaceFor(DefaultEmulator.jump_zero)
         buildNodes(ifData.ifBody)
 
         val jumpToEnd = if (ifData.hasElse) generator.makeSpaceFor(DefaultEmulator.jump) else null
 
         //TODO size
-        jumpToFalseCondition.generate(mapOf("addr" to generator.currentSize))
+        generator.link(jumpToFalseCondition, functionInfo, generator.currentSize)
 
         if (ifData.hasElse) {
             buildNodes(ifData.elseBody)
             jumpToEnd ?: throw AssertionError()
             //TODO size
-            jumpToEnd.generate(mapOf("addr" to generator.currentSize))
+            generator.link(jumpToEnd, functionInfo, generator.currentSize)
         }
     }
 
@@ -75,13 +78,13 @@ private class FunctionBuilder(
     private fun handleWhile(node: AstNode) {
         val startOfBlock = generator.currentSize
 
-        assert(false)
-        // TODO optimizeGenerate(actionBuilder.buildStatement(node.asWhile().condition))
-        val jumpToExit = generator.makeSpaceFor(DefaultEmulator.jump_zero)
+        putOnStack(node.asWhile().condition, functionInfo, generator, functionProvider)
+        generator.generate(DefaultEmulator.test_pop.build())
 
+        val jumpToExit = generator.makeSpaceFor(DefaultEmulator.jump_zero)
         buildNodes(node.asWhile().body)
         //TODO size
-        generator.generate(DefaultEmulator.jump.build(mapOf("addr" to startOfBlock)))
+        generator.link(DefaultEmulator.jump, functionInfo, startOfBlock)
         jumpToExit.generate(mapOf("addr" to generator.currentSize))
     }
 

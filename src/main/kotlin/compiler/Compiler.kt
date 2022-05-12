@@ -18,6 +18,7 @@ data class GenerateLater(
 data class Link(
     val generateLater: GenerateLater,
     val linkSignature: FunctionSignature,
+    val offset: Int,
 )
 
 fun interface LinkAddressProvider {
@@ -46,14 +47,19 @@ class CodeGenerator {
         return GenerateLater(instruction, pos, this)
     }
 
-    fun link(callInstruction: Instruction, functionSignature: FunctionSignature) {
+    fun link(callInstruction: Instruction, functionSignature: FunctionSignature, offset: Int = 0) {
         val generateLater = makeSpaceFor(callInstruction)
-        links.add(Link(generateLater, functionSignature))
+        link(generateLater, functionSignature, offset)
+    }
+
+    fun link(generateAt: GenerateLater, functionSignature: FunctionSignature, offset: Int = 0) {
+        links.add(Link(generateAt, functionSignature, offset))
     }
 
     fun applyLinks(addressProvider: LinkAddressProvider) {
         for (link in links) {
-            val index = addressProvider.getAddress(link.linkSignature)
+            var index = addressProvider.getAddress(link.linkSignature)
+            index += link.offset
             link.generateLater.generate(mapOf("addr" to index))
         }
         links.clear()
