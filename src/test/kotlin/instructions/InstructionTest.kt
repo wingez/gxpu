@@ -7,13 +7,13 @@ import se.wingez.emulator.Emulator
 
 internal class InstructionTest {
 
-    private val emptyEmulate = { _: Emulator -> false }
+    private val emptyEmulate = { _: Emulator -> }
 
     @Test
     fun testAutoId() {
         val i = InstructionSet(maxSize = 3u)
 
-        val createDummy = { index: UByte -> Instruction("dummy", { false }, index) }
+        val createDummy = { index: UByte -> Instruction("dummy", { }, index) }
 
         val i1 = createDummy(1u)
         val i0 = createDummy(0u)

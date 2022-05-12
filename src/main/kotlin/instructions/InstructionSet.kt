@@ -12,7 +12,7 @@ class InstructionBuilderError(message: String) : Exception(message)
 data class Instruction(
     val mnemonic: String,
 
-    val emulate: (Emulator) -> Boolean,
+    val emulate: (Emulator) -> Unit,
     var id: UByte = AUTO_INDEX_ASSIGMENT,
     val group: String = "",
     var variableOrder: List<String> = emptyList(),
@@ -120,7 +120,7 @@ class InstructionSet(val maxSize: UByte = Instruction.MAX_SIZE) {
         mnemonic: String,
         index: UByte = Instruction.AUTO_INDEX_ASSIGMENT,
         group: String = "",
-        emulate: (Emulator) -> Boolean
+        emulate: (Emulator) -> Unit
     ): Instruction {
         val instr = Instruction(
             mnemonic,

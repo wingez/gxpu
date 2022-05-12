@@ -23,6 +23,7 @@ open class Emulator(
     var fp: UByte = 0u
     var sp: UByte = 0u
     var zeroFlag: Boolean = false
+    var shouldHalt: Boolean = false
 
     fun reset() {
         a = 0u
@@ -30,6 +31,7 @@ open class Emulator(
         fp = 0u
         sp = 0u
         zeroFlag = false
+        shouldHalt = false
     }
 
     fun clearMemory() {
@@ -87,19 +89,24 @@ open class Emulator(
         return getMemoryAt((sp++).toInt())
     }
 
-    fun stepSingleInstruction(): Boolean {
+    fun halt() {
+        shouldHalt = true
+    }
+
+    fun stepSingleInstruction() {
         /**
         Runs a single instruction, return True if the instruction indicated the program should terminate, False otherwise
         :return:
          */
         val ins = instructionSet.instructionFromID(getIncPC())
-        return ins.emulate.invoke(this)
+        ins.emulate.invoke(this)
     }
 
     fun run(maxClockCycles: Int = 1000) {
+        shouldHalt = false
         for (clockCounter in 0 until maxClockCycles) {
-            val shouldTerminate = stepSingleInstruction()
-            if (shouldTerminate) {
+            stepSingleInstruction()
+            if (shouldHalt) {
                 return
             }
         }
