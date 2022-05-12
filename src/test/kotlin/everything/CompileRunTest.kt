@@ -32,11 +32,11 @@ fun runProgramCheckOutput(program: String, vararg result: Int) {
     val tokens = parseFile(StringReader(program))
     val nodes = AstParser(tokens).parse()
 
-    val c = Compiler()
-    c.buildProgram(nodes)
+    val c = Compiler(nodes)
+    val generator = c.buildProgram()
 
     val emulator = DefaultEmulator()
-    emulator.setAllMemory(c.generator.resultingCode)
+    emulator.setAllMemory(generator.code)
     emulator.run()
 
     assertEquals(bytes(*result), emulator.outputStream)

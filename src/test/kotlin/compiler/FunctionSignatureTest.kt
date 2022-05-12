@@ -26,19 +26,19 @@ val dummyTypeContainer = TypeContainer(
     defaultTypes
 )
 
-internal class FunctionInfoTest {
+internal class FunctionSignatureTest {
 
 
-    fun getLayout(program: String, types: List<DataType> = defaultTypes): FunctionInfo {
+    fun getSignature(program: String, types: List<DataType> = defaultTypes): FunctionSignature {
         val node = AstParser(parseFile(StringReader(program))).parseFunctionDefinition()
 
-        return calculateFrameLayout(node, TypeContainer(types), 0)
+        return calculateSignature(node, TypeContainer(types))
 
     }
 
     @Test
     fun testEmpty() {
-        val layout = getLayout(
+        val layout = getSignature(
             """
             def test1():
               print(5)
@@ -53,7 +53,7 @@ internal class FunctionInfoTest {
 
     @Test
     fun testParam() {
-        val layout = getLayout(
+        val layout = getSignature(
             """
             def test1(test:byte):
               print(5)
@@ -73,7 +73,7 @@ internal class FunctionInfoTest {
 
     @Test
     fun testVar() {
-        val layout = getLayout(
+        val layout = getSignature(
             """
             def test1():
               var:byte=5
@@ -87,7 +87,7 @@ internal class FunctionInfoTest {
 
     @Test
     fun testVarParamReturn() {
-        val layout = getLayout(
+        val layout = getSignature(
             """
             def test1(param:byte): byte
               var:byte=5
@@ -100,7 +100,7 @@ internal class FunctionInfoTest {
         assertEquals(layout.sizeOfParameters, 1)
 
         assertEquals(
-            StructBuilder(dummyTypeContainer)
+            StructBuilder()
                 .addMember("frame", stackFrameType)
                 .addMember("param", byteType)
                 .addMember("var", byteType)
@@ -112,7 +112,7 @@ internal class FunctionInfoTest {
 
     @Test
     fun testIf() {
-        val layout = getLayout(
+        val layout = getSignature(
             """
             def test1():
               if 5:
@@ -136,7 +136,7 @@ internal class FunctionInfoTest {
 
     @Test
     fun testDescription() {
-        val layout = getLayout(
+        val layout = getSignature(
             """
             def test1(var2:byte):
               var:byte=1
@@ -165,18 +165,4 @@ internal class FunctionInfoTest {
             layout.getDescription(),
         )
     }
-
-    @Test
-    fun testArrayField() {
-        val layout = getLayout(
-            """
-            def main():
-              arr:byte[]
-              arr = createArray(8)
-        """
-        )
-
-        assertThat(layout.fields).containsValue(StructDataField("arr", 2, Pointer(ArrayType(byteType))))
-    }
-
 }

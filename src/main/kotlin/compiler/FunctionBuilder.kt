@@ -2,29 +2,44 @@ package se.wingez.compiler
 
 import se.wingez.ast.AstNode
 import se.wingez.ast.NodeTypes
-import se.wingez.compiler.actions.Action
-import se.wingez.compiler.actions.ActionBuilder
-import se.wingez.compiler.actions.flatten
-import se.wingez.compiler.actions.optimizers.applyAllOptimizations
 import se.wingez.emulator.DefaultEmulator
 
+
 interface FunctionProvider {
-    fun getFunction(name: String): FunctionInfo
+    fun includeFunction(name: String, parameters: List<DataType>): FunctionSignature
 }
 
-class FunctionBuilder(
+fun buildFunctionBody(
+    nodes: List<AstNode>,
+    functionSignature: FunctionSignature,
+    functionProvider: FunctionProvider
+): CodeGenerator {
+
+    val generator = CodeGenerator()
+    val builder = FunctionBuilder(functionSignature, functionProvider, generator)
+
+    builder.buildBody(nodes)
+
+    return generator
+}
+
+private class FunctionBuilder(
+    val functionInfo: FunctionSignature,
+    val functionProvider: FunctionProvider,
     val generator: CodeGenerator,
-    val functionInfo: FunctionInfo,
-    private val actionBuilder: ActionBuilder,
 ) {
-    fun buildNodes(nodes: Iterable<AstNode>) {
+
+
+    private fun buildNodes(nodes: Iterable<AstNode>) {
         for (node in nodes) {
             buildStatement(node)
         }
     }
 
     fun handleStatement(node: AstNode) {
-        optimizeGenerate(actionBuilder.buildStatement(node))
+        buildStatement(node, functionInfo, generator, functionProvider)
+
+
     }
 
     fun handleReturn(node: AstNode) {
@@ -34,18 +49,12 @@ class FunctionBuilder(
         generator.generate(DefaultEmulator.ret.build())
     }
 
-    private fun optimizeGenerate(action: Action) {
-        val actionsMutable = flatten(action).toMutableList()
-        applyAllOptimizations(actionsMutable)
-        for (a in actionsMutable) {
-            a.compile(generator)
-        }
-    }
-
     private fun handleIf(node: AstNode) {
         val ifData = node.asIf()
 
-        optimizeGenerate(actionBuilder.buildStatement(ifData.condition))
+        assert(false)
+        //TODO
+        // optimizeGenerate(actionBuilder.buildStatement(ifData.condition))
         val jumpToFalseCondition = generator.makeSpaceFor(DefaultEmulator.jump_zero)
         buildNodes(ifData.ifBody)
 
@@ -65,7 +74,9 @@ class FunctionBuilder(
 
     private fun handleWhile(node: AstNode) {
         val startOfBlock = generator.currentSize
-        optimizeGenerate(actionBuilder.buildStatement(node.asWhile().condition))
+
+        assert(false)
+        // TODO optimizeGenerate(actionBuilder.buildStatement(node.asWhile().condition))
         val jumpToExit = generator.makeSpaceFor(DefaultEmulator.jump_zero)
 
         buildNodes(node.asWhile().body)
@@ -81,11 +92,10 @@ class FunctionBuilder(
         when (node.type) {
             // TODO: what should we do here???
             NodeTypes.MemberDeclaration -> return
-            NodeTypes.Assign, NodeTypes.Print, NodeTypes.Call -> handleStatement(node)
             NodeTypes.Return -> handleReturn(node)
             NodeTypes.If -> handleIf(node)
             NodeTypes.While -> handleWhile(node)
-            else -> throw CompileError("Dont know how to parse $node")
+            else -> handleStatement(node)
 
         }
     }

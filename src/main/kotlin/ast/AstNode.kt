@@ -50,13 +50,8 @@ data class AstNode(
         return data as String
     }
 
-    class ConstantNode(val node: AstNode) {
-        val value
-            get() = node.data as Int
-    }
-
-    fun asConstant(): ConstantNode {
-        return ConstantNode(this)
+    fun asConstant(): Int {
+        return data as Int
     }
 
     fun asMemberDeclaration(): MemberDeclarationData {

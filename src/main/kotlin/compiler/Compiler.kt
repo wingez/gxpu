@@ -2,7 +2,6 @@ package se.wingez.compiler
 
 import se.wingez.ast.AstNode
 import se.wingez.ast.NodeTypes
-import se.wingez.compiler.actions.ActionBuilder
 import se.wingez.emulator.DefaultEmulator
 import se.wingez.instructions.Instruction
 
@@ -16,9 +15,18 @@ data class GenerateLater(
     }
 }
 
+data class Link(
+    val generateLater: GenerateLater,
+    val linkSignature: FunctionSignature,
+)
+
+fun interface LinkAddressProvider {
+    fun getAddress(signature: FunctionSignature): Int
+}
+
 class CodeGenerator {
     private val codeList = mutableListOf<UByte>()
-
+    private val links = mutableListOf<Link>()
 
     fun generate(code: List<UByte>) {
         codeList.addAll(code)
@@ -38,19 +46,47 @@ class CodeGenerator {
         return GenerateLater(instruction, pos, this)
     }
 
+    fun link(callInstruction: Instruction, functionSignature: FunctionSignature) {
+        val generateLater = makeSpaceFor(callInstruction)
+        links.add(Link(generateLater, functionSignature))
+    }
+
+    fun applyLinks(addressProvider: LinkAddressProvider) {
+        for (link in links) {
+            val index = addressProvider.getAddress(link.linkSignature)
+            link.generateLater.generate(mapOf("addr" to index))
+        }
+        links.clear()
+    }
+
     val currentSize: Int
         get() = codeList.size
 
     val resultingCode: List<UByte>
         get() = codeList.toList()
+
 }
 
+data class IncludedFunction(
+    val name: String,
+    val signature: FunctionSignature,
+    val generator: CodeGenerator,
+)
 
-class Compiler : TypeProvider, FunctionProvider {
-    val generator = CodeGenerator()
-    val functions = mutableMapOf<String, FunctionInfo>()
 
-    val types = mutableMapOf<String, DataType>(
+data class CompiledProgram(
+    val code: List<UByte>,
+    val functionMapping: Map<FunctionSignature, Int>
+)
+
+class Compiler(
+    val nodes: List<AstNode>
+) : TypeProvider, FunctionProvider {
+
+    val includedFunctions = mutableListOf<IncludedFunction>()
+
+
+    val includedTypes = mutableMapOf<String, DataType>(
         "void" to voidType,
         "byte" to byteType,
     )
@@ -60,77 +96,115 @@ class Compiler : TypeProvider, FunctionProvider {
         if (name.isEmpty()) {
             return DEFAULT_TYPE
         }
-        if (name !in types) {
+        if (name !in includedTypes) {
             throw CompileError("No type with name $name found")
         }
-        return types.getValue(name)
+        return includedTypes.getValue(name)
     }
 
-    override fun getFunction(name: String): FunctionInfo {
-        if (name !in functions) {
-            throw CompileError("No function with name $name found")
+    override fun includeFunction(name: String, parameters: List<DataType>): FunctionSignature {
+
+        // First search already included functions
+        val alreadyIncluded =
+            includedFunctions.find { it.signature.name == name && it.signature.parameterSignature == parameters }
+        if (alreadyIncluded != null)
+            return alreadyIncluded.signature
+
+        // Then search builtins
+        val builtIn = findBuiltin(name, parameters)
+        if (builtIn != null) {
+
+            val builtInGenerator = CodeGenerator()
+
+            builtIn.compile(builtInGenerator)
+
+            val included = IncludedFunction(builtIn.name, builtIn.signature, builtInGenerator)
+            includedFunctions.add(included)
+            return included.signature
         }
-        return functions.getValue(name)
+
+        // search other nodes
+        for (node in nodes.filter { it.type == NodeTypes.Function }) {
+            val signature = calculateSignature(node, this)
+            if (signature.name == name && signature.parameterSignature == parameters) {
+
+                val generator = buildFunction(node, signature)
+
+
+                val included = IncludedFunction(name, signature, generator)
+                includedFunctions.add(included)
+
+                return signature
+            }
+        }
+
+        throw CompileError("No matching function found with name :$name")
     }
 
-
-    fun buildFunction(node: AstNode): FunctionInfo {
-
+    fun buildFunction(node: AstNode, signature: FunctionSignature): CodeGenerator {
         assertValidFunctionNode(node)
 
-        val functionInfo = calculateFrameLayout(node, this, generator.currentSize)
+//        val signature = calculateSignature(node, this)
+        val generator = buildFunctionBody(node.childNodes, signature, this)
 
-        val builder = FunctionBuilder(generator, functionInfo, ActionBuilder(functionInfo, this, this))
-
-        if (functionInfo.name in functions) {
-            throw CompileError("Function ${functionInfo.name} already exists")
-        }
-        functions[functionInfo.name] = functionInfo
-
-        builder.buildBody(node.childNodes)
-
-        return functionInfo
-
+        return generator
     }
 
     fun buildStruct(node: AstNode) {
         val struct = buildStruct(node, this)
-        if (struct.name in types) {
+        if (struct.name in includedTypes) {
             throw CompileError("Function ${struct.name} already exists")
         }
-        types[struct.name] = struct
+        includedTypes[struct.name] = struct
     }
 
-    fun buildProgram(nodes: List<AstNode>): List<UByte> {
-        generator.generate(DefaultEmulator.ldfp.build(mapOf("val" to STACK_START)))
-        generator.generate(DefaultEmulator.ldsp.build(mapOf("val" to STACK_START)))
+    fun buildProgram(): CompiledProgram {
 
-        val allocMainFrame = generator.makeSpaceFor(DefaultEmulator.sub_sp)
-        val callMain = generator.makeSpaceFor(DefaultEmulator.call_addr)
-        generator.generate(DefaultEmulator.exit.build())
+        for (node in nodes.filter { it.type == NodeTypes.Struct }) {
+            buildStruct(node)
+        }
 
-        for (node in nodes) {
-            when (node.type) {
-                NodeTypes.Function -> buildFunction(node)
-                NodeTypes.Struct -> buildStruct(node)
-                else -> throw CompileError("Dont know what to do with $node")
+        val headerGenerator = CodeGenerator()
+        val mainFunction = includeFunction(MAIN_NAME, emptyList())
+
+        headerGenerator.generate(DefaultEmulator.ldfp.build(mapOf("val" to STACK_START)))
+        headerGenerator.generate(DefaultEmulator.ldsp.build(mapOf("val" to STACK_START)))
+
+        headerGenerator.generate(DefaultEmulator.sub_sp.build(mapOf("val" to mainFunction.sizeOfVars)))
+        val callMain = headerGenerator.makeSpaceFor(DefaultEmulator.call_addr)
+        headerGenerator.generate(DefaultEmulator.exit.build())
+
+
+        val resultingCode = mutableListOf<UByte>()
+        val placedFunctions = mutableMapOf<FunctionSignature, Int>()
+
+        for (i in headerGenerator.resultingCode) {
+            resultingCode.add(0u)
+        }
+
+        for (toInclude in includedFunctions) {
+            val index = resultingCode.size
+            placedFunctions[toInclude.signature] = index
+
+            val indexProvider = LinkAddressProvider { signature ->
+                placedFunctions.getValue(signature)
             }
+
+            toInclude.generator.applyLinks(indexProvider)
+            resultingCode.addAll(toInclude.generator.resultingCode)
         }
 
-        if (MAIN_NAME !in functions) {
-            throw  CompileError("No main-function provided")
+        val mainIndex = placedFunctions.getValue(mainFunction)
+
+        callMain.generate(mapOf("addr" to mainIndex))
+
+        headerGenerator.resultingCode.forEachIndexed { index, value ->
+            resultingCode[index] = value
         }
 
-        val mainFunction = functions.getValue(MAIN_NAME)
 
-        if (mainFunction.sizeOfParameters != 0) {
-            throw AssertionError()
-        }
-
-        allocMainFrame.generate(mapOf("val" to mainFunction.sizeOfVars))
-        callMain.generate(mapOf("addr" to mainFunction.memoryPosition))
-
-        return generator.resultingCode
+        return CompiledProgram(resultingCode, placedFunctions)
     }
+
 
 }

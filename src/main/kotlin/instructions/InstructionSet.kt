@@ -157,7 +157,7 @@ class InstructionSet(val maxSize: UByte = Instruction.MAX_SIZE) {
         val trimmedMnemonic = adjustForBrackets(mnemonic).trim(' ')
 
         // Filter empty lines and comments
-        if (trimmedMnemonic.isEmpty() || trimmedMnemonic.startsWith('#'))
+        if (trimmedMnemonic.isEmpty() || trimmedMnemonic.startsWith("//"))
             return emptyList()
 
         for (instr in getInstructions()) {

@@ -10,8 +10,7 @@ const val PC_STACK_SIZE = 1
 const val STACK_START = 255
 
 
-class FunctionInfo(
-    val memoryPosition: Int,
+class FunctionSignature(
     name: String,
     fields: Map<String, StructDataField>,
     parameterNames: List<String>,
@@ -26,6 +25,9 @@ class FunctionInfo(
 
     val parameters: List<StructDataField>
 
+    val parameterSignature: List<DataType>
+        get() = parameters.map { it.type }
+
     init {
 
         parameters = parameterNames.map { getField(it) }
@@ -39,23 +41,43 @@ class FunctionInfo(
             fields.values.sumOf { it.type.size } - sizeOfParameters - sizeOfMeta - sizeOfReturn
     }
 
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        if (!super.equals(other)) return false
+
+        other as FunctionSignature
+
+        if (returnType != other.returnType) return false
+        if (parameterSignature != other.parameterSignature) return false
+        if (name != other.name) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = super.hashCode()
+        result = 31 * result + returnType.hashCode()
+        result = 31 * result + parameterSignature.hashCode()
+        result = 31 * result + name.hashCode()
+        return result
+    }
 }
 
 
-fun calculateFrameLayout(
+fun calculateSignature(
     node: AstNode,
     typeProvider: TypeProvider,
-    memoryPosition: Int,
-): FunctionInfo {
+): FunctionSignature {
     // We first calculate the offsets from the top. Then we reverse it when we know the total size
-    val fieldBuilder = StructBuilder(typeProvider)
+    val fieldBuilder = StructBuilder()
     val functionData = node.asFunction()
 
     val returnType = if (functionData.returnType.isEmpty())
         voidType
     else
     // TODO: handle explicit new
-        typeProvider.getType(functionData.returnType).instantiate(false)
+        typeProvider.getType(functionData.returnType)
 
     fieldBuilder.addMember("result", returnType)
 
@@ -68,10 +90,11 @@ fun calculateFrameLayout(
         }
 
         var paramType = typeProvider.getType(memberData.type)
-        if (memberData.isArray) {
-            paramType = ArrayType(paramType)
-        }
-        paramType = paramType.instantiate(false)
+        // TODO
+//        if (memberData.isArray) {
+//            paramType = ArrayType(paramType)
+//        }
+//        paramType = paramType.instantiate(false)
         parameters.add(Pair(memberData.name, paramType))
     }
 
@@ -98,11 +121,12 @@ fun calculateFrameLayout(
                 continue
 
             var type = typeProvider.getType(typeName)
-            if (memberData.isArray) {
-                type = ArrayType(type)
-            }
-
-            type = type.instantiate(memberData.explicitNew)
+            // TODO
+//            if (memberData.isArray) {
+//                type = ArrayType(type)
+//            }
+//
+//            type = type.instantiate(memberData.explicitNew)
             fieldBuilder.addMember(name, type)
         }
     }
@@ -125,11 +149,11 @@ fun calculateFrameLayout(
 
     val parameterNames = parameters.map { it.first }
 
-    return FunctionInfo(
-        memoryPosition,
+    return FunctionSignature(
         functionData.name,
         fields,
-        parameterNames, returnType
+        parameterNames,
+        returnType,
     )
 
 }
