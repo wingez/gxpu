@@ -12,7 +12,7 @@ class DefaultEmulator : Emulator(instructionSet) {
         const val FLOW_CONTROL = "flow control"
         const val ARITHMETIC = "arithmetic"
 
-        private val instructionSet = InstructionSet()
+        val instructionSet = InstructionSet()
 
 
         fun build(mnemonic: String): List<UByte> {
@@ -68,12 +68,18 @@ class DefaultEmulator : Emulator(instructionSet) {
             it.setMemoryAt(it.fp.toInt() + offset.toInt(), it.a)
             false
         }
+        val sta_sp_offset = instructionSet.createInstruction("STA [SP #offset]", group = LOAD_STORE) {
+            val offset = it.getIncPC()
+            it.setMemoryAt(it.sp.toInt() + offset.toInt(), it.a)
+            false
+        }
         val sta_at_sp_offset = instructionSet.createInstruction("STA [[SP #offset]]", group = LOAD_STORE) {
             val offset = it.getIncPC()
             val addr = it.getMemoryAt((it.sp + offset).toInt())
             it.setMemoryAt(addr.toInt(), it.a)
             false
         }
+
 
         val ldsp = instructionSet.createInstruction("LDSP #val", group = STACK) {
             it.sp = it.getIncPC()
@@ -103,10 +109,34 @@ class DefaultEmulator : Emulator(instructionSet) {
             false
         }
 
+        val push_fp_offset = instructionSet.createInstruction("PUSH [FP #offset]", group = STACK) {
+            val offset = it.getIncPC()
+            it.push(it.getMemoryAt(it.fp + offset))
+            false
+        }
+
         val popa = instructionSet.createInstruction("POPA", group = STACK) {
             it.a = it.pop()
             false
         }
+
+        val pop_adda = instructionSet.createInstruction("POP ADDA", group = STACK) {
+            it.a = byte(it.a + it.pop())
+            false
+        }
+
+        val pop_suba = instructionSet.createInstruction("POP SUBA", group = STACK) {
+            it.a = byte(it.a - it.pop())
+            false
+        }
+
+        val pop_fp_offset = instructionSet.createInstruction("POP [FP #offset]", group = STACK) {
+            val offset = it.getIncPC()
+            val value = it.pop()
+            it.setMemoryAt(it.fp + offset, value)
+            false
+        }
+
         val sub_sp = instructionSet.createInstruction("SUBSP #val", group = STACK) {
             val value = it.getIncPC()
             it.sp = (it.sp - value).toUByte()
@@ -191,5 +221,6 @@ class DefaultEmulator : Emulator(instructionSet) {
                 it.setMemoryAt(it.fp + toFPoffset, value)
                 false
             }
+
     }
 }

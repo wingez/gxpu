@@ -85,7 +85,7 @@ private class FunctionBuilder(
         buildNodes(node.asWhile().body)
         //TODO size
         generator.link(DefaultEmulator.jump, functionInfo, startOfBlock)
-        jumpToExit.generate(mapOf("addr" to generator.currentSize))
+        generator.link(jumpToExit, functionInfo, generator.currentSize)
     }
 
 
