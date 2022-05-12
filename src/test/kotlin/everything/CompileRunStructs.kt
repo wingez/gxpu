@@ -1,5 +1,6 @@
 package se.wingez.everything
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 class CompileRunStructs {
@@ -74,6 +75,7 @@ class CompileRunStructs {
     }
 
     @Test
+    @Disabled
     fun testCreateArray() {
         val program = """
             
@@ -91,6 +93,7 @@ class CompileRunStructs {
     }
 
     @Test
+    @Disabled
     fun testWriteArray() {
         val program = """
           def main():

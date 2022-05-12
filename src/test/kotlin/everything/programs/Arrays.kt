@@ -1,5 +1,6 @@
 package se.wingez.everything.programs
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import se.wingez.everything.runProgramCheckOutput
 
@@ -7,6 +8,7 @@ import se.wingez.everything.runProgramCheckOutput
 class ArrayTests {
 
     @Test
+    @Disabled
     fun testPrintArray() {
         val program = """
           def printArray(arr:byte[]):
@@ -30,6 +32,7 @@ class ArrayTests {
     }
 
     @Test
+    @Disabled
     fun testEditArrayInFunction() {
         val program = """
           def editArray(arr:byte[]):

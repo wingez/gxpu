@@ -1,10 +1,12 @@
 package se.wingez.everything
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 class CompileRunPointers {
 
     @Test
+    @Disabled
     fun testCallWithPointer() {
         val program = """
           struct type:
@@ -29,6 +31,7 @@ class CompileRunPointers {
     }
 
     @Test
+    @Disabled
     fun testEditPointerFromCallee() {
         val program = """
           struct type:

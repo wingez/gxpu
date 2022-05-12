@@ -1,6 +1,7 @@
 package se.wingez.everything
 
 import org.junit.jupiter.api.Assertions.assertIterableEquals
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import se.wingez.ast.AstParser
@@ -107,6 +108,7 @@ class CompileRunTest {
     }
 
     @Test
+    @Disabled
     fun testInvalidVariableName() {
         val code = """
             var=5

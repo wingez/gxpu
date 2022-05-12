@@ -111,6 +111,7 @@ fun findStoreAddressNested(target: AstNode, functionInfo: FunctionSignature): St
 
     var field = functionInfo.getField(accessOrder.removeLast())
     var currentOffset = field.offset
+    
 
     for (nextAccess in accessOrder.reversed()) {
         val currentType = field.type
