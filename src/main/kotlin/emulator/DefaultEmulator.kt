@@ -87,6 +87,13 @@ class DefaultEmulator : Emulator(instructionSet) {
             it.fp = it.sp
             false
         }
+
+        val push = instructionSet.createInstruction("PUSH #val", group = STACK) {
+            val value = it.getIncPC()
+            it.push(value)
+            false
+        }
+
         val pusha = instructionSet.createInstruction("PUSHA", group = STACK) {
             it.push(it.a)
             false
@@ -169,5 +176,14 @@ class DefaultEmulator : Emulator(instructionSet) {
             false
         }
 
+        val memcpy_stack_to_frame =
+            instructionSet.createInstruction("CPY [SP #spoffset] [FP #fpoffset]", group = LOAD_STORE) {
+                val fromSPoffset = it.getIncPC()
+                val toFPoffset = it.getIncPC()
+
+                val value = it.getMemoryAt(it.sp + fromSPoffset)
+                it.setMemoryAt(it.fp + toFPoffset, value)
+                false
+            }
     }
 }

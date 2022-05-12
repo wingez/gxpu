@@ -7,17 +7,29 @@ import se.wingez.ast.function
 import se.wingez.ast.parseExpressions
 import se.wingez.ast.parserFromFile
 import se.wingez.byte
-import se.wingez.compiler.actions.ActionBuilder
 import se.wingez.emulator.DefaultEmulator
 import se.wingez.tokens.parseFile
 import java.io.StringReader
 import kotlin.test.assertEquals
 
+class BuiltinFunctionProvider : FunctionProvider {
+
+    override fun includeFunction(name: String, parameters: List<DataType>): FunctionSignature {
+        // Then search builtins
+        val builtIn = findBuiltin(name, parameters)
+        if (builtIn != null) {
+            return builtIn.signature
+        }
+
+        TODO("Not yet implemented")
+    }
+
+}
 
 fun buildSingleMainFunction(nodes: List<AstNode>): List<UByte> {
     val node = function("main", emptyList(), nodes, "")
-    val c = Compiler()
-    return c.buildProgram(listOf(node))
+    val c = Compiler(listOf(node))
+    return c.buildProgram().code
 }
 
 fun buildBody(body: String): List<UByte> {
@@ -26,11 +38,11 @@ fun buildBody(body: String): List<UByte> {
 
 
     val node = function("main", emptyList(), nodes, "")
-    val frame = calculateFrameLayout(node, dummyTypeContainer, 0)
+    val frame = calculateSignature(node, dummyTypeContainer)
 
-    val generator = CodeGenerator()
-    val function = FunctionBuilder(generator, frame, ActionBuilder(frame, dummyFunctions, dummyTypeContainer))
-    function.buildNodes(node.childNodes)
+    val generator = buildFunctionBody(node.childNodes, frame, BuiltinFunctionProvider())
+
+    generator.applyLinks { 0 }
 
     return generator.resultingCode
 }
@@ -38,10 +50,10 @@ fun buildBody(body: String): List<UByte> {
 fun buildProgram(body: String): List<UByte> {
     val nodes = parserFromFile(body).parse()
 
-    val c = Compiler()
-    c.buildProgram(nodes)
+    val c = Compiler(nodes)
+    val program = c.buildProgram()
 
-    return c.generator.resultingCode
+    return program.code
 }
 
 fun shouldMatch(code: List<UByte>, expected: List<UByte>) {
@@ -100,6 +112,52 @@ class CompilerTest {
                 DefaultEmulator.ret.id,
             ), code
         )
+    }
+
+    @Test
+    fun testBasicAssign() {
+        var expected = """
+        push #5
+        addsp #1
+        ret
+        """
+
+        var body = """
+          5
+        """
+        bodyShouldMatchAssembled(body, expected)
+
+        expected = """
+        push #5
+        cpy [SP #0] [FP #2]
+        addsp #1
+        ret
+        """
+
+        body = """
+          var:byte=5
+        """
+        bodyShouldMatchAssembled(body, expected)
+
+    }
+
+    @Test
+    fun testPrint() {
+        val expected = """
+        // main
+        subsp #0
+        subsp #0
+        push #5
+        call #0
+        addsp #1
+        addsp #0
+        ret
+        """
+
+        val body = """
+          print(5)
+        """
+        bodyShouldMatchAssembled(body, expected)
     }
 
     @Test

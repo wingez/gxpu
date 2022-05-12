@@ -1,25 +1,12 @@
 package se.wingez.compiler
 
 import se.wingez.ast.AstNode
-import se.wingez.ast.MemberDeclarationData
 import se.wingez.ast.NodeTypes
 import se.wingez.ast.ParserError
 
-class StructBuilder(
-    private val typeProvider: TypeProvider,
-) {
+class StructBuilder {
     private var currentSize = 0
     private val fields = mutableMapOf<String, StructDataField>()
-
-    fun addMember(memberData: MemberDeclarationData): StructBuilder {
-        val typeTemplate: DataType = if (memberData.type.isEmpty())
-            DEFAULT_TYPE
-        else
-            typeProvider.getType(memberData.type)
-
-        val fieldType = typeTemplate.instantiate(memberData.explicitNew)
-        return addMember(memberData.name, fieldType)
-    }
 
     fun addMember(name: String, type: DataType): StructBuilder {
 
@@ -51,11 +38,19 @@ class StructBuilder(
 
 
 fun buildStruct(node: AstNode, typeProvider: TypeProvider): StructType {
-    val builder = StructBuilder(typeProvider)
+    val builder = StructBuilder()
     for (member in node.childNodes) {
         if (member.type != NodeTypes.MemberDeclaration)
             throw ParserError("Only primitive declarations allowed for structs. Not $member")
-        builder.addMember(member.asMemberDeclaration())
+
+        val memberDeclaration = member.asMemberDeclaration()
+
+        val fieldType: DataType = if (memberDeclaration.type.isEmpty())
+            DEFAULT_TYPE
+        else
+            typeProvider.getType(memberDeclaration.type)
+
+        builder.addMember(memberDeclaration.name, fieldType)
     }
 
     return builder.getStruct(node.data as String)

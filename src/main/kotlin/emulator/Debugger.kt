@@ -2,7 +2,7 @@ package se.wingez.emulator
 
 import se.wingez.ast.AstParser
 import se.wingez.compiler.Compiler
-import se.wingez.compiler.FunctionInfo
+import se.wingez.compiler.FunctionSignature
 import se.wingez.tokens.parseFile
 import java.io.File
 import kotlin.math.max
@@ -10,7 +10,7 @@ import kotlin.math.min
 
 class InteractiveDebugger(
     val initialCode: List<UByte>,
-    val functions: List<FunctionInfo>,
+    val functions: Map<FunctionSignature, Int>,
 ) {
 
     companion object {
@@ -62,14 +62,14 @@ class InteractiveDebugger(
         }
     }
 
-    fun getCurrentFunction(): FunctionInfo? {
+    fun getCurrentFunction(): FunctionSignature? {
 
-        var bestMatch: FunctionInfo? = null
+        var bestMatch: FunctionSignature? = null
 
         for (func in functions) {
-            if (func.memoryPosition <= emulator.pc.toInt()) {
-                if (bestMatch == null || func.memoryPosition > bestMatch.memoryPosition)
-                    bestMatch = func
+            if (func.value <= emulator.pc.toInt()) {
+                if (bestMatch == null || func.value > functions.getValue(func.key))
+                    bestMatch = func.key
             }
         }
         return bestMatch
@@ -94,8 +94,8 @@ class InteractiveDebugger(
 
 
             for (f in functions) {
-                if (mempos == f.memoryPosition) {
-                    labels.add(f.name)
+                if (mempos == f.value) {
+                    labels.add(f.key.name)
                 }
             }
             if (mempos == emulator.pc.toInt()) {
@@ -184,10 +184,10 @@ fun main(array: Array<String>) {
     val tokens = parseFile(File(fileName).inputStream().reader())
     val nodes = AstParser(tokens).parse()
 
-    val compiler = Compiler()
-    compiler.buildProgram(nodes)
+    val compiler = Compiler(nodes)
+    val program = compiler.buildProgram()
 
-    val i = InteractiveDebugger(compiler.generator.resultingCode, compiler.functions.values.toList())
+    val i = InteractiveDebugger(program.code, program.functionMapping)
 
     i.interactiveLoop()
 }

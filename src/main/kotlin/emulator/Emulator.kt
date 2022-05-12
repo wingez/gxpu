@@ -52,6 +52,10 @@ open class Emulator(
         memory[position] = value
     }
 
+    fun setMemoryAt(position: UInt, value: UByte) {
+        setMemoryAt(position.toInt(), value)
+    }
+
     fun getMemoryAt(position: Int): UByte {
         if (position !in 0 until memorySize)
             throw EmulatorRuntimeError("Trying to access memory at $position, which is outside memory range")
