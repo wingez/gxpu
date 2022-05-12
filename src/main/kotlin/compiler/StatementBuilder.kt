@@ -5,11 +5,7 @@ import se.wingez.ast.NodeTypes
 import se.wingez.emulator.DefaultEmulator
 
 
-data class AllocateReturnValue(
-    val toCall: FunctionSignature
-)
-
-data class AllocateVariables(
+data class AllocateReturnAndVariables(
     val toCall: FunctionSignature
 )
 
@@ -61,8 +57,7 @@ fun flatten(node: AstNode, functionProvider: FunctionProvider): Pair<List<Any>, 
 
 
     val allActions = mutableListOf<Any>()
-    allActions.add(AllocateReturnValue(toCall))
-    allActions.add(AllocateVariables(toCall))
+    allActions.add(AllocateReturnAndVariables(toCall))
     //Place arguments
     allActions.addAll(placeArgumentActions)
     allActions.add(Call(toCall))
@@ -106,17 +101,20 @@ fun buildStatement(
             is PlaceConstant -> {
                 generator.generate(DefaultEmulator.push.build(mapOf("val" to action.constant)))
             }
-            is AllocateReturnValue -> {
-                generator.generate(DefaultEmulator.sub_sp.build(mapOf("val" to action.toCall.sizeOfReturn)))
-            }
-            is AllocateVariables -> {
-                generator.generate(DefaultEmulator.sub_sp.build(mapOf("val" to action.toCall.sizeOfVars)))
+            is AllocateReturnAndVariables -> {
+                val size = action.toCall.sizeOfReturn + action.toCall.sizeOfVars
+                if (size > 0) {
+                    generator.generate(DefaultEmulator.sub_sp.build(mapOf("val" to size)))
+                }
             }
             is Call -> {
                 generator.link(DefaultEmulator.call_addr, action.toCall)
             }
             is PopArgumentsVariables -> {
-                generator.generate(DefaultEmulator.add_sp.build(mapOf("val" to action.toCall.sizeOfVars + action.toCall.sizeOfParameters)))
+                val size = action.toCall.sizeOfVars + action.toCall.sizeOfParameters
+                if (size > 0) {
+                    generator.generate(DefaultEmulator.add_sp.build(mapOf("val" to size)))
+                }
             }
             else -> throw AssertionError()
         }
@@ -138,5 +136,7 @@ fun buildStatement(
     }
 
     // pop value of stack
-    generator.generate(DefaultEmulator.add_sp.build(mapOf("val" to resultType.size)))
+    if (resultType.size > 0) {
+        generator.generate(DefaultEmulator.add_sp.build(mapOf("val" to resultType.size)))
+    }
 }
