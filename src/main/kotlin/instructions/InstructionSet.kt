@@ -202,6 +202,10 @@ class InstructionSet(val maxSize: UByte = Instruction.MAX_SIZE) {
         throw InstructionBuilderError("No instruction matches $mnemonic")
     }
 
+    fun assembleMnemonicFile(file: String): List<UByte> {
+        return assembleMnemonicFile(StringReader(file))
+    }
+
     fun assembleMnemonicFile(file: StringReader): List<UByte> {
         val result = mutableListOf<UByte>()
 

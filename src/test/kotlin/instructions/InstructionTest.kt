@@ -142,7 +142,7 @@ internal class InstructionTest {
 
     @Test
     fun testAssembleMnemonicComment() {
-        assertIterableEquals(InstructionSet().assembleMnemonic("   # comment"), bytes())
+        assertIterableEquals(InstructionSet().assembleMnemonic("   // comment"), bytes())
     }
 
     @Test
