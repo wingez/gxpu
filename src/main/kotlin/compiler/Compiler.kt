@@ -15,19 +15,27 @@ data class GenerateLater(
     }
 }
 
+enum class LinkType {
+    FunctionAddress,
+    VarsSize,
+}
+
 data class Link(
     val generateLater: GenerateLater,
     val linkSignature: FunctionSignature,
+    val LinkType: LinkType,
     val offset: Int,
 )
 
-fun interface LinkAddressProvider {
-    fun getAddress(signature: FunctionSignature): Int
+interface LinkAddressProvider {
+    fun getFunctionAddress(signature: FunctionSignature): Int
+    fun getFunctionVarsSize(signature: FunctionSignature): Int
 }
 
 class CodeGenerator {
     private val codeList = mutableListOf<UByte>()
-    private val links = mutableListOf<Link>()
+    private val unpopulatedLinks = mutableListOf<Link>()
+    private val dependents = mutableSetOf<FunctionSignature>()
 
     fun generate(code: List<UByte>) {
         codeList.addAll(code)
@@ -47,55 +55,111 @@ class CodeGenerator {
         return GenerateLater(instruction, pos, this)
     }
 
-    fun link(callInstruction: Instruction, functionSignature: FunctionSignature, offset: Int = 0) {
+    fun link(callInstruction: Instruction, functionSignature: FunctionSignature, type: LinkType, offset: Int = 0) {
         val generateLater = makeSpaceFor(callInstruction)
-        link(generateLater, functionSignature, offset)
+        link(generateLater, functionSignature, type, offset)
     }
 
-    fun link(generateAt: GenerateLater, functionSignature: FunctionSignature, offset: Int = 0) {
-        links.add(Link(generateAt, functionSignature, offset))
+    fun link(generateAt: GenerateLater, functionSignature: FunctionSignature, type: LinkType, offset: Int = 0) {
+        unpopulatedLinks.add(Link(generateAt, functionSignature, type, offset))
+        dependents.add(functionSignature)
     }
 
     fun applyLinks(addressProvider: LinkAddressProvider) {
-        for (link in links) {
-            var index = addressProvider.getAddress(link.linkSignature)
-            index += link.offset
-            link.generateLater.generate(mapOf("addr" to index))
+        for (link in unpopulatedLinks) {
+            var linkValue: Int
+            var argName: String
+            when (link.LinkType) {
+                LinkType.FunctionAddress -> {
+                    linkValue = addressProvider.getFunctionAddress(link.linkSignature)
+                    argName = "addr"
+                }
+                LinkType.VarsSize -> {
+                    linkValue = addressProvider.getFunctionVarsSize(link.linkSignature)
+                    argName = "val"
+                }
+            }
+            linkValue += link.offset
+            link.generateLater.generate(mapOf(argName to linkValue))
         }
-        links.clear()
+        unpopulatedLinks.clear()
     }
 
     val currentSize: Int
         get() = codeList.size
 
-    val resultingCode: List<UByte>
-        get() = codeList.toList()
+    fun getResultingCode(): List<UByte> {
+        if (unpopulatedLinks.size > 0) {
+            throw AssertionError()
+        }
 
+        return codeList.toList()
+    }
+
+    fun getDependents(): List<FunctionSignature> {
+        return dependents.toList()
+    }
 }
 
-data class IncludedFunction(
-    val name: String,
+private data class IncludedFunction(
     val signature: FunctionSignature,
+    val layout: FrameLayout,
     val generator: CodeGenerator,
 )
 
 
 data class CompiledProgram(
     val code: List<UByte>,
-    val functionMapping: Map<FunctionSignature, Int>
+    val functionMapping: Map<FrameLayout, Int>
 )
 
+interface BuiltInProvider {
+    fun getSignatures(): List<FunctionSignature>
+    fun getTypes(): Map<String, DataType>
+
+    fun buildSignature(signature: FunctionSignature): Pair<CodeGenerator, FrameLayout>
+}
+
+private interface FunctionSource {
+    val signature: FunctionSignature
+    fun build(): Pair<CodeGenerator, FrameLayout>
+}
+
+private class BuiltinSource(
+    val builtInProvider: BuiltInProvider,
+    override val signature: FunctionSignature,
+) : FunctionSource {
+
+    override fun build(): Pair<CodeGenerator, FrameLayout> {
+        return builtInProvider.buildSignature(signature)
+    }
+}
+
+private class CodeSource(
+    val node: AstNode,
+    override val signature: FunctionSignature,
+    val typeProvider: TypeProvider,
+    val functionProvider: FunctionProvider,
+) : FunctionSource {
+
+    override fun build(): Pair<CodeGenerator, FrameLayout> {
+
+        val layout = calculateSignature(node, typeProvider)
+        val generator = buildFunctionBody(node.childNodes, signature, layout, functionProvider)
+
+        return generator to layout
+    }
+}
+
+
 class Compiler(
+    val builtInProvider: BuiltInProvider,
     val nodes: List<AstNode>
 ) : TypeProvider, FunctionProvider {
 
-    val includedFunctions = mutableListOf<IncludedFunction>()
+    private val functionSources = mutableListOf<FunctionSource>()
 
-
-    val includedTypes = mutableMapOf<String, DataType>(
-        "void" to voidType,
-        "byte" to byteType,
-    )
+    val includedTypes = mutableMapOf<String, DataType>()
 
 
     override fun getType(name: String): DataType {
@@ -108,108 +172,134 @@ class Compiler(
         return includedTypes.getValue(name)
     }
 
-    override fun includeFunction(name: String, parameters: List<DataType>): FunctionSignature {
-
-        // First search already included functions
-        val alreadyIncluded =
-            includedFunctions.find { it.signature.name == name && it.signature.parameterSignature == parameters }
-        if (alreadyIncluded != null)
-            return alreadyIncluded.signature
-
-        // Then search builtins
-        val builtIn = findBuiltin(name, parameters)
-        if (builtIn != null) {
-
-            val builtInGenerator = CodeGenerator()
-
-            builtIn.compile(builtInGenerator)
-
-            val included = IncludedFunction(builtIn.name, builtIn.signature, builtInGenerator)
-            includedFunctions.add(included)
-            return included.signature
-        }
-
-        // search other nodes
-        for (node in nodes.filter { it.type == NodeTypes.Function }) {
-            val signature = calculateSignature(node, this)
-            if (signature.name == name && signature.parameterSignature == parameters) {
-
-                val generator = buildFunction(node, signature)
-
-
-                val included = IncludedFunction(name, signature, generator)
-                includedFunctions.add(included)
-
-                return signature
+    override fun findSignature(name: String, parameterSignature: List<DataType>): FunctionSignature {
+        for (source in functionSources) {
+            if (source.signature.matchesHeader(name, parameterSignature)) {
+                return source.signature
             }
         }
-
-        throw CompileError("No matching function found with name :$name")
+        TODO()
     }
 
-    fun buildFunction(node: AstNode, signature: FunctionSignature): CodeGenerator {
-        assertValidFunctionNode(node)
+    fun buildStructs() {
+        for (node in nodes.filter { it.type == NodeTypes.Struct }) {
 
-//        val signature = calculateSignature(node, this)
-        val generator = buildFunctionBody(node.childNodes, signature, this)
+            val struct = buildStruct(node, this)
 
-        return generator
-    }
-
-    fun buildStruct(node: AstNode) {
-        val struct = buildStruct(node, this)
-        if (struct.name in includedTypes) {
-            throw CompileError("Function ${struct.name} already exists")
+            if (struct.name in includedTypes) {
+                throw CompileError("Function ${struct.name} already exists")
+            }
+            includedTypes[struct.name] = struct
         }
-        includedTypes[struct.name] = struct
     }
 
     fun buildProgram(): CompiledProgram {
 
-        for (node in nodes.filter { it.type == NodeTypes.Struct }) {
-            buildStruct(node)
+        includedTypes.putAll(builtInProvider.getTypes())
+
+        buildStructs()
+
+        for (signature in builtInProvider.getSignatures()) {
+            functionSources.add(BuiltinSource(builtInProvider, signature))
+        }
+        for (functionNode in nodes.filter { it.type == NodeTypes.Function }) {
+            val signature = signatureFromNode(functionNode, this)
+            functionSources.add(CodeSource(functionNode, signature, this, this))
         }
 
+        val includedFunctions = mutableMapOf<FunctionSignature, IncludedFunction>()
+
+        for (source in functionSources) {
+
+            val (generator, layout) = source.build()
+
+            includedFunctions[source.signature] = IncludedFunction(source.signature, layout, generator)
+        }
+
+
+        val mainSignature = SignatureBuilder("main")
+            .setReturnType(voidType)
+            .getSignature()
+
+
         val headerGenerator = CodeGenerator()
-        val mainFunction = includeFunction(MAIN_NAME, emptyList())
 
         headerGenerator.generate(DefaultEmulator.ldfp.build(mapOf("val" to STACK_START)))
         headerGenerator.generate(DefaultEmulator.ldsp.build(mapOf("val" to STACK_START)))
 
-        headerGenerator.generate(DefaultEmulator.sub_sp.build(mapOf("val" to mainFunction.sizeOfVars)))
+        val allocMainVars = headerGenerator.makeSpaceFor(DefaultEmulator.sub_sp)
         val callMain = headerGenerator.makeSpaceFor(DefaultEmulator.call_addr)
         headerGenerator.generate(DefaultEmulator.exit.build())
 
 
         val resultingCode = mutableListOf<UByte>()
-        val placedFunctions = mutableMapOf<FunctionSignature, Int>()
 
-        for (i in headerGenerator.resultingCode) {
+        val alreadyPlaced = mutableMapOf<FunctionSignature, Int>()
+
+        val toPlace = mutableListOf(mainSignature)
+
+        for (i in headerGenerator.getResultingCode()) {
             resultingCode.add(0u)
         }
 
-        for (toInclude in includedFunctions) {
-            val index = resultingCode.size
-            placedFunctions[toInclude.signature] = index
+        while (toPlace.size > 0) {
 
-            val indexProvider = LinkAddressProvider { signature ->
-                placedFunctions.getValue(signature)
+            val top = toPlace.removeLast()
+
+            if (alreadyPlaced.contains(top)) {
+                continue
             }
 
-            toInclude.generator.applyLinks(indexProvider)
-            resultingCode.addAll(toInclude.generator.resultingCode)
+            val included = includedFunctions.getValue(top)
+
+            val notAddedDependents = included.generator.getDependents()
+                .filter { it !in alreadyPlaced }
+                .filter { it != top }
+
+
+            if (notAddedDependents.isNotEmpty()) {
+                // Dependents still needed to take care of
+                toPlace.add(top)
+                toPlace.addAll(notAddedDependents)
+                continue
+            }
+
+
+            // All dependents added, lets add this
+            alreadyPlaced[included.signature] = resultingCode.size
+
+            val indexProvider = object : LinkAddressProvider {
+                override fun getFunctionAddress(signature: FunctionSignature): Int {
+                    return alreadyPlaced.getValue(signature)
+                }
+
+                override fun getFunctionVarsSize(signature: FunctionSignature): Int {
+                    return includedFunctions.getValue(signature).layout.sizeOfVars
+                }
+            }
+
+            included.generator.applyLinks(indexProvider)
+            resultingCode.addAll(included.generator.getResultingCode())
+
         }
 
-        val mainIndex = placedFunctions.getValue(mainFunction)
 
-        callMain.generate(mapOf("addr" to mainIndex))
+        callMain.generate(mapOf("addr" to alreadyPlaced.getValue(mainSignature)))
+        allocMainVars.generate(mapOf("val" to includedFunctions.getValue(mainSignature).layout.sizeOfVars))
 
-        headerGenerator.resultingCode.forEachIndexed { index, value ->
+        headerGenerator.getResultingCode().forEachIndexed { index, value ->
             resultingCode[index] = value
         }
 
+        val placedMap = mutableMapOf<FrameLayout, Int>()
+        for (entry in alreadyPlaced) {
+            val layout = includedFunctions.getValue(entry.key)
 
-        return CompiledProgram(resultingCode, placedFunctions)
+            placedMap[layout.layout] = entry.value
+
+        }
+
+        return CompiledProgram(resultingCode, placedMap)
     }
 
 

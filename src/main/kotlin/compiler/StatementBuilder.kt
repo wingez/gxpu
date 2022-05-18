@@ -27,7 +27,7 @@ data class PopArgumentsVariables(
 
 fun flatten(
     node: AstNode,
-    functionSignature: FunctionSignature,
+    functionSignature: FrameLayout,
     functionProvider: FunctionProvider
 ): Pair<List<Any>, DataType> {
 
@@ -74,20 +74,20 @@ fun flatten(
         parameterSignature.add(paramType)
     }
 
-    val toCall = functionProvider.includeFunction(functionName, parameterSignature)
+    val toCallSignature = functionProvider.findSignature(functionName, parameterSignature)
 
 
     val allActions = mutableListOf<Any>()
-    allActions.add(AllocateReturnAndVariables(toCall))
+    allActions.add(AllocateReturnAndVariables(toCallSignature))
     //Place arguments
     allActions.addAll(placeArgumentActions)
-    allActions.add(Call(toCall))
-    allActions.add(PopArgumentsVariables(toCall))
+    allActions.add(Call(toCallSignature))
+    allActions.add(PopArgumentsVariables(toCallSignature))
 
-    return Pair(allActions, toCall.returnType)
+    return Pair(allActions, toCallSignature.returnType)
 }
 
-fun findStoreAddressNested(target: AstNode, functionInfo: FunctionSignature): StructDataField {
+fun findStoreAddressNested(target: AstNode, functionInfo: FrameLayout): StructDataField {
 
     var currentNode = target
 
@@ -111,7 +111,7 @@ fun findStoreAddressNested(target: AstNode, functionInfo: FunctionSignature): St
 
     var field = functionInfo.getField(accessOrder.removeLast())
     var currentOffset = field.offset
-    
+
 
     for (nextAccess in accessOrder.reversed()) {
         val currentType = field.type
@@ -124,14 +124,14 @@ fun findStoreAddressNested(target: AstNode, functionInfo: FunctionSignature): St
     return StructDataField(field.name, currentOffset, field.type)
 }
 
-fun findStoreAddress(target: AstNode, functionInfo: FunctionSignature): StructDataField {
+fun findStoreAddress(target: AstNode, functionInfo: FrameLayout): StructDataField {
     return findStoreAddressNested(target, functionInfo)
 
 }
 
 fun putOnStack(
     node: AstNode,
-    functionInfo: FunctionSignature,
+    functionInfo: FrameLayout,
     generator: CodeGenerator,
     functionProvider: FunctionProvider,
 ): DataType {
@@ -145,18 +145,30 @@ fun putOnStack(
                 generator.generate(DefaultEmulator.push.build(mapOf("val" to action.constant)))
             }
             is AllocateReturnAndVariables -> {
-                val size = action.toCall.sizeOfReturn + action.toCall.sizeOfVars
-                if (size > 0) {
-                    generator.generate(DefaultEmulator.sub_sp.build(mapOf("val" to size)))
+                val returnSize = action.toCall.returnType.size
+
+                if (action.toCall.annotations.contains(FunctionAnnotation.NoFrame)) {
+                    if (returnSize > 0) {
+                        generator.generate(DefaultEmulator.sub_sp.build(mapOf("val" to returnSize)))
+                    }
+                } else {
+                    generator.link(DefaultEmulator.sub_sp, action.toCall, LinkType.VarsSize, returnSize)
                 }
+
             }
             is Call -> {
-                generator.link(DefaultEmulator.call_addr, action.toCall)
+                generator.link(DefaultEmulator.call_addr, action.toCall, LinkType.FunctionAddress)
             }
             is PopArgumentsVariables -> {
-                val size = action.toCall.sizeOfVars + action.toCall.sizeOfParameters
-                if (size > 0) {
-                    generator.generate(DefaultEmulator.add_sp.build(mapOf("val" to size)))
+
+                val parameterSize = action.toCall.parameters.sumOf { it.type.size }
+
+                if (action.toCall.annotations.contains(FunctionAnnotation.NoFrame)) {
+                    if (parameterSize > 0) {
+                        generator.generate(DefaultEmulator.add_sp.build(mapOf("val" to parameterSize)))
+                    }
+                } else {
+                    generator.link(DefaultEmulator.add_sp, action.toCall, LinkType.VarsSize, parameterSize)
                 }
             }
             is PlaceFrameVariable -> {
@@ -171,7 +183,7 @@ fun putOnStack(
 
 fun buildAssignment(
     node: AstNode,
-    functionInfo: FunctionSignature,
+    functionInfo: FrameLayout,
     generator: CodeGenerator,
     functionProvider: FunctionProvider,
 ) {
@@ -189,7 +201,7 @@ fun buildAssignment(
 
 fun buildNoResultStatement(
     node: AstNode,
-    functionInfo: FunctionSignature,
+    functionInfo: FrameLayout,
     generator: CodeGenerator,
     functionProvider: FunctionProvider,
 ) {

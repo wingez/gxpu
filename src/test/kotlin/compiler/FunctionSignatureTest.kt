@@ -29,7 +29,7 @@ val dummyTypeContainer = TypeContainer(
 internal class FunctionSignatureTest {
 
 
-    fun getSignature(program: String, types: List<DataType> = defaultTypes): FunctionSignature {
+    fun getSignature(program: String, types: List<DataType> = defaultTypes): FrameLayout {
         val node = AstParser(parseFile(StringReader(program))).parseFunctionDefinition()
 
         return calculateSignature(node, TypeContainer(types))
