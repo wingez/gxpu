@@ -1,8 +1,9 @@
 package se.wingez.emulator
 
 import se.wingez.ast.AstParser
+import se.wingez.compiler.BuiltInFunctions
 import se.wingez.compiler.Compiler
-import se.wingez.compiler.FunctionSignature
+import se.wingez.compiler.FrameLayout
 import se.wingez.tokens.parseFile
 import java.io.File
 import kotlin.math.max
@@ -10,7 +11,7 @@ import kotlin.math.min
 
 class InteractiveDebugger(
     val initialCode: List<UByte>,
-    val functions: Map<FunctionSignature, Int>,
+    val functions: Map<FrameLayout, Int>,
 ) {
 
     companion object {
@@ -62,9 +63,9 @@ class InteractiveDebugger(
         }
     }
 
-    fun getCurrentFunction(): FunctionSignature? {
+    fun getCurrentFunction(): FrameLayout? {
 
-        var bestMatch: FunctionSignature? = null
+        var bestMatch: FrameLayout? = null
 
         for (func in functions) {
             if (func.value <= emulator.pc.toInt()) {
@@ -184,7 +185,7 @@ fun main(array: Array<String>) {
     val tokens = parseFile(File(fileName).inputStream().reader())
     val nodes = AstParser(tokens).parse()
 
-    val compiler = Compiler(nodes)
+    val compiler = Compiler(BuiltInFunctions(), nodes)
     val program = compiler.buildProgram()
 
     val i = InteractiveDebugger(program.code, program.functionMapping)

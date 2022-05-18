@@ -12,23 +12,50 @@ import se.wingez.tokens.parseFile
 import java.io.StringReader
 import kotlin.test.assertEquals
 
-class BuiltinFunctionProvider : FunctionProvider {
 
-    override fun includeFunction(name: String, parameters: List<DataType>): FunctionSignature {
-        // Then search builtins
-        val builtIn = findBuiltin(name, parameters)
-        if (builtIn != null) {
-            return builtIn.signature
+class DummyBuiltInProvider(
+    private val builtIns: List<BuiltIn> = listOf(Print(), ByteAddition(), ByteSubtraction())
+) : BuiltInProvider, FunctionProvider {
+    override fun getSignatures(): List<FunctionSignature> {
+        return builtIns.map { it.signature }
+    }
+
+    override fun getTypes(): Map<String, DataType> {
+        return mapOf(
+            "void" to voidType,
+            "byte" to byteType,
+        )
+    }
+
+    override fun buildSignature(signature: FunctionSignature): Pair<CodeGenerator, FrameLayout> {
+        for (builtIn in builtIns) {
+            if (builtIn.signature == signature) {
+
+                val generator = CodeGenerator()
+                builtIn.compile(generator)
+
+                return generator to builtIn.layout
+
+            }
+        }
+        throw AssertionError()
+    }
+
+    override fun findSignature(name: String, parameterSignature: List<DataType>): FunctionSignature {
+        for (builtIn in builtIns) {
+            if (builtIn.signature.matchesHeader(name, parameterSignature)) {
+                return builtIn.signature
+            }
         }
 
-        TODO("Not yet implemented")
+        throw AssertionError()
     }
 
 }
 
 fun buildSingleMainFunction(nodes: List<AstNode>): List<UByte> {
     val node = function("main", emptyList(), nodes, "")
-    val c = Compiler(listOf(node))
+    val c = Compiler(DummyBuiltInProvider(), listOf(node))
     return c.buildProgram().code
 }
 
@@ -38,19 +65,29 @@ fun buildBody(body: String): List<UByte> {
 
 
     val node = function("main", emptyList(), nodes, "")
+    val signature = signatureFromNode(node, dummyTypeContainer)
     val frame = calculateSignature(node, dummyTypeContainer)
 
-    val generator = buildFunctionBody(node.childNodes, frame, BuiltinFunctionProvider())
+    val generator = buildFunctionBody(node.childNodes, signature, frame, DummyBuiltInProvider())
 
-    generator.applyLinks { 0 }
+    generator.applyLinks(object : LinkAddressProvider {
+        override fun getFunctionAddress(signature: FunctionSignature): Int {
+            return 0
+        }
 
-    return generator.resultingCode
+        override fun getFunctionVarsSize(signature: FunctionSignature): Int {
+            return 0
+        }
+
+    })
+
+    return generator.getResultingCode()
 }
 
 fun buildProgram(body: String): List<UByte> {
     val nodes = parserFromFile(body).parse()
 
-    val c = Compiler(nodes)
+    val c = Compiler(DummyBuiltInProvider(), nodes)
     val program = c.buildProgram()
 
     return program.code
@@ -256,7 +293,9 @@ class CompilerTest {
         ADDSP #1
         RET
         //main
+        SUBSP #0
         CALL #13
+        ADDSP #0
         PUSH #3
         CALL #9
         ADDSP #1

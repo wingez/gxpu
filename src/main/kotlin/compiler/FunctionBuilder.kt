@@ -6,17 +6,18 @@ import se.wingez.emulator.DefaultEmulator
 
 
 interface FunctionProvider {
-    fun includeFunction(name: String, parameters: List<DataType>): FunctionSignature
+    fun findSignature(name: String, parameterSignature: List<DataType>): FunctionSignature
 }
 
 fun buildFunctionBody(
     nodes: List<AstNode>,
-    functionSignature: FunctionSignature,
+    signature: FunctionSignature,
+    layout: FrameLayout,
     functionProvider: FunctionProvider
 ): CodeGenerator {
 
     val generator = CodeGenerator()
-    val builder = FunctionBuilder(functionSignature, functionProvider, generator)
+    val builder = FunctionBuilder(signature, layout, functionProvider, generator)
 
     builder.buildBody(nodes)
 
@@ -24,7 +25,8 @@ fun buildFunctionBody(
 }
 
 private class FunctionBuilder(
-    val functionInfo: FunctionSignature,
+    val signature: FunctionSignature,
+    val functionInfo: FrameLayout,
     val functionProvider: FunctionProvider,
     val generator: CodeGenerator,
 ) {
@@ -64,13 +66,13 @@ private class FunctionBuilder(
         val jumpToEnd = if (ifData.hasElse) generator.makeSpaceFor(DefaultEmulator.jump) else null
 
         //TODO size
-        generator.link(jumpToFalseCondition, functionInfo, generator.currentSize)
+        generator.link(jumpToFalseCondition, signature, LinkType.FunctionAddress, generator.currentSize)
 
         if (ifData.hasElse) {
             buildNodes(ifData.elseBody)
             jumpToEnd ?: throw AssertionError()
             //TODO size
-            generator.link(jumpToEnd, functionInfo, generator.currentSize)
+            generator.link(jumpToEnd, signature, LinkType.FunctionAddress, generator.currentSize)
         }
     }
 
@@ -84,8 +86,8 @@ private class FunctionBuilder(
         val jumpToExit = generator.makeSpaceFor(DefaultEmulator.jump_zero)
         buildNodes(node.asWhile().body)
         //TODO size
-        generator.link(DefaultEmulator.jump, functionInfo, startOfBlock)
-        generator.link(jumpToExit, functionInfo, generator.currentSize)
+        generator.link(DefaultEmulator.jump, signature, LinkType.FunctionAddress, startOfBlock)
+        generator.link(jumpToExit, signature, LinkType.FunctionAddress, generator.currentSize)
     }
 
 

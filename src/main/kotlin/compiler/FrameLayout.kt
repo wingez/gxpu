@@ -9,8 +9,50 @@ const val SP_STACK_SIZE = 1
 const val PC_STACK_SIZE = 1
 const val STACK_START = 255
 
+enum class FunctionAnnotation {
+    NoFrame,
+}
 
-class FunctionSignature(
+data class FunctionSignature(
+    val name: String,
+    val returnType: DataType,
+    val parameters: List<StructDataField>,
+    val annotations: List<FunctionAnnotation>
+
+) {
+    fun matchesHeader(name: String, parameters: List<DataType>): Boolean {
+        return name == this.name && parameters == this.parameters.map { it.type }
+    }
+}
+
+fun signatureFromNode(node: AstNode, typeProvider: TypeProvider): FunctionSignature {
+    assert(node.type == NodeTypes.Function)
+
+    val functionData = node.asFunction()
+
+    val name = functionData.name
+    val parameters = mutableListOf<StructDataField>()
+
+
+    val returnType = if (functionData.returnType.isNotEmpty())
+        typeProvider.getType(functionData.returnType)
+    else
+        voidType
+
+    var currentOffset = 0
+    for (paramNode in functionData.arguments) {
+        assert(paramNode.type == NodeTypes.MemberDeclaration)
+        val member = paramNode.asMemberDeclaration()
+
+        val type = typeProvider.getType(member.type)
+
+        parameters.add(StructDataField(member.name, currentOffset, type))
+        currentOffset += type.size
+    }
+    return FunctionSignature(name, returnType, parameters, emptyList())
+}
+
+class FrameLayout(
     name: String,
     fields: Map<String, StructDataField>,
     parameterNames: List<String>,
@@ -46,7 +88,7 @@ class FunctionSignature(
         if (javaClass != other?.javaClass) return false
         if (!super.equals(other)) return false
 
-        other as FunctionSignature
+        other as FrameLayout
 
         if (returnType != other.returnType) return false
         if (parameterSignature != other.parameterSignature) return false
@@ -68,7 +110,7 @@ class FunctionSignature(
 fun calculateSignature(
     node: AstNode,
     typeProvider: TypeProvider,
-): FunctionSignature {
+): FrameLayout {
     // We first calculate the offsets from the top. Then we reverse it when we know the total size
     val fieldBuilder = StructBuilder()
     val functionData = node.asFunction()
@@ -149,7 +191,7 @@ fun calculateSignature(
 
     val parameterNames = parameters.map { it.first }
 
-    return FunctionSignature(
+    return FrameLayout(
         functionData.name,
         fields,
         parameterNames,
@@ -157,23 +199,14 @@ fun calculateSignature(
     )
 }
 
-private data class SignatureEntry(
-    val name: String,
-    val type: DataType,
-)
 
 class SignatureBuilder(val name: String) {
-    private val parameters = mutableListOf<SignatureEntry>()
-    private val fields = mutableListOf<SignatureEntry>()
+    private val parameters = mutableListOf<StructDataField>()
     private var returnType: DataType = voidType
+    private val annotations = mutableListOf<FunctionAnnotation>()
 
     fun addParameter(name: String, type: DataType): SignatureBuilder {
-        parameters.add(SignatureEntry(name, type))
-        return this
-    }
-
-    fun addField(name: String, type: DataType): SignatureBuilder {
-        parameters.add(SignatureEntry(name, type))
+        parameters.add(StructDataField(name, parameters.sumOf { it.offset }, type))
         return this
     }
 
@@ -182,7 +215,43 @@ class SignatureBuilder(val name: String) {
         return this
     }
 
+    fun addAnnotation(annotation: FunctionAnnotation): SignatureBuilder {
+        annotations.add(annotation)
+        return this
+    }
+
     fun getSignature(): FunctionSignature {
+        return FunctionSignature(name, returnType, parameters, annotations)
+    }
+}
+
+
+private data class SignatureEntry(
+    val name: String,
+    val type: DataType,
+)
+
+class LayoutBuilder(val name: String) {
+    private val parameters = mutableListOf<SignatureEntry>()
+    private val fields = mutableListOf<SignatureEntry>()
+    private var returnType: DataType = voidType
+
+    fun addParameter(name: String, type: DataType): LayoutBuilder {
+        parameters.add(SignatureEntry(name, type))
+        return this
+    }
+
+    fun addField(name: String, type: DataType): LayoutBuilder {
+        parameters.add(SignatureEntry(name, type))
+        return this
+    }
+
+    fun setReturnType(type: DataType): LayoutBuilder {
+        returnType = type
+        return this
+    }
+
+    fun getLayout(): FrameLayout {
 
         val builder = StructBuilder()
         builder.addMember("frame", stackFrameType)
@@ -194,9 +263,21 @@ class SignatureBuilder(val name: String) {
         }
         builder.addMember("result", returnType)
 
-        return FunctionSignature(
+        return FrameLayout(
             name,
             builder.getFields(), parameters.map { it.name }, returnType
         )
+    }
+
+    companion object {
+        fun fromSignature(signature: FunctionSignature): LayoutBuilder {
+            val result = LayoutBuilder(signature.name)
+                .setReturnType(signature.returnType)
+
+            for (param in signature.parameters) {
+                result.addParameter(param.name, param.type)
+            }
+            return result
+        }
     }
 }

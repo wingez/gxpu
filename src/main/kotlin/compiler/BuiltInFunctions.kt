@@ -5,6 +5,7 @@ import se.wingez.emulator.DefaultEmulator
 interface BuiltIn {
 
     val signature: FunctionSignature
+    val layout: FrameLayout
     val name: String
     fun compile(generator: CodeGenerator)
 }
@@ -15,13 +16,22 @@ class Print : BuiltIn {
     override val signature: FunctionSignature
         get() = SignatureBuilder(name)
             .addParameter("value", byteType)
+            .addAnnotation(FunctionAnnotation.NoFrame)
             .getSignature()
 
+    override val layout: FrameLayout
+        get() = LayoutBuilder.fromSignature(signature)
+            .getLayout()
 
     override fun compile(generator: CodeGenerator) {
+
+        val valueOffset = LayoutBuilder.fromSignature(signature).getLayout()
+            .getField("value").offset
+
+
         generator.generate(
             DefaultEmulator.lda_at_fp_offset.build(
-                mapOf("offset" to signature.getField("value").offset)
+                mapOf("offset" to valueOffset)
             )
         )
         generator.generate(DefaultEmulator.print.build())
@@ -38,6 +48,9 @@ class ByteAddition : BuiltIn {
             .setReturnType(byteType)
             .getSignature()
 
+    override val layout: FrameLayout
+        get() = LayoutBuilder.fromSignature(signature)
+            .getLayout()
 
     override fun compile(generator: CodeGenerator) {
 
@@ -64,6 +77,9 @@ class ByteSubtraction : BuiltIn {
             .setReturnType(byteType)
             .getSignature()
 
+    override val layout: FrameLayout
+        get() = LayoutBuilder.fromSignature(signature)
+            .getLayout()
 
     override fun compile(generator: CodeGenerator) {
         generator.generate(
@@ -80,20 +96,37 @@ class ByteSubtraction : BuiltIn {
     }
 }
 
+class BuiltInFunctions : BuiltInProvider {
 
-fun findBuiltin(name: String, signature: List<DataType>): BuiltIn? {
-    val available = listOf(
+    private val available = listOf(
         Print(), ByteAddition(), ByteSubtraction(),
     )
 
-    for (builtIn in available) {
-        if (builtIn.name == name && builtIn.signature.parameterSignature == signature) {
-            return builtIn
-        }
+    override fun getTypes(): Map<String, DataType> {
+        return mapOf(
+            "void" to voidType,
+            "byte" to byteType,
+        )
     }
-    return null
-}
 
+    override fun getSignatures(): List<FunctionSignature> {
+        return available.map { it.signature }
+
+    }
+
+    override fun buildSignature(signature: FunctionSignature): Pair<CodeGenerator, FrameLayout> {
+
+        val result = available.find { it.signature == signature }
+        if (result == null) {
+            TODO()
+        }
+
+        val generator = CodeGenerator()
+        result.compile(generator)
+
+        return generator to result.layout
+    }
+}
 
 
 

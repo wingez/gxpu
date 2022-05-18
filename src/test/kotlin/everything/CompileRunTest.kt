@@ -8,6 +8,7 @@ import se.wingez.ast.AstParser
 import se.wingez.bytes
 import se.wingez.compiler.CompileError
 import se.wingez.compiler.Compiler
+import se.wingez.compiler.DummyBuiltInProvider
 import se.wingez.compiler.buildSingleMainFunction
 import se.wingez.emulator.DefaultEmulator
 import se.wingez.emulator.EmulatorCyclesExceeded
@@ -33,7 +34,7 @@ fun runProgramCheckOutput(program: String, vararg result: Int) {
     val tokens = parseFile(StringReader(program))
     val nodes = AstParser(tokens).parse()
 
-    val c = Compiler(nodes)
+    val c = Compiler(DummyBuiltInProvider(), nodes)
     val generator = c.buildProgram()
 
     val emulator = DefaultEmulator()
