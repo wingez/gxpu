@@ -1,9 +1,9 @@
 package se.wingez.emulator
 
 import se.wingez.ast.AstParser
+import se.wingez.compiler.BuiltFunction
 import se.wingez.compiler.BuiltInFunctions
 import se.wingez.compiler.Compiler
-import se.wingez.compiler.FrameLayout
 import se.wingez.tokens.parseFile
 import java.io.File
 import kotlin.math.max
@@ -11,12 +11,12 @@ import kotlin.math.min
 
 class InteractiveDebugger(
     val initialCode: List<UByte>,
-    val functions: Map<FrameLayout, Int>,
+    val functions: Map<BuiltFunction, Int>,
 ) {
 
     companion object {
         const val WIDTH = 80
-        const val HEIGHT = 40
+        const val HEIGHT = 25
     }
 
     val emulator = DefaultEmulator()
@@ -63,9 +63,9 @@ class InteractiveDebugger(
         }
     }
 
-    fun getCurrentFunction(): FrameLayout? {
+    fun getCurrentFunction(): BuiltFunction? {
 
-        var bestMatch: FrameLayout? = null
+        var bestMatch: BuiltFunction? = null
 
         for (func in functions) {
             if (func.value <= emulator.pc.toInt()) {
@@ -84,8 +84,8 @@ class InteractiveDebugger(
         if (currentIndex == -1)
             throw AssertionError()
 
-        val startPos = max(0, currentIndex - 15)
-        val endPos = min(instructions.size, startPos + 38)
+        val startPos = max(0, currentIndex - 10)
+        val endPos = min(instructions.size, startPos + 25)
 
         (startPos until endPos).forEachIndexed { i, position ->
 
@@ -96,7 +96,7 @@ class InteractiveDebugger(
 
             for (f in functions) {
                 if (mempos == f.value) {
-                    labels.add(f.key.name)
+                    labels.add(f.key.signature.name)
                 }
             }
             if (mempos == emulator.pc.toInt()) {
@@ -115,7 +115,7 @@ class InteractiveDebugger(
     fun renderStatus() {
 
         val function = getCurrentFunction()
-        val functionName = function?.name ?: "no"
+        val functionName = function?.signature?.name ?: "no"
 
         val registerX = 0
         val registerY = 0
@@ -130,7 +130,7 @@ class InteractiveDebugger(
         val memoryStartX = 1
         val memoryStartY = 10
 
-        (220..255).reversed().forEachIndexed { rowPos, i ->
+        (235..255).reversed().forEachIndexed { rowPos, i ->
 
             val labels = mutableListOf<String>()
 
@@ -138,7 +138,7 @@ class InteractiveDebugger(
             if (i == emulator.sp.toInt()) labels.add("sp")
 
             if (function != null) {
-                for (field in function.fields.values) {
+                for (field in function.layout.fields.values) {
                     if (i == emulator.fp.toInt() + field.offset) {
                         labels.add("$functionName.${field.name}")
                     }

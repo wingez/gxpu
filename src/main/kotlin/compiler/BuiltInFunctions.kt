@@ -5,7 +5,7 @@ import se.wingez.emulator.DefaultEmulator
 interface BuiltIn {
 
     val signature: FunctionSignature
-    val layout: FrameLayout
+    val sizeOfVars: Int
     val name: String
     fun compile(generator: CodeGenerator)
 }
@@ -19,15 +19,11 @@ class Print : BuiltIn {
             .addAnnotation(FunctionAnnotation.NoFrame)
             .getSignature()
 
-    override val layout: FrameLayout
-        get() = LayoutBuilder.fromSignature(signature)
-            .getLayout()
+    override val sizeOfVars = 0
 
     override fun compile(generator: CodeGenerator) {
 
-        val valueOffset = LayoutBuilder.fromSignature(signature).getLayout()
-            .getField("value").offset
-
+        val valueOffset = stackFrameType.size
 
         generator.generate(
             DefaultEmulator.lda_at_fp_offset.build(
@@ -48,9 +44,7 @@ class ByteAddition : BuiltIn {
             .setReturnType(byteType)
             .getSignature()
 
-    override val layout: FrameLayout
-        get() = LayoutBuilder.fromSignature(signature)
-            .getLayout()
+    override val sizeOfVars = 0
 
     override fun compile(generator: CodeGenerator) {
 
@@ -72,14 +66,12 @@ class ByteSubtraction : BuiltIn {
     override val name = "subtract"
     override val signature: FunctionSignature
         get() = SignatureBuilder(name)
-            .addParameter("toSubtract", byteType)
             .addParameter("initial", byteType)
+            .addParameter("toSubtract", byteType)
             .setReturnType(byteType)
             .getSignature()
 
-    override val layout: FrameLayout
-        get() = LayoutBuilder.fromSignature(signature)
-            .getLayout()
+    override val sizeOfVars = 0
 
     override fun compile(generator: CodeGenerator) {
         generator.generate(
@@ -114,7 +106,7 @@ class BuiltInFunctions : BuiltInProvider {
 
     }
 
-    override fun buildSignature(signature: FunctionSignature): Pair<CodeGenerator, FrameLayout> {
+    override fun buildSignature(signature: FunctionSignature): BuiltFunction {
 
         val result = available.find { it.signature == signature }
         if (result == null) {
@@ -124,7 +116,24 @@ class BuiltInFunctions : BuiltInProvider {
         val generator = CodeGenerator()
         result.compile(generator)
 
-        return generator to result.layout
+        val layoutBuilder = StructBuilder()
+            .addMember("frame", stackFrameType)
+
+        if (result.sizeOfVars > 0) {
+            layoutBuilder.addMember("locals", PrimitiveDatatype(result.sizeOfVars, "Builtin_${result.name}_locals"))
+        }
+
+        for (parameter in signature.parameters) {
+            layoutBuilder.addMember(parameter.name, parameter.type)
+        }
+
+        layoutBuilder.addMember("result", signature.returnType)
+
+        val struct = layoutBuilder.getStruct(signature.name)
+
+
+
+        return BuiltFunction(result.signature, generator, struct, 0)
     }
 }
 

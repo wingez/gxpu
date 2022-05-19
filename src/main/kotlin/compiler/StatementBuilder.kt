@@ -14,7 +14,8 @@ data class PlaceConstant(
 )
 
 data class PlaceFrameVariable(
-    val frameVariable: StructDataField
+    val baseVariableName: String,
+    val offset: Int,
 )
 
 data class Call(
@@ -27,8 +28,7 @@ data class PopArgumentsVariables(
 
 fun flatten(
     node: AstNode,
-    functionSignature: FrameLayout,
-    functionProvider: FunctionProvider
+    builder: FunctionBuilder,
 ): Pair<List<Any>, DataType> {
 
     if (node.type == NodeTypes.Constant) {
@@ -37,10 +37,10 @@ fun flatten(
 
     if (node.type == NodeTypes.Identifier || node.type == NodeTypes.MemberAccess) {
 
-        val variable = findStoreAddress(node, functionSignature)
+        val (baseVariableName, type, offset) = findStoreAddress(node, builder)
 
 
-        return Pair(listOf(PlaceFrameVariable(variable)), variable.type)
+        return Pair(listOf(PlaceFrameVariable(baseVariableName, offset)), type)
     }
 
 
@@ -53,7 +53,7 @@ fun flatten(
     } else if (node.type == NodeTypes.Subtraction) {
         functionName = "subtract"
 
-        parameterNodes = node.childNodes.reversed() // Subtractor first
+        parameterNodes = node.childNodes // Subtractor first
     } else if (node.type == NodeTypes.Print) {
         functionName = "print"
         parameterNodes = node.childNodes
@@ -68,13 +68,13 @@ fun flatten(
     val placeArgumentActions = mutableListOf<Any>()
     val parameterSignature = mutableListOf<DataType>()
 
-    for (paramNode in parameterNodes) {
-        val (actions, paramType) = flatten(paramNode, functionSignature, functionProvider)
+    for (paramNode in parameterNodes.reversed()) {
+        val (actions, paramType) = flatten(paramNode, builder)
         placeArgumentActions.addAll(actions)
         parameterSignature.add(paramType)
     }
 
-    val toCallSignature = functionProvider.findSignature(functionName, parameterSignature)
+    val toCallSignature = builder.functionProvider.findSignature(functionName, parameterSignature)
 
 
     val allActions = mutableListOf<Any>()
@@ -87,7 +87,7 @@ fun flatten(
     return Pair(allActions, toCallSignature.returnType)
 }
 
-fun findStoreAddressNested(target: AstNode, functionInfo: FrameLayout): StructDataField {
+fun findStoreAddress(target: AstNode, builder: FunctionBuilder): Triple<String, DataType, Int> {
 
     var currentNode = target
 
@@ -109,55 +109,52 @@ fun findStoreAddressNested(target: AstNode, functionInfo: FrameLayout): StructDa
         }
     }
 
-    var field = functionInfo.getField(accessOrder.removeLast())
-    var currentOffset = field.offset
+    val baseFieldName = accessOrder.removeLast()
 
+    val baseFieldType = builder.getLocalVariableType(baseFieldName)
+
+    var currentType = baseFieldType
+    var currentOffset = 0
 
     for (nextAccess in accessOrder.reversed()) {
-        val currentType = field.type
         if (currentType !is StructType) {
             TODO()
         }
-        field = currentType.getField(nextAccess)
-        currentOffset += field.offset
+        val nextField = currentType.getField(nextAccess)
+        currentType = nextField.type
+        currentOffset += nextField.offset
     }
-    return StructDataField(field.name, currentOffset, field.type)
+    return Triple(baseFieldName, currentType, currentOffset)
 }
 
-fun findStoreAddress(target: AstNode, functionInfo: FrameLayout): StructDataField {
-    return findStoreAddressNested(target, functionInfo)
-
-}
 
 fun putOnStack(
     node: AstNode,
-    functionInfo: FrameLayout,
-    generator: CodeGenerator,
-    functionProvider: FunctionProvider,
+    builder: FunctionBuilder
 ): DataType {
 
 
-    val (actions, resultType) = flatten(node, functionInfo, functionProvider)
+    val (actions, resultType) = flatten(node, builder)
 
     for (action in actions) {
         when (action) {
             is PlaceConstant -> {
-                generator.generate(DefaultEmulator.push.build(mapOf("val" to action.constant)))
+                builder.generator.generate(DefaultEmulator.push.build(mapOf("val" to action.constant)))
             }
             is AllocateReturnAndVariables -> {
                 val returnSize = action.toCall.returnType.size
 
                 if (action.toCall.annotations.contains(FunctionAnnotation.NoFrame)) {
                     if (returnSize > 0) {
-                        generator.generate(DefaultEmulator.sub_sp.build(mapOf("val" to returnSize)))
+                        builder.generator.generate(DefaultEmulator.sub_sp.build(mapOf("val" to returnSize)))
                     }
                 } else {
-                    generator.link(DefaultEmulator.sub_sp, action.toCall, LinkType.VarsSize, returnSize)
+                    builder.generator.link(DefaultEmulator.sub_sp, action.toCall, LinkType.VarsSize, returnSize)
                 }
 
             }
             is Call -> {
-                generator.link(DefaultEmulator.call_addr, action.toCall, LinkType.FunctionAddress)
+                builder.generator.link(DefaultEmulator.call_addr, action.toCall, LinkType.FunctionAddress)
             }
             is PopArgumentsVariables -> {
 
@@ -165,14 +162,14 @@ fun putOnStack(
 
                 if (action.toCall.annotations.contains(FunctionAnnotation.NoFrame)) {
                     if (parameterSize > 0) {
-                        generator.generate(DefaultEmulator.add_sp.build(mapOf("val" to parameterSize)))
+                        builder.generator.generate(DefaultEmulator.add_sp.build(mapOf("val" to parameterSize)))
                     }
                 } else {
-                    generator.link(DefaultEmulator.add_sp, action.toCall, LinkType.VarsSize, parameterSize)
+                    builder.generator.link(DefaultEmulator.add_sp, action.toCall, LinkType.VarsSize, parameterSize)
                 }
             }
             is PlaceFrameVariable -> {
-                generator.generate(DefaultEmulator.push_fp_offset.build(mapOf("offset" to action.frameVariable.offset)))
+                builder.linkVariable(DefaultEmulator.push_fp_offset, action.baseVariableName, action.offset)
             }
             else -> throw AssertionError()
         }
@@ -183,33 +180,34 @@ fun putOnStack(
 
 fun buildAssignment(
     node: AstNode,
-    functionInfo: FrameLayout,
-    generator: CodeGenerator,
-    functionProvider: FunctionProvider,
+    builder: FunctionBuilder,
 ) {
 
     val valueProviderNode = node.asAssign().value
-    val resultType = putOnStack(valueProviderNode, functionInfo, generator, functionProvider)
+    val resultType = putOnStack(valueProviderNode, builder)
 
     if (resultType != byteType) {
         TODO("Need to take order into account")
     }
 
-    val storeOffset = findStoreAddress(node.asAssign().target, functionInfo).offset
-    generator.generate(DefaultEmulator.pop_fp_offset.build(mapOf("offset" to storeOffset)))
+    val (baseTypeName, resultingType, offset) = findStoreAddress(node.asAssign().target, builder)
+
+    if (resultType != resultingType) {
+        TODO()
+    }
+
+    builder.linkVariable(DefaultEmulator.pop_fp_offset, baseTypeName, offset)
 }
 
 fun buildNoResultStatement(
     node: AstNode,
-    functionInfo: FrameLayout,
-    generator: CodeGenerator,
-    functionProvider: FunctionProvider,
+    builder: FunctionBuilder,
 ) {
 
-    val resultType = putOnStack(node, functionInfo, generator, functionProvider)
+    val resultType = putOnStack(node, builder)
 
     // pop value of stack
     if (resultType.size > 0) {
-        generator.generate(DefaultEmulator.add_sp.build(mapOf("val" to resultType.size)))
+        builder.generator.generate(DefaultEmulator.add_sp.build(mapOf("val" to resultType.size)))
     }
 }

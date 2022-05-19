@@ -27,15 +27,14 @@ class DummyBuiltInProvider(
         )
     }
 
-    override fun buildSignature(signature: FunctionSignature): Pair<CodeGenerator, FrameLayout> {
+    override fun buildSignature(signature: FunctionSignature): BuiltFunction {
         for (builtIn in builtIns) {
             if (builtIn.signature == signature) {
 
                 val generator = CodeGenerator()
                 builtIn.compile(generator)
 
-                return generator to builtIn.layout
-
+                return BuiltFunction(builtIn.signature, generator, StructBuilder().getStruct("dummy"), 0)
             }
         }
         throw AssertionError()
@@ -65,12 +64,11 @@ fun buildBody(body: String): List<UByte> {
 
 
     val node = function("main", emptyList(), nodes, "")
-    val signature = signatureFromNode(node, dummyTypeContainer)
-    val frame = calculateSignature(node, dummyTypeContainer)
+    val signature = FunctionSignature.fromNode(node, dummyTypeContainer)
 
-    val generator = buildFunctionBody(node.childNodes, signature, frame, DummyBuiltInProvider())
+    val builtFunction = buildFunctionBody(node.childNodes, signature, DummyBuiltInProvider(), dummyTypeContainer)
 
-    generator.applyLinks(object : LinkAddressProvider {
+    builtFunction.generator.applyLinks(object : LinkAddressProvider {
         override fun getFunctionAddress(signature: FunctionSignature): Int {
             return 0
         }
@@ -81,7 +79,7 @@ fun buildBody(body: String): List<UByte> {
 
     })
 
-    return generator.getResultingCode()
+    return builtFunction.generator.getResultingCode()
 }
 
 fun buildProgram(body: String): List<UByte> {
@@ -181,9 +179,9 @@ class CompilerTest {
     fun testCopy() {
         val expected = """
         PUSH #5
-        POP[FP #3]
-        PUSH [FP #3]
-        POP [FP #2]
+        POP[FP #2]
+        PUSH [FP #2]
+        POP [FP #3]
         RET
         """
 

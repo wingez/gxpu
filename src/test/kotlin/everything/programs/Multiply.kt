@@ -9,7 +9,7 @@ class Multiply {
     fun multiply() {
         val program = """
           def mul(a:byte,b:byte):byte
-            result:byte=0
+            result=0
             while b:
               result=result+a
               b=b-1
