@@ -101,28 +101,21 @@ class CodeGenerator {
     }
 }
 
-private data class IncludedFunction(
-    val signature: FunctionSignature,
-    val layout: FrameLayout,
-    val generator: CodeGenerator,
-)
-
-
 data class CompiledProgram(
     val code: List<UByte>,
-    val functionMapping: Map<FrameLayout, Int>
+    val functionMapping: Map<BuiltFunction, Int>
 )
 
 interface BuiltInProvider {
     fun getSignatures(): List<FunctionSignature>
     fun getTypes(): Map<String, DataType>
 
-    fun buildSignature(signature: FunctionSignature): Pair<CodeGenerator, FrameLayout>
+    fun buildSignature(signature: FunctionSignature): BuiltFunction
 }
 
 private interface FunctionSource {
     val signature: FunctionSignature
-    fun build(): Pair<CodeGenerator, FrameLayout>
+    fun build(): BuiltFunction
 }
 
 private class BuiltinSource(
@@ -130,7 +123,7 @@ private class BuiltinSource(
     override val signature: FunctionSignature,
 ) : FunctionSource {
 
-    override fun build(): Pair<CodeGenerator, FrameLayout> {
+    override fun build(): BuiltFunction {
         return builtInProvider.buildSignature(signature)
     }
 }
@@ -142,12 +135,8 @@ private class CodeSource(
     val functionProvider: FunctionProvider,
 ) : FunctionSource {
 
-    override fun build(): Pair<CodeGenerator, FrameLayout> {
-
-        val layout = calculateSignature(node, typeProvider)
-        val generator = buildFunctionBody(node.childNodes, signature, layout, functionProvider)
-
-        return generator to layout
+    override fun build(): BuiltFunction {
+        return buildFunctionBody(node.childNodes, signature, functionProvider, typeProvider)
     }
 }
 
@@ -203,17 +192,17 @@ class Compiler(
             functionSources.add(BuiltinSource(builtInProvider, signature))
         }
         for (functionNode in nodes.filter { it.type == NodeTypes.Function }) {
-            val signature = signatureFromNode(functionNode, this)
+            val signature = FunctionSignature.fromNode(functionNode, this)
             functionSources.add(CodeSource(functionNode, signature, this, this))
         }
 
-        val includedFunctions = mutableMapOf<FunctionSignature, IncludedFunction>()
+        val includedFunctions = mutableMapOf<FunctionSignature, BuiltFunction>()
 
         for (source in functionSources) {
 
-            val (generator, layout) = source.build()
+            val builtFunction = source.build()
 
-            includedFunctions[source.signature] = IncludedFunction(source.signature, layout, generator)
+            includedFunctions[source.signature] = builtFunction
         }
 
 
@@ -274,7 +263,7 @@ class Compiler(
                 }
 
                 override fun getFunctionVarsSize(signature: FunctionSignature): Int {
-                    return includedFunctions.getValue(signature).layout.sizeOfVars
+                    return includedFunctions.getValue(signature).sizeOfVars
                 }
             }
 
@@ -285,17 +274,17 @@ class Compiler(
 
 
         callMain.generate(mapOf("addr" to alreadyPlaced.getValue(mainSignature)))
-        allocMainVars.generate(mapOf("val" to includedFunctions.getValue(mainSignature).layout.sizeOfVars))
+        allocMainVars.generate(mapOf("val" to includedFunctions.getValue(mainSignature).sizeOfVars))
 
         headerGenerator.getResultingCode().forEachIndexed { index, value ->
             resultingCode[index] = value
         }
 
-        val placedMap = mutableMapOf<FrameLayout, Int>()
+        val placedMap = mutableMapOf<BuiltFunction, Int>()
         for (entry in alreadyPlaced) {
             val layout = includedFunctions.getValue(entry.key)
 
-            placedMap[layout.layout] = entry.value
+            placedMap[layout] = entry.value
 
         }
 

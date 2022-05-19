@@ -29,39 +29,53 @@ val dummyTypeContainer = TypeContainer(
 internal class FunctionSignatureTest {
 
 
-    fun getSignature(program: String, types: List<DataType> = defaultTypes): FrameLayout {
+    fun getSignature(program: String): BuiltFunction {
         val node = AstParser(parseFile(StringReader(program))).parseFunctionDefinition()
 
-        return calculateSignature(node, TypeContainer(types))
 
+        val functionProvider = object : FunctionProvider {
+            override fun findSignature(name: String, parameterSignature: List<DataType>): FunctionSignature {
+                return FunctionSignature.fromNode(node, dummyTypeContainer)
+            }
+
+        }
+
+
+        val builder = FunctionBuilder(
+            FunctionSignature.fromNode(node, dummyTypeContainer),
+            functionProvider, dummyTypeContainer
+        )
+
+        return builder.buildBody(node.childNodes)
     }
 
     @Test
     fun testEmpty() {
-        val layout = getSignature(
+        val build = getSignature(
             """
             def test1():
               print(5)
     """
         )
+        val layout = build.layout
+
         assertEquals(layout.size, 2)
-        assertEquals(layout.sizeOfVars, 0)
-        assertEquals(layout.sizeOfParameters, 0)
+        assertEquals(build.sizeOfVars, 0)
         assertThat(layout.fields).hasSize(2)
         assertThat(layout.fields).containsEntry("frame", StructDataField("frame", 0, stackFrameType))
     }
 
     @Test
     fun testParam() {
-        val layout = getSignature(
+        val built = getSignature(
             """
             def test1(test:byte):
               print(5)
     """
         )
+        val layout = built.layout
         assertEquals(layout.size, 3)
-        assertEquals(layout.sizeOfVars, 0)
-        assertEquals(layout.sizeOfParameters, 1)
+        assertEquals(built.sizeOfVars, 0)
         assertEquals(
             layout.fields, mapOf(
                 "result" to StructDataField("result", 3, voidType),
@@ -73,31 +87,28 @@ internal class FunctionSignatureTest {
 
     @Test
     fun testVar() {
-        val layout = getSignature(
+        val built = getSignature(
             """
             def test1():
               var:byte=5
     """
         )
+        val layout = built.layout
         assertEquals(layout.size, 3)
-        assertEquals(layout.sizeOfVars, 1)
-        assertEquals(layout.sizeOfParameters, 0)
+        assertEquals(built.sizeOfVars, 1)
         assertThat(layout.fields).containsEntry("var", StructDataField("var", 2, byteType))
     }
 
     @Test
     fun testVarParamReturn() {
-        val layout = getSignature(
+        val built = getSignature(
             """
             def test1(param:byte): byte
               var:byte=5
     """
         )
-        assertEquals(layout.size, 5)
-        assertEquals(layout.sizeOfVars, 1)
-        assertEquals(layout.sizeOfReturn, 1)
-        assertEquals(layout.sizeOfMeta, 2)
-        assertEquals(layout.sizeOfParameters, 1)
+        assertEquals(built.layout.size, 5)
+        assertEquals(built.sizeOfVars, 1)
 
         assertEquals(
             StructBuilder()
@@ -105,14 +116,14 @@ internal class FunctionSignatureTest {
                 .addMember("param", byteType)
                 .addMember("var", byteType)
                 .addMember("result", byteType)
-                .getFields(), layout.fields
+                .getFields(), built.layout.fields
         )
 
     }
 
     @Test
     fun testIf() {
-        val layout = getSignature(
+        val built = getSignature(
             """
             def test1():
               if 5:
@@ -121,32 +132,30 @@ internal class FunctionSignatureTest {
                 var1:byte=3
     """
         )
-        assertEquals(layout.size, 4)
-        assertEquals(layout.sizeOfVars, 2)
-        assertEquals(layout.sizeOfParameters, 0)
+        assertEquals(built.layout.size, 4)
+        assertEquals(built.sizeOfVars, 2)
         assertEquals(
-            layout.fields, mapOf(
+            mapOf(
                 "result" to StructDataField("result", 4, voidType),
                 "frame" to StructDataField("frame", 0, stackFrameType),
-                "var1" to StructDataField("var1", 2, byteType),
-                "var" to StructDataField("var", 3, byteType),
-            )
+                "var1" to StructDataField("var1", 3, byteType),
+                "var" to StructDataField("var", 2, byteType),
+            ), built.layout.fields
         )
     }
 
     @Test
     fun testDescription() {
-        val layout = getSignature(
+        val built = getSignature(
             """
             def test1(var2:byte):
               var:byte=1
             """
         )
-        assertEquals(layout.size, 4)
-        assertEquals(layout.sizeOfVars, 1)
-        assertEquals(layout.sizeOfParameters, 1)
+        assertEquals(built.layout.size, 4)
+        assertEquals(built.sizeOfVars, 1)
         assertEquals(
-            layout.fields, mapOf(
+            built.layout.fields, mapOf(
                 "result" to StructDataField("result", 4, voidType),
                 "var" to StructDataField("var", 3, byteType),
 
@@ -162,7 +171,7 @@ internal class FunctionSignatureTest {
                 "  3: var: byte",
                 "  4: result: void",
             ),
-            layout.getDescription(),
+            built.layout.getDescription(),
         )
     }
 }
