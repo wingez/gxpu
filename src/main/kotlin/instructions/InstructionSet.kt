@@ -7,7 +7,7 @@ import java.io.StringReader
 
 class RegisterInstructionError(message: String) : Exception(message)
 class InstructionBuilderError(message: String) : Exception(message)
-
+class AssembleError(message: String) : Exception(message)
 
 data class Instruction(
     val mnemonic: String,
@@ -142,64 +142,12 @@ class InstructionSet(val maxSize: UByte = Instruction.MAX_SIZE) {
         return instructionByIndex.getValue(id)
     }
 
-    fun adjustForBrackets(mnemonic: String): String {
-        // TODO fix this hack
-        // Add spaces after each token so we can treat them as a regular word
-        var result = mnemonic
-        for (letter in listOf("[", "]")) {
-            result = result.replace(letter, " $letter ")
-        }
-
-        return result
-    }
 
     fun assembleMnemonic(mnemonic: String): List<UByte> {
-        val trimmedMnemonic = adjustForBrackets(mnemonic).trim(' ')
 
-        // Filter empty lines and comments
-        if (trimmedMnemonic.isEmpty() || trimmedMnemonic.startsWith("//"))
-            return emptyList()
-
-        for (instr in getInstructions()) {
-
-            val variables = mutableMapOf<String, Int>()
-
-            val templateSplit =
-                splitMany(adjustForBrackets(instr.mnemonic), MNEMONIC_DELIMITERS).filter { it.isNotEmpty() }
-            val mnemSplit = splitMany(trimmedMnemonic, MNEMONIC_DELIMITERS).filter { it.isNotEmpty() }
-
-            if (templateSplit.size != mnemSplit.size)
-                continue
-
-            var allMatch = true
-            for ((templateWord, mnemWord) in templateSplit.zip(mnemSplit)) {
-                if ('#' in templateWord && '#' in mnemWord) {
-                    //Variable
-                    val index = templateWord.indexOf("#")
-                    if (index != mnemWord.indexOf("#")) {
-                        allMatch = false
-                        break
-                    }
-                    //check variable name matches
-                    if (templateWord.lowercase().substring(0, index) !=
-                        mnemWord.lowercase().substring(0, index)
-                    ) {
-                        allMatch = false
-                        break
-                    }
-
-                    variables[templateWord.substring(index).trimStart('#')] =
-                        mnemWord.substring(index).trimStart('#').toInt()
-
-                } else if (templateWord.lowercase() != mnemWord.lowercase()) {
-                    allMatch = false
-                    break
-                }
-            }
-            if (allMatch)
-                return instr.build(variables)
-        }
-        throw InstructionBuilderError("No instruction matches $mnemonic")
+        val assembler = Assembler(this)
+        assembler.assembleMnemonic(mnemonic)
+        return assembler.getResultingCode()
     }
 
     fun assembleMnemonicFile(file: String): List<UByte> {
@@ -207,12 +155,12 @@ class InstructionSet(val maxSize: UByte = Instruction.MAX_SIZE) {
     }
 
     fun assembleMnemonicFile(file: StringReader): List<UByte> {
-        val result = mutableListOf<UByte>()
+        val assembler = Assembler(this)
 
         file.forEachLine {
-            result.addAll(assembleMnemonic(it.trim('\n')))
+            assembler.assembleMnemonic(it.trim('\n'))
         }
-        return result
+        return assembler.getResultingCode()
     }
 
     fun disassemble(code: List<UByte>): List<String> {
@@ -258,4 +206,147 @@ class InstructionSet(val maxSize: UByte = Instruction.MAX_SIZE) {
         }
         return result
     }
+}
+
+private class Assembler(
+    private val instructionSet: InstructionSet,
+) {
+
+    private val scopes = mutableListOf<MutableMap<String, String>>()
+
+    init {
+        pushScope()
+    }
+
+
+    private val currentCode = mutableListOf<UByte>()
+
+
+    private fun pushScope() {
+        scopes.add(mutableMapOf())
+    }
+
+    private fun popScope() {
+        if (scopes.isEmpty()) {
+            throw AssembleError("No scope to pop")
+        }
+
+        scopes.removeLast()
+    }
+
+    private fun adjustForBrackets(mnemonic: String): String {
+        // TODO fix this hack
+        // Add spaces after each token so we can treat them as a regular word
+        var result = mnemonic
+        for (letter in listOf("[", "]")) {
+            result = result.replace(letter, " $letter ")
+        }
+
+        return result
+    }
+
+    private fun setVariable(variable: String, value: String) {
+        val topScope = scopes.last()
+        if (variable in topScope) {
+            throw AssembleError("Cannot reassign variable: $variable")
+        }
+        topScope[variable] = value
+    }
+
+    private fun getVariable(variable: String): String {
+        for (scope in scopes.reversed()) {
+            if (variable in scope) {
+                return scope.getValue(variable)
+            }
+        }
+        throw AssembleError("No variable with name: $variable")
+    }
+
+    private fun getVariableOrConstant(value: String): Int {
+
+        var toConvert = value
+
+        if (!value.all { it.isDigit() }) {
+            toConvert = getVariable(value)
+        }
+
+        return toConvert.toInt()
+    }
+
+    fun assembleMnemonic(mnemonic: String) {
+        val trimmedMnemonic = adjustForBrackets(mnemonic).trim(' ')
+
+        // Filter empty lines and comments
+        if (trimmedMnemonic.isEmpty() || trimmedMnemonic.startsWith("//"))
+            return
+
+        if (trimmedMnemonic == "scope") {
+            pushScope()
+            return
+        } else if (trimmedMnemonic == "endscope") {
+            popScope()
+            return
+        }
+
+        if (trimmedMnemonic.startsWith("#")) {
+            val (name, value) = trimmedMnemonic.trimStart('#')
+                .split('=').map { it.trim(' ') }
+            setVariable(name, value)
+            return
+        }
+
+        for (instr in instructionSet.getInstructions()) {
+
+            val variables = mutableMapOf<String, Int>()
+
+            val templateSplit =
+                splitMany(adjustForBrackets(instr.mnemonic), MNEMONIC_DELIMITERS).filter { it.isNotEmpty() }
+            val mnemSplit = splitMany(trimmedMnemonic, MNEMONIC_DELIMITERS).filter { it.isNotEmpty() }
+
+            if (templateSplit.size != mnemSplit.size)
+                continue
+
+            var allMatch = true
+            for ((templateWord, mnemWord) in templateSplit.zip(mnemSplit)) {
+                if ('#' in templateWord && '#' in mnemWord) {
+                    //Variable
+                    val index = templateWord.indexOf("#")
+                    if (index != mnemWord.indexOf("#")) {
+                        allMatch = false
+                        break
+                    }
+                    //check variable name matches
+                    if (templateWord.lowercase().substring(0, index) !=
+                        mnemWord.lowercase().substring(0, index)
+                    ) {
+                        allMatch = false
+                        break
+                    }
+
+                    variables[templateWord.substring(index).trimStart('#')] =
+                        getVariableOrConstant(mnemWord.substring(index).trimStart('#'))
+
+                } else if (templateWord.lowercase() != mnemWord.lowercase()) {
+                    allMatch = false
+                    break
+                }
+            }
+            if (allMatch) {
+                currentCode.addAll(instr.build(variables))
+                return
+            }
+        }
+        throw InstructionBuilderError("No instruction matches $mnemonic")
+    }
+
+    fun getResultingCode(): List<UByte> {
+        popScope()
+
+        if (scopes.isNotEmpty()) {
+            throw AssembleError("Forgot to close a scope??")
+        }
+
+        return currentCode
+    }
+
 }

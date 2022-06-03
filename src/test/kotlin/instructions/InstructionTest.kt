@@ -5,9 +5,10 @@ import org.junit.jupiter.api.Test
 import se.wingez.bytes
 import se.wingez.emulator.Emulator
 
+val emptyEmulate = { _: Emulator -> }
+
 internal class InstructionTest {
 
-    private val emptyEmulate = { _: Emulator -> }
 
     @Test
     fun testAutoId() {
