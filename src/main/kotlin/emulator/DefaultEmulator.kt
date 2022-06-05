@@ -156,6 +156,19 @@ class DefaultEmulator : Emulator(instructionSet) {
             }
         }
 
+        val branch = instructionSet.createInstruction("bra #offset", group = FLOW_CONTROL) {
+            val offset = it.getMemoryAt(it.pc)
+            it.pc = byte(it.pc + offset)
+        }
+
+        val branch_zero = instructionSet.createInstruction("braz #offset", group = FLOW_CONTROL) {
+            val offset = it.getIncPC()
+            if (it.zeroFlag) {
+                it.pc = byte(it.pc + offset)
+            }
+        }
+
+
         val testa = instructionSet.createInstruction("TSTA", group = FLOW_CONTROL) {
             it.zeroFlag = it.a == byte(0)
         }
