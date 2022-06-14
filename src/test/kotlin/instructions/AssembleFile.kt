@@ -113,8 +113,134 @@ internal class TestAssembleFile {
         """.trimIndent()
             )
         )
+    }
+
+    @Test
+    fun testLabel() {
+        val i = InstructionSet()
+        i.addInstruction(Instruction("test #ins", emulate = emptyEmulate, id = 0u))
+
+        assertIterableEquals(
+            emptyList<UByte>(),
+            i.assembleMnemonicFile(
+                """
+            :here
+        """.trimIndent()
+            )
+        )
+
+        assertIterableEquals(
+            listOf<UByte>(0u, 0u),
+            i.assembleMnemonicFile(
+                """
+            :here
+            test #here
+        """.trimIndent()
+            )
+        )
+
+        assertIterableEquals(
+            listOf<UByte>(0u, 0u, 0u, 2u),
+            i.assembleMnemonicFile(
+                """
+            :here
+            test #here
+            :here2
+            test #here2
+        """.trimIndent()
+            )
+        )
+    }
+
+    @Test
+    fun testLabelOverwrite() {
+        val i = InstructionSet()
+
+        assertThrows<AssembleError> {
+            i.assembleMnemonicFile(
+                """
+                :here
+                :here
+            """.trimIndent()
+            )
+        }
+    }
+
+
+    @Test
+    fun testLabelScope() {
+        val i = InstructionSet()
+        i.addInstruction(Instruction("test #ins", emulate = emptyEmulate, id = 0u))
+
+        assertThrows<AssembleError> {
+            i.assembleMnemonicFile(
+                """
+            scope
+            :here
+            endscope
+            test #here
+            
+        """.trimIndent()
+            )
+        }
+
+        assertIterableEquals(
+            i.assembleMnemonicFile(
+                """
+                test #0
+                test #2
+                test #0
+            """.trimIndent()
+            ),
+            i.assembleMnemonicFile(
+                """
+                :here
+                test #here
+                scope
+                :here
+                test #here
+                endscope
+                test #here
+            """.trimIndent()
+            )
+        )
 
     }
 
+    @Test
+    fun testLabelLookahead() {
+        val i = InstructionSet()
+        i.addInstruction(Instruction("test #ins", emulate = emptyEmulate, id = 0u))
+
+
+        assertIterableEquals(
+            listOf<UByte>(0u, 2u), i.assembleMnemonicFile(
+                """
+            test #here
+            :here
+        """.trimIndent()
+            )
+        )
+    }
+
+    @Test
+    fun testLabelLookaheadScope() {
+        val i = InstructionSet()
+        i.addInstruction(Instruction("test #ins", emulate = emptyEmulate, id = 0u))
+
+        assertThrows<AssembleError> {
+            i.assembleMnemonicFile(
+                """
+                
+                test #here
+                scope
+                :here
+                endscope
+                
+            """.trimIndent()
+            )
+        }
+
+    }
 }
 
