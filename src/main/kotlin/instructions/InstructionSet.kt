@@ -145,8 +145,7 @@ class InstructionSet(val maxSize: UByte = Instruction.MAX_SIZE) {
 
     fun assembleMnemonic(mnemonic: String): List<UByte> {
 
-        val assembler = Assembler(this)
-        assembler.assembleMnemonic(mnemonic)
+        val assembler = Assembler(listOf(mnemonic), this)
         return assembler.getResultingCode()
     }
 
@@ -155,11 +154,11 @@ class InstructionSet(val maxSize: UByte = Instruction.MAX_SIZE) {
     }
 
     fun assembleMnemonicFile(file: StringReader): List<UByte> {
-        val assembler = Assembler(this)
 
-        file.forEachLine {
-            assembler.assembleMnemonic(it.trim('\n'))
-        }
+        val lines = file.readLines().map { it.trim('\n') }.toList()
+
+        val assembler = Assembler(lines, this)
+
         return assembler.getResultingCode()
     }
 
@@ -208,11 +207,24 @@ class InstructionSet(val maxSize: UByte = Instruction.MAX_SIZE) {
     }
 }
 
+private data class InstructionParseResult(
+    val instruction: Instruction,
+    val variableMap: Map<String, String>
+)
+
 private class Assembler(
+    private val lines: List<String>,
     private val instructionSet: InstructionSet,
 ) {
-
     private val scopes = mutableListOf<MutableMap<String, String>>()
+    private var currentLine = 0
+
+    private val NEW_SCOPE = "scope"
+    private val END_SCOPE = "endscope"
+    private val COMMENT = "//"
+    private val VARIABLE = "#"
+    private val LABEL = ":"
+
 
     init {
         pushScope()
@@ -221,6 +233,8 @@ private class Assembler(
 
     private val currentCode = mutableListOf<UByte>()
 
+    private val currentSize: Int
+        get() = currentCode.size
 
     private fun pushScope() {
         scopes.add(mutableMapOf())
@@ -259,6 +273,12 @@ private class Assembler(
                 return scope.getValue(variable)
             }
         }
+
+        val lookaheadResult = doLabelLoockahead(variable)
+        if (lookaheadResult != null) {
+            return lookaheadResult.toString()
+        }
+
         throw AssembleError("No variable with name: $variable")
     }
 
@@ -273,35 +293,78 @@ private class Assembler(
         return toConvert.toInt()
     }
 
-    fun assembleMnemonic(mnemonic: String) {
-        val trimmedMnemonic = adjustForBrackets(mnemonic).trim(' ')
+    private fun isEmptyOrComment(line: String): Boolean {
+        return line.isEmpty() || line.startsWith(COMMENT)
+    }
+
+    private fun isNewScope(line: String): Boolean {
+        return line.startsWith(NEW_SCOPE)
+    }
+
+    private fun isEndScope(line: String): Boolean {
+        return line.startsWith(END_SCOPE)
+    }
+
+    private fun isLabel(line: String): Boolean {
+        return line.startsWith(LABEL)
+    }
+
+    private fun isVariable(line: String): Boolean {
+        return line.startsWith(VARIABLE)
+    }
+
+    private fun prepareLine(line: String): String {
+        return adjustForBrackets(line).trim(' ')
+    }
+
+    private fun assembleLine(mnemonic: String) {
+        val trimmedMnemonic = prepareLine(mnemonic)
 
         // Filter empty lines and comments
-        if (trimmedMnemonic.isEmpty() || trimmedMnemonic.startsWith("//"))
+        if (isEmptyOrComment(trimmedMnemonic))
             return
 
-        if (trimmedMnemonic == "scope") {
+        if (isNewScope(trimmedMnemonic)) {
             pushScope()
             return
-        } else if (trimmedMnemonic == "endscope") {
+        }
+        if (isEndScope(trimmedMnemonic)) {
             popScope()
             return
         }
+        if (isLabel(trimmedMnemonic)) {
+            val labelName = trimmedMnemonic.substring(LABEL.length)
+            setVariable(labelName, currentSize.toString())
+            return
+        }
 
-        if (trimmedMnemonic.startsWith("#")) {
-            val (name, value) = trimmedMnemonic.trimStart('#')
+        if (isVariable(trimmedMnemonic)) {
+            val (name, value) = trimmedMnemonic.substring(VARIABLE.length)
                 .split('=').map { it.trim(' ') }
             setVariable(name, value)
             return
         }
 
+        val parseResult = findInstruction(trimmedMnemonic)
+
+        val instructionValues = mutableMapOf<String, Int>()
+
+        for ((variableName, variableValue) in parseResult.variableMap.entries) {
+            val value = getVariableOrConstant(variableValue)
+            instructionValues.put(variableName, value)
+        }
+
+        currentCode.addAll(parseResult.instruction.build(instructionValues))
+    }
+
+    fun findInstruction(line: String): InstructionParseResult {
         for (instr in instructionSet.getInstructions()) {
 
-            val variables = mutableMapOf<String, Int>()
+            val variables = mutableMapOf<String, String>()
 
             val templateSplit =
                 splitMany(adjustForBrackets(instr.mnemonic), MNEMONIC_DELIMITERS).filter { it.isNotEmpty() }
-            val mnemSplit = splitMany(trimmedMnemonic, MNEMONIC_DELIMITERS).filter { it.isNotEmpty() }
+            val mnemSplit = splitMany(line, MNEMONIC_DELIMITERS).filter { it.isNotEmpty() }
 
             if (templateSplit.size != mnemSplit.size)
                 continue
@@ -324,7 +387,7 @@ private class Assembler(
                     }
 
                     variables[templateWord.substring(index).trimStart('#')] =
-                        getVariableOrConstant(mnemWord.substring(index).trimStart('#'))
+                        mnemWord.substring(index).trimStart('#')
 
                 } else if (templateWord.lowercase() != mnemWord.lowercase()) {
                     allMatch = false
@@ -332,14 +395,60 @@ private class Assembler(
                 }
             }
             if (allMatch) {
-                currentCode.addAll(instr.build(variables))
-                return
+                return InstructionParseResult(instr, variables)
             }
         }
-        throw InstructionBuilderError("No instruction matches $mnemonic")
+        throw InstructionBuilderError("No instruction matches $line")
+    }
+
+    fun doLabelLoockahead(labelToSearchFor: String): Int? {
+
+        var scopeNesting = 0
+        var offset = currentSize
+
+        for (line in lines.slice(currentLine until lines.size).map { prepareLine(it) }) {
+            if (isEmptyOrComment(line) || isVariable(line)) {
+                continue
+            }
+            if (isNewScope(line)) {
+                scopeNesting++
+                continue
+            }
+            if (isEndScope(line)) {
+                scopeNesting--
+                if (scopeNesting < 0) {
+                    return null
+                }
+                continue
+            }
+            if (isLabel(line)) {
+                // Ignore labels set in further nested scope
+                if (scopeNesting > 0) {
+                    continue
+                }
+
+                val labelName = line.substring(LABEL.length)
+                if (labelName == labelToSearchFor) {
+                    return offset
+                } else {
+                    continue
+                }
+            }
+
+            val parseResult = findInstruction(line)
+            offset += parseResult.instruction.size
+        }
+        return null
     }
 
     fun getResultingCode(): List<UByte> {
+
+        for ((index, line) in lines.indices.zip(lines)) {
+            currentLine = index
+            assembleLine(line)
+
+        }
+
         popScope()
 
         if (scopes.isNotEmpty()) {
