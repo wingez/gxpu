@@ -54,10 +54,7 @@ fun flatten(
         functionName = "subtract"
 
         parameterNodes = node.childNodes // Subtractor first
-    } else if (node.type == NodeTypes.Print) {
-        functionName = "print"
-        parameterNodes = node.childNodes
-    } else if (node.type == NodeTypes.Call) {
+    }  else if (node.type == NodeTypes.Call) {
         val callInfo = node.asCall()
         functionName = callInfo.targetName
         parameterNodes = callInfo.parameters

@@ -92,7 +92,6 @@ class AstParser(private val tokens: List<Token>) {
         val result = mutableListOf<AstNode>()
 
         when (peek().type) {
-            TokenType.KeywordPrint -> result.add(parsePrint())
             TokenType.KeywordDef -> result.add(parseFunctionDefinition())
             TokenType.KeywordStruct -> result.add(parseStruct())
 
@@ -159,15 +158,6 @@ class AstParser(private val tokens: List<Token>) {
 
         return expressions
 
-    }
-
-    fun parsePrint(): AstNode {
-        consumeType(TokenKeywordPrint)
-        consumeType(TokenLeftParenthesis)
-        val target = parseExpressionUntilSeparator()
-        consumeType(TokenRightParenthesis)
-        consumeType(TokenEOL)
-        return AstNode.fromPrint(target)
     }
 
     fun parseIfStatement(): AstNode {
@@ -294,11 +284,6 @@ class AstParser(private val tokens: List<Token>) {
             }
 
             return AstNode.fromIdentifier(identifier)
-        } else if (peekIs(TokenKeywordPrint, consumeMatch = true)) {
-            consumeType(TokenLeftParenthesis)
-            val argument = parseExpressionUntilSeparator()
-            consumeType(TokenRightParenthesis)
-            return AstNode.fromPrint(argument)
         } else {
             throw ParserError("Cannot parse to value provider: ${peek()}")
         }

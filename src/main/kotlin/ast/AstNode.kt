@@ -9,7 +9,6 @@ enum class NodeTypes {
     NotEquals,
     MemberDeclaration,
     Assign,
-    Print,
     Constant,
     Call,
     Function,
@@ -173,10 +172,6 @@ data class AstNode(
             value: AstNode,
         ): AstNode {
             return AstNode(NodeTypes.Assign, null, listOf(target, value))
-        }
-
-        fun fromPrint(target: AstNode): AstNode {
-            return AstNode(NodeTypes.Print, null, listOf(target))
         }
 
         fun fromCall(targetName: String, parameters: List<AstNode>): AstNode {

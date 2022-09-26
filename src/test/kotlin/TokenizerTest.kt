@@ -33,7 +33,7 @@ internal class TokenizerTest {
         print
         """
                 )
-            ), listOf(TokenIdentifier("var"), TokenEOL, TokenKeywordPrint, TokenEOL)
+            ), listOf(TokenIdentifier("var"), TokenEOL, TokenIdentifier("print"), TokenEOL)
         )
 
         assertEquals(
@@ -46,7 +46,7 @@ internal class TokenizerTest {
             
         """
                 )
-            ), listOf(TokenIdentifier("var"), TokenEOL, TokenBeginBlock, TokenKeywordPrint, TokenEOL, TokenEndBlock)
+            ), listOf(TokenIdentifier("var"), TokenEOL, TokenBeginBlock, TokenIdentifier("print"), TokenEOL, TokenEndBlock)
         )
 
         assertEquals(
@@ -60,7 +60,7 @@ internal class TokenizerTest {
         """
                 )
             ), listOf(
-                TokenIdentifier("var"), TokenEOL, TokenBeginBlock, TokenKeywordPrint,
+                TokenIdentifier("var"), TokenEOL, TokenBeginBlock, TokenIdentifier("print"),
                 TokenEOL, TokenEndBlock, TokenNumericConstant(5), TokenEOL
             )
         )
@@ -88,9 +88,9 @@ internal class TokenizerTest {
         """
                 )
             ), listOf(
-                TokenKeywordPrint, TokenEOL,
-                TokenBeginBlock, TokenKeywordPrint, TokenEOL,
-                TokenBeginBlock, TokenKeywordPrint, TokenEOL,
+                TokenIdentifier("print"), TokenEOL,
+                TokenBeginBlock, TokenIdentifier("print"), TokenEOL,
+                TokenBeginBlock, TokenIdentifier("print"), TokenEOL,
                 TokenEndBlock, TokenEndBlock,
                 TokenIdentifier("var"), TokenEOL
             )
@@ -151,7 +151,7 @@ internal class TokenizerTest {
         assertEquals(
             parseFile(StringReader(content)), listOf(
                 TokenIdentifier("test"), TokenEOL,
-                TokenBeginBlock, TokenKeywordPrint, TokenEOL,
+                TokenBeginBlock, TokenIdentifier("print"), TokenEOL,
                 TokenEndBlock,
             )
         )

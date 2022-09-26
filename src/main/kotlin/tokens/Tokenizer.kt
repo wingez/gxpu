@@ -31,7 +31,6 @@ enum class TokenType {
     Equals,
     Dot,
     KeywordDef,
-    KeywordPrint,
     KeywordWhile,
     KeywordIf,
     KeywordElse,
@@ -59,7 +58,6 @@ val TokenAssign = ExpressionSeparator(TokenType.Equals)
 val TokenDot = TokenSingleOperation(TokenType.Dot)
 val TokenDeref = TokenSingleOperation(TokenType.Deref)
 val TokenKeywordDef = Token(TokenType.KeywordDef)
-val TokenKeywordPrint = Token(TokenType.KeywordPrint)
 val TokenKeywordWhile = Token(TokenType.KeywordWhile)
 val TokenKeywordIf = Token(TokenType.KeywordIf)
 val TokenKeywordElse = Token(TokenType.KeywordElse)
@@ -264,7 +262,6 @@ fun toToken(text: String): Token {
 
     return when (text) {
         "def" -> TokenKeywordDef
-        "print" -> TokenKeywordPrint
         "while" -> TokenKeywordWhile
         "if" -> TokenKeywordIf
         "else" -> TokenKeywordElse

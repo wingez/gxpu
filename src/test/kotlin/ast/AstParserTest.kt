@@ -67,12 +67,6 @@ internal class AstParserTest {
         assertEquals(node, listOf(assign("Test", 4)))
     }
 
-    @Test
-    fun testExpressionPrint() {
-        val node = AstParser(parseLine("print(5)")).parseExpression()
-        assertEquals(node, listOf(AstNode.fromPrint(constant(5))))
-    }
-
     fun getFuncTokens(vararg parameters: String): List<Token> {
         val tokens = mutableListOf(TokenKeywordDef, TokenIdentifier("test"), TokenLeftParenthesis)
 
@@ -89,12 +83,12 @@ internal class AstParserTest {
 
         return tokens + listOf(
             TokenRightParenthesis, TokenColon, TokenEOL, TokenBeginBlock,
-            TokenKeywordPrint, TokenLeftParenthesis, TokenNumericConstant(5), TokenRightParenthesis, TokenEOL,
+            TokenIdentifier("print"), TokenLeftParenthesis, TokenNumericConstant(5), TokenRightParenthesis, TokenEOL,
             TokenEndBlock
         )
     }
 
-    private val printBody = listOf(AstNode.fromPrint(constant(5)))
+    private val printBody = listOf(AstNode.fromCall("print", listOf(constant(5))))
 
 
     @Test
@@ -252,7 +246,7 @@ internal class AstParserTest {
                     AstNode.fromOperation(NodeTypes.Subtraction, identifier("a"), constant(2)),
                     constant(0)
                 ),
-                listOf(AstNode.fromPrint(constant(5))),
+                listOf(AstNode.fromCall("print", listOf(constant(5)))),
                 emptyList()
             )
         )
@@ -272,7 +266,7 @@ internal class AstParserTest {
             ).parseIfStatement(),
             AstNode.fromIf(
                 identifier("a"), printBody,
-                listOf(AstNode.fromPrint(constant(0)))
+                listOf(AstNode.fromCall("print",listOf( constant(0))))
             )
         )
     }
