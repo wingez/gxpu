@@ -49,9 +49,22 @@ class BuiltInAddition : Function(
     }
 }
 
+class BuiltInNotEqual : Function(
+    OperatorBuiltIns.NotEqual, listOf(DatatypeInteger, DatatypeInteger), DatatypeInteger
+) {
+    override fun execute(variables: List<Variable>, output: WalkerOutput): Variable {
+        if (variables[0].value != variables[1].value) {
+            return Variable(DatatypeInteger, 1)
+        } else {
+            return Variable(DatatypeInteger, 0)
+        }
+    }
+}
+
 val builtInList = listOf(
     BuiltInPrint(),
     BuiltInAddition(),
+    BuiltInNotEqual(),
 )
 
 class WalkFrame {
@@ -69,25 +82,75 @@ fun walk(node: AstNode): WalkerOutput {
 
     val frame = WalkFrame()
 
-    walkRecursive(node, frame, output)
+    for (child in node.childNodes) {
+        walkRecursive(child, frame, output)
+    }
     return output
 }
 
 private fun walkRecursive(node: AstNode, frame: WalkFrame, output: WalkerOutput) {
 
-    for (child in node.childNodes) {
 
-        when (child.type) {
-            NodeTypes.Call -> {
-                getValueOf(child, frame, output)
+    when (node.type) {
+        NodeTypes.Call -> {
+            getValueOf(node, frame, output)
+        }
+
+        NodeTypes.Assign -> {
+            handleAssign(node, frame, output)
+        }
+
+        NodeTypes.If -> {
+            handleIf(node, frame, output)
+        }
+
+        NodeTypes.While -> {
+            handleWhile(node, frame, output)
+        }
+
+        else -> throw WalkerException()
+    }
+}
+
+fun handleWhile(node: AstNode, frame: WalkFrame, output: WalkerOutput) {
+    assert(node.type == NodeTypes.While)
+    val whileNode = node.asWhile()
+
+    while (true) {
+        val conditionResult = getValueOf(whileNode.condition,frame, output)
+        if (conditionResult.datatype != DatatypeInteger) {
+            throw WalkerException("Expect conditional to be of integer type")
+        }
+
+        if (conditionResult.value != 1) {
+            break
+        }
+
+        for (child in whileNode.body) {
+            walkRecursive(child, frame, output)
+        }
+    }
+}
+
+private fun handleIf(node: AstNode, frame: WalkFrame, output: WalkerOutput) {
+    assert(node.type == NodeTypes.If)
+    val ifNode = node.asIf()
+
+    val conditionResult = getValueOf(ifNode.condition, frame, output)
+
+    if (conditionResult.datatype != DatatypeInteger) {
+        throw WalkerException("Expect conditional to be of integer type")
+    }
+
+    if (conditionResult.value != 0) {
+        for (child in ifNode.ifBody) {
+            walkRecursive(child, frame, output)
+        }
+    } else {
+        if (ifNode.hasElse) {
+            for (child in ifNode.elseBody) {
+                walkRecursive(child, frame, output)
             }
-
-            NodeTypes.Assign -> {
-                handleAssign(child, frame, output)
-            }
-
-
-            else -> throw WalkerException()
         }
     }
 }

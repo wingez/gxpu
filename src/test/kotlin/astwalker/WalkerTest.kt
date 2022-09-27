@@ -51,16 +51,59 @@ internal class WalkerTest {
                   print(a)
             """.trimIndent()
             ).parseFunctionDefinition()
-        val output = walk(function)
+        assertEquals(listOf("5"), walk(function).result)
 
-        assertEquals(listOf("5"), output.result)
         assertThrows<WalkerException> {
-            walk(parserFromFile("""
+            walk(
+                parserFromFile(
+                    """
                 def main():
                   print(a)
-            """.trimIndent()).parseFunctionDefinition())
+            """.trimIndent()
+                ).parseFunctionDefinition()
+            )
         }
 
+    }
+
+    @Test
+    fun testWalkerIf() {
+
+        for (i in 0..10) {
+            val function =
+                parserFromFile(
+                    """
+                def main():
+                  i = $i
+                  if (i!=5):
+                    print(20)
+                  else:
+                    print($i)
+            """.trimIndent()
+                ).parseFunctionDefinition()
+
+            val expected = if (i == 5) i.toString() else "20"
+
+            assertEquals(listOf(expected), walk(function).result)
+        }
+    }
+
+    @Test
+    fun testWalkerWhile() {
+        val function =
+            parserFromFile(
+                """
+                def main():
+                  i = 3
+                  while i!=6:
+                    print(i)
+                    i = i+1
+            """.trimIndent()
+            ).parseFunctionDefinition()
+
+        val expected = listOf(3,4,5).map { it.toString() }
+
+        assertEquals(expected, walk(function).result)
     }
 
 
