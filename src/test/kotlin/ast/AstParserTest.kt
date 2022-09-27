@@ -168,7 +168,7 @@ internal class AstParserTest {
 
         assertEquals(
             parserFromLine("return 5+a").parseReturnStatement(),
-            AstNode.fromReturn(AstNode.fromOperation(NodeTypes.Addition, constant(5), identifier("a")))
+            AstNode.fromReturn(AstNode.fromOperation(TokenPlusSign, constant(5), identifier("a")))
         )
     }
 
@@ -242,8 +242,8 @@ internal class AstParserTest {
             ).parseIfStatement(),
             AstNode.fromIf(
                 AstNode.fromOperation(
-                    NodeTypes.NotEquals,
-                    AstNode.fromOperation(NodeTypes.Subtraction, identifier("a"), constant(2)),
+                    TokenNotEqual,
+                    AstNode.fromOperation(TokenMinusSign, identifier("a"), constant(2)),
                     constant(0)
                 ),
                 listOf(AstNode.fromCall("print", listOf(constant(5)))),

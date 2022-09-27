@@ -1,5 +1,6 @@
 package se.wingez.compiler
 
+import se.wingez.ast.OperatorBuiltIns
 import se.wingez.emulator.DefaultEmulator
 
 interface BuiltIn {
@@ -36,7 +37,7 @@ class Print : BuiltIn {
 }
 
 class ByteAddition : BuiltIn {
-    override val name = "add"
+    override val name = OperatorBuiltIns.Addition
     override val signature: FunctionSignature
         get() = SignatureBuilder(name)
             .addParameter("left", byteType)
@@ -63,7 +64,7 @@ class ByteAddition : BuiltIn {
 }
 
 class ByteSubtraction : BuiltIn {
-    override val name = "subtract"
+    override val name = OperatorBuiltIns.Subtraction
     override val signature: FunctionSignature
         get() = SignatureBuilder(name)
             .addParameter("initial", byteType)

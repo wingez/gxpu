@@ -47,14 +47,7 @@ fun flatten(
     val functionName: String
     val parameterNodes: List<AstNode>
 
-    if (node.type == NodeTypes.Addition) {
-        functionName = "add"
-        parameterNodes = node.childNodes
-    } else if (node.type == NodeTypes.Subtraction) {
-        functionName = "subtract"
-
-        parameterNodes = node.childNodes // Subtractor first
-    }  else if (node.type == NodeTypes.Call) {
+    if (node.type == NodeTypes.Call) {
         val callInfo = node.asCall()
         functionName = callInfo.targetName
         parameterNodes = callInfo.parameters
@@ -96,10 +89,12 @@ fun findStoreAddress(target: AstNode, builder: FunctionBuilder): Triple<String, 
                 accessOrder.add(currentNode.asIdentifier())
                 break
             }
+
             NodeTypes.MemberAccess -> {
                 accessOrder.add(currentNode.data as String)
                 currentNode = currentNode.childNodes[0]
             }
+
             else -> {
                 throw AssertionError()
             }
@@ -138,6 +133,7 @@ fun putOnStack(
             is PlaceConstant -> {
                 builder.generator.generate(DefaultEmulator.push.build(mapOf("val" to action.constant)))
             }
+
             is AllocateReturnAndVariables -> {
                 val returnSize = action.toCall.returnType.size
 
@@ -150,9 +146,11 @@ fun putOnStack(
                 }
 
             }
+
             is Call -> {
                 builder.generator.link(DefaultEmulator.call_addr, action.toCall, LinkType.FunctionAddress)
             }
+
             is PopArgumentsVariables -> {
 
                 val parameterSize = action.toCall.parameters.sumOf { it.type.size }
@@ -165,9 +163,11 @@ fun putOnStack(
                     builder.generator.link(DefaultEmulator.add_sp, action.toCall, LinkType.VarsSize, parameterSize)
                 }
             }
+
             is PlaceFrameVariable -> {
                 builder.linkVariable(DefaultEmulator.push_fp_offset, action.baseVariableName, action.offset)
             }
+
             else -> throw AssertionError()
         }
     }

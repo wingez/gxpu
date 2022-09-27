@@ -1,12 +1,10 @@
 package se.wingez.ast
 
+import se.wingez.tokens.Token
+
 enum class NodeTypes {
     Body,
     Identifier,
-
-    Addition,
-    Subtraction,
-    NotEquals,
     MemberDeclaration,
     Assign,
     Constant,
@@ -145,8 +143,10 @@ data class AstNode(
     companion object {
 
 
-        fun fromOperation(type: NodeTypes, left: AstNode, right: AstNode): AstNode {
-            return AstNode(type, null, listOf(left, right))
+        fun fromOperation(type: Token, left: AstNode, right: AstNode): AstNode {
+
+            val name = operatorToNodesType.getValue(type)
+            return fromCall(name, listOf(left, right))
         }
 
         fun fromBody(body: List<AstNode>): AstNode {

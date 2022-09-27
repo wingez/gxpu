@@ -5,13 +5,15 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
+import se.wingez.tokens.TokenNotEqual
+import se.wingez.tokens.TokenPlusSign
 
 class AstParserArithmetic {
     @Test
     fun testBasic() {
         assertEquals(
             parserFromFile("5+10").parseExpressionUntilSeparator(),
-            AstNode.fromOperation(NodeTypes.Addition, constant(5), constant(10))
+            AstNode.fromOperation(TokenPlusSign, constant(5), constant(10))
         )
     }
 
@@ -20,7 +22,7 @@ class AstParserArithmetic {
     fun testWithIdentifier() {
         assertEquals(
             parserFromFile("2+test").parseExpressionUntilSeparator(),
-            AstNode.fromOperation(NodeTypes.Addition, constant(2), identifier("test"))
+            AstNode.fromOperation(TokenPlusSign, constant(2), identifier("test"))
         )
     }
 
@@ -28,7 +30,7 @@ class AstParserArithmetic {
     fun notEqual() {
         assertEquals(
             parserFromFile("2!=0").parseExpressionUntilSeparator(),
-            AstNode.fromOperation(NodeTypes.NotEquals, constant(2), constant(0))
+            AstNode.fromOperation(TokenNotEqual, constant(2), constant(0))
         )
     }
 
@@ -40,7 +42,7 @@ class AstParserArithmetic {
         )
         assertEquals(
             parserFromLine("(5+var)").parseExpressionUntilSeparator(),
-            AstNode.fromOperation(NodeTypes.Addition, constant(5), identifier("var"))
+            AstNode.fromOperation(TokenPlusSign, constant(5), identifier("var"))
         )
 
         assertThat(
@@ -57,8 +59,8 @@ class AstParserArithmetic {
             parserFromFile("(5+5)+10").parseExpressionUntilSeparator(),
 
             AstNode.fromOperation(
-                NodeTypes.Addition,
-                AstNode.fromOperation(NodeTypes.Addition, constant(5), constant(5)),
+                TokenPlusSign,
+                AstNode.fromOperation(TokenPlusSign, constant(5), constant(5)),
                 constant(10)
             )
         )
@@ -68,17 +70,17 @@ class AstParserArithmetic {
     fun testAssociation() {
         assertEquals(
             AstNode.fromOperation(
-                NodeTypes.Addition,
-                AstNode.fromOperation(NodeTypes.Addition, constant(5), constant(6)),
+                TokenPlusSign,
+                AstNode.fromOperation(TokenPlusSign, constant(5), constant(6)),
                 constant(7)
             ),
             value("5+6+7")
         )
         assertEquals(
             AstNode.fromOperation(
-                NodeTypes.NotEquals,
-                AstNode.fromOperation(NodeTypes.Addition, constant(5), constant(6)),
-                AstNode.fromOperation(NodeTypes.Addition, constant(7), constant(8)),
+                TokenNotEqual,
+                AstNode.fromOperation(TokenPlusSign, constant(5), constant(6)),
+                AstNode.fromOperation(TokenPlusSign, constant(7), constant(8)),
             ),
             value("5+6!=7+8")
         )

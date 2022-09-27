@@ -2,6 +2,7 @@ package se.wingez.astwalker
 
 import se.wingez.ast.AstNode
 import se.wingez.ast.NodeTypes
+import se.wingez.ast.OperatorBuiltIns
 
 class WalkerException() : Exception()
 
@@ -57,7 +58,7 @@ class BuiltInAddition : Function(
         return Variable(DatatypeInteger, variables[0].value + variables[1].value)
     }
     companion object {
-        const val name = "builtin_Addition"
+        const val name = OperatorBuiltIns.Addition
     }
 }
 
@@ -124,9 +125,6 @@ fun getValueOf(node: AstNode, output: WalkerOutput): Variable {
     return when (node.type) {
         NodeTypes.Constant -> Variable(DatatypeInteger, node.asConstant())
         NodeTypes.Call -> handleCall(node, output)
-        NodeTypes.Addition -> {
-            getValueOf(AstNode.fromCall(BuiltInAddition.name,node.childNodes),output)
-        }
 
         else -> {
             throw WalkerException()

@@ -14,6 +14,20 @@ val operationPriorities = mapOf(
     TokenDot to 10,
 )
 
+class OperatorBuiltIns {
+    companion object {
+        const val Addition = "builtin_addition"
+        const val Subtraction = "builtin_subtraction"
+        const val NotEqual = "builtin_notequal"
+    }
+}
+
+val operatorToNodesType = mapOf<Token, String>(
+    TokenPlusSign to OperatorBuiltIns.Addition,
+    TokenMinusSign to OperatorBuiltIns.Subtraction,
+    TokenNotEqual to OperatorBuiltIns.NotEqual,
+)
+
 
 class AstParser(private val tokens: List<Token>) {
     companion object {
@@ -329,14 +343,17 @@ class AstParser(private val tokens: List<Token>) {
                 return second.data as String
             }
 
-            val result = when (operatorToken) {
-                TokenPlusSign -> AstNode.fromOperation(NodeTypes.Addition, first, second)
-                TokenMinusSign -> AstNode.fromOperation(NodeTypes.Subtraction, first, second)
-                TokenNotEqual -> AstNode.fromOperation(NodeTypes.NotEquals, first, second)
-                TokenDeref -> AstNode(NodeTypes.MemberDeref, secondAsIdentifier(), listOf(first))
-                TokenDot -> AstNode(NodeTypes.MemberAccess, secondAsIdentifier(), listOf(first))
-                TokenLeftBracket -> AstNode.fromArrayAccess(first, second)
-                else -> throw ParserError("You have messed up badly... $operatorToken")
+            val result: AstNode
+
+            if (operatorToken in operatorToNodesType) {
+                result = AstNode.fromCall(operatorToNodesType.getValue(operatorToken), listOf(first, second))
+            } else {
+                result = when (operatorToken) {
+                    TokenDeref -> AstNode(NodeTypes.MemberDeref, secondAsIdentifier(), listOf(first))
+                    TokenDot -> AstNode(NodeTypes.MemberAccess, secondAsIdentifier(), listOf(first))
+                    TokenLeftBracket -> AstNode.fromArrayAccess(first, second)
+                    else -> throw ParserError("You have messed up badly... $operatorToken")
+                }
             }
 
             values.add(index, result)
