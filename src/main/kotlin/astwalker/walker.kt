@@ -29,19 +29,19 @@ abstract class Function(
 }
 
 class BuiltInPrint : Function(
-    "print", listOf(DatatypeInteger), DatatypeVoid
+    "print", listOf(Datatype.Integer), Datatype.Void
 ) {
     override fun execute(variables: List<Variable>, output: WalkerOutput): Variable {
-        output.result.add(variables[0].value.toString())
-        return Variable(DatatypeVoid, 0)
+        output.result.add(variables[0].getPrimitiveValue().toString())
+        return Variable(Datatype.Void)
     }
 }
 
 class BuiltInAddition : Function(
-    name, listOf(DatatypeInteger, DatatypeInteger), DatatypeInteger
+    name, listOf(Datatype.Integer, Datatype.Integer), Datatype.Integer
 ) {
     override fun execute(variables: List<Variable>, output: WalkerOutput): Variable {
-        return Variable(DatatypeInteger, variables[0].value + variables[1].value)
+        return Variable(Datatype.Integer, variables[0].getPrimitiveValue() + variables[1].getPrimitiveValue())
     }
 
     companion object {
@@ -50,13 +50,13 @@ class BuiltInAddition : Function(
 }
 
 class BuiltInNotEqual : Function(
-    OperatorBuiltIns.NotEqual, listOf(DatatypeInteger, DatatypeInteger), DatatypeInteger
+    OperatorBuiltIns.NotEqual, listOf(Datatype.Integer, Datatype.Integer), Datatype.Integer
 ) {
     override fun execute(variables: List<Variable>, output: WalkerOutput): Variable {
-        if (variables[0].value != variables[1].value) {
-            return Variable(DatatypeInteger, 1)
+        if (variables[0].getPrimitiveValue() != variables[1].getPrimitiveValue()) {
+            return Variable(Datatype.Integer, 1)
         } else {
-            return Variable(DatatypeInteger, 0)
+            return Variable(Datatype.Integer, 0)
         }
     }
 }
@@ -73,18 +73,30 @@ class WalkFrame {
 
 }
 
-
 fun walk(node: AstNode): WalkerOutput {
+    return walk(listOf(node))
+}
+
+fun walk(nodes: List<AstNode>): WalkerOutput {
 
     val output = WalkerOutput()
+    for (node in nodes) {
+        assert(node.type == NodeTypes.Function || node.type == NodeTypes.Struct)
 
-    assert(node.type == NodeTypes.Function)
+        if (node.type == NodeTypes.Struct) {
 
-    val frame = WalkFrame()
+        }
 
-    for (child in node.childNodes) {
-        walkRecursive(child, frame, output)
+        if (node.type == NodeTypes.Function) {
+
+            val frame = WalkFrame()
+
+            for (child in node.childNodes) {
+                walkRecursive(child, frame, output)
+            }
+        }
     }
+
     return output
 }
 
@@ -117,12 +129,12 @@ fun handleWhile(node: AstNode, frame: WalkFrame, output: WalkerOutput) {
     val whileNode = node.asWhile()
 
     while (true) {
-        val conditionResult = getValueOf(whileNode.condition,frame, output)
-        if (conditionResult.datatype != DatatypeInteger) {
+        val conditionResult = getValueOf(whileNode.condition, frame, output)
+        if (conditionResult.datatype != Datatype.Integer) {
             throw WalkerException("Expect conditional to be of integer type")
         }
 
-        if (conditionResult.value != 1) {
+        if (conditionResult.getPrimitiveValue() != 1) {
             break
         }
 
@@ -138,11 +150,11 @@ private fun handleIf(node: AstNode, frame: WalkFrame, output: WalkerOutput) {
 
     val conditionResult = getValueOf(ifNode.condition, frame, output)
 
-    if (conditionResult.datatype != DatatypeInteger) {
+    if (conditionResult.datatype != Datatype.Integer) {
         throw WalkerException("Expect conditional to be of integer type")
     }
 
-    if (conditionResult.value != 0) {
+    if (conditionResult.getPrimitiveValue() != 0) {
         for (child in ifNode.ifBody) {
             walkRecursive(child, frame, output)
         }
@@ -220,7 +232,7 @@ fun matchesTheseArgumentsSignature(arguments: List<Variable>, requiredParameters
 fun getValueOf(node: AstNode, frame: WalkFrame, output: WalkerOutput): Variable {
 
     return when (node.type) {
-        NodeTypes.Constant -> Variable(DatatypeInteger, node.asConstant())
+        NodeTypes.Constant -> Variable(Datatype.Integer, node.asConstant())
         NodeTypes.Call -> handleCall(node, frame, output)
         NodeTypes.Identifier -> {
             val variableName = node.asIdentifier()
@@ -235,5 +247,5 @@ fun getValueOf(node: AstNode, frame: WalkFrame, output: WalkerOutput): Variable 
             throw WalkerException()
         }
     }
-
 }
+
