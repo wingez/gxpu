@@ -26,7 +26,7 @@ internal class WalkerDatatypeTest {
         assertThrows<AssertionError> { Datatype.Void.compositeMembers }
     }
 
-    fun getDummyType(): Datatype {
+    private fun getDummyType(): Datatype {
         val node = parserFromFile(
             """
             struct test:
@@ -81,5 +81,64 @@ internal class WalkerDatatypeTest {
 
         assertEquals(0, okMember.getField("a").getPrimitiveValue())
         assertEquals(5, okMember.getField("b").getPrimitiveValue())
+    }
+
+    @Test
+    fun testMemberAssign() {
+        val code = """
+            struct test:
+              a:int
+              b:int
+            
+            def main():
+              t:new test
+              
+              t.a = 5
+              t.b = 0
+              print(t.a)
+              print(t.b)
+              
+              t.b=t.a
+              print(t.a)
+              print(t.b)
+              
+              t.a = 10
+              print(t.a)
+              print(t.b)
+        """.trimIndent()
+
+        val nodes = parserFromFile(code).parse()
+
+        assertEquals(
+            listOf(
+                5, 0,
+                5, 5,
+                10, 5
+            ).map { it.toString() }, walk(nodes).result
+        )
+    }
+
+    @Test
+    fun testFibonacci() {
+        val program = """
+          def main():
+            a=1
+            b=0
+            c=0
+    
+            counter=0
+            while (10-counter)!=0:
+              print(a)
+              c=a+b
+              b=a
+              a=c
+              
+              counter = counter+1 
+                  
+    """
+        val nodes = parserFromFile(program).parse()
+
+        assertEquals(listOf(1, 1, 2, 3, 5, 8, 13, 21, 34, 55).map { it.toString() }, walk(nodes).result)
+
     }
 }

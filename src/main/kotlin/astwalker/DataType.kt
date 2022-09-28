@@ -9,6 +9,7 @@ class Datatype {
         void,
         integer,
         composite,
+        bool,
     }
 
     private val type: DatatypeClass
@@ -16,7 +17,7 @@ class Datatype {
     private constructor(name: String, type: DatatypeClass) {
         this.name = name
 
-        assert(type == DatatypeClass.void || type == DatatypeClass.integer)
+        assert(type == DatatypeClass.void || type == DatatypeClass.integer || type == DatatypeClass.bool)
         this.type = type
         compositeMembersNullable = null
     }
@@ -32,9 +33,32 @@ class Datatype {
 
     fun isComposite() = type == DatatypeClass.composite
 
-    fun isPrimitive() = type == DatatypeClass.integer
+    fun isPrimitive() = type == DatatypeClass.integer || type==DatatypeClass.bool
 
     fun isVoid() = type == DatatypeClass.void
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as Datatype
+
+        if (type != other.type) return false
+        if (name != other.name) return false
+        if (isComposite()){
+            if (compositeMembersNullable!=other.compositeMembersNullable){
+                return false
+            }
+        }
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = type.hashCode()
+        result = 31 * result + name.hashCode()
+        result = 31 * result + (compositeMembersNullable?.hashCode() ?: 0)
+        return result
+    }
 
     private val compositeMembersNullable: Map<String, Datatype>?
 
@@ -48,14 +72,16 @@ class Datatype {
     companion object {
         val Integer = Datatype("integer", DatatypeClass.integer)
         val Void = Datatype("void", DatatypeClass.void)
+        val Boolean = Datatype("bool", DatatypeClass.bool)
     }
+
 }
 
 
 class Variable {
     val datatype: Datatype
 
-    private val primitiveValue: Int
+    private var primitiveValue: Int
     private val values: MutableMap<String, Variable>?
 
     constructor(datatype: Datatype) {
@@ -114,7 +140,30 @@ class Variable {
         values!![name] = value
     }
 
+    fun copyFrom(copyFrom: Variable) {
+        assert(copyFrom.datatype == datatype)
+        primitiveValue = copyFrom.primitiveValue
 
+        if (isComposite()) {
+            values!!.clear()
+            values.putAll(copyFrom.values!!)
+        }
+
+    }
+}
+
+fun createDefaultVariable(datatype: Datatype): Variable {
+    if (datatype.isPrimitive()) {
+        return Variable(datatype, 0)
+    }
+    if (datatype.isComposite()) {
+
+        val members = datatype.compositeMembers.entries.associate { (name, memberType) ->
+            Pair(name, createDefaultVariable(memberType))
+        }
+        return Variable(datatype, members)
+    }
+    throw WalkerException()
 }
 
 fun createTypeFromNode(node: AstNode, typeProvider: Map<String, Datatype>): Datatype {
