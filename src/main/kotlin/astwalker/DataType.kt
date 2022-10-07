@@ -166,7 +166,7 @@ class Variable {
 
     fun setField(name: String, value: Variable) {
         assert(isComposite())
-        if (isArray()){
+        if (isArray()) {
             throw WalkerException("Cannot change size of array")
         }
 
@@ -188,6 +188,14 @@ class Variable {
             compositeValues.putAll(copyFrom.compositeValues!!)
         }
     }
+
+    fun arrayAccess(index: Int): Variable {
+        val values = arrayValues!!
+        if (index !in values.indices) {
+            throw WalkerException("Index out of range")
+        }
+        return values[index]
+    }
 }
 
 fun createDefaultVariable(datatype: Datatype): Variable {
@@ -207,7 +215,6 @@ fun createDefaultVariable(datatype: Datatype): Variable {
     if (datatype.isVoid()) {
         return Variable(datatype)
     }
-
 
     throw WalkerException("Cannot instanciate empty variable of type $datatype")
 }

@@ -300,6 +300,21 @@ class WalkerState(
         return call(callNode.targetName, arguments)
     }
 
+    fun handleArrayAccess(node: AstNode): Variable {
+        assert(node.type == NodeTypes.ArrayAccess)
+        val arrayAccess = node.asArrayAccess()
+        val array = getValueOf(arrayAccess.parent)
+        val index = getValueOf(arrayAccess.index)
+
+        if (index.datatype != Datatype.Integer) {
+            throw WalkerException("Array index must be integer. Not ${index.datatype}")
+        }
+        if (!array.isArray()) {
+            throw WalkerException("Cannot do array access on type ${array.datatype}")
+        }
+        return array.arrayAccess(index.getPrimitiveValue())
+    }
+
     fun getValueOf(node: AstNode): Variable {
 
         return when (node.type) {
@@ -319,8 +334,10 @@ class WalkerState(
                 return toAccess.getField(node.data as String)
             }
 
+            NodeTypes.ArrayAccess -> handleArrayAccess(node)
+
             else -> {
-                throw WalkerException()
+                throw WalkerException("Cannot get value of node of type ${node.type}")
             }
         }
     }
