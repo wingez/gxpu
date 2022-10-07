@@ -214,7 +214,7 @@ class WalkerState(
 
         var newVariableType = types.getValue(memberDef.type)
         if (memberDef.isArray) {
-            newVariableType = newVariableType.toArray()
+            newVariableType = Datatype.Array(newVariableType)
         }
 
         currentFrame.variables[name] = createDefaultVariable(newVariableType)

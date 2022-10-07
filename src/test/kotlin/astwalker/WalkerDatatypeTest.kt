@@ -1,5 +1,6 @@
 package se.wingez.astwalker
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
@@ -13,7 +14,7 @@ internal class WalkerDatatypeTest {
     @Test
     fun testBasic() {
 
-        val compositeType = Datatype(
+        val compositeType = Datatype.Composite(
             "test", mapOf(
                 "member1" to Datatype.Integer
             )
@@ -147,7 +148,7 @@ internal class WalkerDatatypeTest {
     }
 
     @Test
-    fun testCreateArray(){
+    fun testCreateArray() {
         val program = """
           def main():
             a:int[] = createArray(5)
@@ -157,4 +158,30 @@ internal class WalkerDatatypeTest {
 
         assertDoesNotThrow { walk(nodes) }
     }
+
+    @Test
+    fun testReadArraySize() {
+        val program = """
+          def main():
+            a:int[] = createArray(5)
+            print(a.size)
+                  
+    """
+        val nodes = parserFromFile(program).parse()
+        assertEquals(listOf(5).map { it.toString() }, walk(nodes).result)
+    }
+
+    @Test
+    @Disabled("Not implemented yet")
+    fun testArraySizeReadonly() {
+        val program = """
+          def main():
+            a:int[] = createArray(5)
+            a.size = 10
+                  
+    """
+        val nodes = parserFromFile(program).parse()
+        assertThrows<WalkerException> { walk(nodes) }
+    }
+
 }

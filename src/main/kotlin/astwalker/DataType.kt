@@ -3,7 +3,12 @@ package se.wingez.astwalker
 import se.wingez.ast.AstNode
 import se.wingez.ast.NodeTypes
 
-class Datatype {
+class Datatype private constructor(
+    val name: String,
+    private val type: DatatypeClass,
+    private val compositeMembersNullable: Map<String, Datatype>?,
+    private val arrayTypeNullable: Datatype?,
+) {
 
     private enum class DatatypeClass {
         void,
@@ -13,36 +18,7 @@ class Datatype {
         array,
     }
 
-    private val type: DatatypeClass
-    private val compositeMembersNullable: Map<String, Datatype>?
-    val name: String
-    private val arrayTypeNullable: Datatype?
-
-    private constructor(name: String, type: DatatypeClass) {
-        this.name = name
-
-        assert(type == DatatypeClass.void || type == DatatypeClass.integer || type == DatatypeClass.bool)
-        this.type = type
-        compositeMembersNullable = null
-        arrayTypeNullable = null
-    }
-
-    constructor(name: String, members: Map<String, Datatype>) {
-        this.name = name
-        this.type = DatatypeClass.composite
-        compositeMembersNullable = members
-        arrayTypeNullable = null
-    }
-
-    constructor(name: String, arrayType: Datatype) {
-        this.name = name
-        this.type = DatatypeClass.array
-        arrayTypeNullable = arrayType
-        compositeMembersNullable = null
-    }
-
-
-    fun isComposite() = type == DatatypeClass.composite
+    fun isComposite() = type == DatatypeClass.composite || type == DatatypeClass.array
 
     fun isPrimitive() = type == DatatypeClass.integer || type == DatatypeClass.bool
 
@@ -67,7 +43,6 @@ class Datatype {
                 return false
             }
         }
-
         return true
     }
 
@@ -82,6 +57,9 @@ class Datatype {
     val compositeMembers: Map<String, Datatype>
         get() {
             assert(isComposite())
+            if (isArray()) {
+                return mapOf("size" to Integer)
+            }
             return compositeMembersNullable!!
         }
     val arrayType: Datatype
@@ -94,15 +72,20 @@ class Datatype {
         return name
     }
 
-    fun toArray(): Datatype {
-        assert(!isArray())
-        return Datatype("Array[${this}]", this)
-    }
-
     companion object {
-        val Integer = Datatype("integer", DatatypeClass.integer)
-        val Void = Datatype("void", DatatypeClass.void)
-        val Boolean = Datatype("bool", DatatypeClass.bool)
+        val Integer = Datatype("integer", DatatypeClass.integer, null, null)
+        val Void = Datatype("void", DatatypeClass.void, null, null)
+        val Boolean = Datatype("bool", DatatypeClass.bool, null, null)
+
+        fun Composite(name: String, members: Map<String, Datatype>): Datatype {
+            return Datatype(name, DatatypeClass.composite, members, null)
+        }
+
+        fun Array(arrayType: Datatype): Datatype {
+            assert(!arrayType.isArray())
+            val name = "array[$arrayType]"
+            return Datatype(name, DatatypeClass.array, null, arrayType)
+        }
     }
 }
 
@@ -163,18 +146,30 @@ class Variable {
     }
 
     fun isComposite() = datatype.isComposite()
+    fun isArray() = datatype.isArray()
+
 
     fun getField(name: String): Variable {
         assert(isComposite())
 
+
         if (name !in datatype.compositeMembers) {
             throw WalkerException("${datatype.name} does not contain member $name")
         }
+        if (isArray()) {
+            assert(name == "size")
+            return Variable(Datatype.Integer, arrayValues!!.size)
+        }
+
         return compositeValues!!.getValue(name)
     }
 
     fun setField(name: String, value: Variable) {
         assert(isComposite())
+        if (isArray()){
+            throw WalkerException("Cannot change size of array")
+        }
+
         if (name !in datatype.compositeMembers) {
             throw WalkerException("${datatype.name} does not contain member $name")
         }
@@ -185,7 +180,10 @@ class Variable {
         assert(copyFrom.datatype == datatype)
         primitiveValue = copyFrom.primitiveValue
 
-        if (isComposite()) {
+        if (isArray()) {
+            arrayValues!!.clear()
+            arrayValues.addAll(copyFrom.arrayValues!!)
+        } else if (isComposite()) {
             compositeValues!!.clear()
             compositeValues.putAll(copyFrom.compositeValues!!)
         }
@@ -195,6 +193,9 @@ class Variable {
 fun createDefaultVariable(datatype: Datatype): Variable {
     if (datatype.isPrimitive()) {
         return Variable(datatype, 0)
+    }
+    if (datatype.isArray()) {
+        return Variable(datatype, 0, 0)
     }
     if (datatype.isComposite()) {
 
@@ -206,9 +207,7 @@ fun createDefaultVariable(datatype: Datatype): Variable {
     if (datatype.isVoid()) {
         return Variable(datatype)
     }
-    if (datatype.isArray()) {
-        return Variable(datatype, 0, 0)
-    }
+
 
     throw WalkerException("Cannot instanciate empty variable of type $datatype")
 }
@@ -234,5 +233,5 @@ fun createTypeFromNode(node: AstNode, typeProvider: TypeProvider): Datatype {
         members[memberName] = type
     }
 
-    return Datatype(typeName, members)
+    return Datatype.Composite(typeName, members)
 }
