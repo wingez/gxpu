@@ -48,9 +48,19 @@ class BuiltInNotEqual : Function(
     }
 }
 
+class BuiltInCreateArray : Function(
+    "createArray", listOf(Datatype.Integer), Datatype.Integer.toArray()
+) {
+    override fun execute(variables: List<Variable>, state: WalkerState): Variable {
+        val size = variables[0].getPrimitiveValue()
+        return Variable(definition.returnType, size, size)
+    }
+}
+
 val builtInList = listOf(
     BuiltInPrint(),
     BuiltInAddition(),
     BuiltInSubtraction(),
     BuiltInNotEqual(),
+    BuiltInCreateArray(),
 )

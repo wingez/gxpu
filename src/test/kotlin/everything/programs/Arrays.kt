@@ -48,5 +48,4 @@ class ArrayTests {
     """
         runProgramCheckOutput(program, 100)
     }
-
 }

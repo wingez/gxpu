@@ -10,9 +10,13 @@ class Datatype {
         integer,
         composite,
         bool,
+        array,
     }
 
     private val type: DatatypeClass
+    private val compositeMembersNullable: Map<String, Datatype>?
+    val name: String
+    private val arrayTypeNullable: Datatype?
 
     private constructor(name: String, type: DatatypeClass) {
         this.name = name
@@ -20,22 +24,31 @@ class Datatype {
         assert(type == DatatypeClass.void || type == DatatypeClass.integer || type == DatatypeClass.bool)
         this.type = type
         compositeMembersNullable = null
+        arrayTypeNullable = null
     }
 
     constructor(name: String, members: Map<String, Datatype>) {
         this.name = name
         this.type = DatatypeClass.composite
         compositeMembersNullable = members
-
+        arrayTypeNullable = null
     }
 
-    val name: String
+    constructor(name: String, arrayType: Datatype) {
+        this.name = name
+        this.type = DatatypeClass.array
+        arrayTypeNullable = arrayType
+        compositeMembersNullable = null
+    }
+
 
     fun isComposite() = type == DatatypeClass.composite
 
     fun isPrimitive() = type == DatatypeClass.integer || type == DatatypeClass.bool
 
     fun isVoid() = type == DatatypeClass.void
+
+    fun isArray() = type == DatatypeClass.array
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
@@ -49,6 +62,11 @@ class Datatype {
                 return false
             }
         }
+        if (isArray()) {
+            if (arrayTypeNullable != other.arrayTypeNullable) {
+                return false
+            }
+        }
 
         return true
     }
@@ -57,20 +75,28 @@ class Datatype {
         var result = type.hashCode()
         result = 31 * result + name.hashCode()
         result = 31 * result + (compositeMembersNullable?.hashCode() ?: 0)
+        result = 31 * result + (arrayTypeNullable?.hashCode() ?: 0)
         return result
     }
-
-    private val compositeMembersNullable: Map<String, Datatype>?
-
 
     val compositeMembers: Map<String, Datatype>
         get() {
             assert(isComposite())
             return compositeMembersNullable!!
         }
+    val arrayType: Datatype
+        get() {
+            assert(isArray())
+            return arrayTypeNullable!!
+        }
 
     override fun toString(): String {
         return name
+    }
+
+    fun toArray(): Datatype {
+        assert(!isArray())
+        return Datatype("Array[${this}]", this)
     }
 
     companion object {
@@ -78,7 +104,6 @@ class Datatype {
         val Void = Datatype("void", DatatypeClass.void)
         val Boolean = Datatype("bool", DatatypeClass.bool)
     }
-
 }
 
 
@@ -86,36 +111,48 @@ class Variable {
     val datatype: Datatype
 
     private var primitiveValue: Int
-    private val values: MutableMap<String, Variable>?
+    private val compositeValues: MutableMap<String, Variable>?
+    private val arrayValues: MutableList<Variable>?
 
     constructor(datatype: Datatype) {
         assert(datatype.isVoid())
         this.datatype = datatype
         primitiveValue = 0
-        values = null
+        compositeValues = null
+        arrayValues = null
     }
 
     constructor(datatype: Datatype, primitiveValue: Int) {
         assert(datatype.isPrimitive())
         this.datatype = datatype
         this.primitiveValue = primitiveValue
-        values = null
+        compositeValues = null
+        arrayValues = null
     }
 
     constructor(datatype: Datatype, memberValues: Map<String, Variable>) {
         assert(datatype.isComposite())
         this.datatype = datatype
         primitiveValue = 0
+        arrayValues = null
 
-
-        values = mutableMapOf()
+        compositeValues = mutableMapOf()
         for ((memberName, requiredType) in datatype.compositeMembers.entries) {
 
             val providedVariable = memberValues.getValue(memberName)
             assert(providedVariable.datatype == requiredType)
 
-            values[memberName] = providedVariable
+            compositeValues[memberName] = providedVariable
         }
+    }
+
+    constructor(datatype: Datatype, size: Int, sizeAgain: Int) {
+        assert(datatype.isArray())
+        this.datatype = datatype
+        primitiveValue = 0
+        compositeValues = null
+
+        arrayValues = (0 until size).map { createDefaultVariable(datatype.arrayType) }.toMutableList()
     }
 
     fun isPrimitive() = datatype.isPrimitive()
@@ -133,7 +170,7 @@ class Variable {
         if (name !in datatype.compositeMembers) {
             throw WalkerException("${datatype.name} does not contain member $name")
         }
-        return values!!.getValue(name)
+        return compositeValues!!.getValue(name)
     }
 
     fun setField(name: String, value: Variable) {
@@ -141,7 +178,7 @@ class Variable {
         if (name !in datatype.compositeMembers) {
             throw WalkerException("${datatype.name} does not contain member $name")
         }
-        values!![name] = value
+        compositeValues!![name] = value
     }
 
     fun copyFrom(copyFrom: Variable) {
@@ -149,8 +186,8 @@ class Variable {
         primitiveValue = copyFrom.primitiveValue
 
         if (isComposite()) {
-            values!!.clear()
-            values.putAll(copyFrom.values!!)
+            compositeValues!!.clear()
+            compositeValues.putAll(copyFrom.compositeValues!!)
         }
     }
 }
@@ -166,9 +203,13 @@ fun createDefaultVariable(datatype: Datatype): Variable {
         }
         return Variable(datatype, members)
     }
-    if (datatype.isVoid()){
+    if (datatype.isVoid()) {
         return Variable(datatype)
     }
+    if (datatype.isArray()) {
+        return Variable(datatype, 0, 0)
+    }
+
     throw WalkerException("Cannot instanciate empty variable of type $datatype")
 }
 

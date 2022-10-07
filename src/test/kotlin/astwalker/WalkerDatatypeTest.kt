@@ -1,6 +1,7 @@
 package se.wingez.astwalker
 
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import se.wingez.ast.parserFromFile
 import java.util.NoSuchElementException
@@ -143,6 +144,17 @@ internal class WalkerDatatypeTest {
         val nodes = parserFromFile(program).parse()
 
         assertEquals(listOf(1, 1, 2, 3, 5, 8, 13, 21, 34, 55).map { it.toString() }, walk(nodes).result)
+    }
 
+    @Test
+    fun testCreateArray(){
+        val program = """
+          def main():
+            a:int[] = createArray(5)
+                  
+    """
+        val nodes = parserFromFile(program).parse()
+
+        assertDoesNotThrow { walk(nodes) }
     }
 }

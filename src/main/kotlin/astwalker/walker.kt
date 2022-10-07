@@ -212,7 +212,12 @@ class WalkerState(
         val name = memberDef.name
         assert(name !in currentFrame.variables)
 
-        currentFrame.variables[name] = createDefaultVariable(types.getValue(memberDef.type))
+        var newVariableType = types.getValue(memberDef.type)
+        if (memberDef.isArray) {
+            newVariableType = newVariableType.toArray()
+        }
+
+        currentFrame.variables[name] = createDefaultVariable(newVariableType)
     }
 
     fun handleWhile(node: AstNode) {
@@ -279,7 +284,7 @@ class WalkerState(
         val variableToAssignTo = getValueOf(assignNode.target)
 
         if (valueToAssign.datatype != variableToAssignTo.datatype) {
-            throw WalkerException("Type mismatch")
+            throw WalkerException("Type mismatch. Expected ${variableToAssignTo.datatype}, got ${valueToAssign.datatype}")
         }
 
         variableToAssignTo.copyFrom(valueToAssign)
