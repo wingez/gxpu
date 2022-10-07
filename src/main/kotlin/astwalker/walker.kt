@@ -2,7 +2,6 @@ package se.wingez.astwalker
 
 import se.wingez.ast.AstNode
 import se.wingez.ast.NodeTypes
-import se.wingez.ast.OperatorBuiltIns
 
 class WalkerException(msg: String = "") : Exception(msg)
 
@@ -11,71 +10,32 @@ class WalkerOutput() {
     val result = mutableListOf<String>()
 }
 
+data class FunctionDefinition(
+    val name: String,
+    val parameterTypes: List<Datatype>,
+    val returnType: Datatype,
+) {
+    fun matches(name: String, parameterTypes: List<Datatype>): Boolean {
+        return name == this.name && parameterTypes == this.parameterTypes
+    }
+}
 
 interface IFunction {
-    val name: String
-    val parameterTypes: List<Datatype>
-    val returnType: Datatype
-
-    fun execute(variables: List<Variable>, output: WalkerOutput): Variable
+    val definition: FunctionDefinition
+    fun execute(variables: List<Variable>, state: WalkerState): Variable
 }
 
-abstract class Function(
-    override val name: String,
-    override val parameterTypes: List<Datatype>,
-    override val returnType: Datatype,
+class NodeFunction(
+    val node: AstNode,
+    override val definition: FunctionDefinition
 ) : IFunction {
-
-}
-
-class BuiltInPrint : Function(
-    "print", listOf(Datatype.Integer), Datatype.Void
-) {
-    override fun execute(variables: List<Variable>, output: WalkerOutput): Variable {
-        output.result.add(variables[0].getPrimitiveValue().toString())
-        return Variable(Datatype.Void)
+    override fun execute(variables: List<Variable>, state: WalkerState): Variable {
+        return state.walkFunction(node, variables)
     }
 }
-
-class BuiltInAddition : Function(
-    OperatorBuiltIns.Addition, listOf(Datatype.Integer, Datatype.Integer), Datatype.Integer
-) {
-    override fun execute(variables: List<Variable>, output: WalkerOutput): Variable {
-        return Variable(Datatype.Integer, variables[0].getPrimitiveValue() + variables[1].getPrimitiveValue())
-    }
-}
-
-class BuiltInSubtraction : Function(
-    OperatorBuiltIns.Subtraction, listOf(Datatype.Integer, Datatype.Integer), Datatype.Integer
-) {
-    override fun execute(variables: List<Variable>, output: WalkerOutput): Variable {
-        return Variable(Datatype.Integer, variables[0].getPrimitiveValue() - variables[1].getPrimitiveValue())
-    }
-}
-
-class BuiltInNotEqual : Function(
-    OperatorBuiltIns.NotEqual, listOf(Datatype.Integer, Datatype.Integer), Datatype.Boolean
-) {
-    override fun execute(variables: List<Variable>, output: WalkerOutput): Variable {
-        if (variables[0].getPrimitiveValue() != variables[1].getPrimitiveValue()) {
-            return Variable(Datatype.Boolean, 1)
-        } else {
-            return Variable(Datatype.Boolean, 0)
-        }
-    }
-}
-
-val builtInList = listOf(
-    BuiltInPrint(),
-    BuiltInAddition(),
-    BuiltInSubtraction(),
-    BuiltInNotEqual(),
-)
 
 class WalkFrame {
-
     val variables = mutableMapOf<String, Variable>()
-
 }
 
 fun walk(node: AstNode): WalkerOutput {
@@ -85,50 +45,131 @@ fun walk(node: AstNode): WalkerOutput {
 fun walk(nodes: List<AstNode>): WalkerOutput {
 
 
-    val walker = Walker()
-    walker.walk(nodes)
+    val walker = WalkerState(nodes)
+    walker.walk()
     return walker.output
 
 }
 
+interface TypeProvider {
+    fun getType(name: String): Datatype
+}
 
-private class Walker {
+
+private fun definitionFromFuncNode(node: AstNode, typeProvider: TypeProvider): NodeFunction {
+    assert(node.type == NodeTypes.Function)
+    val funcNode = node.asFunction()
+
+    val name = funcNode.name
+    val parameters = funcNode.arguments.map { argNode ->
+        assert(argNode.type == NodeTypes.MemberDeclaration)
+        val member = argNode.asMemberDeclaration()
+        typeProvider.getType(member.type)
+    }
+    val returnType = typeProvider.getType(funcNode.returnType)
+    val definition = FunctionDefinition(name, parameters, returnType)
+    return NodeFunction(node, definition)
+}
+
+
+class WalkerState(
+    val nodes: List<AstNode>
+) : TypeProvider {
 
     val output = WalkerOutput()
-    val frame = WalkFrame()
+    val frameStack = mutableListOf<WalkFrame>()
 
-    val types = mutableMapOf(
-        "int" to Datatype.Integer
+    val currentFrame
+        get() = frameStack.last()
+
+
+    private val types = mutableMapOf(
+        "int" to Datatype.Integer,
+        "void" to Datatype.Void,
     )
 
-    fun walk(nodes: List<AstNode>): WalkerOutput {
+    val availableFunctions = mutableListOf<IFunction>()
 
-        val output = WalkerOutput()
-        for (node in nodes) {
-            assert(node.type == NodeTypes.Function || node.type == NodeTypes.Struct)
+    override fun getType(name: String): Datatype {
+        if (name !in types) {
+            throw WalkerException("No such type $name")
+        }
+        return types.getValue(name)
+    }
 
-            when (node.type) {
-                NodeTypes.Struct -> {
-                    val newType = createTypeFromNode(node, types)
-                    if (newType.name in types) {
-                        throw WalkerException()
-                    }
-                    types[newType.name] = newType
-                }
+    private fun addType(type: Datatype) {
+        if (type.name in types) {
+            throw WalkerException()
+        }
+        types[type.name] = type
+    }
 
-                NodeTypes.Function -> {
-                    for (child in node.childNodes) {
-                        walkRecursive(child)
-                    }
-                }
+    private fun hasFunctionMatching(name: String, parameterTypes: List<Datatype>): Boolean {
+        return availableFunctions.any { it.definition.matches(name, parameterTypes) }
+    }
 
-                else -> {
-                    assert(false)
-                }
-            }
+    private fun getFunctionMatching(name: String, parameterTypes: List<Datatype>): IFunction {
+        return availableFunctions.find { it.definition.matches(name, parameterTypes) } ?: throw WalkerException()
+    }
+
+    private fun addFunction(function: IFunction) {
+        if (hasFunctionMatching(function.definition.name, function.definition.parameterTypes)) {
+            throw WalkerException()
+        }
+        availableFunctions.add(function)
+    }
+
+    fun walk(): WalkerOutput {
+
+        nodes.filter { it.type == NodeTypes.Struct }
+            .map { createTypeFromNode(it, this) }
+            .forEach { addType(it) }
+
+        builtInList.forEach {
+            addFunction(it)
         }
 
+        for (node in nodes.filter { it.type == NodeTypes.Function }) {
+            addFunction(definitionFromFuncNode(node, this))
+        }
+
+        call("main", emptyList())
+
         return output
+    }
+
+    fun call(funcName: String, parameters: List<Variable>): Variable {
+
+        val parameterTypes = parameters.map { it.datatype }
+        val funcToCall = getFunctionMatching(funcName, parameterTypes)
+
+        return funcToCall.execute(parameters, this)
+    }
+
+    fun walkFunction(node: AstNode, parameters: List<Variable>): Variable {
+        assert(node.type == NodeTypes.Function)
+        val funcNode = node.asFunction()
+
+
+        // Push new frame
+        frameStack.add(WalkFrame())
+
+        // Add arguments as local variables
+        funcNode.arguments.map { it.asMemberDeclaration() }.zip(parameters).forEach { (memberInfo, value) ->
+            assert(getType(memberInfo.type) == value.datatype)
+
+            currentFrame.variables[memberInfo.name] = value
+        }
+
+
+        node.childNodes.forEach { walkRecursive(it) }
+
+        // Push frame
+        frameStack.removeLast()
+
+        //TODO remove something
+
+        return Variable(Datatype.Void)
     }
 
     private fun walkRecursive(node: AstNode) {
@@ -163,9 +204,9 @@ private class Walker {
         val memberDef = node.asMemberDeclaration()
 
         val name = memberDef.name
-        assert(name !in frame.variables)
+        assert(name !in currentFrame.variables)
 
-        frame.variables[name] = createDefaultVariable(types.getValue(memberDef.type))
+        currentFrame.variables[name] = createDefaultVariable(types.getValue(memberDef.type))
     }
 
     fun handleWhile(node: AstNode) {
@@ -221,9 +262,9 @@ private class Walker {
 
         if (assignNode.target.type == NodeTypes.Identifier) {
             val assignName = assignNode.target.asIdentifier()
-            val isNewAssign = assignName !in frame.variables
+            val isNewAssign = assignName !in currentFrame.variables
             if (isNewAssign) {
-                frame.variables[assignName] = valueToAssign
+                currentFrame.variables[assignName] = valueToAssign
                 return
             }
 
@@ -245,35 +286,8 @@ private class Walker {
         val arguments = callNode.parameters
             .map { getValueOf(it) }
 
-        for (function in builtInList) {
-            if (function.name != callNode.targetName) {
-                continue
-            }
-
-            if (!matchesTheseArgumentsSignature(arguments, function.parameterTypes)) {
-                continue
-            }
-
-            return function.execute(arguments, output)
-        }
-
-        throw WalkerException("No function found matching ${callNode.targetName}")
+        return call(callNode.targetName, arguments)
     }
-
-
-    fun matchesTheseArgumentsSignature(arguments: List<Variable>, requiredParameters: List<Datatype>): Boolean {
-        if (arguments.size != requiredParameters.size) {
-            return false
-        }
-
-        for (i in requiredParameters.indices) {
-            if (requiredParameters[i] != arguments[i].datatype) {
-                return false
-            }
-        }
-        return true
-    }
-
 
     fun getValueOf(node: AstNode): Variable {
 
@@ -282,11 +296,11 @@ private class Walker {
             NodeTypes.Call -> handleCall(node)
             NodeTypes.Identifier -> {
                 val variableName = node.asIdentifier()
-                if (variableName !in frame.variables) {
+                if (variableName !in currentFrame.variables) {
                     throw WalkerException("No variable named $variableName")
                 }
 
-                frame.variables.getValue(variableName)
+                currentFrame.variables.getValue(variableName)
             }
 
             NodeTypes.MemberAccess -> {
@@ -299,7 +313,5 @@ private class Walker {
             }
         }
     }
-
-
 }
 

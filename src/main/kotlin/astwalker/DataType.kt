@@ -166,7 +166,7 @@ fun createDefaultVariable(datatype: Datatype): Variable {
     throw WalkerException()
 }
 
-fun createTypeFromNode(node: AstNode, typeProvider: Map<String, Datatype>): Datatype {
+fun createTypeFromNode(node: AstNode, typeProvider: TypeProvider): Datatype {
     assert(node.type == NodeTypes.Struct)
 
     val members = mutableMapOf<String, Datatype>()
@@ -182,11 +182,7 @@ fun createTypeFromNode(node: AstNode, typeProvider: Map<String, Datatype>): Data
         if (memberName in members) {
             throw WalkerException("Member $memberName already exist")
         }
-        if (memberTypeName !in typeProvider) {
-            throw WalkerException("No type exist with name $memberTypeName")
-        }
-        val type = typeProvider.getValue(memberTypeName)
-
+        val type = typeProvider.getType(memberTypeName)
 
         members[memberName] = type
     }

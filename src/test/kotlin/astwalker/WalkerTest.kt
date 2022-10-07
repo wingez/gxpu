@@ -17,7 +17,7 @@ internal class WalkerTest {
         val function = function(
             "main", emptyList(),
             parserFromLine("print(5)").parseExpression(),
-            "returntype"
+            "void"
         )
 
         val output = walk(function)
@@ -32,7 +32,7 @@ internal class WalkerTest {
         val function = function(
             "main", emptyList(),
             parserFromLine("print(5+5)").parseExpression(),
-            "returntype"
+            "void"
         )
 
         val output = walk(function)
@@ -101,9 +101,55 @@ internal class WalkerTest {
             """.trimIndent()
             ).parseFunctionDefinition()
 
-        val expected = listOf(3,4,5).map { it.toString() }
+        val expected = listOf(3, 4, 5).map { it.toString() }
 
         assertEquals(expected, walk(function).result)
+    }
+
+    @Test
+    fun testWalkerCallOtherFunctions() {
+        val nodes =
+            parserFromFile(
+                """
+                def callMe():
+                  print(10)
+                    
+                def main():
+                  callMe()
+                  callMe()
+            """.trimIndent()
+            ).parse()
+
+        val expected = listOf(10, 10).map { it.toString() }
+
+        assertEquals(expected, walk(nodes).result)
+    }
+
+    @Test
+    fun testWalkerParameters() {
+        val nodes =
+            parserFromFile(
+                """
+                def a(t:int):
+                  print(t)
+                  
+                def b(t:int,u:int):
+                  print(t+u)
+                  
+                def main():
+                  a(5)
+                  b(6,7)
+            """.trimIndent()
+            ).parse()
+
+        val expected = listOf(5, 13).map { it.toString() }
+
+        assertEquals(expected, walk(nodes).result)
+    }
+
+    @Test
+    fun testWalkerReturn() {
+
     }
 
 

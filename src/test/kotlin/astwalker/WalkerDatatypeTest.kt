@@ -34,10 +34,14 @@ internal class WalkerDatatypeTest {
               b:int
         """.trimIndent()
         ).parseStruct()
-
-        val typeProvider = mapOf(
+        val types = mapOf(
             "int" to Datatype.Integer
         )
+        val typeProvider = object : TypeProvider {
+            override fun getType(name: String): Datatype {
+                return types.getValue(name)
+            }
+        }
 
         return createTypeFromNode(node, typeProvider)
     }
