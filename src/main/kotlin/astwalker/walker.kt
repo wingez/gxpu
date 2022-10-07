@@ -109,7 +109,8 @@ class WalkerState(
     }
 
     private fun getFunctionMatching(name: String, parameterTypes: List<Datatype>): IFunction {
-        return availableFunctions.find { it.definition.matches(name, parameterTypes) } ?: throw WalkerException()
+        return availableFunctions.find { it.definition.matches(name, parameterTypes) }
+            ?: throw WalkerException("No functions matches $name($parameterTypes)")
     }
 
     private fun addFunction(function: IFunction) {
@@ -154,6 +155,10 @@ class WalkerState(
         // Push new frame
         frameStack.add(WalkFrame())
 
+        // Add result variable
+        val returnType = getType(funcNode.returnType)
+        currentFrame.variables["result"] = createDefaultVariable(returnType)
+
         // Add arguments as local variables
         funcNode.arguments.map { it.asMemberDeclaration() }.zip(parameters).forEach { (memberInfo, value) ->
             assert(getType(memberInfo.type) == value.datatype)
@@ -161,15 +166,16 @@ class WalkerState(
             currentFrame.variables[memberInfo.name] = value
         }
 
-
+        // Walk the function
         node.childNodes.forEach { walkRecursive(it) }
 
-        // Push frame
+
+        val result = currentFrame.variables.getValue("result")
+
+        // Pop frame
         frameStack.removeLast()
 
-        //TODO remove something
-
-        return Variable(Datatype.Void)
+        return result
     }
 
     private fun walkRecursive(node: AstNode) {

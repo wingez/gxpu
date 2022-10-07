@@ -33,7 +33,7 @@ class Datatype {
 
     fun isComposite() = type == DatatypeClass.composite
 
-    fun isPrimitive() = type == DatatypeClass.integer || type==DatatypeClass.bool
+    fun isPrimitive() = type == DatatypeClass.integer || type == DatatypeClass.bool
 
     fun isVoid() = type == DatatypeClass.void
     override fun equals(other: Any?): Boolean {
@@ -44,8 +44,8 @@ class Datatype {
 
         if (type != other.type) return false
         if (name != other.name) return false
-        if (isComposite()){
-            if (compositeMembersNullable!=other.compositeMembersNullable){
+        if (isComposite()) {
+            if (compositeMembersNullable != other.compositeMembersNullable) {
                 return false
             }
         }
@@ -68,6 +68,10 @@ class Datatype {
             assert(isComposite())
             return compositeMembersNullable!!
         }
+
+    override fun toString(): String {
+        return name
+    }
 
     companion object {
         val Integer = Datatype("integer", DatatypeClass.integer)
@@ -148,7 +152,6 @@ class Variable {
             values!!.clear()
             values.putAll(copyFrom.values!!)
         }
-
     }
 }
 
@@ -163,7 +166,10 @@ fun createDefaultVariable(datatype: Datatype): Variable {
         }
         return Variable(datatype, members)
     }
-    throw WalkerException()
+    if (datatype.isVoid()){
+        return Variable(datatype)
+    }
+    throw WalkerException("Cannot instanciate empty variable of type $datatype")
 }
 
 fun createTypeFromNode(node: AstNode, typeProvider: TypeProvider): Datatype {

@@ -149,6 +149,39 @@ internal class WalkerTest {
 
     @Test
     fun testWalkerReturn() {
+        val nodes = parserFromFile(
+            """
+                def a(t:int):int
+                  result = t+6
+                  
+                def main():
+                  print(a(5))
+            """.trimIndent()
+        ).parse()
+
+        val expected = listOf(11).map { it.toString() }
+
+        assertEquals(expected, walk(nodes).result)
+
+
+        val nodes2 = parserFromFile(
+            """
+                def mul(a:int,b:int):int
+                  result = 0
+                  while a!=0:
+                    result = result + b
+                    a= a-1
+                  
+                  
+                def main():
+                  print(mul(10,10))
+                  print(mul(2,5))
+            """.trimIndent()
+        ).parse()
+
+        val expected2 = listOf(100,10).map { it.toString() }
+
+        assertEquals(expected2, walk(nodes2).result)
 
     }
 
