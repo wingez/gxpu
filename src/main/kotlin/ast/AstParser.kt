@@ -280,6 +280,9 @@ class AstParser(private val tokens: List<Token>) {
         } else if (peekIs<TokenNumericConstant>()) {
             val constant = consumeType<TokenNumericConstant>().value
             return AstNode.fromConstant(constant)
+        } else if (peekIs<TokenString>()) {
+            val stringToken = consumeType<TokenString>()
+            return AstNode.fromString(stringToken.value)
         } else if (peekIs<TokenIdentifier>()) {
 
             val identifier = consumeIdentifier()

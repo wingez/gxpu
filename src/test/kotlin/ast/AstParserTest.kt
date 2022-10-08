@@ -266,7 +266,7 @@ internal class AstParserTest {
             ).parseIfStatement(),
             AstNode.fromIf(
                 identifier("a"), printBody,
-                listOf(AstNode.fromCall("print",listOf( constant(0))))
+                listOf(AstNode.fromCall("print", listOf(constant(0))))
             )
         )
     }
@@ -282,5 +282,23 @@ internal class AstParserTest {
         """
             ).parseWhileStatement()
         }
+    }
+
+    @Test
+    fun testString() {
+        assertEquals(
+            parserFromLine(
+                "5+\"hello\""
+
+            ).parseExpression(),
+            listOf(
+                AstNode.fromOperation(
+                    TokenPlusSign,
+                    AstNode.fromConstant(5),
+                    AstNode.fromString("hello"),
+
+                    )
+            )
+        )
     }
 }

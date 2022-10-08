@@ -5,6 +5,7 @@ import se.wingez.tokens.Token
 enum class NodeTypes {
     Body,
     Identifier,
+    String,
     MemberDeclaration,
     Assign,
     Constant,
@@ -44,6 +45,10 @@ data class AstNode(
     }
 
     fun asIdentifier(): String {
+        return data as String
+    }
+
+    fun asString(): String {
         return data as String
     }
 
@@ -217,6 +222,10 @@ data class AstNode(
             index: AstNode
         ): AstNode {
             return AstNode(NodeTypes.ArrayAccess, null, listOf(parent, index))
+        }
+
+        fun fromString(string: String): AstNode {
+            return AstNode(NodeTypes.String, string)
         }
     }
 }
