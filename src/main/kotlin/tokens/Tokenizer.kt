@@ -17,7 +17,7 @@ open class TokenSingleOperation(type: TokenType) : Token(type)
 
 data class TokenIdentifier(val target: String) : Token(TokenType.Identifier)
 data class TokenNumericConstant(val value: Int) : Token(TokenType.NumericConstant)
-
+data class TokenString(val value: String) : Token(TokenType.String)
 enum class TokenType {
     EOL,
     Identifier,
@@ -44,7 +44,7 @@ enum class TokenType {
     GreaterSign,
     NotEqual,
     Deref,
-    SizeOf,
+    String,
 }
 
 val TokenEOL = ExpressionSeparator(TokenType.EOL)
@@ -71,7 +71,7 @@ val TokenMinusSign = TokenSingleOperation(TokenType.MinusSign)
 val TokenGreaterSign = Token(TokenType.GreaterSign)
 val TokenNotEqual = TokenSingleOperation(TokenType.NotEqual)
 
-private val ALWAYS_DELIMITER = listOf('(', ')', ',', ':')
+private val ALWAYS_DELIMITER = listOf('(', ')', ',', ':', '"')
 
 fun isNumeric(str: String) = str.all { it in '0'..'9' }
 fun isAlNumeric(str: String) = str.all { it in '0'..'9' || it in 'a'..'z' || it in 'A'..'Z' }
@@ -93,7 +93,7 @@ fun getIndentation(line: String): Pair<Int, String> {
         }
         if (current.startsWith("  ")) {
             if (hasTabs)
-                throw  TokenError("Cannot mix tabs and spaces")
+                throw TokenError("Cannot mix tabs and spaces")
             hasSpaces = true
             indentLetters = 2
         }
@@ -150,65 +150,117 @@ fun parseFile(input: Reader): List<Token> {
     return result
 }
 
-private enum class TokenParserState {
-    Nothing,
-    Operator,
-    Identifier,
-}
-
 fun parseLine(line: String): List<Token> {
+    val feeder = OneSymbolAtATime(line)
+
     val result = mutableListOf<Token>()
-    var current = ""
 
-    var state = TokenParserState.Nothing
+    while (feeder.hasMore()) {
+        val symbolPeek = feeder.peek()
 
-    for (symbol in line) {
-        val isComment = symbol == '#'
-        val isSpace = symbol == ' '
-        val isLetter = isAlNumeric(symbol.toString())
-
-        if (state == TokenParserState.Nothing && !isComment && !isSpace) {
-            state = when (isLetter) {
-                true -> TokenParserState.Identifier
-                false -> TokenParserState.Operator
-            }
-        }
-        val shouldBreak = when {
-            isComment -> true
-            isSpace -> true
-            state == TokenParserState.Operator && isLetter -> true
-            state == TokenParserState.Identifier && !isLetter -> true
-            state == TokenParserState.Operator && symbol in ALWAYS_DELIMITER -> true
-            else -> false
+        val isComment = symbolPeek == '#'
+        if (isComment) {
+            break
         }
 
-        if (shouldBreak) {
-            if (current.isNotEmpty()) {
-                result.addAll(parseOperator(current))
-                current = ""
-            }
-            if (isComment)
-            // Comment, ignore the rest of the line
-                break
-            if (isSpace) {
-                state = TokenParserState.Nothing
-                continue
-            }
-            state = when (isLetter) {
-                true -> TokenParserState.Identifier
-                false -> TokenParserState.Operator
-            }
+        val isSpace = symbolPeek == ' '
+        if (isSpace) {
+            feeder.next()
+            continue
         }
-        current += symbol
-    }
 
-    if (current.isNotEmpty()) {
-        // current could be empty if last symbol was a delimiter
-        result.addAll(parseOperator(current))
+        val isLetter = isAlNumeric(symbolPeek.toString())
+        if (isLetter) {
+            result.add(consumeConstant(feeder))
+            continue
+        }
+
+        val isString = symbolPeek == '"'
+        if (isString) {
+            result.add(consumeString(feeder))
+            continue
+        }
+        result.addAll(consumeOperator(feeder))
+
     }
 
     result.add(TokenEOL)
     return result
+}
+
+private class OneSymbolAtATime(
+    private val string: String
+) {
+    private var currentIndex = 0
+
+    fun hasMore(): Boolean {
+        return currentIndex < string.length
+    }
+
+    fun peek(): Char {
+        return string[currentIndex]
+    }
+
+    fun next(): Char {
+        return string[currentIndex++]
+    }
+}
+
+private fun consumeString(feeder: OneSymbolAtATime):Token {
+
+    assert(feeder.next() == '"')
+
+    var current = ""
+    while (feeder.hasMore()) {
+        val symbol = feeder.next()
+        if (symbol == '"') {
+            return TokenString(current)
+        }
+        current += symbol
+    }
+    throw TokenError("Got end of line while parsing string")
+}
+
+private fun consumeConstant(feeder: OneSymbolAtATime): Token {
+
+    var current = ""
+    while (feeder.hasMore()) {
+        val symbolPeek = feeder.peek()
+        if (isAlNumeric(symbolPeek.toString())) {
+            current += symbolPeek
+            feeder.next()
+        } else {
+            break
+        }
+    }
+
+    return toToken(current)
+}
+
+private fun consumeOperator(feeder: OneSymbolAtATime): Iterable<Token> {
+
+    var current = feeder.next().toString()
+
+    while (feeder.hasMore()) {
+        val symbolPeek = feeder.peek()
+        if (symbolPeek == ' ') {
+            break
+        }
+        if (symbolPeek == '#') {
+            break
+        }
+        if (symbolPeek in ALWAYS_DELIMITER) {
+            break
+        }
+        if (isAlNumeric(symbolPeek.toString())) {
+            break
+        }
+
+        current += symbolPeek
+        feeder.next()
+    }
+
+    return parseOperator(current)
 }
 
 fun parseOperator(line: String): Iterable<Token> {

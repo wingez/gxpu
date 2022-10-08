@@ -46,7 +46,8 @@ internal class TokenizerTest {
             
         """
                 )
-            ), listOf(TokenIdentifier("var"), TokenEOL, TokenBeginBlock, TokenIdentifier("print"), TokenEOL, TokenEndBlock)
+            ),
+            listOf(TokenIdentifier("var"), TokenEOL, TokenBeginBlock, TokenIdentifier("print"), TokenEOL, TokenEndBlock)
         )
 
         assertEquals(
@@ -183,7 +184,21 @@ internal class TokenizerTest {
             parseLine(")->test"),
             listOf(TokenRightParenthesis, TokenDeref, TokenIdentifier("test"), TokenEOL)
         )
+    }
 
+    @Test
+    fun testStringTokens() {
+        assertEquals(
+            listOf(TokenAssign, TokenString("hello"), TokenRightParenthesis, TokenEOL),
+            parseLine("=\"hello\") ")
+        )
+        assertThrows(TokenError::class.java) {
+            parseLine("i\"")
+        }
+        assertEquals(
+            listOf(TokenString("hello#"), TokenEOL),
+            parseLine("\"hello#\"#test")
+        )
     }
 
 
