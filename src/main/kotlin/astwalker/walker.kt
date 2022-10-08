@@ -336,6 +336,8 @@ class WalkerState(
 
             NodeTypes.ArrayAccess -> handleArrayAccess(node)
 
+            NodeTypes.String -> createFromString(node.asString())
+
             else -> {
                 throw WalkerException("Cannot get value of node of type ${node.type}")
             }

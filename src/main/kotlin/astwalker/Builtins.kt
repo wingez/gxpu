@@ -11,11 +11,26 @@ abstract class Function(
     override val definition = FunctionDefinition(name, parameterTypes, returnType)
 }
 
-class BuiltInPrint : Function(
+class BuiltInPrintInteger : Function(
     "print", listOf(Datatype.Integer), Datatype.Void
 ) {
     override fun execute(variables: List<Variable>, state: WalkerState): Variable {
         state.output.result.add(variables[0].getPrimitiveValue().toString())
+        return Variable(Datatype.Void)
+    }
+}
+
+class BuiltInPrintString : Function(
+    "print", listOf(Datatype.Array(Datatype.Integer)), Datatype.Void
+) {
+    override fun execute(variables: List<Variable>, state: WalkerState): Variable {
+        val arraySize = variables.first().getField("size").getPrimitiveValue()
+
+        var result = ""
+        for (i in 0 until arraySize) {
+            result += Char(variables.first().arrayAccess(i).getPrimitiveValue())
+        }
+        state.output.result.add(result)
         return Variable(Datatype.Void)
     }
 }
@@ -58,7 +73,8 @@ class BuiltInCreateArray : Function(
 }
 
 val builtInList = listOf(
-    BuiltInPrint(),
+    BuiltInPrintInteger(),
+    BuiltInPrintString(),
     BuiltInAddition(),
     BuiltInSubtraction(),
     BuiltInNotEqual(),

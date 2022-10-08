@@ -156,3 +156,18 @@ fun createTypeFromNode(node: AstNode, typeProvider: TypeProvider): Datatype {
 
     return Datatype.Composite(typeName, members)
 }
+
+fun createFromString(string: String): Variable {
+
+    val arrayType = Datatype.Array(Datatype.Integer)
+    val stringLength = string.length
+
+    val resultVariable = Variable(arrayType, stringLength, stringLength)
+
+    string.forEachIndexed { index, char ->
+        val toAssign = Variable(Datatype.Integer, char.code)
+        resultVariable.arrayAccess(index).copyFrom(toAssign)
+    }
+
+    return resultVariable
+}

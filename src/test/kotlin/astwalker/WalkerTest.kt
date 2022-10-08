@@ -179,11 +179,39 @@ internal class WalkerTest {
             """.trimIndent()
         ).parse()
 
-        val expected2 = listOf(100,10).map { it.toString() }
+        val expected2 = listOf(100, 10).map { it.toString() }
 
         assertEquals(expected2, walk(nodes2).result)
 
     }
 
+    @Test
+    fun testPrintString() {
+        var nodes = parserFromFile(
+            """
+                def main():
+                  print("hello world!")
+            """.trimIndent()
+        ).parse()
 
+        var expected = listOf("hello world!")
+        assertEquals(expected, walk(nodes).result)
+
+
+        nodes = parserFromFile(
+            """
+                def main():
+                  a = "hello world!"
+                  
+                  a[1] = 67
+                  print(a)
+                  
+            """.trimIndent()
+        ).parse()
+
+        expected = listOf("hCllo world!")
+
+        assertEquals(expected, walk(nodes).result)
+
+    }
 }
