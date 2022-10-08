@@ -73,18 +73,18 @@ class Datatype private constructor(
     }
 
     companion object {
-        val Integer = Datatype("integer", DatatypeClass.integer, null, null)
-        val Void = Datatype("void", DatatypeClass.void, null, null)
-        val Boolean = Datatype("bool", DatatypeClass.bool, null, null)
+        val Integer = Datatype("integer", DatatypeClass.integer, null, null, ReadBehaviour.Copy)
+        val Void = Datatype("void", DatatypeClass.void, null, null, ReadBehaviour.Copy)
+        val Boolean = Datatype("bool", DatatypeClass.bool, null, null, ReadBehaviour.Copy)
 
         fun Composite(name: String, members: Map<String, Datatype>): Datatype {
-            return Datatype(name, DatatypeClass.composite, members, null)
+            return Datatype(name, DatatypeClass.composite, members, null, ReadBehaviour.Reference)
         }
 
         fun Array(arrayType: Datatype): Datatype {
             assert(!arrayType.isArray())
             val name = "array[$arrayType]"
-            return Datatype(name, DatatypeClass.array, null, arrayType)
+            return Datatype(name, DatatypeClass.array, null, arrayType, ReadBehaviour.Reference)
         }
     }
 }

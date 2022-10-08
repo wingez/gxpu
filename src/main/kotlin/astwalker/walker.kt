@@ -318,7 +318,7 @@ class WalkerState(
     fun getValueOf(node: AstNode): Variable {
 
         return when (node.type) {
-            NodeTypes.Constant -> Variable(Datatype.Integer, node.asConstant())
+            NodeTypes.Constant -> Variable.primitive(Datatype.Integer, node.asConstant())
             NodeTypes.Call -> handleCall(node)
             NodeTypes.Identifier -> {
                 val variableName = node.asIdentifier()

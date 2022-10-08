@@ -59,31 +59,36 @@ internal class WalkerDatatypeTest {
     fun testVariables() {
         val type = getDummyType()
 
-        assertThrows<AssertionError> { Variable(type, 0) }
-        assertThrows<NoSuchElementException> { Variable(type, mapOf()) }
+        assertThrows<AssertionError> { Variable.primitive(type, 0) }
+        assertThrows<NoSuchElementException> { Variable.composite(type, mapOf()) }
         // Missing member
-        assertThrows<NoSuchElementException> { Variable(type, mapOf("a" to Variable(Datatype.Integer, 0))) }
+        assertThrows<NoSuchElementException> {
+            Variable.composite(
+                type,
+                mapOf("a" to Variable.primitive(Datatype.Integer, 0))
+            )
+        }
         // Wrong member type
         assertThrows<AssertionError> {
-            Variable(
+            Variable.composite(
                 type, mapOf(
-                    "a" to Variable(Datatype.Integer, 0),
-                    "b" to Variable(Datatype.Void),
+                    "a" to Variable.primitive(Datatype.Integer, 0),
+                    "b" to Variable.void(),
                 )
             )
         }
 
-        val okMember = Variable(
+        val okMember = Variable.composite(
             type, mapOf(
-                "a" to Variable(Datatype.Integer, 0),
-                "b" to Variable(Datatype.Integer, 1),
+                "a" to Variable.primitive(Datatype.Integer, 0),
+                "b" to Variable.primitive(Datatype.Integer, 1),
             )
         )
 
         assertEquals(0, okMember.getField("a").getPrimitiveValue())
         assertEquals(1, okMember.getField("b").getPrimitiveValue())
 
-        okMember.setField("b", Variable(Datatype.Integer, 5))
+        okMember.setField("b", Variable.primitive(Datatype.Integer, 5))
 
         assertEquals(0, okMember.getField("a").getPrimitiveValue())
         assertEquals(5, okMember.getField("b").getPrimitiveValue())

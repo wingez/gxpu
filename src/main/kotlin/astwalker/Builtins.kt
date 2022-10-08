@@ -16,7 +16,7 @@ class BuiltInPrintInteger : Function(
 ) {
     override fun execute(variables: List<Variable>, state: WalkerState): Variable {
         state.output.result.add(variables[0].getPrimitiveValue().toString())
-        return Variable(Datatype.Void)
+        return Variable.void()
     }
 }
 
@@ -31,7 +31,7 @@ class BuiltInPrintString : Function(
             result += Char(variables.first().arrayAccess(i).getPrimitiveValue())
         }
         state.output.result.add(result)
-        return Variable(Datatype.Void)
+        return Variable.void()
     }
 }
 
@@ -39,7 +39,7 @@ class BuiltInAddition : Function(
     OperatorBuiltIns.Addition, listOf(Datatype.Integer, Datatype.Integer), Datatype.Integer
 ) {
     override fun execute(variables: List<Variable>, state: WalkerState): Variable {
-        return Variable(Datatype.Integer, variables[0].getPrimitiveValue() + variables[1].getPrimitiveValue())
+        return Variable.primitive(Datatype.Integer, variables[0].getPrimitiveValue() + variables[1].getPrimitiveValue())
     }
 }
 
@@ -47,7 +47,7 @@ class BuiltInSubtraction : Function(
     OperatorBuiltIns.Subtraction, listOf(Datatype.Integer, Datatype.Integer), Datatype.Integer
 ) {
     override fun execute(variables: List<Variable>, state: WalkerState): Variable {
-        return Variable(Datatype.Integer, variables[0].getPrimitiveValue() - variables[1].getPrimitiveValue())
+        return Variable.primitive(Datatype.Integer, variables[0].getPrimitiveValue() - variables[1].getPrimitiveValue())
     }
 }
 
@@ -56,9 +56,9 @@ class BuiltInNotEqual : Function(
 ) {
     override fun execute(variables: List<Variable>, state: WalkerState): Variable {
         if (variables[0].getPrimitiveValue() != variables[1].getPrimitiveValue()) {
-            return Variable(Datatype.Boolean, 1)
+            return Variable.primitive(Datatype.Boolean, 1)
         } else {
-            return Variable(Datatype.Boolean, 0)
+            return Variable.primitive(Datatype.Boolean, 0)
         }
     }
 }
@@ -68,7 +68,7 @@ class BuiltInCreateArray : Function(
 ) {
     override fun execute(variables: List<Variable>, state: WalkerState): Variable {
         val size = variables[0].getPrimitiveValue()
-        return Variable(definition.returnType, size, size)
+        return Variable.array(definition.returnType, size)
     }
 }
 
