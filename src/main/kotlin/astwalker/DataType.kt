@@ -1,13 +1,11 @@
 package se.wingez.astwalker
 
-import se.wingez.ast.AstNode
-import se.wingez.ast.NodeTypes
-
 class Datatype private constructor(
     val name: String,
     private val type: DatatypeClass,
     private val compositeMembersNullable: Map<String, Datatype>?,
     private val arrayTypeNullable: Datatype?,
+    val readBehaviour: ReadBehaviour,
 ) {
 
     private enum class DatatypeClass {
@@ -16,6 +14,11 @@ class Datatype private constructor(
         composite,
         bool,
         array,
+    }
+
+    enum class ReadBehaviour {
+        Reference,
+        Copy,
     }
 
     fun isComposite() = type == DatatypeClass.composite || type == DatatypeClass.array

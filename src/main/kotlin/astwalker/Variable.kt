@@ -3,7 +3,6 @@ package se.wingez.astwalker
 import se.wingez.ast.AstNode
 import se.wingez.ast.NodeTypes
 
-
 class Variable private constructor(
     val datatype: Datatype,
     private var primitiveValue: Int,
@@ -31,7 +30,7 @@ class Variable private constructor(
         }
         if (isArray()) {
             assert(name == "size")
-            return Variable.primitive(Datatype.Integer, arrayValues!!.size)
+            return primitive(Datatype.Integer, arrayValues!!.size)
         }
 
         return compositeValues!!.getValue(name)
@@ -49,6 +48,26 @@ class Variable private constructor(
         compositeValues!![name] = value
     }
 
+
+    fun arrayAccess(index: Int): Variable {
+        val values = arrayValues!!
+        if (index !in values.indices) {
+            throw WalkerException("Index out of range")
+        }
+        return values[index]
+    }
+
+    fun read(): Variable {
+        return when (datatype.readBehaviour) {
+            Datatype.ReadBehaviour.Reference -> this
+            Datatype.ReadBehaviour.Copy -> copy()
+        }
+    }
+
+    private fun copy(): Variable {
+        return Variable(datatype, primitiveValue, compositeValues, arrayValues)
+    }
+
     fun copyFrom(copyFrom: Variable) {
         assert(copyFrom.datatype == datatype)
         primitiveValue = copyFrom.primitiveValue
@@ -60,14 +79,6 @@ class Variable private constructor(
             compositeValues!!.clear()
             compositeValues.putAll(copyFrom.compositeValues!!)
         }
-    }
-
-    fun arrayAccess(index: Int): Variable {
-        val values = arrayValues!!
-        if (index !in values.indices) {
-            throw WalkerException("Index out of range")
-        }
-        return values[index]
     }
 
     companion object {

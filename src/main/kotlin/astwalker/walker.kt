@@ -267,7 +267,7 @@ class WalkerState(
     private fun handleAssign(child: AstNode) {
         val assignNode = child.asAssign()
 
-        val valueToAssign = getValueOf(assignNode.value)
+        val valueToAssign = getValueOf(assignNode.value).read()
 
 
 
