@@ -170,6 +170,7 @@ internal class TokenizerTest {
     fun testMultiLetterToken() {
         assertIterableEquals(parseLine("+ ="), listOf(TokenPlusSign, TokenAssign, TokenEOL))
         assertIterableEquals(parseLine("!="), listOf(TokenNotEqual, TokenEOL))
+        assertEquals(parseLine("= =="), listOf(TokenAssign, TokenDoubleEqual, TokenEOL))
 
         assertIterableEquals(
             parseLine("if a-2!=0:"), listOf(
@@ -215,7 +216,7 @@ internal class TokenizerTest {
     }
 
     @Test
-    fun testUnderscoreIdentifier(){
+    fun testUnderscoreIdentifier() {
         assertEquals(listOf(TokenIdentifier("hello_world"), TokenEOL), parseLine("hello_world"))
     }
 }
