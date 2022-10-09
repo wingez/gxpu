@@ -368,7 +368,7 @@ class WalkerState(
         val callNode = node.asCall()
 
         val arguments = callNode.parameters
-            .map { getValueOf(it) }
+            .map { getValueOf(it).read() }
 
         return call(callNode.targetName, arguments)
     }

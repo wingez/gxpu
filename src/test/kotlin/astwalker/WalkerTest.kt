@@ -201,6 +201,26 @@ internal class WalkerTest {
     }
 
     @Test
+    fun testEditParametersDoesNotChangeCaller() {
+        val nodes = parserFromFile(
+            """
+                def a(t:int):
+                  t = t+1
+                  
+                def main():
+                  b = 1
+                  a(b)
+                  print(b)
+                  
+            """.trimIndent()
+        ).parse()
+
+        val expected = listOf(1).map { it.toString() }
+
+        assertEquals(expected, walk(nodes).result)
+    }
+
+    @Test
     fun testWalkerReturn() {
         val nodes = parserFromFile(
             """
