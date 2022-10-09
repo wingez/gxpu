@@ -52,4 +52,46 @@ internal class WalkPrograms {
         assertEquals(listOf("abcd", "bcde"), walk(nodes).result)
     }
 
+    @Test
+    fun testPrimes() {
+
+        val program = """
+          
+          def mod(a:int, b:int):int
+            
+            while a>0:
+              a=a-b
+            
+            if a==0:
+              result = 0
+              return
+            a = a+b
+            result = a
+            return
+            
+          def main():
+            
+            max_number = 30
+            number = 2
+            while number < max_number:
+              factor = 2
+              is_prime = 1
+              while factor < number:
+                if mod(number, factor) == 0:
+                  is_prime = 0
+                  break
+                factor = factor+1
+              
+              if is_prime>0:
+                print(number)
+               
+              number = number+1
+    """.trimIndent()
+        val nodes = parserFromFile(program).parse()
+
+        assertEquals(listOf(2, 3, 5, 7, 11, 13, 17, 19, 23, 29).map { it.toString() }, walk(nodes).result)
+
+
+    }
+
 }
