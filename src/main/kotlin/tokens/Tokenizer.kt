@@ -46,6 +46,7 @@ enum class TokenType {
     NotEqual,
     Deref,
     String,
+    Break,
 }
 
 val TokenEOL = ExpressionSeparator(TokenType.EOL)
@@ -65,6 +66,7 @@ val TokenKeywordElse = Token(TokenType.KeywordElse)
 val TokenKeywordReturn = Token(TokenType.KeywordReturn)
 val TokenKeywordStruct = Token(TokenType.KeywordStruct)
 val TokenKeywordNew = Token(TokenType.KeywordNew)
+val TokenKeywordBreak = TokenSingleOperation(TokenType.Break)
 val TokenBeginBlock = Token(TokenType.BeginBlock)
 val TokenEndBlock = Token(TokenType.EndBlock)
 val TokenPlusSign = TokenSingleOperation(TokenType.PlusSign)
@@ -208,7 +210,7 @@ private class OneSymbolAtATime(
     }
 }
 
-private fun consumeString(feeder: OneSymbolAtATime):Token {
+private fun consumeString(feeder: OneSymbolAtATime): Token {
 
     assert(feeder.next() == '"')
 
@@ -323,6 +325,7 @@ fun toToken(text: String): Token {
         "return" -> TokenKeywordReturn
         "struct" -> TokenKeywordStruct
         "new" -> TokenKeywordNew
+        "break" -> TokenKeywordBreak
         else -> TokenIdentifier(text)
     }
 }

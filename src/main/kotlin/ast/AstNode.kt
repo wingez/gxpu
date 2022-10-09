@@ -12,6 +12,7 @@ enum class NodeTypes {
     Call,
     Function,
     If,
+    Break,
     While,
     Return,
     Struct,
@@ -226,6 +227,10 @@ data class AstNode(
 
         fun fromString(string: String): AstNode {
             return AstNode(NodeTypes.String, string)
+        }
+
+        fun fromBreak(): AstNode {
+            return AstNode(NodeTypes.Break, null, emptyList())
         }
     }
 }

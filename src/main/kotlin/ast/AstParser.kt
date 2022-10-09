@@ -115,6 +115,7 @@ class AstParser(private val tokens: List<Token>) {
             TokenType.KeywordWhile -> result.add(parseWhileStatement())
 
             TokenType.KeywordReturn -> result.add(parseReturnStatement())
+            TokenType.Break -> result.add(parseBreakStatement())
 
             else -> result.addAll(parseExpression())
         }
@@ -219,6 +220,11 @@ class AstParser(private val tokens: List<Token>) {
         val value = if (!peekIs(TokenEOL)) parseExpressionUntilSeparator() else null
         consumeType(TokenEOL)
         return AstNode.fromReturn(value)
+    }
+
+    fun parseBreakStatement(): AstNode {
+        consumeType(TokenKeywordBreak)
+        return AstNode.fromBreak()
     }
 
     fun parseExpression(): List<AstNode> {
