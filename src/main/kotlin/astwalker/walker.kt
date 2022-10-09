@@ -5,6 +5,16 @@ import se.wingez.ast.NodeTypes
 
 class WalkerException(msg: String = "") : Exception(msg)
 
+data class WalkConfig(
+    val maxLoopIterations: Int,
+) {
+    companion object {
+        val default = WalkConfig(
+            maxLoopIterations = 1000
+        )
+    }
+}
+
 class WalkerOutput() {
 
     val result = mutableListOf<String>()
@@ -38,14 +48,13 @@ class WalkFrame {
     val variables = mutableMapOf<String, Variable>()
 }
 
-fun walk(node: AstNode): WalkerOutput {
+fun walk(node: AstNode, config: WalkConfig = WalkConfig.default): WalkerOutput {
     return walk(listOf(node))
 }
 
-fun walk(nodes: List<AstNode>): WalkerOutput {
+fun walk(nodes: List<AstNode>, config: WalkConfig = WalkConfig.default): WalkerOutput {
 
-
-    val walker = WalkerState(nodes)
+    val walker = WalkerState(nodes, config)
     walker.walk()
     return walker.output
 
@@ -73,7 +82,8 @@ private fun definitionFromFuncNode(node: AstNode, typeProvider: TypeProvider): N
 
 
 class WalkerState(
-    val nodes: List<AstNode>
+    val nodes: List<AstNode>,
+    val config: WalkConfig,
 ) : TypeProvider {
 
     val output = WalkerOutput()
@@ -224,7 +234,14 @@ class WalkerState(
         assert(node.type == NodeTypes.While)
         val whileNode = node.asWhile()
 
-        while (true) {
+
+        for (iterationCounter in 0..config.maxLoopIterations) {
+
+            // Check max iterations
+            if (iterationCounter == config.maxLoopIterations) {
+                throw WalkerException("Max allowed iteration in a while loop exceeded")
+            }
+
             val conditionResult = getValueOf(whileNode.condition)
             if (conditionResult.datatype != Datatype.Boolean) {
                 throw WalkerException("Expect conditional to be of boolean type")

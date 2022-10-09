@@ -1,6 +1,7 @@
 package se.wingez.astwalker
 
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import se.wingez.ast.function
 import se.wingez.ast.parserFromFile
@@ -104,6 +105,23 @@ internal class WalkerTest {
         val expected = listOf(3, 4, 5).map { it.toString() }
 
         assertEquals(expected, walk(function).result)
+    }
+
+    @Test
+    fun testWhileMaxIterations() {
+        val function = parserFromFile(
+            """
+            def main():
+              i=0
+              while i!=10:
+                i=i+1
+             
+        """.trimIndent()
+        ).parse()
+        assertDoesNotThrow { walk(function) }
+
+        assertDoesNotThrow { walk(function, WalkConfig(maxLoopIterations = 50)) }
+        assertThrows<WalkerException>("Max iterations exceeded") { walk(function, WalkConfig(maxLoopIterations = 5)) }
     }
 
     @Test
