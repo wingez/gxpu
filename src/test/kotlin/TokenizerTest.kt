@@ -211,6 +211,11 @@ internal class TokenizerTest {
         assertEquals(isAlNumeric("56a"), true)
         assertEquals(isAlNumeric("DFGZa"), true)
         assertEquals(isAlNumeric("!a"), false)
+        assertEquals(isAlNumeric("sdf_a"), true)
     }
 
+    @Test
+    fun testUnderscoreIdentifier(){
+        assertEquals(listOf(TokenIdentifier("hello_world"), TokenEOL), parseLine("hello_world"))
+    }
 }

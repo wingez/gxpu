@@ -74,7 +74,7 @@ val TokenNotEqual = TokenSingleOperation(TokenType.NotEqual)
 private val ALWAYS_DELIMITER = listOf('(', ')', ',', ':', '"')
 
 fun isNumeric(str: String) = str.all { it in '0'..'9' }
-fun isAlNumeric(str: String) = str.all { it in '0'..'9' || it in 'a'..'z' || it in 'A'..'Z' }
+fun isAlNumeric(str: String) = str.all { it in '0'..'9' || it in 'a'..'z' || it in 'A'..'Z' || it == '_' }
 
 fun getIndentation(line: String): Pair<Int, String> {
     var indentation = 0
