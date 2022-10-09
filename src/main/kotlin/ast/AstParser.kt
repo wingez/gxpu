@@ -19,13 +19,15 @@ class OperatorBuiltIns {
         const val Addition = "builtin_addition"
         const val Subtraction = "builtin_subtraction"
         const val NotEqual = "builtin_notequal"
+        const val LessThan = "builtin_lessthan"
     }
 }
 
-val operatorToNodesType = mapOf<Token, String>(
+val operatorToNodesType = mapOf(
     TokenPlusSign to OperatorBuiltIns.Addition,
     TokenMinusSign to OperatorBuiltIns.Subtraction,
     TokenNotEqual to OperatorBuiltIns.NotEqual,
+    TokenLesserSign to OperatorBuiltIns.LessThan,
 )
 
 

@@ -42,6 +42,7 @@ enum class TokenType {
     PlusSign,
     MinusSign,
     GreaterSign,
+    LesserSign,
     NotEqual,
     Deref,
     String,
@@ -69,6 +70,7 @@ val TokenEndBlock = Token(TokenType.EndBlock)
 val TokenPlusSign = TokenSingleOperation(TokenType.PlusSign)
 val TokenMinusSign = TokenSingleOperation(TokenType.MinusSign)
 val TokenGreaterSign = Token(TokenType.GreaterSign)
+val TokenLesserSign = Token(TokenType.LesserSign)
 val TokenNotEqual = TokenSingleOperation(TokenType.NotEqual)
 
 private val ALWAYS_DELIMITER = listOf('(', ')', ',', ':', '"')
@@ -303,6 +305,7 @@ fun toToken(text: String): Token {
         "+" -> TokenPlusSign
         "-" -> TokenMinusSign
         ">" -> TokenGreaterSign
+        "<" -> TokenLesserSign
         "." -> TokenDot
         "->" -> TokenDeref
         else -> null
