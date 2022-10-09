@@ -81,6 +81,13 @@ class Variable private constructor(
         }
     }
 
+    override fun toString(): String {
+        if (isPrimitive()) {
+            return "Variable(type=$datatype, value=$primitiveValue)"
+        }
+        return super.toString()
+    }
+
     companion object {
         fun void(): Variable {
             return Variable(Datatype.Void, 0, null, null)
