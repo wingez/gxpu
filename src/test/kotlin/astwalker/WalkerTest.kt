@@ -7,6 +7,7 @@ import se.wingez.ast.function
 import se.wingez.ast.parserFromFile
 import se.wingez.ast.parserFromLine
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 
 internal class WalkerTest {
@@ -126,7 +127,7 @@ internal class WalkerTest {
 
     @Test
     fun testWhileBreak() {
-        val function = parserFromFile(
+        var function = parserFromFile(
             """
             def main():
               i=0
@@ -139,8 +140,22 @@ internal class WalkerTest {
         ).parse()
 
         val expected = listOf(0, 1).map { it.toString() }
-
         assertEquals(expected, walk(function).result)
+
+        function = parserFromFile(
+            """
+            def main():
+              i=0
+              print(i)
+              if i==0:
+                break
+              i=i+1
+        """.trimIndent()
+        ).parse()
+
+        val msg = assertThrows<WalkerException> { walk(function) }
+        assertTrue { msg.message!!.contains("No loop to break from") }
+
     }
 
 
