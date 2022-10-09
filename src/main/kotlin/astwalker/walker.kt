@@ -83,6 +83,7 @@ private fun definitionFromFuncNode(node: AstNode, typeProvider: TypeProvider): N
 enum class ControlFlow {
     Normal,
     Break,
+    Return,
 }
 
 class WalkerState(
@@ -181,8 +182,19 @@ class WalkerState(
         }
 
         // Walk the function
-        node.childNodes.forEach { walkRecursive(it) }
-
+        for (child in node.childNodes) {
+            // This is the topmost. We need to handle every state. When statement should be exhaustive
+            val shouldContinue = when (walkRecursive(child)) {
+                ControlFlow.Normal -> true
+                ControlFlow.Return -> false
+                ControlFlow.Break -> {
+                    throw WalkerException("No loop to break from")
+                }
+            }
+            if (!shouldContinue) {
+                break
+            }
+        }
 
         val result = currentFrame.variables.getValue("result")
 
@@ -220,8 +232,19 @@ class WalkerState(
                 ControlFlow.Break
             }
 
+            NodeTypes.Return -> {
+                handleReturn(node)
+            }
+
             else -> throw WalkerException("Cannot execute node of type ${node.type} (yet)")
         }
+    }
+
+    private fun handleReturn(node: AstNode): ControlFlow {
+        assert(node.type == NodeTypes.Return)
+        val returnNode = node.asReturn()
+        assert(!returnNode.hasValue())
+        return ControlFlow.Return
     }
 
     fun handleMemberDeclaration(node: AstNode): ControlFlow {
@@ -262,7 +285,7 @@ class WalkerState(
             }
 
             for (child in whileNode.body) {
-                val  controlFlowResult = walkRecursive(child)
+                val controlFlowResult = walkRecursive(child)
                 when (controlFlowResult) {
                     ControlFlow.Normal -> {
 

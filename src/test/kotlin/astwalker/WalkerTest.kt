@@ -252,4 +252,32 @@ internal class WalkerTest {
         assertEquals(expected, walk(nodes).result)
 
     }
+
+    @Test
+    fun testFunctionEarlyReturn() {
+        val nodes =
+            parserFromFile(
+                """
+                def a(t:int):int
+                  if t<1:
+                    result = 10
+                    return
+                  if t<2:
+                    result = 20
+                    return
+                  
+                  result=30
+                  return
+                  
+                def main():
+                  print(a(0))
+                  print(a(1))
+                  print(a(2))
+            """.trimIndent()
+            ).parse()
+
+        val expected = listOf(10, 20, 30).map { it.toString() }
+
+        assertEquals(expected, walk(nodes).result)
+    }
 }
