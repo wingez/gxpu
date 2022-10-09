@@ -80,6 +80,10 @@ private fun definitionFromFuncNode(node: AstNode, typeProvider: TypeProvider): N
     return NodeFunction(node, definition)
 }
 
+enum class ControlFlow {
+    Normal,
+    Break,
+}
 
 class WalkerState(
     val nodes: List<AstNode>,
@@ -188,12 +192,12 @@ class WalkerState(
         return result
     }
 
-    private fun walkRecursive(node: AstNode) {
+    private fun walkRecursive(node: AstNode): ControlFlow {
 
 
-        when (node.type) {
+        return when (node.type) {
             NodeTypes.Call -> {
-                getValueOf(node)
+                handleCallIgnoreResult(node)
             }
 
             NodeTypes.Assign -> {
@@ -212,11 +216,15 @@ class WalkerState(
                 handleMemberDeclaration(node)
             }
 
-            else -> throw WalkerException()
+            NodeTypes.Break -> {
+                ControlFlow.Break
+            }
+
+            else -> throw WalkerException("Cannot execute node of type ${node.type} (yet)")
         }
     }
 
-    fun handleMemberDeclaration(node: AstNode) {
+    fun handleMemberDeclaration(node: AstNode): ControlFlow {
         val memberDef = node.asMemberDeclaration()
 
         val name = memberDef.name
@@ -228,9 +236,11 @@ class WalkerState(
         }
 
         currentFrame.variables[name] = createDefaultVariable(newVariableType)
+
+        return ControlFlow.Normal
     }
 
-    fun handleWhile(node: AstNode) {
+    fun handleWhile(node: AstNode): ControlFlow {
         assert(node.type == NodeTypes.While)
         val whileNode = node.asWhile()
 
@@ -252,13 +262,23 @@ class WalkerState(
             }
 
             for (child in whileNode.body) {
-                walkRecursive(child)
+                val  controlFlowResult = walkRecursive(child)
+                when (controlFlowResult) {
+                    ControlFlow.Normal -> {
+
+                    }
+
+                    ControlFlow.Break -> return ControlFlow.Normal
+                    else -> return controlFlowResult
+                }
             }
         }
+
+        return ControlFlow.Normal
     }
 
 
-    private fun handleIf(node: AstNode) {
+    private fun handleIf(node: AstNode): ControlFlow {
         assert(node.type == NodeTypes.If)
         val ifNode = node.asIf()
 
@@ -270,18 +290,25 @@ class WalkerState(
 
         if (conditionResult.getPrimitiveValue() != 0) {
             for (child in ifNode.ifBody) {
-                walkRecursive(child)
+                val controlFlowResult = walkRecursive(child)
+                if (controlFlowResult != ControlFlow.Normal) {
+                    return controlFlowResult
+                }
             }
         } else {
             if (ifNode.hasElse) {
                 for (child in ifNode.elseBody) {
-                    walkRecursive(child)
+                    val controlFlowResult = walkRecursive(child)
+                    if (controlFlowResult != ControlFlow.Normal) {
+                        return controlFlowResult
+                    }
                 }
             }
         }
+        return ControlFlow.Normal
     }
 
-    private fun handleAssign(child: AstNode) {
+    private fun handleAssign(child: AstNode): ControlFlow {
         val assignNode = child.asAssign()
 
         val valueToAssign = getValueOf(assignNode.value).read()
@@ -293,7 +320,7 @@ class WalkerState(
             val isNewAssign = assignName !in currentFrame.variables
             if (isNewAssign) {
                 currentFrame.variables[assignName] = valueToAssign
-                return
+                return ControlFlow.Normal
             }
 
         }
@@ -305,6 +332,12 @@ class WalkerState(
         }
 
         variableToAssignTo.copyFrom(valueToAssign)
+        return ControlFlow.Normal
+    }
+
+    fun handleCallIgnoreResult(node: AstNode): ControlFlow {
+        handleCall(node)
+        return ControlFlow.Normal
     }
 
     fun handleCall(node: AstNode): Variable {

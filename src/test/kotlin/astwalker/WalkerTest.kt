@@ -125,6 +125,26 @@ internal class WalkerTest {
     }
 
     @Test
+    fun testWhileBreak() {
+        val function = parserFromFile(
+            """
+            def main():
+              i=0
+              while i!=10:
+                print(i)
+                if i!=0:
+                  break
+                i=i+1
+        """.trimIndent()
+        ).parse()
+
+        val expected = listOf(0, 1).map { it.toString() }
+
+        assertEquals(expected, walk(function).result)
+    }
+
+
+    @Test
     fun testWalkerCallOtherFunctions() {
         val nodes =
             parserFromFile(
