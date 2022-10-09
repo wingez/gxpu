@@ -9,10 +9,12 @@ val operationPriorities = mapOf(
     TokenLeftBracket to 10,
     TokenPlusSign to 5,
     TokenMinusSign to 5,
+    TokenLesserSign to 2,
     TokenNotEqual to 1,
     TokenDeref to 10,
     TokenDot to 10,
-)
+
+    )
 
 class OperatorBuiltIns {
     companion object {

@@ -2,7 +2,6 @@ package se.wingez.astwalker
 
 import se.wingez.ast.OperatorBuiltIns
 
-
 abstract class Function(
     name: String,
     parameterTypes: List<Datatype>,
@@ -51,17 +50,24 @@ class BuiltInSubtraction : Function(
     }
 }
 
-class BuiltInNotEqual : Function(
-    OperatorBuiltIns.NotEqual, listOf(Datatype.Integer, Datatype.Integer), Datatype.Boolean
+class IntegerComparator(
+    functionName: String,
+    private val compareFunction: (val1: Int, val2: Int) -> Boolean
+) : Function(
+    functionName, listOf(Datatype.Integer, Datatype.Integer), Datatype.Boolean
 ) {
     override fun execute(variables: List<Variable>, state: WalkerState): Variable {
-        if (variables[0].getPrimitiveValue() != variables[1].getPrimitiveValue()) {
-            return Variable.primitive(Datatype.Boolean, 1)
-        } else {
-            return Variable.primitive(Datatype.Boolean, 0)
+        val value1 = variables[0].getPrimitiveValue()
+        val value2 = variables[1].getPrimitiveValue()
+
+        val result = when (compareFunction.invoke(value1, value2)) {
+            true -> 1
+            false -> 0
         }
+        return Variable.primitive(Datatype.Boolean, result)
     }
 }
+
 
 class BuiltInCreateArray : Function(
     "createArray", listOf(Datatype.Integer), Datatype.Array(Datatype.Integer)
@@ -77,6 +83,9 @@ val builtInList = listOf(
     BuiltInPrintString(),
     BuiltInAddition(),
     BuiltInSubtraction(),
-    BuiltInNotEqual(),
+
+    IntegerComparator(OperatorBuiltIns.NotEqual) { val1, val2 -> val1 != val2 },
+    IntegerComparator(OperatorBuiltIns.LessThan) { val1, val2 -> val1 < val2 },
+
     BuiltInCreateArray(),
 )
