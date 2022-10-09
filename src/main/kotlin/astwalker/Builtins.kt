@@ -87,6 +87,7 @@ val builtInList = listOf(
     IntegerComparator(OperatorBuiltIns.Equal) { val1, val2 -> val1 == val2 },
     IntegerComparator(OperatorBuiltIns.NotEqual) { val1, val2 -> val1 != val2 },
     IntegerComparator(OperatorBuiltIns.LessThan) { val1, val2 -> val1 < val2 },
+    IntegerComparator(OperatorBuiltIns.GreaterThan) { val1, val2 -> val1 > val2 },
 
     BuiltInCreateArray(),
 )

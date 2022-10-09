@@ -25,6 +25,7 @@ class OperatorBuiltIns {
         const val NotEqual = "builtin_notequal"
         const val Equal = "builtin_equal"
         const val LessThan = "builtin_lessthan"
+        const val GreaterThan = "builtin_greaterthan"
     }
 }
 
@@ -33,6 +34,7 @@ val operatorToNodesType = mapOf(
     TokenMinusSign to OperatorBuiltIns.Subtraction,
     TokenNotEqual to OperatorBuiltIns.NotEqual,
     TokenLesserSign to OperatorBuiltIns.LessThan,
+    TokenGreaterSign to OperatorBuiltIns.GreaterThan,
     TokenDoubleEqual to OperatorBuiltIns.Equal,
 )
 
