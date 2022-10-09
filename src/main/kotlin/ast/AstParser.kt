@@ -10,6 +10,8 @@ val operationPriorities = mapOf(
     TokenPlusSign to 5,
     TokenMinusSign to 5,
     TokenLesserSign to 2,
+    TokenGreaterSign to 2,
+    TokenDoubleEqual to 2,
     TokenNotEqual to 1,
     TokenDeref to 10,
     TokenDot to 10,
@@ -21,6 +23,7 @@ class OperatorBuiltIns {
         const val Addition = "builtin_addition"
         const val Subtraction = "builtin_subtraction"
         const val NotEqual = "builtin_notequal"
+        const val Equal = "builtin_equal"
         const val LessThan = "builtin_lessthan"
     }
 }
@@ -30,6 +33,7 @@ val operatorToNodesType = mapOf(
     TokenMinusSign to OperatorBuiltIns.Subtraction,
     TokenNotEqual to OperatorBuiltIns.NotEqual,
     TokenLesserSign to OperatorBuiltIns.LessThan,
+    TokenDoubleEqual to OperatorBuiltIns.Equal,
 )
 
 

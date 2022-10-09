@@ -84,6 +84,7 @@ val builtInList = listOf(
     BuiltInAddition(),
     BuiltInSubtraction(),
 
+    IntegerComparator(OperatorBuiltIns.Equal) { val1, val2 -> val1 == val2 },
     IntegerComparator(OperatorBuiltIns.NotEqual) { val1, val2 -> val1 != val2 },
     IntegerComparator(OperatorBuiltIns.LessThan) { val1, val2 -> val1 < val2 },
 
