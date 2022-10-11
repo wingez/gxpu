@@ -51,7 +51,7 @@ class WalkFrame {
 }
 
 fun walk(node: AstNode, config: WalkConfig = WalkConfig.default): WalkerOutput {
-    return walk(listOf(node))
+    return walk(listOf(node), config)
 }
 
 fun walk(nodes: List<AstNode>, config: WalkConfig = WalkConfig.default): WalkerOutput {

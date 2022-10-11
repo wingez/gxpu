@@ -78,12 +78,23 @@ class BuiltInCreateArray : Function(
     }
 }
 
+val modulus = IntegerArithmetic("mod") { val1, val2 ->
+    val1 % val2
+}
+
+val integerDiv = IntegerArithmetic("idiv") { val1, val2 ->
+    val1 / val2
+}
+
+
 val builtInList = listOf(
     BuiltInPrintInteger(),
     BuiltInPrintString(),
 
     IntegerArithmetic(OperatorBuiltIns.Addition) { val1, val2 -> val1 + val2 },
     IntegerArithmetic(OperatorBuiltIns.Subtraction) { val1, val2 -> val1 - val2 },
+    modulus,
+    integerDiv,
 
     IntegerComparator(OperatorBuiltIns.Equal) { val1, val2 -> val1 == val2 },
     IntegerComparator(OperatorBuiltIns.NotEqual) { val1, val2 -> val1 != val2 },

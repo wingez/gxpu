@@ -56,19 +56,6 @@ internal class WalkPrograms {
     fun testPrimes() {
 
         val program = """
-          
-          def mod(a:int, b:int):int
-            
-            while a>0:
-              a=a-b
-            
-            if a==0:
-              result = 0
-              return
-            a = a+b
-            result = a
-            return
-            
           def main():
             
             max_number = 30
