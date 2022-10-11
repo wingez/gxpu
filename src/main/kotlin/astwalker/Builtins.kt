@@ -34,22 +34,6 @@ class BuiltInPrintString : Function(
     }
 }
 
-class BuiltInAddition : Function(
-    OperatorBuiltIns.Addition, listOf(Datatype.Integer, Datatype.Integer), Datatype.Integer
-) {
-    override fun execute(variables: List<Variable>, state: WalkerState): Variable {
-        return Variable.primitive(Datatype.Integer, variables[0].getPrimitiveValue() + variables[1].getPrimitiveValue())
-    }
-}
-
-class BuiltInSubtraction : Function(
-    OperatorBuiltIns.Subtraction, listOf(Datatype.Integer, Datatype.Integer), Datatype.Integer
-) {
-    override fun execute(variables: List<Variable>, state: WalkerState): Variable {
-        return Variable.primitive(Datatype.Integer, variables[0].getPrimitiveValue() - variables[1].getPrimitiveValue())
-    }
-}
-
 class IntegerComparator(
     functionName: String,
     private val compareFunction: (val1: Int, val2: Int) -> Boolean
@@ -68,6 +52,22 @@ class IntegerComparator(
     }
 }
 
+class IntegerArithmetic(
+    functionName: String,
+    private val arithmeticFunction: (val1: Int, val2: Int) -> Int
+) : Function(
+    functionName, listOf(Datatype.Integer, Datatype.Integer), Datatype.Integer
+) {
+    override fun execute(variables: List<Variable>, state: WalkerState): Variable {
+        val value1 = variables[0].getPrimitiveValue()
+        val value2 = variables[1].getPrimitiveValue()
+
+        val result = arithmeticFunction.invoke(value1, value2)
+
+        return Variable.primitive(Datatype.Integer, result)
+    }
+}
+
 
 class BuiltInCreateArray : Function(
     "createArray", listOf(Datatype.Integer), Datatype.Array(Datatype.Integer)
@@ -81,8 +81,9 @@ class BuiltInCreateArray : Function(
 val builtInList = listOf(
     BuiltInPrintInteger(),
     BuiltInPrintString(),
-    BuiltInAddition(),
-    BuiltInSubtraction(),
+
+    IntegerArithmetic(OperatorBuiltIns.Addition) { val1, val2 -> val1 + val2 },
+    IntegerArithmetic(OperatorBuiltIns.Subtraction) { val1, val2 -> val1 - val2 },
 
     IntegerComparator(OperatorBuiltIns.Equal) { val1, val2 -> val1 == val2 },
     IntegerComparator(OperatorBuiltIns.NotEqual) { val1, val2 -> val1 != val2 },
