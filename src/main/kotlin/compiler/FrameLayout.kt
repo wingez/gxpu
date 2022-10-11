@@ -34,7 +34,7 @@ data class FunctionSignature(
             val parameters = mutableListOf<StructDataField>()
 
 
-            val returnType = if (functionData.returnType.isNotEmpty())
+            val returnType = if (functionData.returnType.typeName.isNotEmpty())
                 typeProvider.getType(functionData.returnType)
             else
                 voidType

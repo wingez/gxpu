@@ -190,7 +190,20 @@ data class AstNode(
             body: List<AstNode>,
             returnType: String,
         ): AstNode {
-            return AstNode(NodeTypes.Function, FunctionData(name, arguments, returnType), body)
+            return fromFunction(name, arguments, body, TypeDefinition(returnType))
+        }
+
+        fun fromFunction(
+            name: String,
+            arguments: List<AstNode>,
+            body: List<AstNode>,
+            returnType: TypeDefinition
+        ): AstNode {
+            return AstNode(
+                NodeTypes.Function,
+                FunctionData(name, arguments, returnType),
+                body
+            )
         }
 
         fun fromIf(
@@ -237,13 +250,17 @@ data class AstNode(
 
 data class MemberDeclarationData(
     val name: String,
-    val type: String,
-    val explicitNew: Boolean = false,
-    val isArray: Boolean = false,
+    val type: TypeDefinition
 )
 
 data class FunctionData(
     val name: String,
     val arguments: List<AstNode>,
-    val returnType: String,
+    val returnType: TypeDefinition,
+)
+
+data class TypeDefinition(
+    val typeName: String,
+    val explicitNew: Boolean = false,
+    val isArray: Boolean = false,
 )

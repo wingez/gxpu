@@ -1,7 +1,9 @@
 package se.wingez.astwalker
 
 import se.wingez.ast.AstNode
+import se.wingez.ast.MemberDeclarationData
 import se.wingez.ast.NodeTypes
+import se.wingez.ast.TypeDefinition
 
 class WalkerException(msg: String = "") : Exception(msg)
 
@@ -62,6 +64,14 @@ fun walk(nodes: List<AstNode>, config: WalkConfig = WalkConfig.default): WalkerO
 
 interface TypeProvider {
     fun getType(name: String): Datatype
+    fun getType(typeDefinition: TypeDefinition): Datatype {
+        val typeName = typeDefinition.typeName
+        var type = getType(typeName)
+        if (typeDefinition.isArray) {
+            type = Datatype.Array(type)
+        }
+        return type
+    }
 }
 
 
@@ -130,7 +140,7 @@ class WalkerState(
 
     private fun addFunction(function: IFunction) {
         if (hasFunctionMatching(function.definition.name, function.definition.parameterTypes)) {
-            throw WalkerException()
+            throw WalkerException("Function already exists: ${function.definition.name}(${function.definition.parameterTypes})")
         }
         availableFunctions.add(function)
     }
@@ -253,10 +263,7 @@ class WalkerState(
         val name = memberDef.name
         assert(name !in currentFrame.variables)
 
-        var newVariableType = types.getValue(memberDef.type)
-        if (memberDef.isArray) {
-            newVariableType = Datatype.Array(newVariableType)
-        }
+        val newVariableType = getType(memberDef.type)
 
         currentFrame.variables[name] = createDefaultVariable(newVariableType)
 

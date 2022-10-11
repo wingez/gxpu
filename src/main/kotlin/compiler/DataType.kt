@@ -1,5 +1,7 @@
 package se.wingez.compiler
 
+import se.wingez.ast.TypeDefinition
+
 interface DataType {
     val size: Int
     val name: String
@@ -14,6 +16,12 @@ interface FieldContainer {
 
 interface TypeProvider {
     fun getType(name: String): DataType
+    fun getType(typeDefinition: TypeDefinition): DataType {
+        assert(!typeDefinition.isArray)
+        //assert(!typeDefinition.explicitNew)
+        return getType(typeDefinition.typeName)
+    }
+
 }
 
 data class PrimitiveDatatype(

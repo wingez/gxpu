@@ -45,7 +45,7 @@ fun buildStruct(node: AstNode, typeProvider: TypeProvider): StructType {
 
         val memberDeclaration = member.asMemberDeclaration()
 
-        val fieldType: DataType = if (memberDeclaration.type.isEmpty())
+        val fieldType: DataType = if (memberDeclaration.type.typeName.isEmpty())
             DEFAULT_TYPE
         else
             typeProvider.getType(memberDeclaration.type)

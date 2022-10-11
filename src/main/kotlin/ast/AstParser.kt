@@ -156,18 +156,16 @@ class AstParser(private val tokens: List<Token>) {
 
             peekIs(TokenComma, true)
         }
-        consumeType(TokenColon)
-        var returnType = VOID_TYPE_NAME
-        if (!peekIs(TokenEOL)) {
-            returnType = consumeIdentifier()
-        }
+
+        val returnTypeDef = parseOptionalTypeDefinition(allowNoTypeName = true)
+            ?: throw ParserError("Invalid return type")
 
         consumeType(TokenEOL)
         consumeType(TokenBeginBlock)
 
         val statements = parseStatementsUntilEndblock()
 
-        return AstNode.fromFunction(name, parameters, statements, returnType)
+        return AstNode.fromFunction(name, parameters, statements, returnTypeDef)
     }
 
     fun parseStatementsUntilEndblock(): List<AstNode> {
@@ -235,6 +233,30 @@ class AstParser(private val tokens: List<Token>) {
         return AstNode.fromBreak()
     }
 
+    fun parseOptionalTypeDefinition(allowNoTypeName: Boolean): TypeDefinition? {
+        if (!peekIs(TokenColon, consumeMatch = true)) {
+            return null
+        }
+        val explicitNew = peekIs(TokenKeywordNew, consumeMatch = true)
+
+        val type: String = if (!allowNoTypeName) {
+            consumeIdentifier()
+        } else {
+            if (peekIs<TokenIdentifier>()) {
+                consumeIdentifier()
+            } else {
+                return TypeDefinition(VOID_TYPE_NAME)
+            }
+        }
+
+        val isArray = peekIs(TokenLeftBracket)
+        if (isArray) {
+            consumeType(TokenLeftBracket)
+            consumeType(TokenRightBracket)
+        }
+        return TypeDefinition(type, explicitNew, isArray)
+    }
+
     fun parseExpression(): List<AstNode> {
         var first = parseExpressionUntilSeparator()
 
@@ -242,24 +264,15 @@ class AstParser(private val tokens: List<Token>) {
             return listOf(first)
         }
 
-
-        if (peekIs(TokenColon, consumeMatch = true)) {
-            val explicitNew = peekIs(TokenKeywordNew, consumeMatch = true)
-            val type = consumeIdentifier()
-            var array = false
-
-            if (peekIs(TokenLeftBracket)) {
-                consumeType(TokenLeftBracket)
-                consumeType(TokenRightBracket)
-                array = true
-            }
+        val typeDefinition = parseOptionalTypeDefinition(allowNoTypeName = false)
+        if (typeDefinition != null) {
             if (first.type != NodeTypes.Identifier) {
                 throw ParserError("Expected membername, not $first")
             }
 
             first = AstNode.fromMemberDeclaration(
                 MemberDeclarationData(
-                    first.asIdentifier(), type, explicitNew, array
+                    first.asIdentifier(), typeDefinition
                 )
             )
         }
