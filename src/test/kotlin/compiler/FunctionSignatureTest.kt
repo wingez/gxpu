@@ -90,7 +90,7 @@ internal class FunctionSignatureTest {
         val built = getSignature(
             """
             def test1():
-              var:byte=5
+              val var:byte=5
     """
         )
         val layout = built.layout
@@ -104,7 +104,7 @@ internal class FunctionSignatureTest {
         val built = getSignature(
             """
             def test1(param:byte): byte
-              var:byte=5
+              val var:byte=5
     """
         )
         assertEquals(built.layout.size, 5)
@@ -127,9 +127,9 @@ internal class FunctionSignatureTest {
             """
             def test1():
               if 5:
-                var:byte=2
+                val var:byte=2
               else:
-                var1:byte=3
+                val var1:byte=3
     """
         )
         assertEquals(built.layout.size, 4)
@@ -149,7 +149,7 @@ internal class FunctionSignatureTest {
         val built = getSignature(
             """
             def test1(var2:byte):
-              var:byte=1
+              val var:byte=1
             """
         )
         assertEquals(built.layout.size, 4)

@@ -39,7 +39,7 @@ fun constant(value: Int): AstNode {
 }
 
 fun variable(name: String, type: String = "byte", explicitNew: Boolean = false, isArray: Boolean = false): AstNode {
-    return AstNode.fromMemberDeclaration(MemberDeclarationData(name, TypeDefinition(type, explicitNew, isArray)))
+    return AstNode.fromNewVariable(name, TypeDefinition(type, explicitNew, isArray), null)
 }
 
 fun call(target: String, parameters: List<AstNode>): AstNode {
@@ -172,6 +172,22 @@ internal class AstParserTest {
                 TypeDefinition("byte", isArray = true)
             ),
             parserFromFile(program).parseFunctionDefinition()
+        )
+    }
+
+    @Test
+    fun testNewVariable() {
+        assertEquals(
+            listOf(AstNode.fromNewVariable("var", TypeDefinition("byte"), null)),
+            parserFromLine("val var:byte").parseNewValDeclaration(),
+        )
+
+        assertEquals(
+            listOf(
+                AstNode.fromNewVariable("var", null, AstNode.fromConstant(5)),
+                AstNode.fromAssign(AstNode.fromIdentifier("var"), AstNode.fromConstant(5))
+            ),
+            parserFromLine("val var=5").parseNewValDeclaration(),
         )
     }
 

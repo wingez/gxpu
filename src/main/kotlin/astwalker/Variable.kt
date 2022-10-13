@@ -143,23 +143,63 @@ fun createDefaultVariable(datatype: Datatype): Variable {
     throw WalkerException("Cannot instanciate empty variable of type $datatype")
 }
 
-fun createTypeFromNode(node: AstNode, typeProvider: TypeProvider): Datatype {
+fun findType(node: AstNode, variableProvider: VariableProvider, functionProvider: FunctionProvider): Datatype {
+
+    return when (node.type) {
+        NodeTypes.Identifier -> variableProvider.getTypeOfVariable(node.asIdentifier())
+        NodeTypes.Constant -> Datatype.Integer
+        NodeTypes.String -> Datatype.Array(Datatype.Integer)
+        NodeTypes.Call -> {
+            val callNode = node.asCall()
+            val parameterTypes = callNode.parameters.map { findType(it, variableProvider, functionProvider) }
+            return functionProvider.getFunctionMatching(callNode.targetName, parameterTypes).definition.returnType
+        }
+
+        NodeTypes.ArrayAccess -> {
+            val arrayAccess = node.asArrayAccess()
+
+            // datatype for the array
+            val arrayType = findType(arrayAccess.parent, variableProvider, functionProvider)
+            // what this is an array of
+            val type = arrayType.arrayType
+
+            return type
+        }
+
+        else -> throw WalkerException()
+    }
+}
+
+interface VariableProvider {
+    fun getTypeOfVariable(variableName: String): Datatype
+}
+
+fun createTypeFromNode(
+    node: AstNode,
+    variableProvider: VariableProvider,
+    functionProvider: FunctionProvider,
+    typeProvider: TypeProvider
+): Datatype {
     assert(node.type == NodeTypes.Struct)
 
     val members = mutableMapOf<String, Datatype>()
     val typeName = node.data as String
 
-    for (memberDef in node.childNodes) {
-        assert(memberDef.type == NodeTypes.MemberDeclaration)
-        val member = memberDef.asMemberDeclaration()
+    for (child in node.childNodes) {
+        val newValue = child.asNewVariable()
 
-        val memberName = member.name
-        val memberTypeName = member.type
+        val type: Datatype
+        val optionalTypeDef = newValue.optionalTypeDefinition
+        if (optionalTypeDef != null) {
+            type = typeProvider.getType(optionalTypeDef)
+        } else {
+            type = findType(newValue.assignmentType, variableProvider, functionProvider)
+        }
 
+        val memberName = newValue.name
         if (memberName in members) {
             throw WalkerException("Member $memberName already exist")
         }
-        val type = typeProvider.getType(memberTypeName)
 
         members[memberName] = type
     }

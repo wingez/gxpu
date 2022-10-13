@@ -41,10 +41,10 @@ data class FunctionSignature(
 
             var currentOffset = 0
             for (paramNode in functionData.arguments) {
-                assert(paramNode.type == NodeTypes.MemberDeclaration)
-                val member = paramNode.asMemberDeclaration()
+                assert(paramNode.type == NodeTypes.NewVariable)
+                val member = paramNode.asNewVariable()
 
-                val type = typeProvider.getType(member.type)
+                val type = typeProvider.getType(member.optionalTypeDefinition!!)
 
                 parameters.add(StructDataField(member.name, currentOffset, type))
                 currentOffset += type.size
@@ -54,7 +54,6 @@ data class FunctionSignature(
     }
 
 }
-
 
 
 class SignatureBuilder(val name: String) {

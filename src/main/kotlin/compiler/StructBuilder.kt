@@ -40,15 +40,15 @@ class StructBuilder {
 fun buildStruct(node: AstNode, typeProvider: TypeProvider): StructType {
     val builder = StructBuilder()
     for (member in node.childNodes) {
-        if (member.type != NodeTypes.MemberDeclaration)
+        if (member.type != NodeTypes.NewVariable)
             throw ParserError("Only primitive declarations allowed for structs. Not $member")
 
-        val memberDeclaration = member.asMemberDeclaration()
+        val memberDeclaration = member.asNewVariable()
 
-        val fieldType: DataType = if (memberDeclaration.type.typeName.isEmpty())
+        val fieldType: DataType = if (memberDeclaration.optionalTypeDefinition!!.typeName.isEmpty())
             DEFAULT_TYPE
         else
-            typeProvider.getType(memberDeclaration.type)
+            typeProvider.getType(memberDeclaration.optionalTypeDefinition)
 
         builder.addMember(memberDeclaration.name, fieldType)
     }

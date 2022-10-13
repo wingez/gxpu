@@ -169,7 +169,7 @@ class CompilerTest {
         """
 
         body = """
-          var:byte=5
+          val var:byte=5
         """
         bodyShouldMatchAssembled(body, expected)
 
@@ -186,8 +186,8 @@ class CompilerTest {
         """
 
         val body = """
-          val1:byte=5
-          val2:byte=val1
+          val val1:byte=5
+          val val2:byte=val1
         """
         bodyShouldMatchAssembled(body, expected)
     }

@@ -136,9 +136,9 @@ class FunctionBuilder(
     }
 
     fun handleMemberDeclaration(node: AstNode) {
-        assert(node.type == NodeTypes.MemberDeclaration)
-        val memberData = node.asMemberDeclaration()
-        val memberType = typeProvider.getType(memberData.type)
+        assert(node.type == NodeTypes.NewVariable)
+        val memberData = node.asNewVariable()
+        val memberType = typeProvider.getType(memberData.optionalTypeDefinition!!)
 
 
         addLocalVariable(memberData.name, memberType)
@@ -149,7 +149,7 @@ class FunctionBuilder(
 
         when (node.type) {
             // TODO: what should we do here???
-            NodeTypes.MemberDeclaration -> handleMemberDeclaration(node)
+            NodeTypes.NewVariable -> handleMemberDeclaration(node)
             NodeTypes.Return -> handleReturn(node)
             NodeTypes.If -> handleIf(node)
             NodeTypes.While -> handleWhile(node)

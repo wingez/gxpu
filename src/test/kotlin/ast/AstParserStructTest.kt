@@ -90,7 +90,7 @@ class AstParserStructTest {
             parserFromFile(
                 """
         def main():
-          a: type1
+          val a: type1
       
           a.member1=2
           a.member2=1

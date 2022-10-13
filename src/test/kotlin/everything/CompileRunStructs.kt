@@ -14,7 +14,7 @@ class CompileRunStructs {
             member2:byte
           
           def main():
-            a:new type1
+            val a:new type1
             
             a.member2=5
             a.member1=2
@@ -35,7 +35,7 @@ class CompileRunStructs {
             member2:byte
           
           def main():
-            a:new type1
+            val a:new type1
             
             a.member2=5
             a.member1=2
@@ -59,7 +59,7 @@ class CompileRunStructs {
             child: new children
           
           def main():
-            a:new parent
+            val a:new parent
             
             a.parent1=1
             (a.child).child1=2

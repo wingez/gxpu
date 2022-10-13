@@ -11,11 +11,11 @@ internal class WalkPrograms {
     fun testFibonacci() {
         val program = """
           def main():
-            a=1
-            b=0
-            c=0
+            val a=1
+            val b=0
+            val c=0
     
-            counter=0
+            val counter=0
             while (10-counter)!=0:
               print(a)
               c=a+b
@@ -34,12 +34,12 @@ internal class WalkPrograms {
     fun testStringCopy() {
         val program = """
           def main():
-            a = "abcd"
-            b:int[] = createArray(a.size)
+            val a = "abcd"
+            val b:int[] = createArray(a.size)
             
-            index = 0
+            val index = 0
             while index != a.size:
-              letter = a[index]
+              val letter = a[index]
               letter = letter+1
               b[index] = letter
               index = index+1
@@ -58,11 +58,11 @@ internal class WalkPrograms {
         val program = """
           def main():
             
-            max_number = 30
-            number = 2
+            val max_number = 30
+            val number = 2
             while number < max_number:
-              factor = 2
-              is_prime = 1
+              val factor = 2
+              val is_prime = 1
               while factor < number:
                 if mod(number, factor) == 0:
                   is_prime = 0
@@ -84,10 +84,10 @@ internal class WalkPrograms {
         val program = """
           def array_slice(arr:int[], from:int, to:int):int[]
             
-            size = to-from
+            val size = to-from
             result=createArray(size)
             
-            counter =0
+            val counter =0
             while counter<size:
               result[counter] = arr[from + counter]
               counter = counter+1
@@ -99,8 +99,8 @@ internal class WalkPrograms {
               return
             
             
-            max_size = 10
-            result_size = 0
+            val max_size = 10
+            val result_size = 0
             
             result = createArray(max_size)
             

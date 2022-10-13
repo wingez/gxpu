@@ -17,7 +17,7 @@ class CompileRunArithmetic {
     @Test
     fun testSubtraction() {
         val code = """
-          var:byte =5
+          val var:byte =5
           print(8-var)
            
         """

@@ -125,10 +125,45 @@ class AstParser(private val tokens: List<Token>) {
             TokenType.KeywordReturn -> result.add(parseReturnStatement())
             TokenType.Break -> result.add(parseBreakStatement())
 
+            TokenType.KeywordVal -> result.addAll(parseNewValDeclaration())
+
             else -> result.addAll(parseExpression())
         }
 
         return result
+    }
+
+    fun parseNewValDeclaration(): List<AstNode> {
+        consumeType(TokenKeywordVal)
+
+        val memberName = consumeIdentifier()
+        val optionalTypeDefinition: TypeDefinition?
+
+        if (peekIs(TokenColon)) {
+            optionalTypeDefinition = parseTypeDefinition(allowNoTypeName = false)
+        } else {
+            optionalTypeDefinition = null
+        }
+
+        val optionalTypeHint: AstNode?
+        if (peekIs(TokenAssign, consumeMatch = true)) {
+            optionalTypeHint = parseExpressionUntilSeparator()
+        } else {
+            optionalTypeHint = null
+        }
+
+        if (optionalTypeDefinition == null && optionalTypeHint == null) {
+            throw ParserError("Either typeDefinition or something to assign must be provided")
+        }
+
+        val newVariableNode = AstNode.fromNewVariable(memberName, optionalTypeDefinition, optionalTypeHint)
+
+        if (optionalTypeHint == null) {
+            // Only new variable
+            return listOf(newVariableNode)
+        }
+        // Also assign default value
+        return listOf(newVariableNode, AstNode.fromAssign(AstNode.fromIdentifier(memberName), optionalTypeHint))
     }
 
     private fun parsePrimitiveMemberDeclaration(): AstNode {
@@ -136,12 +171,10 @@ class AstParser(private val tokens: List<Token>) {
         Parses 'val:type' or 'val' or 'val:new type'
          */
 
-        val node = parseExpression()[0]
-        if (node.type != NodeTypes.MemberDeclaration) {
-            throw ParserError("Expected memberdeclaration, not $node")
-        }
-        return node
+        val memberName = consumeIdentifier()
+        val typeDefinition = parseTypeDefinition(allowNoTypeName = false)
 
+        return AstNode.fromNewVariable(memberName, typeDefinition, null)
     }
 
     fun parseFunctionDefinition(): AstNode {
@@ -233,6 +266,11 @@ class AstParser(private val tokens: List<Token>) {
         return AstNode.fromBreak()
     }
 
+    fun parseTypeDefinition(allowNoTypeName: Boolean): TypeDefinition {
+        return parseOptionalTypeDefinition(allowNoTypeName)
+            ?: throw ParserError("")
+    }
+
     fun parseOptionalTypeDefinition(allowNoTypeName: Boolean): TypeDefinition? {
         if (!peekIs(TokenColon, consumeMatch = true)) {
             return null
@@ -264,32 +302,8 @@ class AstParser(private val tokens: List<Token>) {
             return listOf(first)
         }
 
-        val typeDefinition = parseOptionalTypeDefinition(allowNoTypeName = false)
-        if (typeDefinition != null) {
-            if (first.type != NodeTypes.Identifier) {
-                throw ParserError("Expected membername, not $first")
-            }
-
-            first = AstNode.fromMemberDeclaration(
-                MemberDeclarationData(
-                    first.asIdentifier(), typeDefinition
-                )
-            )
-        }
-
         if (peekIs(TokenAssign, consumeMatch = true)) {
             val right = parseExpressionUntilSeparator()
-
-            if (first.type == NodeTypes.MemberDeclaration) {
-
-                return listOf(
-                    first,
-                    AstNode.fromAssign(
-                        AstNode.fromIdentifier(first.asMemberDeclaration().name),
-                        right,
-                    )
-                )
-            }
 
             first = AstNode.fromAssign(
                 first, right

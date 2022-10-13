@@ -1,7 +1,6 @@
 package se.wingez.astwalker
 
 import se.wingez.ast.AstNode
-import se.wingez.ast.MemberDeclarationData
 import se.wingez.ast.NodeTypes
 import se.wingez.ast.TypeDefinition
 
@@ -17,7 +16,7 @@ data class WalkConfig(
     }
 }
 
-class WalkerOutput() {
+class WalkerOutput {
 
     val result = mutableListOf<String>()
 }
@@ -74,6 +73,9 @@ interface TypeProvider {
     }
 }
 
+interface FunctionProvider {
+    fun getFunctionMatching(name: String, parameterTypes: List<Datatype>): IFunction
+}
 
 private fun definitionFromFuncNode(node: AstNode, typeProvider: TypeProvider): NodeFunction {
     assert(node.type == NodeTypes.Function)
@@ -81,9 +83,13 @@ private fun definitionFromFuncNode(node: AstNode, typeProvider: TypeProvider): N
 
     val name = funcNode.name
     val parameters = funcNode.arguments.map { argNode ->
-        assert(argNode.type == NodeTypes.MemberDeclaration)
-        val member = argNode.asMemberDeclaration()
-        typeProvider.getType(member.type)
+        assert(argNode.type == NodeTypes.NewVariable)
+        val member = argNode.asNewVariable()
+        assert(!member.hasTypeFromAssignment)
+        val typeDefinition = member.optionalTypeDefinition
+            ?: throw AssertionError()
+
+        typeProvider.getType(typeDefinition)
     }
     val returnType = typeProvider.getType(funcNode.returnType)
     val definition = FunctionDefinition(name, parameters, returnType)
@@ -99,7 +105,7 @@ enum class ControlFlow {
 class WalkerState(
     val nodes: List<AstNode>,
     val config: WalkConfig,
-) : TypeProvider {
+) : TypeProvider, FunctionProvider, VariableProvider {
 
     val output = WalkerOutput()
     val frameStack = mutableListOf<WalkFrame>()
@@ -133,7 +139,7 @@ class WalkerState(
         return availableFunctions.any { it.definition.matches(name, parameterTypes) }
     }
 
-    private fun getFunctionMatching(name: String, parameterTypes: List<Datatype>): IFunction {
+    override fun getFunctionMatching(name: String, parameterTypes: List<Datatype>): IFunction {
         return availableFunctions.find { it.definition.matches(name, parameterTypes) }
             ?: throw WalkerException("No functions matches $name($parameterTypes)")
     }
@@ -148,7 +154,7 @@ class WalkerState(
     fun walk(): WalkerOutput {
 
         nodes.filter { it.type == NodeTypes.Struct }
-            .map { createTypeFromNode(it, this) }
+            .map { createTypeFromNode(it, this, this, this) }
             .forEach { addType(it) }
 
         builtInList.forEach {
@@ -185,8 +191,8 @@ class WalkerState(
         currentFrame.variables["result"] = createDefaultVariable(returnType)
 
         // Add arguments as local variables
-        funcNode.arguments.map { it.asMemberDeclaration() }.zip(parameters).forEach { (memberInfo, value) ->
-            assert(getType(memberInfo.type) == value.datatype)
+        funcNode.arguments.map { it.asNewVariable() }.zip(parameters).forEach { (memberInfo, value) ->
+            assert(getType(memberInfo.optionalTypeDefinition!!) == value.datatype)
 
             currentFrame.variables[memberInfo.name] = value
         }
@@ -234,8 +240,8 @@ class WalkerState(
                 handleWhile(node)
             }
 
-            NodeTypes.MemberDeclaration -> {
-                handleMemberDeclaration(node)
+            NodeTypes.NewVariable -> {
+                handleNewVariable(node)
             }
 
             NodeTypes.Break -> {
@@ -257,13 +263,18 @@ class WalkerState(
         return ControlFlow.Return
     }
 
-    fun handleMemberDeclaration(node: AstNode): ControlFlow {
-        val memberDef = node.asMemberDeclaration()
+    fun handleNewVariable(node: AstNode): ControlFlow {
+        val newValDef = node.asNewVariable()
 
-        val name = memberDef.name
+        val name = newValDef.name
         assert(name !in currentFrame.variables)
 
-        val newVariableType = getType(memberDef.type)
+        val newVariableType: Datatype
+        if (newValDef.optionalTypeDefinition != null) {
+            newVariableType = getType(newValDef.optionalTypeDefinition)
+        } else {
+            newVariableType = findType(newValDef.assignmentType, this, this)
+        }
 
         currentFrame.variables[name] = createDefaultVariable(newVariableType)
 
@@ -274,6 +285,7 @@ class WalkerState(
         assert(node.type == NodeTypes.While)
         val whileNode = node.asWhile()
 
+        val variablesBeforeLoop = currentFrame.variables.keys.toList()
 
         for (iterationCounter in 0..config.maxLoopIterations) {
 
@@ -302,6 +314,11 @@ class WalkerState(
                     else -> return controlFlowResult
                 }
             }
+
+            // Clear variables
+            val toRemove = currentFrame.variables.keys.filter { it !in variablesBeforeLoop }
+            toRemove.forEach { currentFrame.variables.remove(it) }
+
         }
 
         return ControlFlow.Normal
@@ -342,19 +359,6 @@ class WalkerState(
         val assignNode = child.asAssign()
 
         val valueToAssign = getValueOf(assignNode.value).read()
-
-
-
-        if (assignNode.target.type == NodeTypes.Identifier) {
-            val assignName = assignNode.target.asIdentifier()
-            val isNewAssign = assignName !in currentFrame.variables
-            if (isNewAssign) {
-                currentFrame.variables[assignName] = valueToAssign
-                return ControlFlow.Normal
-            }
-
-        }
-
         val variableToAssignTo = getValueOf(assignNode.target)
 
         if (valueToAssign.datatype != variableToAssignTo.datatype) {
@@ -395,19 +399,25 @@ class WalkerState(
         return array.arrayAccess(index.getPrimitiveValue())
     }
 
+    override fun getTypeOfVariable(variableName: String): Datatype {
+        return getVariable(variableName).datatype
+    }
+
+    fun getVariable(variableName: String): Variable {
+        if (variableName !in currentFrame.variables) {
+            throw WalkerException("No variable named $variableName")
+        }
+
+        return currentFrame.variables.getValue(variableName)
+    }
+
     fun getValueOf(node: AstNode): Variable {
 
         return when (node.type) {
             NodeTypes.Constant -> Variable.primitive(Datatype.Integer, node.asConstant())
             NodeTypes.Call -> handleCall(node)
-            NodeTypes.Identifier -> {
-                val variableName = node.asIdentifier()
-                if (variableName !in currentFrame.variables) {
-                    throw WalkerException("No variable named $variableName")
-                }
+            NodeTypes.Identifier -> getVariable(node.asIdentifier())
 
-                currentFrame.variables.getValue(variableName)
-            }
 
             NodeTypes.MemberAccess -> {
                 val toAccess = getValueOf(node.childNodes[0])

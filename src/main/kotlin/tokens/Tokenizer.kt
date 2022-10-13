@@ -37,6 +37,7 @@ enum class TokenType {
     KeywordReturn,
     KeywordStruct,
     KeywordNew,
+    KeywordVal,
     BeginBlock,
     EndBlock,
     PlusSign,
@@ -68,6 +69,7 @@ val TokenKeywordReturn = Token(TokenType.KeywordReturn)
 val TokenKeywordStruct = Token(TokenType.KeywordStruct)
 val TokenKeywordNew = Token(TokenType.KeywordNew)
 val TokenKeywordBreak = TokenSingleOperation(TokenType.Break)
+val TokenKeywordVal = Token(TokenType.KeywordVal)
 val TokenBeginBlock = Token(TokenType.BeginBlock)
 val TokenEndBlock = Token(TokenType.EndBlock)
 val TokenPlusSign = TokenSingleOperation(TokenType.PlusSign)
@@ -329,6 +331,7 @@ fun toToken(text: String): Token {
         "struct" -> TokenKeywordStruct
         "new" -> TokenKeywordNew
         "break" -> TokenKeywordBreak
+        "val" -> TokenKeywordVal
         else -> TokenIdentifier(text)
     }
 }

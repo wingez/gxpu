@@ -9,11 +9,11 @@ class Fibonacci {
     fun fibonacci() {
         val program = """
           def main():
-            a:byte=1
-            b:byte=0
-            c:byte=0
+            val a:byte=1
+            val b:byte=0
+            val c:byte=0
     
-            counter:byte=0
+            val counter:byte=0
             while (10-counter):
               print(a)
               c=a+b

@@ -49,7 +49,7 @@ internal class WalkerTest {
             parserFromFile(
                 """
                 def main():
-                  a=5
+                  val a=5
                   print(a)
             """.trimIndent()
             ).parseFunctionDefinition()
@@ -76,7 +76,7 @@ internal class WalkerTest {
                 parserFromFile(
                     """
                 def main():
-                  i = $i
+                  val i = $i
                   if (i!=5):
                     print(20)
                   else:
@@ -96,7 +96,7 @@ internal class WalkerTest {
             parserFromFile(
                 """
                 def main():
-                  i = 3
+                  val i = 3
                   while i!=6:
                     print(i)
                     i = i+1
@@ -113,7 +113,7 @@ internal class WalkerTest {
         val function = parserFromFile(
             """
             def main():
-              i=0
+              val i=0
               while i!=10:
                 i=i+1
              
@@ -130,7 +130,7 @@ internal class WalkerTest {
         var function = parserFromFile(
             """
             def main():
-              i=0
+              val i=0
               while i!=10:
                 print(i)
                 if i!=0:
@@ -145,7 +145,7 @@ internal class WalkerTest {
         function = parserFromFile(
             """
             def main():
-              i=0
+              val i=0
               print(i)
               if i==0:
                 break
@@ -208,7 +208,7 @@ internal class WalkerTest {
                   t = t+1
                   
                 def main():
-                  b = 1
+                  val b = 1
                   a(b)
                   print(b)
                   
@@ -274,7 +274,7 @@ internal class WalkerTest {
         nodes = parserFromFile(
             """
                 def main():
-                  a = "hello world!"
+                  val a = "hello world!"
                   
                   a[1] = 67
                   print(a)

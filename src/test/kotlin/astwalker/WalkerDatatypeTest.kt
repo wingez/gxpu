@@ -44,8 +44,18 @@ internal class WalkerDatatypeTest {
                 return types.getValue(name)
             }
         }
+        val functionProvider = object : FunctionProvider {
+            override fun getFunctionMatching(name: String, parameterTypes: List<Datatype>): IFunction {
+                TODO("Not yet implemented")
+            }
+        }
+        val variableProvider = object : VariableProvider {
+            override fun getTypeOfVariable(variableName: String): Datatype {
+                TODO("Not yet implemented")
+            }
+        }
 
-        return createTypeFromNode(node, typeProvider)
+        return createTypeFromNode(node, variableProvider, functionProvider, typeProvider)
     }
 
     @Test
@@ -102,7 +112,7 @@ internal class WalkerDatatypeTest {
               b:int
             
             def main():
-              t:new test
+              val t:new test
               
               t.a = 5
               t.b = 0
@@ -133,7 +143,7 @@ internal class WalkerDatatypeTest {
     fun testCreateArray() {
         val program = """
           def main():
-            a:int[] = createArray(5)
+            val a:int[] = createArray(5)
                   
     """
         val nodes = parserFromFile(program).parse()
@@ -145,7 +155,7 @@ internal class WalkerDatatypeTest {
     fun testReadArraySize() {
         val program = """
           def main():
-            a:int[] = createArray(5)
+            val a:int[] = createArray(5)
             print(a.size)
                   
     """
@@ -170,7 +180,7 @@ internal class WalkerDatatypeTest {
     fun testArrayRead() {
         val program = """
           def main():
-            a:int[] = createArray(10)
+            val a:int[] = createArray(10)
             print(a.size)
             print(a[0])
             
@@ -183,7 +193,7 @@ internal class WalkerDatatypeTest {
     fun testArrayReadOutOfBounds() {
         val program = """
           def main():
-            a:int[] = createArray(10)
+            val a:int[] = createArray(10)
             print(a.size)
             print(a[10])
             
@@ -196,7 +206,7 @@ internal class WalkerDatatypeTest {
     fun testArrayAssign() {
         val program = """
           def main():
-            a:int[] = createArray(5)
+            val a:int[] = createArray(5)
             print(a[0])
             a[1] = 5
             print(a[1])

@@ -6,7 +6,7 @@ enum class NodeTypes {
     Body,
     Identifier,
     String,
-    MemberDeclaration,
+    NewVariable,
     Assign,
     Constant,
     Call,
@@ -55,10 +55,6 @@ data class AstNode(
 
     fun asConstant(): Int {
         return data as Int
-    }
-
-    fun asMemberDeclaration(): MemberDeclarationData {
-        return data as MemberDeclarationData
     }
 
     class AssignNode(val node: AstNode) {
@@ -146,6 +142,24 @@ data class AstNode(
         return ArrayAccess(this)
     }
 
+    class NewVariable constructor(private val node: AstNode) {
+        private val data
+            get() = node.data as NewVariableData
+
+        val name = data.name
+        val optionalTypeDefinition = data.optionalTypeDefinition
+
+        val hasTypeFromAssignment = node.hasChildren()
+        val assignmentType
+            get() = node.childNodes.first()
+
+    }
+
+    fun asNewVariable(): NewVariable {
+        assert(type == NodeTypes.NewVariable)
+        return NewVariable(this)
+    }
+
     companion object {
 
 
@@ -167,9 +181,15 @@ data class AstNode(
             return AstNode(NodeTypes.Constant, value, emptyList())
         }
 
-        fun fromMemberDeclaration(memberData: MemberDeclarationData): AstNode {
+        fun fromNewVariable(
+            memberName: String,
+            optionalTypeDefinition: TypeDefinition?,
+            optionalTypeHint: AstNode?
+        ): AstNode {
+            val childNodes = if (optionalTypeHint == null) emptyList() else listOf(optionalTypeHint)
+
             return AstNode(
-                NodeTypes.MemberDeclaration, memberData
+                NodeTypes.NewVariable, NewVariableData(memberName, optionalTypeDefinition), childNodes
             )
         }
 
@@ -248,9 +268,9 @@ data class AstNode(
     }
 }
 
-data class MemberDeclarationData(
+private data class NewVariableData(
     val name: String,
-    val type: TypeDefinition
+    val optionalTypeDefinition: TypeDefinition?,
 )
 
 data class FunctionData(
