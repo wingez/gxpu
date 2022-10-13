@@ -36,15 +36,6 @@ data class AstNode(
         return childNodes.iterator()
     }
 
-    class OperationNode(val node: AstNode) {
-        val left get() = node.childNodes[0]
-        val right get() = node.childNodes[1]
-    }
-
-    fun asOperation(): OperationNode {
-        return OperationNode(this)
-    }
-
     fun asIdentifier(): String {
         return data as String
     }
