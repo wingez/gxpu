@@ -2,7 +2,6 @@ package se.wingez.astwalker
 
 import se.wingez.ast.AstNode
 import se.wingez.ast.NodeTypes
-import se.wingez.ast.TypeDefinition
 
 class WalkerException(msg: String = "") : Exception(msg)
 
@@ -21,30 +20,6 @@ class WalkerOutput {
     val result = mutableListOf<String>()
 }
 
-data class FunctionDefinition(
-    val name: String,
-    val parameterTypes: List<Datatype>,
-    val returnType: Datatype,
-) {
-    fun matches(name: String, parameterTypes: List<Datatype>): Boolean {
-        return name == this.name && parameterTypes == this.parameterTypes
-    }
-}
-
-interface IFunction {
-    val definition: FunctionDefinition
-    fun execute(variables: List<Variable>, state: WalkerState): Variable
-}
-
-class NodeFunction(
-    val node: AstNode,
-    override val definition: FunctionDefinition
-) : IFunction {
-    override fun execute(variables: List<Variable>, state: WalkerState): Variable {
-        return state.walkFunction(node, variables)
-    }
-}
-
 class WalkFrame {
     val variables = mutableMapOf<String, Variable>()
 }
@@ -59,41 +34,6 @@ fun walk(nodes: List<AstNode>, config: WalkConfig = WalkConfig.default): WalkerO
     walker.walk()
     return walker.output
 
-}
-
-interface TypeProvider {
-    fun getType(name: String): Datatype
-    fun getType(typeDefinition: TypeDefinition): Datatype {
-        val typeName = typeDefinition.typeName
-        var type = getType(typeName)
-        if (typeDefinition.isArray) {
-            type = Datatype.Array(type)
-        }
-        return type
-    }
-}
-
-interface FunctionProvider {
-    fun getFunctionMatching(name: String, parameterTypes: List<Datatype>): IFunction
-}
-
-private fun definitionFromFuncNode(node: AstNode, typeProvider: TypeProvider): NodeFunction {
-    assert(node.type == NodeTypes.Function)
-    val funcNode = node.asFunction()
-
-    val name = funcNode.name
-    val parameters = funcNode.arguments.map { argNode ->
-        assert(argNode.type == NodeTypes.NewVariable)
-        val member = argNode.asNewVariable()
-        assert(!member.hasTypeFromAssignment)
-        val typeDefinition = member.optionalTypeDefinition
-            ?: throw AssertionError()
-
-        typeProvider.getType(typeDefinition)
-    }
-    val returnType = typeProvider.getType(funcNode.returnType)
-    val definition = FunctionDefinition(name, parameters, returnType)
-    return NodeFunction(node, definition)
 }
 
 enum class ControlFlow {

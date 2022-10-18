@@ -9,7 +9,7 @@ fun formatAst(node: AstNode): String {
     val header = when (node.type) {
         NodeTypes.Constant -> node.asConstant().toString()
         NodeTypes.Call -> "call ${node.asCall().targetName}"
-        
+
         else -> {
             throw AstFormatterError("Dont know how to format node of type ${node.type} (yet)")
         }

@@ -1,5 +1,7 @@
 package se.wingez.astwalker
 
+import se.wingez.ast.TypeDefinition
+
 class Datatype private constructor(
     val name: String,
     private val type: DatatypeClass,
@@ -92,3 +94,14 @@ class Datatype private constructor(
     }
 }
 
+interface TypeProvider {
+    fun getType(name: String): Datatype
+    fun getType(typeDefinition: TypeDefinition): Datatype {
+        val typeName = typeDefinition.typeName
+        var type = getType(typeName)
+        if (typeDefinition.isArray) {
+            type = Datatype.Array(type)
+        }
+        return type
+    }
+}
