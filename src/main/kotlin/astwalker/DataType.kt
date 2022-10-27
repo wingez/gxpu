@@ -6,16 +6,17 @@ class Datatype private constructor(
     val name: String,
     private val type: DatatypeClass,
     private val compositeMembersNullable: Map<String, Datatype>?,
-    private val arrayTypeNullable: Datatype?,
+    private val subTypeNullable: Datatype?,
     val readBehaviour: ReadBehaviour,
 ) {
 
     private enum class DatatypeClass {
-        void,
-        integer,
-        composite,
-        bool,
-        array,
+        Void,
+        Integer,
+        Composite,
+        Bool,
+        Array,
+        Pointer,
     }
 
     enum class ReadBehaviour {
@@ -23,13 +24,15 @@ class Datatype private constructor(
         Copy,
     }
 
-    fun isComposite() = type == DatatypeClass.composite || type == DatatypeClass.array
+    fun isComposite() = type == DatatypeClass.Composite || type == DatatypeClass.Array
 
-    fun isPrimitive() = type == DatatypeClass.integer || type == DatatypeClass.bool
+    fun isPrimitive() = type == DatatypeClass.Integer || type == DatatypeClass.Bool
 
-    fun isVoid() = type == DatatypeClass.void
+    fun isPointer() = type == DatatypeClass.Pointer
 
-    fun isArray() = type == DatatypeClass.array
+    fun isVoid() = type == DatatypeClass.Void
+
+    fun isArray() = type == DatatypeClass.Array
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
@@ -44,7 +47,7 @@ class Datatype private constructor(
             }
         }
         if (isArray()) {
-            if (arrayTypeNullable != other.arrayTypeNullable) {
+            if (subTypeNullable != other.subTypeNullable) {
                 return false
             }
         }
@@ -55,7 +58,7 @@ class Datatype private constructor(
         var result = type.hashCode()
         result = 31 * result + name.hashCode()
         result = 31 * result + (compositeMembersNullable?.hashCode() ?: 0)
-        result = 31 * result + (arrayTypeNullable?.hashCode() ?: 0)
+        result = 31 * result + (subTypeNullable?.hashCode() ?: 0)
         return result
     }
 
@@ -70,7 +73,13 @@ class Datatype private constructor(
     val arrayType: Datatype
         get() {
             assert(isArray())
-            return arrayTypeNullable!!
+            return subTypeNullable!!
+        }
+
+    val pointerType: Datatype
+        get() {
+            assert(isPointer())
+            return subTypeNullable!!
         }
 
     override fun toString(): String {
@@ -78,18 +87,24 @@ class Datatype private constructor(
     }
 
     companion object {
-        val Integer = Datatype("integer", DatatypeClass.integer, null, null, ReadBehaviour.Copy)
-        val Void = Datatype("void", DatatypeClass.void, null, null, ReadBehaviour.Copy)
-        val Boolean = Datatype("bool", DatatypeClass.bool, null, null, ReadBehaviour.Copy)
+        val Integer = Datatype("integer", DatatypeClass.Integer, null, null, ReadBehaviour.Copy)
+        val Void = Datatype("void", DatatypeClass.Void, null, null, ReadBehaviour.Copy)
+        val Boolean = Datatype("bool", DatatypeClass.Bool, null, null, ReadBehaviour.Copy)
 
         fun Composite(name: String, members: Map<String, Datatype>): Datatype {
-            return Datatype(name, DatatypeClass.composite, members, null, ReadBehaviour.Reference)
+            return Datatype(name, DatatypeClass.Composite, members, null, ReadBehaviour.Reference)
         }
 
         fun Array(arrayType: Datatype): Datatype {
             assert(!arrayType.isArray())
             val name = "array[$arrayType]"
-            return Datatype(name, DatatypeClass.array, null, arrayType, ReadBehaviour.Reference)
+            return Datatype(name, DatatypeClass.Array, null, arrayType, ReadBehaviour.Reference)
+        }
+
+        fun Pointer(toType: Datatype): Datatype {
+            assert(!toType.isPointer())
+            val name = "pointer[$toType]"
+            return Datatype(name, DatatypeClass.Pointer, null, toType, ReadBehaviour.Copy)
         }
     }
 }
