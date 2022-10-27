@@ -307,7 +307,7 @@ class WalkerState(
     private fun handleAssign(child: AstNode): ControlFlow {
         val assignNode = child.asAssign()
 
-        val valueToAssign = getValueOf(assignNode.value).read()
+        val valueToAssign = getValueOf(assignNode.value)
         val holderToAssignTo = getValueHolderOf(assignNode.target)
 
         if (valueToAssign.datatype != holderToAssignTo.type) {
@@ -328,7 +328,7 @@ class WalkerState(
         val callNode = node.asCall()
 
         val arguments = callNode.parameters
-            .map { getValueOf(it).read() }
+            .map { getValueOf(it) }
 
         return call(callNode.targetName, arguments)
     }

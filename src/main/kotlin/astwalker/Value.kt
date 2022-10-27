@@ -5,9 +5,9 @@ import se.wingez.ast.NodeTypes
 
 class Value private constructor(
     val datatype: Datatype,
-    private var primitiveValue: Int,
-    private val compositeValueHolders: MutableMap<String, ValueHolder>?,
-    private val arrayValueHolders: MutableList<ValueHolder>?,
+    private val primitiveValue: Int,
+    private val compositeValueHolders: Map<String, ValueHolder>?,
+    private val arrayValueHolders: List<ValueHolder>?,
 ) {
 
     fun isPrimitive() = datatype.isPrimitive()
@@ -55,30 +55,6 @@ class Value private constructor(
             throw WalkerException("Index out of range")
         }
         return values[index]
-    }
-
-    fun read(): Value {
-        return when (datatype.readBehaviour) {
-            Datatype.ReadBehaviour.Reference -> this
-            Datatype.ReadBehaviour.Copy -> copy()
-        }
-    }
-
-    private fun copy(): Value {
-        return Value(datatype, primitiveValue, compositeValueHolders, arrayValueHolders)
-    }
-
-    fun copyFrom(copyFrom: Value) {
-        assert(copyFrom.datatype == datatype)
-        primitiveValue = copyFrom.primitiveValue
-
-        if (isArray()) {
-            arrayValueHolders!!.clear()
-            arrayValueHolders.addAll(copyFrom.arrayValueHolders!!)
-        } else if (isComposite()) {
-            compositeValueHolders!!.clear()
-            compositeValueHolders.putAll(copyFrom.compositeValueHolders!!)
-        }
     }
 
     override fun toString(): String {
@@ -246,7 +222,7 @@ fun createFromString(string: String): Value {
 
     string.forEachIndexed { index, char ->
         val toAssign = Value.primitive(Datatype.Integer, char.code)
-        resultValue.arrayAccess(index).value.copyFrom(toAssign)
+        resultValue.arrayAccess(index).value = toAssign
     }
 
     return resultValue
