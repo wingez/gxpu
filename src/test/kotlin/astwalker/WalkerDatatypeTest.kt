@@ -164,13 +164,11 @@ internal class WalkerDatatypeTest {
     }
 
     @Test
-    @Disabled("Not implemented yet")
     fun testArraySizeReadonly() {
         val program = """
           def main():
-            a:int[] = createArray(5)
+            val a:int[] = createArray(5)
             a.size = 10
-                  
     """
         val nodes = parserFromFile(program).parse()
         assertThrows<WalkerException> { walk(nodes) }
