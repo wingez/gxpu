@@ -21,7 +21,7 @@ class WalkerOutput {
 }
 
 class WalkFrame {
-    val variables = mutableMapOf<String, Variable>()
+    val variables = mutableMapOf<String, Value>()
 }
 
 fun walk(node: AstNode, config: WalkConfig = WalkConfig.default): WalkerOutput {
@@ -110,7 +110,7 @@ class WalkerState(
         return output
     }
 
-    fun call(funcName: String, parameters: List<Variable>): Variable {
+    fun call(funcName: String, parameters: List<Value>): Value {
 
         val parameterTypes = parameters.map { it.datatype }
         val funcToCall = getFunctionMatching(funcName, parameterTypes)
@@ -118,7 +118,7 @@ class WalkerState(
         return funcToCall.execute(parameters, this)
     }
 
-    fun walkFunction(node: AstNode, parameters: List<Variable>): Variable {
+    fun walkFunction(node: AstNode, parameters: List<Value>): Value {
         assert(node.type == NodeTypes.Function)
         val funcNode = node.asFunction()
 
@@ -314,7 +314,7 @@ class WalkerState(
         return ControlFlow.Normal
     }
 
-    fun handleCall(node: AstNode): Variable {
+    fun handleCall(node: AstNode): Value {
         assert(node.type == NodeTypes.Call)
         val callNode = node.asCall()
 
@@ -324,7 +324,7 @@ class WalkerState(
         return call(callNode.targetName, arguments)
     }
 
-    fun handleArrayAccess(node: AstNode): Variable {
+    fun handleArrayAccess(node: AstNode): Value {
         assert(node.type == NodeTypes.ArrayAccess)
         val arrayAccess = node.asArrayAccess()
         val array = getValueOf(arrayAccess.parent)
@@ -343,7 +343,7 @@ class WalkerState(
         return getVariable(variableName).datatype
     }
 
-    fun getVariable(variableName: String): Variable {
+    fun getVariable(variableName: String): Value {
         if (variableName !in currentFrame.variables) {
             throw WalkerException("No variable named $variableName")
         }
@@ -351,10 +351,10 @@ class WalkerState(
         return currentFrame.variables.getValue(variableName)
     }
 
-    fun getValueOf(node: AstNode): Variable {
+    fun getValueOf(node: AstNode): Value {
 
         return when (node.type) {
-            NodeTypes.Constant -> Variable.primitive(Datatype.Integer, node.asConstant())
+            NodeTypes.Constant -> Value.primitive(Datatype.Integer, node.asConstant())
             NodeTypes.Call -> handleCall(node)
             NodeTypes.Identifier -> getVariable(node.asIdentifier())
 

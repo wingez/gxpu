@@ -19,15 +19,15 @@ data class FunctionDefinition(
 
 interface IFunction {
     val definition: FunctionDefinition
-    fun execute(variables: List<Variable>, state: WalkerState): Variable
+    fun execute(values: List<Value>, state: WalkerState): Value
 }
 
 class NodeFunction(
     val node: AstNode,
     override val definition: FunctionDefinition
 ) : IFunction {
-    override fun execute(variables: List<Variable>, state: WalkerState): Variable {
-        return state.walkFunction(node, variables)
+    override fun execute(values: List<Value>, state: WalkerState): Value {
+        return state.walkFunction(node, values)
     }
 }
 

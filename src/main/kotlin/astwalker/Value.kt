@@ -3,11 +3,11 @@ package se.wingez.astwalker
 import se.wingez.ast.AstNode
 import se.wingez.ast.NodeTypes
 
-class Variable private constructor(
+class Value private constructor(
     val datatype: Datatype,
     private var primitiveValue: Int,
-    private val compositeValues: MutableMap<String, Variable>?,
-    private val arrayValues: MutableList<Variable>?,
+    private val compositeValues: MutableMap<String, Value>?,
+    private val arrayValues: MutableList<Value>?,
 ) {
 
     fun isPrimitive() = datatype.isPrimitive()
@@ -21,7 +21,7 @@ class Variable private constructor(
     fun isArray() = datatype.isArray()
 
 
-    fun getField(name: String): Variable {
+    fun getField(name: String): Value {
         assert(isComposite())
 
 
@@ -36,7 +36,7 @@ class Variable private constructor(
         return compositeValues!!.getValue(name)
     }
 
-    fun setField(name: String, value: Variable) {
+    fun setField(name: String, value: Value) {
         assert(isComposite())
         if (isArray()) {
             throw WalkerException("Cannot change size of array")
@@ -49,7 +49,7 @@ class Variable private constructor(
     }
 
 
-    fun arrayAccess(index: Int): Variable {
+    fun arrayAccess(index: Int): Value {
         val values = arrayValues!!
         if (index !in values.indices) {
             throw WalkerException("Index out of range")
@@ -57,18 +57,18 @@ class Variable private constructor(
         return values[index]
     }
 
-    fun read(): Variable {
+    fun read(): Value {
         return when (datatype.readBehaviour) {
             Datatype.ReadBehaviour.Reference -> this
             Datatype.ReadBehaviour.Copy -> copy()
         }
     }
 
-    private fun copy(): Variable {
-        return Variable(datatype, primitiveValue, compositeValues, arrayValues)
+    private fun copy(): Value {
+        return Value(datatype, primitiveValue, compositeValues, arrayValues)
     }
 
-    fun copyFrom(copyFrom: Variable) {
+    fun copyFrom(copyFrom: Value) {
         assert(copyFrom.datatype == datatype)
         primitiveValue = copyFrom.primitiveValue
 
@@ -89,20 +89,20 @@ class Variable private constructor(
     }
 
     companion object {
-        fun void(): Variable {
-            return Variable(Datatype.Void, 0, null, null)
+        fun void(): Value {
+            return Value(Datatype.Void, 0, null, null)
         }
 
-        fun primitive(datatype: Datatype, primitiveValue: Int): Variable {
+        fun primitive(datatype: Datatype, primitiveValue: Int): Value {
             assert(datatype.isPrimitive())
-            return Variable(datatype, primitiveValue, null, null)
+            return Value(datatype, primitiveValue, null, null)
         }
 
-        fun composite(datatype: Datatype, memberValues: Map<String, Variable>): Variable {
+        fun composite(datatype: Datatype, memberValues: Map<String, Value>): Value {
 
             assert(datatype.isComposite())
 
-            val compositeValues = mutableMapOf<String, Variable>()
+            val compositeValues = mutableMapOf<String, Value>()
             for ((memberName, requiredType) in datatype.compositeMembers.entries) {
 
                 val providedVariable = memberValues.getValue(memberName)
@@ -110,34 +110,34 @@ class Variable private constructor(
 
                 compositeValues[memberName] = providedVariable
             }
-            return Variable(datatype, 0, compositeValues, null)
+            return Value(datatype, 0, compositeValues, null)
         }
 
-        fun array(datatype: Datatype, size: Int): Variable {
+        fun array(datatype: Datatype, size: Int): Value {
             assert(datatype.isArray())
 
             val arrayValues = (0 until size).map { createDefaultVariable(datatype.arrayType) }.toMutableList()
-            return Variable(datatype, 0, null, arrayValues)
+            return Value(datatype, 0, null, arrayValues)
         }
     }
 }
 
-fun createDefaultVariable(datatype: Datatype): Variable {
+fun createDefaultVariable(datatype: Datatype): Value {
     if (datatype.isPrimitive()) {
-        return Variable.primitive(datatype, 0)
+        return Value.primitive(datatype, 0)
     }
     if (datatype.isArray()) {
-        return Variable.array(datatype, 0)
+        return Value.array(datatype, 0)
     }
     if (datatype.isComposite()) {
 
         val members = datatype.compositeMembers.entries.associate { (name, memberType) ->
             Pair(name, createDefaultVariable(memberType))
         }
-        return Variable.composite(datatype, members)
+        return Value.composite(datatype, members)
     }
     if (datatype.isVoid()) {
-        return Variable.void()
+        return Value.void()
     }
 
     throw WalkerException("Cannot instanciate empty variable of type $datatype")
@@ -207,17 +207,17 @@ fun createTypeFromNode(
     return Datatype.Composite(typeName, members)
 }
 
-fun createFromString(string: String): Variable {
+fun createFromString(string: String): Value {
 
     val arrayType = Datatype.Array(Datatype.Integer)
     val stringLength = string.length
 
-    val resultVariable = Variable.array(arrayType, stringLength)
+    val resultValue = Value.array(arrayType, stringLength)
 
     string.forEachIndexed { index, char ->
-        val toAssign = Variable.primitive(Datatype.Integer, char.code)
-        resultVariable.arrayAccess(index).copyFrom(toAssign)
+        val toAssign = Value.primitive(Datatype.Integer, char.code)
+        resultValue.arrayAccess(index).copyFrom(toAssign)
     }
 
-    return resultVariable
+    return resultValue
 }

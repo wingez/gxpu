@@ -13,24 +13,24 @@ abstract class Function(
 class BuiltInPrintInteger : Function(
     "print", listOf(Datatype.Integer), Datatype.Void
 ) {
-    override fun execute(variables: List<Variable>, state: WalkerState): Variable {
-        state.output.result.add(variables[0].getPrimitiveValue().toString())
-        return Variable.void()
+    override fun execute(values: List<Value>, state: WalkerState): Value {
+        state.output.result.add(values[0].getPrimitiveValue().toString())
+        return Value.void()
     }
 }
 
 class BuiltInPrintString : Function(
     "print", listOf(Datatype.Array(Datatype.Integer)), Datatype.Void
 ) {
-    override fun execute(variables: List<Variable>, state: WalkerState): Variable {
-        val arraySize = variables.first().getField("size").getPrimitiveValue()
+    override fun execute(values: List<Value>, state: WalkerState): Value {
+        val arraySize = values.first().getField("size").getPrimitiveValue()
 
         var result = ""
         for (i in 0 until arraySize) {
-            result += Char(variables.first().arrayAccess(i).getPrimitiveValue())
+            result += Char(values.first().arrayAccess(i).getPrimitiveValue())
         }
         state.output.result.add(result)
-        return Variable.void()
+        return Value.void()
     }
 }
 
@@ -40,15 +40,15 @@ class IntegerComparator(
 ) : Function(
     functionName, listOf(Datatype.Integer, Datatype.Integer), Datatype.Boolean
 ) {
-    override fun execute(variables: List<Variable>, state: WalkerState): Variable {
-        val value1 = variables[0].getPrimitiveValue()
-        val value2 = variables[1].getPrimitiveValue()
+    override fun execute(values: List<Value>, state: WalkerState): Value {
+        val value1 = values[0].getPrimitiveValue()
+        val value2 = values[1].getPrimitiveValue()
 
         val result = when (compareFunction.invoke(value1, value2)) {
             true -> 1
             false -> 0
         }
-        return Variable.primitive(Datatype.Boolean, result)
+        return Value.primitive(Datatype.Boolean, result)
     }
 }
 
@@ -58,13 +58,13 @@ class IntegerArithmetic(
 ) : Function(
     functionName, listOf(Datatype.Integer, Datatype.Integer), Datatype.Integer
 ) {
-    override fun execute(variables: List<Variable>, state: WalkerState): Variable {
-        val value1 = variables[0].getPrimitiveValue()
-        val value2 = variables[1].getPrimitiveValue()
+    override fun execute(values: List<Value>, state: WalkerState): Value {
+        val value1 = values[0].getPrimitiveValue()
+        val value2 = values[1].getPrimitiveValue()
 
         val result = arithmeticFunction.invoke(value1, value2)
 
-        return Variable.primitive(Datatype.Integer, result)
+        return Value.primitive(Datatype.Integer, result)
     }
 }
 
@@ -72,9 +72,9 @@ class IntegerArithmetic(
 class BuiltInCreateArray : Function(
     "createArray", listOf(Datatype.Integer), Datatype.Array(Datatype.Integer)
 ) {
-    override fun execute(variables: List<Variable>, state: WalkerState): Variable {
-        val size = variables[0].getPrimitiveValue()
-        return Variable.array(definition.returnType, size)
+    override fun execute(values: List<Value>, state: WalkerState): Value {
+        val size = values[0].getPrimitiveValue()
+        return Value.array(definition.returnType, size)
     }
 }
 
