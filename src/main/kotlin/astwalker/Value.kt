@@ -8,6 +8,7 @@ class Value private constructor(
     private val primitiveValue: Int,
     private val compositeValueHolders: Map<String, ValueHolder>?,
     private val arrayValueHolders: List<ValueHolder>?,
+    private val pointerTargetHolder: IValueHolder?,
 ) {
 
     fun isPrimitive() = datatype.isPrimitive()
@@ -20,6 +21,12 @@ class Value private constructor(
     fun isComposite() = datatype.isComposite()
     fun isArray() = datatype.isArray()
 
+    fun isPointer() = datatype.isPointer()
+
+    fun derefPointer(): IValueHolder {
+        assert(isPointer())
+        return pointerTargetHolder!!
+    }
 
     fun getFieldValueHolder(name: String): IValueHolder {
         assert(isComposite())
@@ -30,7 +37,7 @@ class Value private constructor(
         }
         if (isArray()) {
             assert(name == "size")
-            return ConstantValueHolder(arrayValueHolders!!.size)
+            return ConstantValueHolder(Value.primitive(Datatype.Integer, arrayValueHolders!!.size))
         }
         return compositeValueHolders!!.getValue(name)
     }
@@ -66,12 +73,12 @@ class Value private constructor(
 
     companion object {
         fun void(): Value {
-            return Value(Datatype.Void, 0, null, null)
+            return Value(Datatype.Void, 0, null, null, null)
         }
 
         fun primitive(datatype: Datatype, primitiveValue: Int): Value {
             assert(datatype.isPrimitive())
-            return Value(datatype, primitiveValue, null, null)
+            return Value(datatype, primitiveValue, null, null, null)
         }
 
         fun composite(datatype: Datatype, memberValues: Map<String, Value>): Value {
@@ -89,7 +96,7 @@ class Value private constructor(
 
                 compositeValues[memberName] = holder
             }
-            return Value(datatype, 0, compositeValues, null)
+            return Value(datatype, 0, compositeValues, null, null)
         }
 
         fun array(datatype: Datatype, size: Int): Value {
@@ -102,7 +109,11 @@ class Value private constructor(
                     holder
                 }.toMutableList()
 
-            return Value(datatype, 0, null, arrayValues)
+            return Value(datatype, 0, null, arrayValues, null)
+        }
+
+        fun pointer(pointTo: IValueHolder): Value {
+            return Value(Datatype.Pointer(pointTo.type), 0, null, null, pointTo)
         }
     }
 }
@@ -112,10 +123,10 @@ interface IValueHolder {
     var value: Value
 }
 
-private class ConstantValueHolder(private val constant: Int) : IValueHolder {
-    override val type = Datatype.Integer
+private class ConstantValueHolder(private val constant: Value) : IValueHolder {
+    override val type = constant.datatype
     override var value: Value
-        get() = Value.primitive(Datatype.Integer, constant)
+        get() = constant
         set(value) {
             throw WalkerException("Cannot assign to constant")
         }
@@ -144,6 +155,11 @@ fun createDefaultValue(datatype: Datatype): Value {
     }
     if (datatype.isVoid()) {
         return Value.void()
+    }
+    if (datatype.isPointer()) {
+        val holder = ValueHolder(datatype.pointerType)
+        holder.value = createDefaultValue(datatype.pointerType)
+        return Value.pointer(holder)
     }
 
     throw WalkerException("Cannot instanciate empty variable of type $datatype")
@@ -225,5 +241,7 @@ fun createFromString(string: String): Value {
         resultValue.arrayAccess(index).value = toAssign
     }
 
-    return resultValue
+    val holder = ConstantValueHolder(resultValue)
+
+    return Value.pointer(holder)
 }

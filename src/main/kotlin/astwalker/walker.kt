@@ -127,12 +127,11 @@ class WalkerState(
         frameStack.add(WalkFrame())
 
         // Add result variable
-        val returnType = getType(funcNode.returnType)
-        currentFrame.valueHolders["result"] = ValueHolder(returnType)
+        createNewVariable("result", getType(funcNode.returnType))
 
         // Add arguments as local variables
         funcNode.arguments.map { it.asNewVariable() }.zip(parameters).forEach { (memberInfo, value) ->
-            assert(getType(memberInfo.optionalTypeDefinition!!) == value.datatype)
+            assert(getType(memberInfo.optionalTypeDefinition!!).instantiate() == value.datatype)
             val name = memberInfo.name
             createNewVariable(name, value.datatype)
             currentFrame.valueHolders.getValue(memberInfo.name).value = value
@@ -205,8 +204,11 @@ class WalkerState(
     }
 
     fun createNewVariable(name: String, type: Datatype) {
+
+        val instantiatedType = type.instantiate()
+
         assert(name !in currentFrame.valueHolders)
-        currentFrame.valueHolders[name] = ValueHolder(type)
+        currentFrame.valueHolders[name] = ValueHolder(instantiatedType)
     }
 
     fun handleNewVariable(node: AstNode): ControlFlow {
@@ -221,7 +223,6 @@ class WalkerState(
             newVariableType = findType(newValDef.assignmentType, this, this)
         }
         createNewVariable(name, newVariableType)
-        currentFrame.valueHolders[name] = ValueHolder(newVariableType)
 
         return ControlFlow.Normal
     }

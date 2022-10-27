@@ -43,9 +43,10 @@ fun definitionFromFuncNode(node: AstNode, typeProvider: TypeProvider): NodeFunct
         val typeDefinition = member.optionalTypeDefinition
             ?: throw AssertionError()
 
-        typeProvider.getType(typeDefinition)
+        val paramType = typeProvider.getType(typeDefinition)
+        paramType.instantiate()
     }
-    val returnType = typeProvider.getType(funcNode.returnType)
+    val returnType = typeProvider.getType(funcNode.returnType).instantiate()
     val definition = FunctionDefinition(name, parameters, returnType)
     return NodeFunction(node, definition)
 }

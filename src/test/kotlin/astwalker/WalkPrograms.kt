@@ -35,13 +35,13 @@ internal class WalkPrograms {
         val program = """
           def main():
             val a = "abcd"
-            val b:int[] = createArray(a.size)
+            val b:int[] = createArray(deref(a).size)
             
             val index = 0
-            while index != a.size:
-              val letter = a[index]
+            while index != deref(a).size:
+              val letter = deref(a)[index]
               letter = letter+1
-              b[index] = letter
+              deref(b)[index] = letter
               index = index+1
             
             print(a)
@@ -89,7 +89,7 @@ internal class WalkPrograms {
             
             val counter =0
             while counter<size:
-              result[counter] = arr[from + counter]
+              deref(result)[counter] = deref(arr)[from + counter]
               counter = counter+1
           
           def format_int(value:int):int[]
@@ -105,7 +105,7 @@ internal class WalkPrograms {
             result = createArray(max_size)
             
             while value>0:
-              result[max_size-1-result_size] = 48+ mod(value,10)
+              deref(result)[max_size-1-result_size] = 48+ mod(value,10)
               value = idiv(value,10)
               result_size = result_size +1
             

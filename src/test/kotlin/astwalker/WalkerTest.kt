@@ -276,7 +276,7 @@ internal class WalkerTest {
                 def main():
                   val a = "hello world!"
                   
-                  a[1] = 67
+                  deref(a)[1] = 67
                   print(a)
                   
             """.trimIndent()

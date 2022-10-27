@@ -114,18 +114,18 @@ internal class WalkerDatatypeTest {
             def main():
               val t:new test
               
-              t.a = 5
-              t.b = 0
-              print(t.a)
-              print(t.b)
+              deref(t).a = 5
+              deref(t).b = 0
+              print(deref(t).a)
+              print(deref(t).b)
               
-              t.b=t.a
-              print(t.a)
-              print(t.b)
+              deref(t).b=deref(t).a
+              print(deref(t).a)
+              print(deref(t).b)
               
-              t.a = 10
-              print(t.a)
-              print(t.b)
+              deref(t).a = 10
+              print(deref(t).a)
+              print(deref(t).b)
         """.trimIndent()
 
         val nodes = parserFromFile(code).parse()
@@ -156,7 +156,7 @@ internal class WalkerDatatypeTest {
         val program = """
           def main():
             val a:int[] = createArray(5)
-            print(a.size)
+            print(deref(a).size)
                   
     """
         val nodes = parserFromFile(program).parse()
@@ -168,7 +168,7 @@ internal class WalkerDatatypeTest {
         val program = """
           def main():
             val a:int[] = createArray(5)
-            a.size = 10
+            deref(a).size = 10
     """
         val nodes = parserFromFile(program).parse()
         assertThrows<WalkerException> { walk(nodes) }
@@ -179,8 +179,8 @@ internal class WalkerDatatypeTest {
         val program = """
           def main():
             val a:int[] = createArray(10)
-            print(a.size)
-            print(a[0])
+            print(deref(a).size)
+            print(deref(a)[0])
             
     """
         val nodes = parserFromFile(program).parse()
@@ -192,8 +192,8 @@ internal class WalkerDatatypeTest {
         val program = """
           def main():
             val a:int[] = createArray(10)
-            print(a.size)
-            print(a[10])
+            print(deref(a).size)
+            print(deref(a)[10])
             
     """
         val nodes = parserFromFile(program).parse()
@@ -205,13 +205,13 @@ internal class WalkerDatatypeTest {
         val program = """
           def main():
             val a:int[] = createArray(5)
-            print(a[0])
-            a[1] = 5
-            print(a[1])
-            print(a[0])
-            a[0]= 3
-            print(a[0])
-            print(a[1])
+            print(deref(a)[0])
+            deref(a)[1] = 5
+            print(deref(a)[1])
+            print(deref(a)[0])
+            deref(a)[0]= 3
+            print(deref(a)[0])
+            print(deref(a)[1])
             
             
     """
