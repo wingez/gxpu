@@ -23,11 +23,11 @@ class BuiltInPrintString : Function(
     "print", listOf(Datatype.Array(Datatype.Integer)), Datatype.Void
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
-        val arraySize = values.first().getField("size").getPrimitiveValue()
+        val arraySize = values.first().getFieldValueHolder("size").value.getPrimitiveValue()
 
         var result = ""
         for (i in 0 until arraySize) {
-            result += Char(values.first().arrayAccess(i).getPrimitiveValue())
+            result += Char(values.first().arrayAccess(i).value.getPrimitiveValue())
         }
         state.output.result.add(result)
         return Value.void()

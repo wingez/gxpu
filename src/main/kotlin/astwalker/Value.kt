@@ -6,8 +6,8 @@ import se.wingez.ast.NodeTypes
 class Value private constructor(
     val datatype: Datatype,
     private var primitiveValue: Int,
-    private val compositeValues: MutableMap<String, Value>?,
-    private val arrayValues: MutableList<Value>?,
+    private val compositeValueHolders: MutableMap<String, ValueHolder>?,
+    private val arrayValueHolders: MutableList<ValueHolder>?,
 ) {
 
     fun isPrimitive() = datatype.isPrimitive()
@@ -21,7 +21,7 @@ class Value private constructor(
     fun isArray() = datatype.isArray()
 
 
-    fun getField(name: String): Value {
+    fun getFieldValueHolder(name: String): IValueHolder {
         assert(isComposite())
 
 
@@ -30,10 +30,9 @@ class Value private constructor(
         }
         if (isArray()) {
             assert(name == "size")
-            return primitive(Datatype.Integer, arrayValues!!.size)
+            return ConstantValueHolder(arrayValueHolders!!.size)
         }
-
-        return compositeValues!!.getValue(name)
+        return compositeValueHolders!!.getValue(name)
     }
 
     fun setField(name: String, value: Value) {
@@ -45,12 +44,13 @@ class Value private constructor(
         if (name !in datatype.compositeMembers) {
             throw WalkerException("${datatype.name} does not contain member $name")
         }
-        compositeValues!![name] = value
+        val holder = compositeValueHolders!!.getValue(name)
+        holder.value = value
     }
 
 
-    fun arrayAccess(index: Int): Value {
-        val values = arrayValues!!
+    fun arrayAccess(index: Int): ValueHolder {
+        val values = arrayValueHolders!!
         if (index !in values.indices) {
             throw WalkerException("Index out of range")
         }
@@ -65,7 +65,7 @@ class Value private constructor(
     }
 
     private fun copy(): Value {
-        return Value(datatype, primitiveValue, compositeValues, arrayValues)
+        return Value(datatype, primitiveValue, compositeValueHolders, arrayValueHolders)
     }
 
     fun copyFrom(copyFrom: Value) {
@@ -73,11 +73,11 @@ class Value private constructor(
         primitiveValue = copyFrom.primitiveValue
 
         if (isArray()) {
-            arrayValues!!.clear()
-            arrayValues.addAll(copyFrom.arrayValues!!)
+            arrayValueHolders!!.clear()
+            arrayValueHolders.addAll(copyFrom.arrayValueHolders!!)
         } else if (isComposite()) {
-            compositeValues!!.clear()
-            compositeValues.putAll(copyFrom.compositeValues!!)
+            compositeValueHolders!!.clear()
+            compositeValueHolders.putAll(copyFrom.compositeValueHolders!!)
         }
     }
 
@@ -102,13 +102,16 @@ class Value private constructor(
 
             assert(datatype.isComposite())
 
-            val compositeValues = mutableMapOf<String, Value>()
+            val compositeValues = mutableMapOf<String, ValueHolder>()
             for ((memberName, requiredType) in datatype.compositeMembers.entries) {
 
-                val providedVariable = memberValues.getValue(memberName)
-                assert(providedVariable.datatype == requiredType)
+                val providedValue = memberValues.getValue(memberName)
+                assert(providedValue.datatype == requiredType)
 
-                compositeValues[memberName] = providedVariable
+                val holder = ValueHolder(requiredType)
+                holder.value = providedValue
+
+                compositeValues[memberName] = holder
             }
             return Value(datatype, 0, compositeValues, null)
         }
@@ -116,13 +119,40 @@ class Value private constructor(
         fun array(datatype: Datatype, size: Int): Value {
             assert(datatype.isArray())
 
-            val arrayValues = (0 until size).map { createDefaultVariable(datatype.arrayType) }.toMutableList()
+            val arrayValues = (0 until size).map { createDefaultValue(datatype.arrayType) }
+                .map {
+                    val holder = ValueHolder(it.datatype)
+                    holder.value = it
+                    holder
+                }.toMutableList()
+
             return Value(datatype, 0, null, arrayValues)
         }
     }
 }
 
-fun createDefaultVariable(datatype: Datatype): Value {
+interface IValueHolder {
+    val type: Datatype
+    var value: Value
+}
+
+private class ConstantValueHolder(private val constant: Int) : IValueHolder {
+    override val type = Datatype.Integer
+    override var value: Value
+        get() = Value.primitive(Datatype.Integer, constant)
+        set(value) {
+            throw WalkerException("Cannot assign to constant")
+        }
+}
+
+class ValueHolder(
+    override val type: Datatype,
+) : IValueHolder {
+
+    override var value = createDefaultValue(type)
+}
+
+fun createDefaultValue(datatype: Datatype): Value {
     if (datatype.isPrimitive()) {
         return Value.primitive(datatype, 0)
     }
@@ -132,7 +162,7 @@ fun createDefaultVariable(datatype: Datatype): Value {
     if (datatype.isComposite()) {
 
         val members = datatype.compositeMembers.entries.associate { (name, memberType) ->
-            Pair(name, createDefaultVariable(memberType))
+            Pair(name, createDefaultValue(memberType))
         }
         return Value.composite(datatype, members)
     }
@@ -216,7 +246,7 @@ fun createFromString(string: String): Value {
 
     string.forEachIndexed { index, char ->
         val toAssign = Value.primitive(Datatype.Integer, char.code)
-        resultValue.arrayAccess(index).copyFrom(toAssign)
+        resultValue.arrayAccess(index).value.copyFrom(toAssign)
     }
 
     return resultValue

@@ -95,13 +95,13 @@ internal class WalkerDatatypeTest {
             )
         )
 
-        assertEquals(0, okMember.getField("a").getPrimitiveValue())
-        assertEquals(1, okMember.getField("b").getPrimitiveValue())
+        assertEquals(0, okMember.getFieldValueHolder("a").value.getPrimitiveValue())
+        assertEquals(1, okMember.getFieldValueHolder("b").value.getPrimitiveValue())
 
         okMember.setField("b", Value.primitive(Datatype.Integer, 5))
 
-        assertEquals(0, okMember.getField("a").getPrimitiveValue())
-        assertEquals(5, okMember.getField("b").getPrimitiveValue())
+        assertEquals(0, okMember.getFieldValueHolder("a").value.getPrimitiveValue())
+        assertEquals(5, okMember.getFieldValueHolder("b").value.getPrimitiveValue())
     }
 
     @Test

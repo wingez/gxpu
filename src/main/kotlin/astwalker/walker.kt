@@ -21,7 +21,7 @@ class WalkerOutput {
 }
 
 class WalkFrame {
-    val variables = mutableMapOf<String, Value>()
+    val valueHolders = mutableMapOf<String, ValueHolder>()
 }
 
 fun walk(node: AstNode, config: WalkConfig = WalkConfig.default): WalkerOutput {
@@ -128,13 +128,14 @@ class WalkerState(
 
         // Add result variable
         val returnType = getType(funcNode.returnType)
-        currentFrame.variables["result"] = createDefaultVariable(returnType)
+        currentFrame.valueHolders["result"] = ValueHolder(returnType)
 
         // Add arguments as local variables
         funcNode.arguments.map { it.asNewVariable() }.zip(parameters).forEach { (memberInfo, value) ->
             assert(getType(memberInfo.optionalTypeDefinition!!) == value.datatype)
-
-            currentFrame.variables[memberInfo.name] = value
+            val name = memberInfo.name
+            createNewVariable(name, value.datatype)
+            currentFrame.valueHolders.getValue(memberInfo.name).value = value
         }
 
         // Walk the function
@@ -152,7 +153,7 @@ class WalkerState(
             }
         }
 
-        val result = currentFrame.variables.getValue("result")
+        val result = currentFrame.valueHolders.getValue("result").value
 
         // Pop frame
         frameStack.removeLast()
@@ -203,11 +204,15 @@ class WalkerState(
         return ControlFlow.Return
     }
 
+    fun createNewVariable(name: String, type: Datatype) {
+        assert(name !in currentFrame.valueHolders)
+        currentFrame.valueHolders[name] = ValueHolder(type)
+    }
+
     fun handleNewVariable(node: AstNode): ControlFlow {
         val newValDef = node.asNewVariable()
 
         val name = newValDef.name
-        assert(name !in currentFrame.variables)
 
         val newVariableType: Datatype
         if (newValDef.optionalTypeDefinition != null) {
@@ -215,8 +220,8 @@ class WalkerState(
         } else {
             newVariableType = findType(newValDef.assignmentType, this, this)
         }
-
-        currentFrame.variables[name] = createDefaultVariable(newVariableType)
+        createNewVariable(name, newVariableType)
+        currentFrame.valueHolders[name] = ValueHolder(newVariableType)
 
         return ControlFlow.Normal
     }
@@ -225,7 +230,7 @@ class WalkerState(
         assert(node.type == NodeTypes.While)
         val whileNode = node.asWhile()
 
-        val variablesBeforeLoop = currentFrame.variables.keys.toList()
+        val variablesBeforeLoop = currentFrame.valueHolders.keys.toList()
 
         for (iterationCounter in 0..config.maxLoopIterations) {
 
@@ -256,8 +261,8 @@ class WalkerState(
             }
 
             // Clear variables
-            val toRemove = currentFrame.variables.keys.filter { it !in variablesBeforeLoop }
-            toRemove.forEach { currentFrame.variables.remove(it) }
+            val toRemove = currentFrame.valueHolders.keys.filter { it !in variablesBeforeLoop }
+            toRemove.forEach { currentFrame.valueHolders.remove(it) }
 
         }
 
@@ -295,17 +300,21 @@ class WalkerState(
         return ControlFlow.Normal
     }
 
+    fun modifyVariable(name: String, newValue: Value) {
+
+    }
+
     private fun handleAssign(child: AstNode): ControlFlow {
         val assignNode = child.asAssign()
 
         val valueToAssign = getValueOf(assignNode.value).read()
-        val variableToAssignTo = getValueOf(assignNode.target)
+        val holderToAssignTo = getValueHolderOf(assignNode.target)
 
-        if (valueToAssign.datatype != variableToAssignTo.datatype) {
-            throw WalkerException("Type mismatch. Expected ${variableToAssignTo.datatype}, got ${valueToAssign.datatype}")
+        if (valueToAssign.datatype != holderToAssignTo.type) {
+            throw WalkerException("Type mismatch. Expected ${holderToAssignTo.type}, got ${valueToAssign.datatype}")
         }
 
-        variableToAssignTo.copyFrom(valueToAssign)
+        holderToAssignTo.value = valueToAssign
         return ControlFlow.Normal
     }
 
@@ -324,7 +333,7 @@ class WalkerState(
         return call(callNode.targetName, arguments)
     }
 
-    fun handleArrayAccess(node: AstNode): Value {
+    fun getArrayIndexValueHolder(node: AstNode): ValueHolder {
         assert(node.type == NodeTypes.ArrayAccess)
         val arrayAccess = node.asArrayAccess()
         val array = getValueOf(arrayAccess.parent)
@@ -343,28 +352,38 @@ class WalkerState(
         return getVariable(variableName).datatype
     }
 
-    fun getVariable(variableName: String): Value {
-        if (variableName !in currentFrame.variables) {
+    fun getVariableHolder(variableName: String): ValueHolder {
+        if (variableName !in currentFrame.valueHolders) {
             throw WalkerException("No variable named $variableName")
         }
+        return currentFrame.valueHolders.getValue(variableName)
+    }
 
-        return currentFrame.variables.getValue(variableName)
+    fun getVariable(variableName: String): Value {
+        return getVariableHolder(variableName).value
+    }
+
+    fun getValueHolderOf(node: AstNode): IValueHolder {
+        return when (node.type) {
+            NodeTypes.Identifier -> getVariableHolder(node.asIdentifier())
+            NodeTypes.ArrayAccess -> getArrayIndexValueHolder(node)
+            NodeTypes.MemberAccess -> {
+                val toAccess = getValueOf(node.childNodes[0])
+                return toAccess.getFieldValueHolder(node.data as String)
+            }
+            else -> throw WalkerException("Not supported yet")
+        }
     }
 
     fun getValueOf(node: AstNode): Value {
 
         return when (node.type) {
+            NodeTypes.Identifier -> getValueHolderOf(node).value
+            NodeTypes.ArrayAccess -> getValueHolderOf(node).value
+            NodeTypes.MemberAccess -> getValueHolderOf(node).value
+
             NodeTypes.Constant -> Value.primitive(Datatype.Integer, node.asConstant())
             NodeTypes.Call -> handleCall(node)
-            NodeTypes.Identifier -> getVariable(node.asIdentifier())
-
-
-            NodeTypes.MemberAccess -> {
-                val toAccess = getValueOf(node.childNodes[0])
-                return toAccess.getField(node.data as String)
-            }
-
-            NodeTypes.ArrayAccess -> handleArrayAccess(node)
 
             NodeTypes.String -> createFromString(node.asString())
 
