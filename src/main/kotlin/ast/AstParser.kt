@@ -20,12 +20,12 @@ val operationPriorities = mapOf(
 
 class OperatorBuiltIns {
     companion object {
-        const val Addition = "builtin_addition"
-        const val Subtraction = "builtin_subtraction"
-        const val NotEqual = "builtin_notequal"
-        const val Equal = "builtin_equal"
-        const val LessThan = "builtin_lessthan"
-        const val GreaterThan = "builtin_greaterthan"
+        const val Addition = "add"
+        const val Subtraction = "sub"
+        const val NotEqual = "ne"
+        const val Equal = "eq"
+        const val LessThan = "lt"
+        const val GreaterThan = "gt"
     }
 }
 
@@ -340,7 +340,7 @@ class AstParser(private val tokens: List<Token>) {
                     peekIs(TokenComma, true)
                 }
 
-                return AstNode.fromCall(identifier, parameters)
+                return AstNode.fromCall(identifier, CallFunctionType.Normal, parameters)
             }
 
             return AstNode.fromIdentifier(identifier)
@@ -392,7 +392,7 @@ class AstParser(private val tokens: List<Token>) {
             val result: AstNode
 
             if (operatorToken in operatorToNodesType) {
-                result = AstNode.fromCall(operatorToNodesType.getValue(operatorToken), listOf(first, second))
+                result = AstNode.fromOperation(operatorToken, first, second)
             } else {
                 result = when (operatorToken) {
                     TokenDeref -> AstNode(NodeTypes.MemberDeref, secondAsIdentifier(), listOf(first))

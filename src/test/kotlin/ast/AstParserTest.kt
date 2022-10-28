@@ -43,7 +43,7 @@ fun variable(name: String, type: String = "byte", explicitNew: Boolean = false, 
 }
 
 fun call(target: String, parameters: List<AstNode>): AstNode {
-    return AstNode.fromCall(target, parameters)
+    return AstNode.fromCall(target, CallFunctionType.Normal, parameters)
 }
 
 fun function(name: String, arguments: List<AstNode>, body: List<AstNode>, returnType: String): AstNode {
@@ -88,7 +88,7 @@ internal class AstParserTest {
         )
     }
 
-    private val printBody = listOf(AstNode.fromCall("print", listOf(constant(5))))
+    private val printBody = listOf(call("print", listOf(constant(5))))
 
 
     @Test
@@ -278,7 +278,7 @@ internal class AstParserTest {
                     AstNode.fromOperation(TokenMinusSign, identifier("a"), constant(2)),
                     constant(0)
                 ),
-                listOf(AstNode.fromCall("print", listOf(constant(5)))),
+                listOf(call("print", listOf(constant(5)))),
                 emptyList()
             )
         )
@@ -298,7 +298,7 @@ internal class AstParserTest {
             ).parseIfStatement(),
             AstNode.fromIf(
                 identifier("a"), printBody,
-                listOf(AstNode.fromCall("print", listOf(constant(0))))
+                listOf(call("print", listOf(constant(0))))
             )
         )
     }
@@ -332,5 +332,26 @@ internal class AstParserTest {
                     )
             )
         )
+    }
+
+    @Test
+    fun testCallFunctionType() {
+        assertEquals(
+            parserFromLine("add(5,5)").parseExpression(),
+            listOf(
+                AstNode.fromCall("add", CallFunctionType.Normal, List(2) {
+                    AstNode.fromConstant(5)
+                })
+            )
+        )
+        assertEquals(
+            parserFromLine("5+5").parseExpression(),
+            listOf(
+                AstNode.fromCall("add", CallFunctionType.Operator, List(2) {
+                    AstNode.fromConstant(5)
+                })
+            )
+        )
+
     }
 }

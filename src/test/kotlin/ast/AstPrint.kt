@@ -15,7 +15,7 @@ internal class AstPrint {
         )
         assertEquals(
             """
-            call builtin_addition
+            call add
               5
               5
         """.trimIndent(),
@@ -25,8 +25,8 @@ internal class AstPrint {
         )
         assertEquals(
             """
-            call builtin_addition
-              call builtin_addition
+            call add
+              call add
                 5
                 6
               7
