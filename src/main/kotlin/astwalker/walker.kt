@@ -353,6 +353,13 @@ class WalkerState(
         return array.arrayAccess(index.getPrimitiveValue())
     }
 
+    fun getMemberValueHolder(node: AstNode): IValueHolder {
+        val toAccessPointer = getValueOf(node.childNodes[0])
+        assert(toAccessPointer.isPointer())
+        val toAccess = toAccessPointer.derefPointer().value
+        return toAccess.getFieldValueHolder(node.data as String)
+    }
+
     override fun getTypeOfVariable(variableName: String): Datatype {
         return getVariable(variableName).datatype
     }
@@ -372,10 +379,8 @@ class WalkerState(
         return when (node.type) {
             NodeTypes.Identifier -> getVariableHolder(node.asIdentifier())
             NodeTypes.ArrayAccess -> getArrayIndexValueHolder(node)
-            NodeTypes.MemberAccess -> {
-                val toAccess = getValueOf(node.childNodes[0])
-                return toAccess.getFieldValueHolder(node.data as String)
-            }
+            NodeTypes.MemberAccess -> getMemberValueHolder(node)
+
             else -> throw WalkerException("Not supported yet")
         }
     }

@@ -10,14 +10,6 @@ abstract class Function(
     override val definition = FunctionDefinition(name, parameterTypes, returnType)
 }
 
-class DerefArray : Function(
-    "deref", listOf(Datatype.ArrayPointer(Datatype.Integer)), Datatype.Array(Datatype.Integer)
-) {
-    override fun execute(values: List<Value>, state: WalkerState): Value {
-        return values[0].derefPointer().value
-    }
-}
-
 class BuiltInPrintInteger : Function(
     "print", listOf(Datatype.Integer), Datatype.Void
 ) {
@@ -118,6 +110,4 @@ val builtInList = listOf(
     IntegerComparator(OperatorBuiltIns.GreaterThan) { val1, val2 -> val1 > val2 },
 
     BuiltInCreateArray(),
-
-    DerefArray(),
 )
