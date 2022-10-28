@@ -181,11 +181,12 @@ fun findType(node: AstNode, variableProvider: VariableProvider, functionProvider
             val arrayAccess = node.asArrayAccess()
 
             // datatype for the array
-            val arrayType = findType(arrayAccess.parent, variableProvider, functionProvider)
+            val arrayPointerType = findType(arrayAccess.parent, variableProvider, functionProvider)
+            assert(arrayPointerType.isPointer())
+            val arrayType = arrayPointerType.pointerType
+            assert(arrayType.isArray())
             // what this is an array of
-            val type = arrayType.arrayType
-
-            return type
+            return arrayType.arrayType
         }
 
         else -> throw WalkerException()

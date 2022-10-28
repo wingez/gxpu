@@ -180,7 +180,7 @@ internal class WalkerDatatypeTest {
           def main():
             val a:int[] = createArray(10)
             print(deref(a).size)
-            print(deref(a)[0])
+            print(a[0])
             
     """
         val nodes = parserFromFile(program).parse()
@@ -205,13 +205,13 @@ internal class WalkerDatatypeTest {
         val program = """
           def main():
             val a:int[] = createArray(5)
-            print(deref(a)[0])
-            deref(a)[1] = 5
-            print(deref(a)[1])
-            print(deref(a)[0])
-            deref(a)[0]= 3
-            print(deref(a)[0])
-            print(deref(a)[1])
+            print(a[0])
+            a[1] = 5
+            print(a[1])
+            print(a[0])
+            a[0]= 3
+            print(a[0])
+            print(a[1])
             
             
     """
