@@ -43,7 +43,7 @@ fun variable(name: String, type: String = "byte", explicitNew: Boolean = false, 
 }
 
 fun call(target: String, parameters: List<AstNode>): AstNode {
-    return AstNode.fromCall(target, CallFunctionType.Normal, parameters)
+    return AstNode.fromCall(target, FunctionType.Normal, parameters)
 }
 
 fun function(name: String, arguments: List<AstNode>, body: List<AstNode>, returnType: String): AstNode {
@@ -339,7 +339,7 @@ internal class AstParserTest {
         assertEquals(
             parserFromLine("add(5,5)").parseExpression(),
             listOf(
-                AstNode.fromCall("add", CallFunctionType.Normal, List(2) {
+                AstNode.fromCall("add", FunctionType.Normal, List(2) {
                     AstNode.fromConstant(5)
                 })
             )
@@ -347,7 +347,7 @@ internal class AstParserTest {
         assertEquals(
             parserFromLine("5+5").parseExpression(),
             listOf(
-                AstNode.fromCall("add", CallFunctionType.Operator, List(2) {
+                AstNode.fromCall("add", FunctionType.Operator, List(2) {
                     AstNode.fromConstant(5)
                 })
             )

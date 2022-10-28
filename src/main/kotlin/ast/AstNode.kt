@@ -21,7 +21,7 @@ enum class NodeTypes {
     ArrayAccess,
 }
 
-enum class CallFunctionType {
+enum class FunctionType {
     Normal,
     Operator,
 }
@@ -61,7 +61,7 @@ data class AstNode(
         return AssignNode(this)
     }
 
-    private data class CallInfo(val targetName: String, val functionType: CallFunctionType)
+    private data class CallInfo(val targetName: String, val functionType: FunctionType)
 
     class CallNode(
         val node: AstNode
@@ -165,7 +165,7 @@ data class AstNode(
         fun fromOperation(type: Token, left: AstNode, right: AstNode): AstNode {
 
             val name = operatorToNodesType.getValue(type)
-            return fromCall(name, CallFunctionType.Operator, listOf(left, right))
+            return fromCall(name, FunctionType.Operator, listOf(left, right))
         }
 
         fun fromBody(body: List<AstNode>): AstNode {
@@ -199,7 +199,7 @@ data class AstNode(
             return AstNode(NodeTypes.Assign, null, listOf(target, value))
         }
 
-        fun fromCall(targetName: String, functionType: CallFunctionType, parameters: List<AstNode>): AstNode {
+        fun fromCall(targetName: String, functionType: FunctionType, parameters: List<AstNode>): AstNode {
             return AstNode(NodeTypes.Call, CallInfo(targetName, functionType), parameters)
         }
 

@@ -4,6 +4,8 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
+import se.wingez.ast.FunctionType
+import se.wingez.ast.OperatorBuiltIns
 import se.wingez.ast.parserFromFile
 import java.util.NoSuchElementException
 import kotlin.test.assertEquals
@@ -45,7 +47,11 @@ internal class WalkerDatatypeTest {
             }
         }
         val functionProvider = object : FunctionProvider {
-            override fun getFunctionMatching(name: String, parameterTypes: List<Datatype>): IFunction {
+            override fun getFunctionMatching(
+                name: String,
+                functionType: FunctionType,
+                parameterTypes: List<Datatype>
+            ): IFunction {
                 TODO("Not yet implemented")
             }
         }
@@ -217,5 +223,20 @@ internal class WalkerDatatypeTest {
     """
         val nodes = parserFromFile(program).parse()
         assertEquals(listOf(0, 5, 0, 3, 5).map { it.toString() }, walk(nodes).result)
+    }
+
+    @Test
+    fun testFunctionTypes() {
+        assertEquals("add", OperatorBuiltIns.Addition)
+        val program = """
+          def add(a:int,b:int):int
+            result = a-b
+          def main():
+            print(6+5)
+            print(add(6,5))
+    """
+        val nodes = parserFromFile(program).parse()
+        assertEquals(listOf(11, 1).map { it.toString() }, walk(nodes).result)
+
     }
 }

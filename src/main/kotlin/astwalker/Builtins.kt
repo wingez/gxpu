@@ -1,17 +1,19 @@
 package se.wingez.astwalker
 
+import se.wingez.ast.FunctionType
 import se.wingez.ast.OperatorBuiltIns
 
 abstract class Function(
     name: String,
+    functionType: FunctionType,
     parameterTypes: List<Datatype>,
     returnType: Datatype,
 ) : IFunction {
-    override val definition = FunctionDefinition(name, parameterTypes, returnType)
+    override val definition = FunctionDefinition(name, parameterTypes, returnType, functionType)
 }
 
 class BuiltInPrintInteger : Function(
-    "print", listOf(Datatype.Integer), Datatype.Void
+    "print", FunctionType.Normal, listOf(Datatype.Integer), Datatype.Void
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
         state.output.result.add(values[0].getPrimitiveValue().toString())
@@ -20,7 +22,7 @@ class BuiltInPrintInteger : Function(
 }
 
 class BuiltInPrintString : Function(
-    "print", listOf(Datatype.ArrayPointer(Datatype.Integer)), Datatype.Void
+    "print", FunctionType.Normal, listOf(Datatype.ArrayPointer(Datatype.Integer)), Datatype.Void
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
 
@@ -41,7 +43,7 @@ class IntegerComparator(
     functionName: String,
     private val compareFunction: (val1: Int, val2: Int) -> Boolean
 ) : Function(
-    functionName, listOf(Datatype.Integer, Datatype.Integer), Datatype.Boolean
+    functionName, FunctionType.Operator, listOf(Datatype.Integer, Datatype.Integer), Datatype.Boolean
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
         val value1 = values[0].getPrimitiveValue()
@@ -57,9 +59,10 @@ class IntegerComparator(
 
 class IntegerArithmetic(
     functionName: String,
+    functionType: FunctionType,
     private val arithmeticFunction: (val1: Int, val2: Int) -> Int
 ) : Function(
-    functionName, listOf(Datatype.Integer, Datatype.Integer), Datatype.Integer
+    functionName, functionType, listOf(Datatype.Integer, Datatype.Integer), Datatype.Integer
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
         val value1 = values[0].getPrimitiveValue()
@@ -73,7 +76,7 @@ class IntegerArithmetic(
 
 
 class BuiltInCreateArray : Function(
-    "createArray", listOf(Datatype.Integer), Datatype.ArrayPointer(Datatype.Integer)
+    "createArray", FunctionType.Normal, listOf(Datatype.Integer), Datatype.ArrayPointer(Datatype.Integer)
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
         val size = values[0].getPrimitiveValue()
@@ -86,11 +89,11 @@ class BuiltInCreateArray : Function(
     }
 }
 
-val modulus = IntegerArithmetic("mod") { val1, val2 ->
+val modulus = IntegerArithmetic("mod", FunctionType.Normal) { val1, val2 ->
     val1 % val2
 }
 
-val integerDiv = IntegerArithmetic("idiv") { val1, val2 ->
+val integerDiv = IntegerArithmetic("idiv", FunctionType.Normal) { val1, val2 ->
     val1 / val2
 }
 
@@ -99,8 +102,8 @@ val builtInList = listOf(
     BuiltInPrintInteger(),
     BuiltInPrintString(),
 
-    IntegerArithmetic(OperatorBuiltIns.Addition) { val1, val2 -> val1 + val2 },
-    IntegerArithmetic(OperatorBuiltIns.Subtraction) { val1, val2 -> val1 - val2 },
+    IntegerArithmetic(OperatorBuiltIns.Addition, FunctionType.Operator) { val1, val2 -> val1 + val2 },
+    IntegerArithmetic(OperatorBuiltIns.Subtraction, FunctionType.Operator) { val1, val2 -> val1 - val2 },
     modulus,
     integerDiv,
 

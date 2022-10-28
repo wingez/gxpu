@@ -1,6 +1,7 @@
 package se.wingez.astwalker
 
 import se.wingez.ast.AstNode
+import se.wingez.ast.FunctionType
 import se.wingez.ast.NodeTypes
 
 class WalkerException(msg: String = "") : Exception(msg)
@@ -75,17 +76,26 @@ class WalkerState(
         types[type.name] = type
     }
 
-    private fun hasFunctionMatching(name: String, parameterTypes: List<Datatype>): Boolean {
-        return availableFunctions.any { it.definition.matches(name, parameterTypes) }
+    private fun hasFunctionMatching(name: String, functionType: FunctionType, parameterTypes: List<Datatype>): Boolean {
+        return availableFunctions.any { it.definition.matches(name, functionType, parameterTypes) }
     }
 
-    override fun getFunctionMatching(name: String, parameterTypes: List<Datatype>): IFunction {
-        return availableFunctions.find { it.definition.matches(name, parameterTypes) }
+    override fun getFunctionMatching(
+        name: String,
+        functionType: FunctionType,
+        parameterTypes: List<Datatype>
+    ): IFunction {
+        return availableFunctions.find { it.definition.matches(name, functionType, parameterTypes) }
             ?: throw WalkerException("No functions matches $name($parameterTypes)")
     }
 
     private fun addFunction(function: IFunction) {
-        if (hasFunctionMatching(function.definition.name, function.definition.parameterTypes)) {
+        if (hasFunctionMatching(
+                function.definition.name,
+                function.definition.functionType,
+                function.definition.parameterTypes
+            )
+        ) {
             throw WalkerException("Function already exists: ${function.definition.name}(${function.definition.parameterTypes})")
         }
         availableFunctions.add(function)
@@ -105,15 +115,15 @@ class WalkerState(
             addFunction(definitionFromFuncNode(node, this))
         }
 
-        call("main", emptyList())
+        call("main", FunctionType.Normal, emptyList())
 
         return output
     }
 
-    fun call(funcName: String, parameters: List<Value>): Value {
+    fun call(funcName: String, functionType: FunctionType, parameters: List<Value>): Value {
 
         val parameterTypes = parameters.map { it.datatype }
-        val funcToCall = getFunctionMatching(funcName, parameterTypes)
+        val funcToCall = getFunctionMatching(funcName, functionType, parameterTypes)
 
         return funcToCall.execute(parameters, this)
     }
@@ -331,7 +341,7 @@ class WalkerState(
         val arguments = callNode.parameters
             .map { getValueOf(it) }
 
-        return call(callNode.targetName, arguments)
+        return call(callNode.targetName, callNode.functionType, arguments)
     }
 
     fun getArrayIndexValueHolder(node: AstNode): ValueHolder {

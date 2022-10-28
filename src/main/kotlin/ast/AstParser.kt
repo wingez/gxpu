@@ -340,7 +340,7 @@ class AstParser(private val tokens: List<Token>) {
                     peekIs(TokenComma, true)
                 }
 
-                return AstNode.fromCall(identifier, CallFunctionType.Normal, parameters)
+                return AstNode.fromCall(identifier, FunctionType.Normal, parameters)
             }
 
             return AstNode.fromIdentifier(identifier)

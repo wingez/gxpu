@@ -1,19 +1,21 @@
 package se.wingez.astwalker
 
 import se.wingez.ast.AstNode
+import se.wingez.ast.FunctionType
 import se.wingez.ast.NodeTypes
 
 interface FunctionProvider {
-    fun getFunctionMatching(name: String, parameterTypes: List<Datatype>): IFunction
+    fun getFunctionMatching(name: String, functionType: FunctionType, parameterTypes: List<Datatype>): IFunction
 }
 
 data class FunctionDefinition(
     val name: String,
     val parameterTypes: List<Datatype>,
     val returnType: Datatype,
+    val functionType: FunctionType,
 ) {
-    fun matches(name: String, parameterTypes: List<Datatype>): Boolean {
-        return name == this.name && parameterTypes == this.parameterTypes
+    fun matches(name: String, functionType: FunctionType, parameterTypes: List<Datatype>): Boolean {
+        return name == this.name && functionType == this.functionType && parameterTypes == this.parameterTypes
     }
 }
 
@@ -46,7 +48,8 @@ fun definitionFromFuncNode(node: AstNode, typeProvider: TypeProvider): NodeFunct
         val paramType = typeProvider.getType(typeDefinition)
         paramType.instantiate()
     }
+    val functionType = FunctionType.Normal
     val returnType = typeProvider.getType(funcNode.returnType).instantiate()
-    val definition = FunctionDefinition(name, parameters, returnType)
+    val definition = FunctionDefinition(name, parameters, returnType, functionType)
     return NodeFunction(node, definition)
 }

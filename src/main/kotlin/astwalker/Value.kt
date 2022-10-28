@@ -174,7 +174,9 @@ fun findType(node: AstNode, variableProvider: VariableProvider, functionProvider
         NodeTypes.Call -> {
             val callNode = node.asCall()
             val parameterTypes = callNode.parameters.map { findType(it, variableProvider, functionProvider) }
-            return functionProvider.getFunctionMatching(callNode.targetName, parameterTypes).definition.returnType
+            return functionProvider.getFunctionMatching(
+                callNode.targetName, callNode.functionType, parameterTypes
+            ).definition.returnType
         }
 
         NodeTypes.ArrayAccess -> {
