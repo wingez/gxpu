@@ -47,7 +47,7 @@ fun call(target: String, parameters: List<AstNode>): AstNode {
 }
 
 fun function(name: String, arguments: List<AstNode>, body: List<AstNode>, returnType: String): AstNode {
-    return AstNode.fromFunction(name, arguments, body, returnType)
+    return AstNode.fromFunction(name, FunctionType.Normal, arguments, body, returnType)
 }
 
 internal class AstParserTest {
@@ -168,7 +168,7 @@ internal class AstParserTest {
         """.trimIndent()
         assertEquals(
             AstNode.fromFunction(
-                "test", emptyList(), printBody,
+                "test", FunctionType.Normal, emptyList(), printBody,
                 TypeDefinition("byte", isArray = true)
             ),
             parserFromFile(program).parseFunctionDefinition()
@@ -352,6 +352,26 @@ internal class AstParserTest {
                 })
             )
         )
+    }
 
+    @Test
+    fun testParseInstanceFunction() {
+        assertEquals(
+            AstNode.fromFunction(
+                "hello", FunctionType.Instance, listOf(
+                    AstNode.fromNewVariable(
+                        "this",
+                        TypeDefinition("int"),
+                        null
+                    )
+                ), listOf(AstNode.fromCall("call", FunctionType.Normal, emptyList())), "void"
+            ),
+            parserFromFile(
+                """
+                def (this:int) hello():
+                  call()
+            """.trimIndent()
+            ).parseFunctionDefinition()
+        )
     }
 }

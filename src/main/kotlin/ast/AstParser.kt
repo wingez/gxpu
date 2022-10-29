@@ -179,10 +179,22 @@ class AstParser(private val tokens: List<Token>) {
 
     fun parseFunctionDefinition(): AstNode {
         consumeType(TokenKeywordDef)
+
+        val parameters = mutableListOf<AstNode>()
+
+        val type: FunctionType
+        if (peekIs(TokenLeftParenthesis, consumeMatch = true)) {
+            val classType = parsePrimitiveMemberDeclaration()
+            parameters.add(classType)
+            type = FunctionType.Instance
+            consumeType(TokenRightParenthesis)
+        } else {
+            type = FunctionType.Normal
+        }
+
         val name = consumeType<TokenIdentifier>().target
         consumeType(TokenLeftParenthesis)
 
-        val parameters = mutableListOf<AstNode>()
         while (!peekIs(TokenRightParenthesis, true)) {
             val member = parsePrimitiveMemberDeclaration()
             parameters.add(member)
@@ -198,7 +210,7 @@ class AstParser(private val tokens: List<Token>) {
 
         val statements = parseStatementsUntilEndblock()
 
-        return AstNode.fromFunction(name, parameters, statements, returnTypeDef)
+        return AstNode.fromFunction(name, type, parameters, statements, returnTypeDef)
     }
 
     fun parseStatementsUntilEndblock(): List<AstNode> {

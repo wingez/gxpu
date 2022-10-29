@@ -24,6 +24,7 @@ enum class NodeTypes {
 enum class FunctionType {
     Normal,
     Operator,
+    Instance,
 }
 
 data class AstNode(
@@ -205,22 +206,24 @@ data class AstNode(
 
         fun fromFunction(
             name: String,
+            type: FunctionType,
             arguments: List<AstNode>,
             body: List<AstNode>,
             returnType: String,
         ): AstNode {
-            return fromFunction(name, arguments, body, TypeDefinition(returnType))
+            return fromFunction(name, type, arguments, body, TypeDefinition(returnType))
         }
 
         fun fromFunction(
             name: String,
+            type: FunctionType,
             arguments: List<AstNode>,
             body: List<AstNode>,
             returnType: TypeDefinition
         ): AstNode {
             return AstNode(
                 NodeTypes.Function,
-                FunctionData(name, arguments, returnType),
+                FunctionData(name, type, arguments, returnType),
                 body
             )
         }
@@ -274,6 +277,7 @@ private data class NewVariableData(
 
 data class FunctionData(
     val name: String,
+    val type: FunctionType,
     val arguments: List<AstNode>,
     val returnType: TypeDefinition,
 )
