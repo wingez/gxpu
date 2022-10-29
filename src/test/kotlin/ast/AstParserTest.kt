@@ -22,7 +22,7 @@ fun parseExpressions(tokens: List<Token>): List<AstNode> {
     return AstParser(tokens + listOf(TokenEndBlock)).parseStatementsUntilEndblock()
 }
 
-fun parseExpression(expression:String): AstNode{
+fun parseExpression(expression: String): AstNode {
     val tokensIterator = TokenIterator(parseLine(expression))
     return parseExpressionUntilSeparator(tokensIterator)
 }
@@ -373,6 +373,25 @@ internal class AstParserTest {
                   call()
             """.trimIndent()
             ).parseFunctionDefinition()
+        )
+    }
+
+    @Test
+    fun testParseInstanceFunctionCall() {
+        assertEquals(
+            AstNode.fromCall("hello", FunctionType.Instance, listOf(constant(5))),
+            parseExpression("5.hello()")
+        )
+    }
+
+    @Test
+    fun testInstanceFunctionComplexInstance() {
+        assertEquals(
+            AstNode.fromCall(
+                "hello", FunctionType.Instance,
+                listOf(AstNode.fromCall("add", FunctionType.Operator, listOf(constant(5), constant(6))))
+            ),
+            parseExpression("(5+6).hello()")
         )
     }
 }

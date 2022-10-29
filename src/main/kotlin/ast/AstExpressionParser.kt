@@ -106,29 +106,45 @@ fun parseExpressionUntilSeparator(tokens: TokenIterator): AstNode {
         val second = values.removeAt(index)
         val operatorToken = operations.removeAt(index)
 
-        fun secondAsIdentifier(): String {
-            if (second.type != NodeTypes.Identifier) {
-                throw ParserError("Expected identifier, not $operatorToken")
-            }
-            return second.data as String
-        }
-
         val result: AstNode
 
         if (operatorToken in operatorToNodesType) {
             result = AstNode.fromOperation(operatorToken, first, second)
         } else {
             result = when (operatorToken) {
-                TokenDeref -> AstNode(NodeTypes.MemberDeref, secondAsIdentifier(), listOf(first))
-                TokenDot -> AstNode(NodeTypes.MemberAccess, secondAsIdentifier(), listOf(first))
+                TokenDeref -> handleDeref(first, second)
+                TokenDot -> handleMemberAccess(first, second)
                 TokenLeftBracket -> AstNode.fromArrayAccess(first, second)
                 else -> throw ParserError("You have messed up badly... $operatorToken")
             }
         }
 
         values.add(index, result)
+    }
+    return values.first()
+}
 
+private fun handleMemberAccess(firstNode: AstNode, secondNode: AstNode): AstNode {
+    // Separate case for "a.b" and "a.b()"
+    // "a.b" should be mapped to memberaccess node
+    // "a.b()" to instance function call
+
+    if (secondNode.type == NodeTypes.Identifier) {
+        return AstNode(NodeTypes.MemberAccess, secondNode.data as String, listOf(firstNode))
     }
 
-    return values.first()
+    if (secondNode.type == NodeTypes.Call) {
+        val callNode = secondNode.asCall()
+        assert(callNode.functionType == FunctionType.Normal)
+        return AstNode.fromCall(callNode.targetName, FunctionType.Instance, listOf(firstNode) + callNode.parameters)
+    }
+
+    throw ParserError("Expected either member identifier or instance function. Not $secondNode")
+}
+
+private fun handleDeref(firstNode: AstNode, secondNode: AstNode): AstNode {
+    if (secondNode.type != NodeTypes.Identifier) {
+        throw ParserError("Expected identifier, not $secondNode")
+    }
+    return AstNode(NodeTypes.MemberDeref, secondNode.data as String, listOf(firstNode))
 }
