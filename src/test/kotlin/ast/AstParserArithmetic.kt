@@ -12,7 +12,7 @@ class AstParserArithmetic {
     @Test
     fun testBasic() {
         assertEquals(
-            parserFromFile("5+10").parseExpressionUntilSeparator(),
+            parseExpression("5+10"),
             AstNode.fromOperation(TokenPlusSign, constant(5), constant(10))
         )
     }
@@ -21,7 +21,7 @@ class AstParserArithmetic {
     @Test
     fun testWithIdentifier() {
         assertEquals(
-            parserFromFile("2+test").parseExpressionUntilSeparator(),
+            parseExpression("2+test"),
             AstNode.fromOperation(TokenPlusSign, constant(2), identifier("test"))
         )
     }
@@ -29,7 +29,7 @@ class AstParserArithmetic {
     @Test
     fun notEqual() {
         assertEquals(
-            parserFromFile("2!=0").parseExpressionUntilSeparator(),
+            parseExpression("2!=0"),
             AstNode.fromOperation(TokenNotEqual, constant(2), constant(0))
         )
     }
@@ -37,26 +37,26 @@ class AstParserArithmetic {
     @Test
     fun testParenthesis() {
         assertEquals(
-            parserFromLine("(5)").parseExpressionUntilSeparator(),
+            parseExpression("(5)"),
             constant(5)
         )
         assertEquals(
-            parserFromLine("(5+var)").parseExpressionUntilSeparator(),
+            parseExpression("(5+var)"),
             AstNode.fromOperation(TokenPlusSign, constant(5), identifier("var"))
         )
 
         assertThat(
-            assertThrows<ParserError> { parserFromLine("(5+10").parseExpressionUntilSeparator() })
+            assertThrows<ParserError> { parseExpression("(5+10")})
             .hasMessageContaining("Mismatched parenthesis")
 
-        assertDoesNotThrow { parserFromLine("(5+10)+(3+3)").parseExpressionUntilSeparator() }
+        assertDoesNotThrow { parseExpression("(5+10)+(3+3)") }
 
     }
 
     @Test
     fun testTriple() {
         assertEquals(
-            parserFromFile("(5+5)+10").parseExpressionUntilSeparator(),
+            parseExpression("(5+5)+10"),
 
             AstNode.fromOperation(
                 TokenPlusSign,
@@ -74,7 +74,7 @@ class AstParserArithmetic {
                 AstNode.fromOperation(TokenPlusSign, constant(5), constant(6)),
                 constant(7)
             ),
-            value("5+6+7")
+            parseExpression("5+6+7")
         )
         assertEquals(
             AstNode.fromOperation(
@@ -82,7 +82,7 @@ class AstParserArithmetic {
                 AstNode.fromOperation(TokenPlusSign, constant(5), constant(6)),
                 AstNode.fromOperation(TokenPlusSign, constant(7), constant(8)),
             ),
-            value("5+6!=7+8")
+            parseExpression("5+6!=7+8")
         )
     }
 

@@ -22,12 +22,13 @@ fun parseExpressions(tokens: List<Token>): List<AstNode> {
     return AstParser(tokens + listOf(TokenEndBlock)).parseStatementsUntilEndblock()
 }
 
-private fun assign(to: String, value: Int): AstNode {
-    return AstNode.fromAssign(identifier(to), constant(value))
+fun parseExpression(expression:String): AstNode{
+    val tokensIterator = TokenIterator(parseLine(expression))
+    return parseExpressionUntilSeparator(tokensIterator)
 }
 
-fun value(text: String): AstNode {
-    return parserFromFile(text).parseExpressionUntilSeparator()
+private fun assign(to: String, value: Int): AstNode {
+    return AstNode.fromAssign(identifier(to), constant(value))
 }
 
 fun identifier(name: String): AstNode {

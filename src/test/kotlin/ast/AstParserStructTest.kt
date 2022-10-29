@@ -168,7 +168,7 @@ class AstParserStructTest {
     fun testArrayAccess() {
         assertEquals(
             AstNode.fromArrayAccess(identifier("test"), constant(5)),
-            parserFromLine("test[5]").parseExpressionUntilSeparator()
+            parseExpression("test[5]")
         )
 
         assertEquals(
@@ -176,7 +176,7 @@ class AstParserStructTest {
                 AstNode.fromIdentifier("test"),
                 AstNode.fromOperation(TokenPlusSign, constant(5), constant(5))
             ),
-            parserFromLine("test[5+5]").parseExpressionUntilSeparator()
+            parseExpression("test[5+5]")
         )
     }
 }
