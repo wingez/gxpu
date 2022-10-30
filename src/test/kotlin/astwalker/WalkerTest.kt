@@ -315,4 +315,47 @@ internal class WalkerTest {
 
         assertEquals(expected, walk(nodes).result)
     }
+
+    @Test
+    fun testInstanceFunction() {
+        val nodes =
+            parserFromFile(
+                """
+                def (a:int) add(b:int):int
+                  result = a+b
+                  
+                def main():
+                  print(5.add(6))
+                  print((5+6).add(7))
+            """.trimIndent()
+            ).parse()
+
+        val expected = listOf(11, 18).map { it.toString() }
+        assertEquals(expected, walk(nodes).result)
+
+        val nodes2 = parserFromFile(
+            """
+            struct test:
+              a:int
+              b:int
+            
+            def (this:test) describe():
+              print(this.a)
+              print(this.b)
+              
+            def main():
+              val c: new test
+              
+              c.a=5
+              c.b=6
+              c.describe()
+              
+              c.a=7
+              c.describe()
+        """.trimIndent()
+        ).parse()
+        val expected2 = listOf(5, 6, 7, 6).map { it.toString() }
+        assertEquals(expected2, walk(nodes2).result)
+
+    }
 }

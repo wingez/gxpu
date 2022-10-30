@@ -48,8 +48,7 @@ fun definitionFromFuncNode(node: AstNode, typeProvider: TypeProvider): NodeFunct
         val paramType = typeProvider.getType(typeDefinition)
         paramType.instantiate()
     }
-    val functionType = FunctionType.Normal
     val returnType = typeProvider.getType(funcNode.returnType).instantiate()
-    val definition = FunctionDefinition(name, parameters, returnType, functionType)
+    val definition = FunctionDefinition(name, parameters, returnType, funcNode.type)
     return NodeFunction(node, definition)
 }
