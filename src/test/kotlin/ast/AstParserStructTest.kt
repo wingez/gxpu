@@ -22,48 +22,49 @@ class AstParserStructTest {
     fun testStructBasic() {
 
         assertEquals(
+            struct(
+                "tmp", listOf(
+                    variable("member1"),
+                    variable("member2")
+                )
+            ),
             parserFromFile(
                 """
         struct tmp:
           member1:byte
           member2:byte
-            
         """
-            ).parseStruct(), struct(
-                "tmp", listOf(
-                    variable("member1"),
-                    variable("member2")
-                )
-            )
+            ).parseStruct(),
         )
+
         assertEquals(
+            struct(
+                "tmp", listOf(
+                    variable("member1", "byte"),
+                    variable("member2", "int"),
+                )
+            ),
             parserFromFile(
                 """
         struct tmp:
           member1:byte
           member2:int
-            
         """
-            ).parseStruct(), struct(
-                "tmp", listOf(
-                    variable("member1", "byte"),
-                    variable("member2", "int"),
-                )
-            )
+            ).parseStruct(),
         )
 
         assertEquals(
+            struct(
+                "tmp", listOf(
+                    variable("member1", "int", explicitNew = true),
+                )
+            ),
             parserFromFile(
                 """
         struct tmp:
           member1:new int
-            
         """
-            ).parseStruct(), struct(
-                "tmp", listOf(
-                    variable("member1", "int", explicitNew = true),
-                )
-            )
+            ).parseStruct(),
         )
     }
 
@@ -71,31 +72,23 @@ class AstParserStructTest {
     @Test
     fun testStructAssign() {
         assertEquals(
-            parserFromFile(
-                """
-        member.i=5
-        """
-            ).parseExpression(), listOf(
+            listOf(
                 AstNode.fromAssign(
                     memberAccess(identifier("member"), "i"),
                     constant(5)
                 )
-            )
+            ),
+            parserFromFile(
+                """
+        member.i=5
+        """
+            ).parseExpression(),
         )
     }
 
     @Test
     fun testStructAssignInFunction() {
         assertEquals(
-            parserFromFile(
-                """
-        def main():
-          val a: type1
-      
-          a.member1=2
-          a.member2=1
-        """
-            ).parseFunctionDefinition(),
             function(
                 "main", emptyList(),
                 listOf(
@@ -109,24 +102,34 @@ class AstParserStructTest {
                         constant(1)
                     )
                 ), "void"
-            )
+            ),
+
+            parserFromFile(
+                """
+        def main():
+          val a: type1
+      
+          a.member1=2
+          a.member2=1
+        """
+            ).parseFunctionDefinition(),
         )
     }
 
     @Test
     fun testStructMemberRead() {
         assertEquals(
-            parserFromFile(
-                """
-        a=s.member
-        """
-            ).parseExpression(),
             listOf(
                 AstNode.fromAssign(
                     identifier("a"),
                     memberAccess(identifier("s"), "member")
                 )
             ),
+            parserFromFile(
+                """
+        a=s.member
+        """
+            ).parseExpression(),
         )
     }
 
@@ -147,6 +150,12 @@ class AstParserStructTest {
     fun testStructArray() {
 
         assertEquals(
+            struct(
+                "tmp", listOf(
+                    variable("member1", "byte", isArray = true),
+                    variable("member2", "str", isArray = true),
+                )
+            ),
             parserFromFile(
                 """
         struct tmp:
@@ -154,12 +163,7 @@ class AstParserStructTest {
           member2: str[]
             
         """
-            ).parseStruct(), struct(
-                "tmp", listOf(
-                    variable("member1", "byte", isArray = true),
-                    variable("member2", "str", isArray = true),
-                )
-            )
+            ).parseStruct(),
         )
     }
 

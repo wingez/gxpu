@@ -103,25 +103,25 @@ internal class AstParserTest {
     @Test
     fun testParseFunctionSingleParameter() {
         assertEquals(
-            AstParser(getFuncTokens("param1")).parseFunctionDefinition(),
             function(
                 "test", arguments = listOf(variable("param1")),
                 body = printBody, "void"
-            )
+            ),
+            AstParser(getFuncTokens("param1")).parseFunctionDefinition(),
         )
     }
 
     @Test
     fun testParseFunctionMultipleParameters() {
         assertEquals(
-            AstParser(getFuncTokens("param1", "param2", "param3")).parseFunctionDefinition(),
             function(
                 "test", arguments = listOf(
                     variable("param1"),
                     variable("param2"),
                     variable("param3"),
                 ), body = printBody, "void"
-            )
+            ),
+            AstParser(getFuncTokens("param1", "param2", "param3")).parseFunctionDefinition(),
         )
     }
 
@@ -136,11 +136,11 @@ internal class AstParserTest {
             )
         )
         assertEquals(
-            AstParser(tokens).parseFunctionDefinition(),
             function(
                 "test", arguments = listOf(variable("param", "type")),
                 body = printBody, "void"
-            )
+            ),
+            AstParser(tokens).parseFunctionDefinition(),
         )
     }
 
@@ -155,8 +155,8 @@ internal class AstParserTest {
             )
         )
         assertEquals(
+            function("test", emptyList(), printBody, "byte"),
             AstParser(tokens).parseFunctionDefinition(),
-            function("test", emptyList(), printBody, "byte")
         )
     }
 
@@ -195,33 +195,32 @@ internal class AstParserTest {
     @Test
     fun testReturn() {
         assertEquals(
+            AstNode.fromReturn(),
             parserFromLine("return").parseReturnStatement(),
-            AstNode.fromReturn()
         )
 
         assertEquals(
+            AstNode.fromReturn(AstNode.fromOperation(TokenPlusSign, constant(5), identifier("a"))),
             parserFromLine("return 5+a").parseReturnStatement(),
-            AstNode.fromReturn(AstNode.fromOperation(TokenPlusSign, constant(5), identifier("a")))
         )
     }
 
     @Test
     fun testCallNoParameters() {
         assertEquals(
+            listOf(call("func", emptyList())),
             parserFromLine("func()").parseExpression(),
-            listOf(call("func", emptyList()))
         )
     }
 
     @Test
     fun testCallParameters() {
         assertEquals(
+            listOf(call("func", listOf(constant(5)))),
             parserFromLine("func(5)").parseExpression(),
-            listOf(call("func", listOf(constant(5))))
         )
 
         assertEquals(
-            parserFromLine("func(5,10,test)").parseExpression(),
             listOf(
                 call(
                     "func", listOf(
@@ -230,49 +229,44 @@ internal class AstParserTest {
                         identifier("test"),
                     )
                 )
-            )
+            ),
+            parserFromLine("func(5,10,test)").parseExpression(),
         )
     }
 
     @Test
     fun testAssignCall() {
         assertEquals(
+            listOf(AstNode.fromAssign(identifier("a"), call("test", emptyList()))),
             parserFromLine("a=test()").parseExpression(),
-            listOf(AstNode.fromAssign(identifier("a"), call("test", emptyList())))
         )
     }
 
     @Test
     fun testWhile() {
         assertEquals(
+            AstNode.fromWhile(constant(1), printBody),
             parserFromFile(
                 """
           while 1:
             print(5)
         """
             ).parseWhileStatement(),
-            AstNode.fromWhile(constant(1), printBody)
         )
     }
 
     @Test
     fun testIf() {
         assertEquals(
+            AstNode.fromIf(constant(1), printBody, emptyList()),
             parserFromFile(
                 """
             if 1:
               print(5)
         """
             ).parseIfStatement(),
-            AstNode.fromIf(constant(1), printBody, emptyList())
         )
         assertEquals(
-            parserFromFile(
-                """
-            if (a-2)!=0:
-              print(5)
-            """
-            ).parseIfStatement(),
             AstNode.fromIf(
                 AstNode.fromOperation(
                     TokenNotEqual,
@@ -281,13 +275,23 @@ internal class AstParserTest {
                 ),
                 listOf(call("print", listOf(constant(5)))),
                 emptyList()
-            )
+            ),
+            parserFromFile(
+                """
+            if (a-2)!=0:
+              print(5)
+            """
+            ).parseIfStatement(),
         )
     }
 
     @Test
     fun testIfElse() {
         assertEquals(
+            AstNode.fromIf(
+                identifier("a"), printBody,
+                listOf(call("print", listOf(constant(0))))
+            ),
             parserFromFile(
                 """
             if a:
@@ -297,10 +301,6 @@ internal class AstParserTest {
     
         """
             ).parseIfStatement(),
-            AstNode.fromIf(
-                identifier("a"), printBody,
-                listOf(call("print", listOf(constant(0))))
-            )
         )
     }
 
@@ -320,10 +320,6 @@ internal class AstParserTest {
     @Test
     fun testString() {
         assertEquals(
-            parserFromLine(
-                "5+\"hello\""
-
-            ).parseExpression(),
             listOf(
                 AstNode.fromOperation(
                     TokenPlusSign,
@@ -331,27 +327,31 @@ internal class AstParserTest {
                     AstNode.fromString("hello"),
 
                     )
-            )
+            ),
+            parserFromLine(
+                "5+\"hello\""
+
+            ).parseExpression(),
         )
     }
 
     @Test
     fun testCallFunctionType() {
         assertEquals(
-            parserFromLine("add(5,5)").parseExpression(),
             listOf(
                 AstNode.fromCall("add", FunctionType.Normal, List(2) {
                     AstNode.fromConstant(5)
                 })
-            )
+            ),
+            parserFromLine("add(5,5)").parseExpression(),
         )
         assertEquals(
-            parserFromLine("5+5").parseExpression(),
             listOf(
                 AstNode.fromCall("add", FunctionType.Operator, List(2) {
                     AstNode.fromConstant(5)
                 })
-            )
+            ),
+            parserFromLine("5+5").parseExpression(),
         )
     }
 

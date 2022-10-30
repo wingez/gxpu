@@ -12,8 +12,8 @@ class AstParserArithmetic {
     @Test
     fun testBasic() {
         assertEquals(
+            AstNode.fromOperation(TokenPlusSign, constant(5), constant(10)),
             parseExpression("5+10"),
-            AstNode.fromOperation(TokenPlusSign, constant(5), constant(10))
         )
     }
 
@@ -21,28 +21,28 @@ class AstParserArithmetic {
     @Test
     fun testWithIdentifier() {
         assertEquals(
+            AstNode.fromOperation(TokenPlusSign, constant(2), identifier("test")),
             parseExpression("2+test"),
-            AstNode.fromOperation(TokenPlusSign, constant(2), identifier("test"))
         )
     }
 
     @Test
     fun notEqual() {
         assertEquals(
+            AstNode.fromOperation(TokenNotEqual, constant(2), constant(0)),
             parseExpression("2!=0"),
-            AstNode.fromOperation(TokenNotEqual, constant(2), constant(0))
         )
     }
 
     @Test
     fun testParenthesis() {
         assertEquals(
+            constant(5),
             parseExpression("(5)"),
-            constant(5)
         )
         assertEquals(
+            AstNode.fromOperation(TokenPlusSign, constant(5), identifier("var")),
             parseExpression("(5+var)"),
-            AstNode.fromOperation(TokenPlusSign, constant(5), identifier("var"))
         )
 
         assertThat(
@@ -56,13 +56,12 @@ class AstParserArithmetic {
     @Test
     fun testTriple() {
         assertEquals(
-            parseExpression("(5+5)+10"),
-
             AstNode.fromOperation(
                 TokenPlusSign,
                 AstNode.fromOperation(TokenPlusSign, constant(5), constant(5)),
                 constant(10)
-            )
+            ),
+            parseExpression("(5+5)+10"),
         )
     }
 
@@ -85,6 +84,4 @@ class AstParserArithmetic {
             parseExpression("5+6!=7+8")
         )
     }
-
-
 }

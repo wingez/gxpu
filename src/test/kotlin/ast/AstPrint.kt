@@ -10,7 +10,7 @@ internal class AstPrint {
         assertEquals(
             "5",
             formatAst(
-                parserFromLine("5").parseExpression().first()
+                parseExpression("5")
             )
         )
         assertEquals(
@@ -20,7 +20,7 @@ internal class AstPrint {
               5
         """.trimIndent(),
             formatAst(
-                parserFromLine("5+5").parseExpression().first()
+                parseExpression("5+5")
             )
         )
         assertEquals(
@@ -32,7 +32,7 @@ internal class AstPrint {
               7
         """.trimIndent(),
             formatAst(
-                parserFromLine("5+6+7").parseExpression().first()
+                parseExpression("5+6+7")
             )
         )
     }
