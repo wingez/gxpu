@@ -1,5 +1,6 @@
 package se.wingez.tokens
 
+import se.wingez.PeekIterator
 import se.wingez.SupportTypePeekIterator
 import java.io.Reader
 
@@ -182,7 +183,7 @@ fun parseFile(input: Reader): List<Token> {
 }
 
 fun parseLine(line: String): List<Token> {
-    val feeder = OneSymbolAtATime(line)
+    val feeder = PeekIterator(line.toList())
 
     val result = mutableListOf<Token>()
 
@@ -196,7 +197,7 @@ fun parseLine(line: String): List<Token> {
 
         val isSpace = symbolPeek == ' '
         if (isSpace) {
-            feeder.next()
+            feeder.consume()
             continue
         }
 
@@ -219,31 +220,15 @@ fun parseLine(line: String): List<Token> {
     return result
 }
 
-private class OneSymbolAtATime(
-    private val string: String
-) {
-    private var currentIndex = 0
 
-    fun hasMore(): Boolean {
-        return currentIndex < string.length
-    }
 
-    fun peek(): Char {
-        return string[currentIndex]
-    }
+private fun consumeString(feeder: PeekIterator<Char>): Token {
 
-    fun next(): Char {
-        return string[currentIndex++]
-    }
-}
-
-private fun consumeString(feeder: OneSymbolAtATime): Token {
-
-    assert(feeder.next() == '"')
+    assert(feeder.consume() == '"')
 
     var current = ""
     while (feeder.hasMore()) {
-        val symbol = feeder.next()
+        val symbol = feeder.consume()
         if (symbol == '"') {
             return Token(TokenType.String, current)
         }
@@ -252,14 +237,14 @@ private fun consumeString(feeder: OneSymbolAtATime): Token {
     throw TokenError("Got end of line while parsing string")
 }
 
-private fun consumeConstant(feeder: OneSymbolAtATime): Token {
+private fun consumeConstant(feeder: PeekIterator<Char>): Token {
 
     var current = ""
     while (feeder.hasMore()) {
         val symbolPeek = feeder.peek()
         if (isAlNumeric(symbolPeek.toString())) {
             current += symbolPeek
-            feeder.next()
+            feeder.consume()
         } else {
             break
         }
@@ -268,9 +253,9 @@ private fun consumeConstant(feeder: OneSymbolAtATime): Token {
     return toToken(current)
 }
 
-private fun consumeOperator(feeder: OneSymbolAtATime): Iterable<Token> {
+private fun consumeOperator(feeder: PeekIterator<Char>): Iterable<Token> {
 
-    var current = feeder.next().toString()
+    var current = feeder.consume().toString()
 
     while (feeder.hasMore()) {
         val symbolPeek = feeder.peek()
@@ -288,7 +273,7 @@ private fun consumeOperator(feeder: OneSymbolAtATime): Iterable<Token> {
         }
 
         current += symbolPeek
-        feeder.next()
+        feeder.consume()
     }
 
     return parseOperator(current)

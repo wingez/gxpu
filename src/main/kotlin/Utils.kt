@@ -42,27 +42,38 @@ interface SupportTypePeekIterator<T : Enum<T>> {
     val type: T
 }
 
-open class TypePeekIterator<T : SupportTypePeekIterator<S>, S : Enum<S>>(private val tokens: List<T>) {
 
-    private var index = 0
+open class PeekIterator<T>(
+    private val values: List<T>
+) {
+    private var currentIndex = 0
+
+    fun hasMore(): Boolean {
+        return currentIndex < values.size
+    }
 
     fun peek(): T {
-        if (index > tokens.size)
+        if (currentIndex > values.size)
             throw Error("End of token-list reached")
-        return tokens[index]
+        return values[currentIndex]
     }
+
+    fun consume(): T {
+        return values[currentIndex++]
+    }
+}
+
+
+open class TypePeekIterator<T : SupportTypePeekIterator<S>, S : Enum<S>>(values: List<T>) :
+    PeekIterator<T>(values) {
+
+    private var index = 0
 
     fun peekIs(type: S, consumeMatch: Boolean = false): Boolean {
         val result = peek().type == type
         if (result && consumeMatch) {
             consume()
         }
-        return result
-    }
-
-    fun consume(): T {
-        val result = peek()
-        index++
         return result
     }
 
@@ -74,10 +85,6 @@ open class TypePeekIterator<T : SupportTypePeekIterator<S>, S : Enum<S>>(private
         if (!peekIs(type))
             throw Error(errorMessage)
         return consume()
-    }
-
-    fun hasMore(): Boolean {
-        return index < tokens.size
     }
 }
 
