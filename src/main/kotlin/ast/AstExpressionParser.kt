@@ -4,15 +4,15 @@ import se.wingez.tokens.*
 
 
 val operationPriorities = mapOf(
-    TokenLeftBracket to 10,
-    TokenPlusSign to 5,
-    TokenMinusSign to 5,
-    TokenLesserSign to 2,
-    TokenGreaterSign to 2,
-    TokenDoubleEqual to 2,
-    TokenNotEqual to 1,
-    TokenDeref to 10,
-    TokenDot to 10,
+    TokenType.LeftBracket to 10,
+    TokenType.PlusSign to 5,
+    TokenType.MinusSign to 5,
+    TokenType.LesserSign to 2,
+    TokenType.GreaterSign to 2,
+    TokenType.DoubleEqual to 2,
+    TokenType.NotEqual to 1,
+    TokenType.Deref to 10,
+    TokenType.Dot to 10,
 
     )
 
@@ -28,12 +28,12 @@ class OperatorBuiltIns {
 }
 
 val operatorToNodesType = mapOf(
-    TokenPlusSign to OperatorBuiltIns.Addition,
-    TokenMinusSign to OperatorBuiltIns.Subtraction,
-    TokenNotEqual to OperatorBuiltIns.NotEqual,
-    TokenLesserSign to OperatorBuiltIns.LessThan,
-    TokenGreaterSign to OperatorBuiltIns.GreaterThan,
-    TokenDoubleEqual to OperatorBuiltIns.Equal,
+    TokenType.PlusSign to OperatorBuiltIns.Addition,
+    TokenType.MinusSign to OperatorBuiltIns.Subtraction,
+    TokenType.NotEqual to OperatorBuiltIns.NotEqual,
+    TokenType.LesserSign to OperatorBuiltIns.LessThan,
+    TokenType.GreaterSign to OperatorBuiltIns.GreaterThan,
+    TokenType.DoubleEqual to OperatorBuiltIns.Equal,
 )
 
 
@@ -84,7 +84,7 @@ fun parseExpressionUntilSeparator(tokens: TokenIterator): AstNode {
 
 
         //Close array access
-        if (operatorToken == TokenLeftBracket) {
+        if (operatorToken.type == TokenType.LeftBracket) {
             values.add(parseExpressionUntilSeparator(tokens))
             tokens.consumeType(TokenType.RightBracket)
         } else {
@@ -97,8 +97,8 @@ fun parseExpressionUntilSeparator(tokens: TokenIterator): AstNode {
         var index = 0
 
         operations.forEachIndexed { i, token ->
-            if (operationPriorities.getValue(token) > highestPriority) {
-                highestPriority = operationPriorities.getValue(token)
+            if (operationPriorities.getValue(token.type) > highestPriority) {
+                highestPriority = operationPriorities.getValue(token.type)
                 index = i
             }
         }
@@ -108,13 +108,13 @@ fun parseExpressionUntilSeparator(tokens: TokenIterator): AstNode {
 
         val result: AstNode
 
-        if (operatorToken in operatorToNodesType) {
-            result = AstNode.fromOperation(operatorToken, first, second)
+        if (operatorToken.type in operatorToNodesType) {
+            result = AstNode.fromOperation(operatorToken.type, first, second)
         } else {
-            result = when (operatorToken) {
-                TokenDeref -> handleDeref(first, second)
-                TokenDot -> handleMemberAccess(first, second)
-                TokenLeftBracket -> AstNode.fromArrayAccess(first, second)
+            result = when (operatorToken.type) {
+                TokenType.Deref -> handleDeref(first, second)
+                TokenType.Dot -> handleMemberAccess(first, second)
+                TokenType.LeftBracket -> AstNode.fromArrayAccess(first, second)
                 else -> throw ParserError("You have messed up badly... $operatorToken")
             }
         }

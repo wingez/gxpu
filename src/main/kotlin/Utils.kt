@@ -46,20 +46,24 @@ interface SupportTypePeekIterator<T : Enum<T>> {
 open class PeekIterator<T>(
     private val values: List<T>
 ) {
-    private var currentIndex = 0
+    private var index = 0
+
+    fun getCurrentIndex(): Int {
+        return index
+    }
 
     fun hasMore(): Boolean {
-        return currentIndex < values.size
+        return index < values.size
     }
 
     fun peek(): T {
-        if (currentIndex > values.size)
+        if (index > values.size)
             throw Error("End of token-list reached")
-        return values[currentIndex]
+        return values[index]
     }
 
     fun consume(): T {
-        return values[currentIndex++]
+        return values[index++]
     }
 }
 

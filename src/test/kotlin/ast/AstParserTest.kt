@@ -3,8 +3,7 @@ package se.wingez.ast
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
-import se.wingez.tconstant
-import se.wingez.tidentifier
+import se.wingez.*
 import se.wingez.tokens.*
 import java.io.StringReader
 
@@ -52,7 +51,6 @@ fun call(target: String, parameters: List<AstNode>): AstNode {
 fun function(name: String, arguments: List<AstNode>, body: List<AstNode>, returnType: String): AstNode {
     return AstNode.fromFunction(name, FunctionType.Normal, arguments, body, returnType)
 }
-
 
 
 internal class AstParserTest {
@@ -204,7 +202,7 @@ internal class AstParserTest {
         )
 
         assertEquals(
-            AstNode.fromReturn(AstNode.fromOperation(TokenPlusSign, constant(5), identifier("a"))),
+            AstNode.fromReturn(AstNode.fromOperation(TokenType.PlusSign, constant(5), identifier("a"))),
             parserFromLine("return 5+a").parseReturnStatement(),
         )
     }
@@ -273,8 +271,8 @@ internal class AstParserTest {
         assertEquals(
             AstNode.fromIf(
                 AstNode.fromOperation(
-                    TokenNotEqual,
-                    AstNode.fromOperation(TokenMinusSign, identifier("a"), constant(2)),
+                    TokenType.NotEqual,
+                    AstNode.fromOperation(TokenType.MinusSign, identifier("a"), constant(2)),
                     constant(0)
                 ),
                 listOf(call("print", listOf(constant(5)))),
@@ -326,7 +324,7 @@ internal class AstParserTest {
         assertEquals(
             listOf(
                 AstNode.fromOperation(
-                    TokenPlusSign,
+                    TokenType.PlusSign,
                     AstNode.fromConstant(5),
                     AstNode.fromString("hello"),
 

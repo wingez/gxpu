@@ -6,12 +6,56 @@ import se.wingez.tokens.*
 import java.io.StringReader
 
 fun tidentifier(name: String): Token {
-    return Token(TokenType.Identifier, name)
+    return token(TokenType.Identifier, name)
 }
 
 fun tconstant(value: Int): Token {
-    return Token(TokenType.NumericConstant, value.toString())
+    return token(TokenType.NumericConstant, value.toString())
 }
+
+fun token(type: TokenType, additionalData: String = ""): Token {
+    return Token(type, additionalData, -1, -1)
+}
+
+fun assertEqualsWithoutLineNo(expected: Token, actual: Token) {
+    assertEqualsWithoutLineNo(listOf(expected), listOf(actual))
+}
+
+fun assertEqualsWithoutLineNo(expected: Iterable<Token>, actual: Iterable<Token>) {
+    assertEquals(
+        expected,
+        actual.zip(expected).map { (act, exp) -> act.copy(lineRow = exp.lineRow, lineCol = exp.lineCol) }
+    )
+}
+
+val TokenEOL = Token(TokenType.EOL, "", 0, 0)
+val TokenLeftParenthesis = Token(TokenType.LeftParenthesis, "", 0, 0)
+val TokenRightParenthesis = Token(TokenType.RightParenthesis, "", 0, 0)
+val TokenLeftBracket = Token(TokenType.LeftBracket, "", 0, 0)
+val TokenRightBracket = Token(TokenType.RightBracket, "", 0, 0)
+val TokenComma = Token(TokenType.Comma, "", 0, 0)
+val TokenColon = Token(TokenType.Colon, "", 0, 0)
+val TokenAssign = Token(TokenType.Equals, "", 0, 0)
+val TokenDot = Token(TokenType.Dot, "", 0, 0)
+val TokenDeref = Token(TokenType.Deref, "", 0, 0)
+val TokenKeywordDef = Token(TokenType.KeywordDef, "", 0, 0)
+val TokenKeywordWhile = Token(TokenType.KeywordWhile, "", 0, 0)
+val TokenKeywordIf = Token(TokenType.KeywordIf, "", 0, 0)
+val TokenKeywordElse = Token(TokenType.KeywordElse, "", 0, 0)
+val TokenKeywordReturn = Token(TokenType.KeywordReturn, "", 0, 0)
+val TokenKeywordStruct = Token(TokenType.KeywordStruct, "", 0, 0)
+val TokenKeywordNew = Token(TokenType.KeywordNew, "", 0, 0)
+val TokenKeywordBreak = Token(TokenType.KeywordBreak, "", 0, 0)
+val TokenKeywordVal = Token(TokenType.KeywordVal, "", 0, 0)
+val TokenBeginBlock = Token(TokenType.BeginBlock, "", 0, 0)
+val TokenEndBlock = Token(TokenType.EndBlock, "", 0, 0)
+val TokenPlusSign = Token(TokenType.PlusSign, "", 0, 0)
+val TokenMinusSign = Token(TokenType.MinusSign, "", 0, 0)
+val TokenGreaterSign = Token(TokenType.GreaterSign, "", 0, 0)
+val TokenLesserSign = Token(TokenType.LesserSign, "", 0, 0)
+val TokenNotEqual = Token(TokenType.NotEqual, "", 0, 0)
+val TokenDoubleEqual = Token(TokenType.DoubleEqual, "", 0, 0)
+
 
 internal class TokenizerTest {
 
@@ -30,7 +74,7 @@ internal class TokenizerTest {
 
     @Test
     fun test_indentation_token() {
-        assertEquals(
+        assertEqualsWithoutLineNo(
             listOf(tidentifier("var"), TokenEOL, tidentifier("print"), TokenEOL),
             parseFile(
                 StringReader(
@@ -42,7 +86,7 @@ internal class TokenizerTest {
             ),
         )
 
-        assertEquals(
+        assertEqualsWithoutLineNo(
             listOf(
                 tidentifier("var"), TokenEOL, TokenBeginBlock, tidentifier("print"),
                 TokenEOL, TokenEndBlock
@@ -57,7 +101,7 @@ internal class TokenizerTest {
             ),
         )
 
-        assertEquals(
+        assertEqualsWithoutLineNo(
             listOf(
                 tidentifier("var"), TokenEOL, TokenBeginBlock, tidentifier("print"),
                 TokenEOL, TokenEndBlock, tconstant(5), TokenEOL
@@ -85,7 +129,7 @@ internal class TokenizerTest {
             )
         }
 
-        assertEquals(
+        assertEqualsWithoutLineNo(
             listOf(
                 tidentifier("print"), TokenEOL,
                 TokenBeginBlock, tidentifier("print"), TokenEOL,
@@ -109,15 +153,15 @@ internal class TokenizerTest {
 
     @Test
     fun testToToken() {
-        assertEquals(TokenLeftParenthesis, toToken("("))
-        assertEquals(TokenRightParenthesis, toToken(")"))
-        assertEquals(tidentifier("test"), toToken("test"))
+        assertEqualsWithoutLineNo(TokenLeftParenthesis, toToken("(")!!)
+        assertEqualsWithoutLineNo(TokenRightParenthesis, toToken(")")!!)
+        assertEqualsWithoutLineNo(tidentifier("test"), toToken("test")!!)
     }
 
     fun tokenize(vararg items: String): List<Token> {
         val result = mutableListOf<Token>()
         for (item in items) {
-            result.add(toToken(item))
+            result.add(toToken(item)!!)
         }
         result.add(TokenEOL)
         return result
@@ -126,27 +170,27 @@ internal class TokenizerTest {
     @Test
     fun testParseLine() {
         //Comments
-        assertEquals(listOf(TokenEOL), parseLine("#"))
-        assertEquals(listOf(tidentifier("test"), TokenEOL), parseLine("test#"))
+        assertEqualsWithoutLineNo(listOf(TokenEOL), parseLine("#"))
+        assertEqualsWithoutLineNo(listOf(tidentifier("test"), TokenEOL), parseLine("test#"))
 
         //Regular words
-        assertEquals(tokenize("test"), parseLine("test"))
-        assertEquals(tokenize("test", "hest"), parseLine("test hest"))
+        assertEqualsWithoutLineNo(tokenize("test"), parseLine("test"))
+        assertEqualsWithoutLineNo(tokenize("test", "hest"), parseLine("test hest"))
 
         //Function statement
-        assertEquals(
+        assertEqualsWithoutLineNo(
             tokenize(
                 "def", "main", "(", "test", ":", "int", ",", "test2", ":", "bool", ",", "test3", ":", "str", ")", ":"
             ),
             parseLine("def main(test: int, test2: bool, test3: str): "),
         )
-        assertEquals(listOf(tidentifier("test3"), TokenEOL), parseLine("test3"))
-        assertEquals(listOf(tconstant(456), TokenEOL), parseLine("456"))
+        assertEqualsWithoutLineNo(listOf(tidentifier("test3"), TokenEOL), parseLine("test3"))
+        assertEqualsWithoutLineNo(listOf(tconstant(456), TokenEOL), parseLine("456"))
 
 
-        assertEquals(tokenize("a", ":", "int", "=", "5"), parseLine("a:int = 5"))
-        assertEquals(tokenize("a", "=", "5", "+", "10"), parseLine("a = 5+10"))
-        assertEquals(tokenize("if", "a", "+", "b", ">", "10", ":"), parseLine("if a+b>10:"))
+        assertEqualsWithoutLineNo(tokenize("a", ":", "int", "=", "5"), parseLine("a:int = 5"))
+        assertEqualsWithoutLineNo(tokenize("a", "=", "5", "+", "10"), parseLine("a = 5+10"))
+        assertEqualsWithoutLineNo(tokenize("if", "a", "+", "b", ">", "10", ":"), parseLine("if a+b>10:"))
         // assert token.parse_line("if a>=10:") == ["if", "a", ">=", "10", ":"]
 
     }
@@ -159,7 +203,7 @@ internal class TokenizerTest {
           
           
         """
-        assertEquals(
+        assertEqualsWithoutLineNo(
             listOf(
                 tidentifier("test"), TokenEOL,
                 TokenBeginBlock, tidentifier("print"), TokenEOL,
@@ -171,19 +215,19 @@ internal class TokenizerTest {
 
     @Test
     fun testParseOperator() {
-        assertIterableEquals(listOf(TokenLeftParenthesis), parseOperator("("))
-        assertIterableEquals(listOf(TokenLeftParenthesis, TokenRightParenthesis), parseOperator("()"))
-        assertIterableEquals(listOf(TokenRightParenthesis, TokenPlusSign), parseOperator(")+"))
-        assertIterableEquals(listOf(TokenRightParenthesis, TokenPlusSign), parseOperator(")+"))
+        assertEqualsWithoutLineNo(listOf(TokenLeftParenthesis), parseOperator("("))
+        assertEqualsWithoutLineNo(listOf(TokenLeftParenthesis, TokenRightParenthesis), parseOperator("()"))
+        assertEqualsWithoutLineNo(listOf(TokenRightParenthesis, TokenPlusSign), parseOperator(")+"))
+        assertEqualsWithoutLineNo(listOf(TokenRightParenthesis, TokenPlusSign), parseOperator(")+"))
     }
 
     @Test
     fun testMultiLetterToken() {
-        assertIterableEquals(listOf(TokenPlusSign, TokenAssign, TokenEOL), parseLine("+ ="))
-        assertIterableEquals(listOf(TokenNotEqual, TokenEOL), parseLine("!="))
-        assertEquals(listOf(TokenAssign, TokenDoubleEqual, TokenEOL), parseLine("= =="))
+        assertEqualsWithoutLineNo(listOf(TokenPlusSign, TokenAssign, TokenEOL), parseLine("+ ="))
+        assertEqualsWithoutLineNo(listOf(TokenNotEqual, TokenEOL), parseLine("!="))
+        assertEqualsWithoutLineNo(listOf(TokenAssign, TokenDoubleEqual, TokenEOL), parseLine("= =="))
 
-        assertIterableEquals(
+        assertEqualsWithoutLineNo(
             listOf(
                 TokenKeywordIf, tidentifier("a"), TokenMinusSign, tconstant(2),
                 TokenNotEqual, tconstant(0), TokenColon, TokenEOL
@@ -191,9 +235,9 @@ internal class TokenizerTest {
             parseLine("if a-2!=0:"),
         )
 
-        assertIterableEquals(listOf(TokenRightParenthesis, TokenPlusSign, TokenEOL), parseLine(")+"))
+        assertEqualsWithoutLineNo(listOf(TokenRightParenthesis, TokenPlusSign, TokenEOL), parseLine(")+"))
 
-        assertIterableEquals(
+        assertEqualsWithoutLineNo(
             listOf(TokenRightParenthesis, TokenDeref, tidentifier("test"), TokenEOL),
             parseLine(")->test"),
         )
@@ -201,15 +245,15 @@ internal class TokenizerTest {
 
     @Test
     fun testStringTokens() {
-        assertEquals(
-            listOf(TokenAssign, Token(TokenType.String, "hello"), TokenRightParenthesis, TokenEOL),
+        assertEqualsWithoutLineNo(
+            listOf(TokenAssign, token(TokenType.String, "hello"), TokenRightParenthesis, TokenEOL),
             parseLine("=\"hello\") ")
         )
         assertThrows(TokenError::class.java) {
             parseLine("i\"")
         }
-        assertEquals(
-            listOf(Token(TokenType.String, "hello#"), TokenEOL),
+        assertEqualsWithoutLineNo(
+            listOf(token(TokenType.String, "hello#"), TokenEOL),
             parseLine("\"hello#\"#test")
         )
     }
@@ -229,6 +273,26 @@ internal class TokenizerTest {
 
     @Test
     fun testUnderscoreIdentifier() {
-        assertEquals(parseLine("hello_world"), listOf(tidentifier("hello_world"), TokenEOL))
+        assertEqualsWithoutLineNo(listOf(tidentifier("hello_world"), TokenEOL), parseLine("hello_world"))
+    }
+
+    @Test
+    fun testLineNumber() {
+
+        assertEquals(
+            listOf(Token(TokenType.Identifier, "hello", -1, 0), Token(TokenType.EOL, "", -1, 5)),
+            parseLine("hello")
+        )
+        assertEquals(
+            listOf(Token(TokenType.Identifier, "hello", -1, 0), Token(TokenType.EOL, "", -1, 6)),
+            parseLine("hello ")
+        )
+
+        assertEquals(
+            listOf(Token(TokenType.Identifier, "hello", -1, 1), Token(TokenType.EOL, "", -1, 7)),
+            parseLine(" hello ")
+        )
+
+
     }
 }

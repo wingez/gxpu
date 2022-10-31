@@ -1,6 +1,7 @@
 package se.wingez.ast
 
 import se.wingez.tokens.Token
+import se.wingez.tokens.TokenType
 
 enum class NodeTypes {
     Body,
@@ -163,7 +164,7 @@ data class AstNode(
     companion object {
 
 
-        fun fromOperation(type: Token, left: AstNode, right: AstNode): AstNode {
+        fun fromOperation(type: TokenType, left: AstNode, right: AstNode): AstNode {
 
             val name = operatorToNodesType.getValue(type)
             return fromCall(name, FunctionType.Operator, listOf(left, right))

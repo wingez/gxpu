@@ -44,7 +44,7 @@ class AstParser(tokens: List<Token>) {
             TokenType.KeywordWhile -> result.add(parseWhileStatement())
 
             TokenType.KeywordReturn -> result.add(parseReturnStatement())
-            TokenType.Break -> result.add(parseBreakStatement())
+            TokenType.KeywordBreak -> result.add(parseBreakStatement())
 
             TokenType.KeywordVal -> result.addAll(parseNewValDeclaration())
 
@@ -213,7 +213,7 @@ class AstParser(tokens: List<Token>) {
     }
 
     fun parseBreakStatement(): AstNode {
-        tokens.consumeType(TokenType.Break)
+        tokens.consumeType(TokenType.KeywordBreak)
         return AstNode.fromBreak()
     }
 

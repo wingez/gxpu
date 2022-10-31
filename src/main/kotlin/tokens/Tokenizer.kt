@@ -6,6 +6,8 @@ import java.io.Reader
 
 class TokenError(message: String) : Exception(message)
 
+private val rowColNotSet = -1
+
 enum class TokenType {
     EOL,
     Identifier,
@@ -26,6 +28,7 @@ enum class TokenType {
     KeywordStruct,
     KeywordNew,
     KeywordVal,
+    KeywordBreak,
     BeginBlock,
     EndBlock,
     PlusSign,
@@ -36,16 +39,14 @@ enum class TokenType {
     DoubleEqual,
     Deref,
     String,
-    Break,
 }
 
 data class Token(
     override val type: TokenType,
-    val additionalData: String
+    val additionalData: String,
+    val lineRow: Int,
+    val lineCol: Int,
 ) : SupportTypePeekIterator<TokenType> {
-    override fun toString(): String {
-        return "Token type:$type"
-    }
 
     fun asConstant(): Int {
         assert(type == TokenType.NumericConstant)
@@ -74,34 +75,6 @@ data class Token(
         )
     }
 }
-
-val TokenEOL = Token(TokenType.EOL, "")
-val TokenLeftParenthesis = Token(TokenType.LeftParenthesis, "")
-val TokenRightParenthesis = Token(TokenType.RightParenthesis, "")
-val TokenLeftBracket = Token(TokenType.LeftBracket, "")
-val TokenRightBracket = Token(TokenType.RightBracket, "")
-val TokenComma = Token(TokenType.Comma, "")
-val TokenColon = Token(TokenType.Colon, "")
-val TokenAssign = Token(TokenType.Equals, "")
-val TokenDot = Token(TokenType.Dot, "")
-val TokenDeref = Token(TokenType.Deref, "")
-val TokenKeywordDef = Token(TokenType.KeywordDef, "")
-val TokenKeywordWhile = Token(TokenType.KeywordWhile, "")
-val TokenKeywordIf = Token(TokenType.KeywordIf, "")
-val TokenKeywordElse = Token(TokenType.KeywordElse, "")
-val TokenKeywordReturn = Token(TokenType.KeywordReturn, "")
-val TokenKeywordStruct = Token(TokenType.KeywordStruct, "")
-val TokenKeywordNew = Token(TokenType.KeywordNew, "")
-val TokenKeywordBreak = Token(TokenType.Break, "")
-val TokenKeywordVal = Token(TokenType.KeywordVal, "")
-val TokenBeginBlock = Token(TokenType.BeginBlock, "")
-val TokenEndBlock = Token(TokenType.EndBlock, "")
-val TokenPlusSign = Token(TokenType.PlusSign, "")
-val TokenMinusSign = Token(TokenType.MinusSign, "")
-val TokenGreaterSign = Token(TokenType.GreaterSign, "")
-val TokenLesserSign = Token(TokenType.LesserSign, "")
-val TokenNotEqual = Token(TokenType.NotEqual, "")
-val TokenDoubleEqual = Token(TokenType.DoubleEqual, "")
 
 private val ALWAYS_DELIMITER = listOf('(', ')', ',', ':', '"')
 
@@ -146,11 +119,14 @@ fun parseFile(input: Reader): List<Token> {
     val lines = mutableListOf<String>()
     input.forEachLine { lines.add(it) }
 
-    for ((index, lineRaw) in lines.withIndex()) {
+    for ((lineIndex, lineRaw) in lines.withIndex()) {
         val lineToParse = lineRaw.trim('\n')
         if (lineToParse.trim(' ', '\t').isEmpty()) {
             continue
         }
+
+        // Parse line assuming it starts on row 0 and has 0 indentation
+        // Then add the correct offset to all resulting tokens when we're done parsing the line
 
         val (indentation, lineStartAt, line) = getIndentation(lineToParse)
         if (currentIndentation == -1) {
@@ -159,21 +135,23 @@ fun parseFile(input: Reader): List<Token> {
             if (indentation > currentIndentation) {
                 if (indentation != currentIndentation + 1)
                     throw TokenError("Cannot increment indentation by more than one step")
-                result.add(TokenBeginBlock)
+                result.add(Token(TokenType.BeginBlock, "", rowColNotSet, 0))
             } else if (indentation < currentIndentation) {
                 for (i in indentation until currentIndentation) {
-                    result.add(TokenEndBlock)
+                    result.add(Token(TokenType.EndBlock, "", rowColNotSet, 0))
                 }
             }
         }
         currentIndentation = indentation
 
-        result.addAll(parseLine(line))
+        // Add line + indentation offsets
+        result.addAll(parseLine(line)
+            .map { Token(it.type, it.additionalData, lineIndex, it.lineCol + lineStartAt) })
     }
 
     if (currentIndentation != -1) {
         for (i in 0 until (currentIndentation - baseIndentation)) {
-            result.add(TokenEndBlock)
+            result.add(Token(TokenType.EndBlock, "", lines.size - 1, (lines.last()).length - 1))
         }
     }
 
@@ -213,14 +191,18 @@ fun parseLine(line: String): List<Token> {
         result.addAll(consumeOperator(feeder))
 
     }
+    if (result.isNotEmpty() && result.any { it.lineCol == rowColNotSet }) {
+        throw TokenError("")
+    }
 
-    result.add(TokenEOL)
+    result.add(Token(TokenType.EOL, "", rowColNotSet, feeder.getCurrentIndex()))
     return result
 }
 
 
-
 private fun consumeString(feeder: PeekIterator<Char>): Token {
+
+    val startIndex = feeder.getCurrentIndex()
 
     assert(feeder.consume() == '"')
 
@@ -228,7 +210,7 @@ private fun consumeString(feeder: PeekIterator<Char>): Token {
     while (feeder.hasMore()) {
         val symbol = feeder.consume()
         if (symbol == '"') {
-            return Token(TokenType.String, current)
+            return Token(TokenType.String, current, rowColNotSet, startIndex)
         }
         current += symbol
     }
@@ -238,6 +220,7 @@ private fun consumeString(feeder: PeekIterator<Char>): Token {
 private fun consumeConstant(feeder: PeekIterator<Char>): Token {
 
     var current = ""
+    val startIndex = feeder.getCurrentIndex()
     while (feeder.hasMore()) {
         val symbolPeek = feeder.peek()
         if (isAlNumeric(symbolPeek.toString())) {
@@ -248,12 +231,15 @@ private fun consumeConstant(feeder: PeekIterator<Char>): Token {
         }
     }
 
-    return toToken(current)
+    val token = toToken(current)
+        ?: throw TokenError("Something")
+    return token.copy(lineCol = startIndex)
 }
 
 private fun consumeOperator(feeder: PeekIterator<Char>): Iterable<Token> {
 
     var current = feeder.consume().toString()
+    var startIndex = 0
 
     while (feeder.hasMore()) {
         val symbolPeek = feeder.peek()
@@ -270,74 +256,88 @@ private fun consumeOperator(feeder: PeekIterator<Char>): Iterable<Token> {
             break
         }
 
+        if (current.isEmpty()) {
+            startIndex = feeder.getCurrentIndex()
+        }
+
         current += symbolPeek
         feeder.consume()
     }
 
-    return parseOperator(current)
+    return parseOperator(current).map { it.copy(lineCol = it.lineCol + startIndex) }
 }
 
-fun parseOperator(line: String): Iterable<Token> {
+fun parseOperator(line: String, lineIndex: Int = 0): Iterable<Token> {
 
     for (length in line.length downTo 1) {
         val toParse = line.substring(0, length)
-        val validToken = try {
-            toToken(toParse)
-        } catch (e: TokenError) {
-            continue
-        }
+        val maybeValidToken = toToken(toParse)
+            ?: continue
+
+        val validToken = maybeValidToken.copy(lineCol = lineIndex)
+
         val rest = line.substring(length, line.length)
         if (rest.isEmpty()) {
             return listOf(validToken)
         }
-        return listOf(validToken) + parseOperator(rest)
+        return listOf(validToken) + parseOperator(rest, lineIndex + length)
     }
     throw TokenError("Cannot parse $line to operator")
 }
 
-fun toToken(text: String): Token {
+val operatorsToType = mapOf(
+    "(" to TokenType.LeftParenthesis,
+    ")" to TokenType.RightParenthesis,
+    "[" to TokenType.LeftBracket,
+    "]" to TokenType.RightBracket,
+    ":" to TokenType.Colon,
+    "," to TokenType.Comma,
+    "=" to TokenType.Equals,
+    "!=" to TokenType.NotEqual,
+    "==" to TokenType.DoubleEqual,
+    "+" to TokenType.PlusSign,
+    "-" to TokenType.MinusSign,
+    ">" to TokenType.GreaterSign,
+    "<" to TokenType.LesserSign,
+    "." to TokenType.Dot,
+    "->" to TokenType.Deref,
+)
+
+val keywords = mapOf(
+    "def" to TokenType.KeywordDef,
+    "while" to TokenType.KeywordWhile,
+    "if" to TokenType.KeywordIf,
+    "else" to TokenType.KeywordElse,
+    "return" to TokenType.KeywordReturn,
+    "struct" to TokenType.KeywordStruct,
+    "new" to TokenType.KeywordNew,
+    "break" to TokenType.KeywordBreak,
+    "val" to TokenType.KeywordVal,
+)
+
+fun toToken(text: String): Token? {
     // sanity check
     if (' ' in text)
         throw TokenError("text contains spaces")
-    if (text.isEmpty())
-        throw TokenError("text is empty")
+
+    if (text.isEmpty()) {
+        return null
+    }
 
     if (isNumeric(text))
-        return Token(TokenType.NumericConstant, text)
+        return Token(TokenType.NumericConstant, text, rowColNotSet, rowColNotSet)
 
-    when (text) {
-        "(" -> TokenLeftParenthesis
-        ")" -> TokenRightParenthesis
-        "[" -> TokenLeftBracket
-        "]" -> TokenRightBracket
-        ":" -> TokenColon
-        "," -> TokenComma
-        "=" -> TokenAssign
-        "!=" -> TokenNotEqual
-        "==" -> TokenDoubleEqual
-        "+" -> TokenPlusSign
-        "-" -> TokenMinusSign
-        ">" -> TokenGreaterSign
-        "<" -> TokenLesserSign
-        "." -> TokenDot
-        "->" -> TokenDeref
-        else -> null
-    }?.also { return it }
+    if (text in operatorsToType) {
+        return Token(operatorsToType.getValue(text), "", rowColNotSet, rowColNotSet)
+    }
 
     //We should now only have identifiers and keywords left
     if (!isAlNumeric(text))
-        throw TokenError("Invalid operator $text")
+        return null
 
-    return when (text) {
-        "def" -> TokenKeywordDef
-        "while" -> TokenKeywordWhile
-        "if" -> TokenKeywordIf
-        "else" -> TokenKeywordElse
-        "return" -> TokenKeywordReturn
-        "struct" -> TokenKeywordStruct
-        "new" -> TokenKeywordNew
-        "break" -> TokenKeywordBreak
-        "val" -> TokenKeywordVal
-        else -> Token(TokenType.Identifier, text)
+    if (text in keywords) {
+        return Token(keywords.getValue(text), "", rowColNotSet, rowColNotSet)
     }
+
+    return Token(TokenType.Identifier, text, rowColNotSet, rowColNotSet)
 }

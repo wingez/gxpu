@@ -5,14 +5,13 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
-import se.wingez.tokens.TokenNotEqual
-import se.wingez.tokens.TokenPlusSign
+import se.wingez.tokens.TokenType
 
 class AstParserArithmetic {
     @Test
     fun testBasic() {
         assertEquals(
-            AstNode.fromOperation(TokenPlusSign, constant(5), constant(10)),
+            AstNode.fromOperation(TokenType.PlusSign, constant(5), constant(10)),
             parseExpression("5+10"),
         )
     }
@@ -21,7 +20,7 @@ class AstParserArithmetic {
     @Test
     fun testWithIdentifier() {
         assertEquals(
-            AstNode.fromOperation(TokenPlusSign, constant(2), identifier("test")),
+            AstNode.fromOperation(TokenType.PlusSign, constant(2), identifier("test")),
             parseExpression("2+test"),
         )
     }
@@ -29,7 +28,7 @@ class AstParserArithmetic {
     @Test
     fun notEqual() {
         assertEquals(
-            AstNode.fromOperation(TokenNotEqual, constant(2), constant(0)),
+            AstNode.fromOperation(TokenType.NotEqual, constant(2), constant(0)),
             parseExpression("2!=0"),
         )
     }
@@ -41,7 +40,7 @@ class AstParserArithmetic {
             parseExpression("(5)"),
         )
         assertEquals(
-            AstNode.fromOperation(TokenPlusSign, constant(5), identifier("var")),
+            AstNode.fromOperation(TokenType.PlusSign, constant(5), identifier("var")),
             parseExpression("(5+var)"),
         )
 
@@ -57,8 +56,8 @@ class AstParserArithmetic {
     fun testTriple() {
         assertEquals(
             AstNode.fromOperation(
-                TokenPlusSign,
-                AstNode.fromOperation(TokenPlusSign, constant(5), constant(5)),
+                TokenType.PlusSign,
+                AstNode.fromOperation(TokenType.PlusSign, constant(5), constant(5)),
                 constant(10)
             ),
             parseExpression("(5+5)+10"),
@@ -69,17 +68,17 @@ class AstParserArithmetic {
     fun testAssociation() {
         assertEquals(
             AstNode.fromOperation(
-                TokenPlusSign,
-                AstNode.fromOperation(TokenPlusSign, constant(5), constant(6)),
+                TokenType.PlusSign,
+                AstNode.fromOperation(TokenType.PlusSign, constant(5), constant(6)),
                 constant(7)
             ),
             parseExpression("5+6+7")
         )
         assertEquals(
             AstNode.fromOperation(
-                TokenNotEqual,
-                AstNode.fromOperation(TokenPlusSign, constant(5), constant(6)),
-                AstNode.fromOperation(TokenPlusSign, constant(7), constant(8)),
+                TokenType.NotEqual,
+                AstNode.fromOperation(TokenType.PlusSign, constant(5), constant(6)),
+                AstNode.fromOperation(TokenType.PlusSign, constant(7), constant(8)),
             ),
             parseExpression("5+6!=7+8")
         )

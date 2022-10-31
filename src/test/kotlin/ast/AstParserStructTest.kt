@@ -2,7 +2,7 @@ package se.wingez.ast
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import se.wingez.tokens.TokenPlusSign
+import se.wingez.tokens.TokenType
 
 fun struct(name: String, members: List<AstNode>): AstNode {
     return AstNode.fromStruct(name, members)
@@ -178,7 +178,7 @@ class AstParserStructTest {
         assertEquals(
             AstNode.fromArrayAccess(
                 AstNode.fromIdentifier("test"),
-                AstNode.fromOperation(TokenPlusSign, constant(5), constant(5))
+                AstNode.fromOperation(TokenType.PlusSign, constant(5), constant(5))
             ),
             parseExpression("test[5+5]")
         )
