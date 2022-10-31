@@ -46,7 +46,7 @@ class AstParserArithmetic {
         )
 
         assertThat(
-            assertThrows<ParserError> { parseExpression("(5+10")})
+            assertThrows<Error> { parseExpression("(5+10") })
             .hasMessageContaining("Mismatched parenthesis")
 
         assertDoesNotThrow { parseExpression("(5+10)+(3+3)") }

@@ -1,9 +1,15 @@
 package se.wingez.ast
 
+import se.wingez.TypePeekIterator
 import se.wingez.tokens.*
 
 class ParserError(message: String) : Exception(message)
 
+class TokenIterator(tokens: List<Token>) : TypePeekIterator<Token, TokenType>(tokens) {
+    fun consumeIdentifier(): String {
+        return consumeType(TokenType.Identifier).additionalData
+    }
+}
 
 class AstParser(tokens: List<Token>) {
     companion object {

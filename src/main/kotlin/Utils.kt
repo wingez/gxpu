@@ -38,3 +38,46 @@ fun byte(value: UInt): UByte {
     return byte(value.toInt())
 }
 
+interface SupportTypePeekIterator<T : Enum<T>> {
+    val type: T
+}
+
+open class TypePeekIterator<T : SupportTypePeekIterator<S>, S : Enum<S>>(private val tokens: List<T>) {
+
+    private var index = 0
+
+    fun peek(): T {
+        if (index > tokens.size)
+            throw Error("End of token-list reached")
+        return tokens[index]
+    }
+
+    fun peekIs(type: S, consumeMatch: Boolean = false): Boolean {
+        val result = peek().type == type
+        if (result && consumeMatch) {
+            consume()
+        }
+        return result
+    }
+
+    fun consume(): T {
+        val result = peek()
+        index++
+        return result
+    }
+
+    fun consumeType(type: S): T {
+        return consumeType(type, "Expected token to be of type $type")
+    }
+
+    fun consumeType(type: S, errorMessage: String): T {
+        if (!peekIs(type))
+            throw Error(errorMessage)
+        return consume()
+    }
+
+    fun hasMore(): Boolean {
+        return index < tokens.size
+    }
+}
+

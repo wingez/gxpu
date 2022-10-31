@@ -1,5 +1,6 @@
 package se.wingez.tokens
 
+import se.wingez.SupportTypePeekIterator
 import java.io.Reader
 
 class TokenError(message: String) : Exception(message)
@@ -38,9 +39,9 @@ enum class TokenType {
 }
 
 data class Token(
-    val type: TokenType,
+    override val type: TokenType,
     val additionalData: String
-) {
+) : SupportTypePeekIterator<TokenType> {
     override fun toString(): String {
         return "Token type:$type"
     }
