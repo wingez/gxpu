@@ -238,8 +238,8 @@ private fun consumeConstant(feeder: PeekIterator<Char>): Token {
 
 private fun consumeOperator(feeder: PeekIterator<Char>): Iterable<Token> {
 
+    val startIndex = feeder.getCurrentIndex()
     var current = feeder.consume().toString()
-    var startIndex = 0
 
     while (feeder.hasMore()) {
         val symbolPeek = feeder.peek()
@@ -256,18 +256,14 @@ private fun consumeOperator(feeder: PeekIterator<Char>): Iterable<Token> {
             break
         }
 
-        if (current.isEmpty()) {
-            startIndex = feeder.getCurrentIndex()
-        }
-
         current += symbolPeek
         feeder.consume()
     }
 
-    return parseOperator(current).map { it.copy(lineCol = it.lineCol + startIndex) }
+    return parseOperator(current, startIndex)
 }
 
-fun parseOperator(line: String, lineIndex: Int = 0): Iterable<Token> {
+fun parseOperator(line: String, lineIndex: Int): Iterable<Token> {
 
     for (length in line.length downTo 1) {
         val toParse = line.substring(0, length)

@@ -215,10 +215,10 @@ internal class TokenizerTest {
 
     @Test
     fun testParseOperator() {
-        assertEqualsWithoutLineNo(listOf(TokenLeftParenthesis), parseOperator("("))
-        assertEqualsWithoutLineNo(listOf(TokenLeftParenthesis, TokenRightParenthesis), parseOperator("()"))
-        assertEqualsWithoutLineNo(listOf(TokenRightParenthesis, TokenPlusSign), parseOperator(")+"))
-        assertEqualsWithoutLineNo(listOf(TokenRightParenthesis, TokenPlusSign), parseOperator(")+"))
+        assertEqualsWithoutLineNo(listOf(TokenLeftParenthesis), parseOperator("(", 0))
+        assertEqualsWithoutLineNo(listOf(TokenLeftParenthesis, TokenRightParenthesis), parseOperator("()", 0))
+        assertEqualsWithoutLineNo(listOf(TokenRightParenthesis, TokenPlusSign), parseOperator(")+", 0))
+        assertEqualsWithoutLineNo(listOf(TokenRightParenthesis, TokenPlusSign), parseOperator(")+", 0))
     }
 
     @Test
@@ -293,6 +293,26 @@ internal class TokenizerTest {
             parseLine(" hello ")
         )
 
+        assertEquals(
+            listOf(
+                Token(TokenType.Identifier, "test", 0, 0), Token(TokenType.Equals, "", 0, 4),
+                Token(TokenType.NumericConstant, "56", 0, 5), Token(TokenType.LeftBracket, "", 0, 8),
+                Token(TokenType.EOL, "", 0, 9)
+            ) + listOf(
+                Token(TokenType.Identifier, "t", 2, 0), Token(TokenType.NotEqual, "", 2, 1),
+                Token(TokenType.PlusSign, "", 2, 3), Token(TokenType.NumericConstant, "5", 2, 4),
+                Token(TokenType.EOL, "", 2, 5),
+            ),
+            parseFile(
+                StringReader(
+                    """
+                test=56 [
+                
+                t!=+5
+            """.trimIndent()
+                )
+            )
+        )
 
     }
 }
