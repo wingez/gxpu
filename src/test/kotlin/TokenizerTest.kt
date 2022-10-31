@@ -5,6 +5,14 @@ import org.junit.jupiter.api.Test
 import se.wingez.tokens.*
 import java.io.StringReader
 
+fun tidentifier(name: String): Token {
+    return Token(TokenType.Identifier, name)
+}
+
+fun tconstant(value: Int): Token {
+    return Token(TokenType.NumericConstant, value.toString())
+}
+
 internal class TokenizerTest {
 
     @Test
@@ -24,7 +32,7 @@ internal class TokenizerTest {
     @Test
     fun test_indentation_token() {
         assertEquals(
-            listOf(TokenIdentifier("var"), TokenEOL, TokenIdentifier("print"), TokenEOL),
+            listOf(tidentifier("var"), TokenEOL, tidentifier("print"), TokenEOL),
             parseFile(
                 StringReader(
                     """
@@ -37,7 +45,7 @@ internal class TokenizerTest {
 
         assertEquals(
             listOf(
-                TokenIdentifier("var"), TokenEOL, TokenBeginBlock, TokenIdentifier("print"),
+                tidentifier("var"), TokenEOL, TokenBeginBlock, tidentifier("print"),
                 TokenEOL, TokenEndBlock
             ),
             parseFile(
@@ -52,8 +60,8 @@ internal class TokenizerTest {
 
         assertEquals(
             listOf(
-                TokenIdentifier("var"), TokenEOL, TokenBeginBlock, TokenIdentifier("print"),
-                TokenEOL, TokenEndBlock, TokenNumericConstant(5), TokenEOL
+                tidentifier("var"), TokenEOL, TokenBeginBlock, tidentifier("print"),
+                TokenEOL, TokenEndBlock, tconstant(5), TokenEOL
             ),
             parseFile(
                 StringReader(
@@ -80,11 +88,11 @@ internal class TokenizerTest {
 
         assertEquals(
             listOf(
-                TokenIdentifier("print"), TokenEOL,
-                TokenBeginBlock, TokenIdentifier("print"), TokenEOL,
-                TokenBeginBlock, TokenIdentifier("print"), TokenEOL,
+                tidentifier("print"), TokenEOL,
+                TokenBeginBlock, tidentifier("print"), TokenEOL,
+                TokenBeginBlock, tidentifier("print"), TokenEOL,
                 TokenEndBlock, TokenEndBlock,
-                TokenIdentifier("var"), TokenEOL
+                tidentifier("var"), TokenEOL
             ),
             parseFile(
                 StringReader(
@@ -104,7 +112,7 @@ internal class TokenizerTest {
     fun testToToken() {
         assertEquals(TokenLeftParenthesis, toToken("("))
         assertEquals(TokenRightParenthesis, toToken(")"))
-        assertEquals(TokenIdentifier("test"), toToken("test"))
+        assertEquals(tidentifier("test"), toToken("test"))
     }
 
     fun tokenize(vararg items: String): List<Token> {
@@ -120,7 +128,7 @@ internal class TokenizerTest {
     fun testParseLine() {
         //Comments
         assertEquals(listOf(TokenEOL), parseLine("#"))
-        assertEquals(listOf(TokenIdentifier("test"), TokenEOL), parseLine("test#"))
+        assertEquals(listOf(tidentifier("test"), TokenEOL), parseLine("test#"))
 
         //Regular words
         assertEquals(tokenize("test"), parseLine("test"))
@@ -133,8 +141,8 @@ internal class TokenizerTest {
             ),
             parseLine("def main(test: int, test2: bool, test3: str): "),
         )
-        assertEquals(listOf(TokenIdentifier("test3"), TokenEOL), parseLine("test3"))
-        assertEquals(listOf(TokenNumericConstant(456), TokenEOL), parseLine("456"))
+        assertEquals(listOf(tidentifier("test3"), TokenEOL), parseLine("test3"))
+        assertEquals(listOf(tconstant(456), TokenEOL), parseLine("456"))
 
 
         assertEquals(tokenize("a", ":", "int", "=", "5"), parseLine("a:int = 5"))
@@ -154,8 +162,8 @@ internal class TokenizerTest {
         """
         assertEquals(
             listOf(
-                TokenIdentifier("test"), TokenEOL,
-                TokenBeginBlock, TokenIdentifier("print"), TokenEOL,
+                tidentifier("test"), TokenEOL,
+                TokenBeginBlock, tidentifier("print"), TokenEOL,
                 TokenEndBlock,
             ),
             parseFile(StringReader(content)),
@@ -178,8 +186,8 @@ internal class TokenizerTest {
 
         assertIterableEquals(
             listOf(
-                TokenKeywordIf, TokenIdentifier("a"), TokenMinusSign, TokenNumericConstant(2),
-                TokenNotEqual, TokenNumericConstant(0), TokenColon, TokenEOL
+                TokenKeywordIf, tidentifier("a"), TokenMinusSign, tconstant(2),
+                TokenNotEqual, tconstant(0), TokenColon, TokenEOL
             ),
             parseLine("if a-2!=0:"),
         )
@@ -187,7 +195,7 @@ internal class TokenizerTest {
         assertIterableEquals(listOf(TokenRightParenthesis, TokenPlusSign, TokenEOL), parseLine(")+"))
 
         assertIterableEquals(
-            listOf(TokenRightParenthesis, TokenDeref, TokenIdentifier("test"), TokenEOL),
+            listOf(TokenRightParenthesis, TokenDeref, tidentifier("test"), TokenEOL),
             parseLine(")->test"),
         )
     }
@@ -195,14 +203,14 @@ internal class TokenizerTest {
     @Test
     fun testStringTokens() {
         assertEquals(
-            listOf(TokenAssign, TokenString("hello"), TokenRightParenthesis, TokenEOL),
+            listOf(TokenAssign, Token(TokenType.String, "hello"), TokenRightParenthesis, TokenEOL),
             parseLine("=\"hello\") ")
         )
         assertThrows(TokenError::class.java) {
             parseLine("i\"")
         }
         assertEquals(
-            listOf(TokenString("hello#"), TokenEOL),
+            listOf(Token(TokenType.String, "hello#"), TokenEOL),
             parseLine("\"hello#\"#test")
         )
     }
@@ -222,6 +230,6 @@ internal class TokenizerTest {
 
     @Test
     fun testUnderscoreIdentifier() {
-        assertEquals(parseLine("hello_world"), listOf(TokenIdentifier("hello_world"), TokenEOL))
+        assertEquals(parseLine("hello_world"), listOf(tidentifier("hello_world"), TokenEOL))
     }
 }

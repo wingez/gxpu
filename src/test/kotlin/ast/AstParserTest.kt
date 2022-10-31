@@ -3,6 +3,8 @@ package se.wingez.ast
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
+import se.wingez.tconstant
+import se.wingez.tidentifier
 import se.wingez.tokens.*
 import java.io.StringReader
 
@@ -51,32 +53,34 @@ fun function(name: String, arguments: List<AstNode>, body: List<AstNode>, return
     return AstNode.fromFunction(name, FunctionType.Normal, arguments, body, returnType)
 }
 
+
+
 internal class AstParserTest {
     @Test
     fun testManyEOL() {
         val tokens = listOf(
-            TokenEOL, TokenEOL, TokenIdentifier("test"), TokenAssign,
-            TokenNumericConstant(5), TokenEOL
+            TokenEOL, TokenEOL, tidentifier("test"), TokenAssign,
+            tconstant(5), TokenEOL
         )
         assertEquals(parseExpressions(tokens), listOf(assign("test", 5)))
     }
 
     @Test
     fun testExpressionAssignment() {
-        val tokens = listOf(TokenIdentifier("Test"), TokenAssign, TokenNumericConstant(4), TokenEOL)
+        val tokens = listOf(tidentifier("Test"), TokenAssign, tconstant(4), TokenEOL)
         val node = AstParser(tokens).parseExpression()
         assertEquals(node, listOf(assign("Test", 4)))
     }
 
     fun getFuncTokens(vararg parameters: String): List<Token> {
-        val tokens = mutableListOf(TokenKeywordDef, TokenIdentifier("test"), TokenLeftParenthesis)
+        val tokens = mutableListOf(TokenKeywordDef, tidentifier("test"), TokenLeftParenthesis)
 
         val numParams = parameters.size
 
         parameters.forEachIndexed { index, param ->
-            tokens.add(TokenIdentifier(param))
+            tokens.add(tidentifier(param))
             tokens.add(TokenColon)
-            tokens.add(TokenIdentifier("byte"))
+            tokens.add(tidentifier("byte"))
             if (index != numParams) {
                 tokens.add(TokenComma)
             }
@@ -84,7 +88,7 @@ internal class AstParserTest {
 
         return tokens + listOf(
             TokenRightParenthesis, TokenColon, TokenEOL, TokenBeginBlock,
-            TokenIdentifier("print"), TokenLeftParenthesis, TokenNumericConstant(5), TokenRightParenthesis, TokenEOL,
+            tidentifier("print"), TokenLeftParenthesis, tconstant(5), TokenRightParenthesis, TokenEOL,
             TokenEndBlock
         )
     }

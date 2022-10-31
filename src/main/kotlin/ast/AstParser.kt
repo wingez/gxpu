@@ -19,7 +19,7 @@ class AstParser(tokens: List<Token>) {
         while (tokens.hasMore()) {
 
             // Filter empty line
-            if (tokens.peekIs(TokenEOL, consumeMatch = true))
+            if (tokens.peekIs(TokenType.EOL, consumeMatch = true))
                 continue
 
             result.addAll(parseNextNode())
@@ -49,19 +49,19 @@ class AstParser(tokens: List<Token>) {
     }
 
     fun parseNewValDeclaration(): List<AstNode> {
-        tokens.consumeType(TokenKeywordVal)
+        tokens.consumeType(TokenType.KeywordVal)
 
         val memberName = tokens.consumeIdentifier()
         val optionalTypeDefinition: TypeDefinition?
 
-        if (tokens.peekIs(TokenColon)) {
+        if (tokens.peekIs(TokenType.Colon)) {
             optionalTypeDefinition = parseTypeDefinition(allowNoTypeName = false)
         } else {
             optionalTypeDefinition = null
         }
 
         val optionalTypeHint: AstNode?
-        if (tokens.peekIs(TokenAssign, consumeMatch = true)) {
+        if (tokens.peekIs(TokenType.Equals, consumeMatch = true)) {
             optionalTypeHint = parseExpressionUntilSeparator(tokens)
         } else {
             optionalTypeHint = null
@@ -84,11 +84,11 @@ class AstParser(tokens: List<Token>) {
     fun parseExpression(): List<AstNode> {
         var first = parseExpressionUntilSeparator(tokens)
 
-        if (tokens.peekIs(TokenEOL)) {
+        if (tokens.peekIs(TokenType.EOL)) {
             return listOf(first)
         }
 
-        if (tokens.peekIs(TokenAssign, consumeMatch = true)) {
+        if (tokens.peekIs(TokenType.Equals, consumeMatch = true)) {
             val right = parseExpressionUntilSeparator(tokens)
 
             first = AstNode.fromAssign(
@@ -111,35 +111,35 @@ class AstParser(tokens: List<Token>) {
     }
 
     fun parseFunctionDefinition(): AstNode {
-        tokens.consumeType(TokenKeywordDef)
+        tokens.consumeType(TokenType.KeywordDef)
 
         val parameters = mutableListOf<AstNode>()
 
         val type: FunctionType
-        if (tokens.peekIs(TokenLeftParenthesis, consumeMatch = true)) {
+        if (tokens.peekIs(TokenType.LeftParenthesis, consumeMatch = true)) {
             val classType = parsePrimitiveMemberDeclaration()
             parameters.add(classType)
             type = FunctionType.Instance
-            tokens.consumeType(TokenRightParenthesis)
+            tokens.consumeType(TokenType.RightParenthesis)
         } else {
             type = FunctionType.Normal
         }
 
-        val name = tokens.consumeType<TokenIdentifier>().target
-        tokens.consumeType(TokenLeftParenthesis)
+        val name = tokens.consumeType(TokenType.Identifier).additionalData
+        tokens.consumeType(TokenType.LeftParenthesis)
 
-        while (!tokens.peekIs(TokenRightParenthesis, true)) {
+        while (!tokens.peekIs(TokenType.RightParenthesis, true)) {
             val member = parsePrimitiveMemberDeclaration()
             parameters.add(member)
 
-            tokens.peekIs(TokenComma, true)
+            tokens.peekIs(TokenType.Comma, true)
         }
 
         val returnTypeDef = parseOptionalTypeDefinition(allowNoTypeName = true)
             ?: throw ParserError("Invalid return type")
 
-        tokens.consumeType(TokenEOL)
-        tokens.consumeType(TokenBeginBlock)
+        tokens.consumeType(TokenType.EOL)
+        tokens.consumeType(TokenType.BeginBlock)
 
         val statements = parseStatementsUntilEndblock()
 
@@ -149,8 +149,8 @@ class AstParser(tokens: List<Token>) {
     fun parseStatementsUntilEndblock(): List<AstNode> {
         val expressions = mutableListOf<AstNode>()
 
-        while (!tokens.peekIs(TokenEndBlock, true)) {
-            if (tokens.peekIs(TokenEOL, true))
+        while (!tokens.peekIs(TokenType.EndBlock, true)) {
+            if (tokens.peekIs(TokenType.EOL, true))
                 continue
 
             val newExpressions = parseNextNode()
@@ -162,20 +162,20 @@ class AstParser(tokens: List<Token>) {
     }
 
     fun parseIfStatement(): AstNode {
-        tokens.consumeType(TokenKeywordIf)
+        tokens.consumeType(TokenType.KeywordIf)
         val condition = parseExpressionUntilSeparator(tokens)
 
-        tokens.consumeType(TokenColon)
-        tokens.consumeType(TokenEOL)
-        tokens.consumeType(TokenBeginBlock)
+        tokens.consumeType(TokenType.Colon)
+        tokens.consumeType(TokenType.EOL)
+        tokens.consumeType(TokenType.BeginBlock)
 
         val statements = parseStatementsUntilEndblock()
 
 
-        val elseStatements = if (tokens.hasMore() && tokens.peekIs(TokenKeywordElse, true)) {
-            tokens.consumeType(TokenColon)
-            tokens.consumeType(TokenEOL)
-            tokens.consumeType(TokenBeginBlock)
+        val elseStatements = if (tokens.hasMore() && tokens.peekIs(TokenType.KeywordElse, true)) {
+            tokens.consumeType(TokenType.Colon)
+            tokens.consumeType(TokenType.EOL)
+            tokens.consumeType(TokenType.BeginBlock)
 
             parseStatementsUntilEndblock()
         } else {
@@ -186,12 +186,12 @@ class AstParser(tokens: List<Token>) {
     }
 
     fun parseWhileStatement(): AstNode {
-        tokens.consumeType(TokenKeywordWhile)
+        tokens.consumeType(TokenType.KeywordWhile)
         val condition = parseExpressionUntilSeparator(tokens)
 
-        tokens.consumeType(TokenColon)
-        tokens.consumeType(TokenEOL)
-        tokens.consumeType(TokenBeginBlock)
+        tokens.consumeType(TokenType.Colon)
+        tokens.consumeType(TokenType.EOL)
+        tokens.consumeType(TokenType.BeginBlock)
 
         val statements = parseStatementsUntilEndblock()
 
@@ -199,15 +199,15 @@ class AstParser(tokens: List<Token>) {
     }
 
     fun parseReturnStatement(): AstNode {
-        tokens.consumeType(TokenKeywordReturn)
+        tokens.consumeType(TokenType.KeywordReturn)
 
-        val value = if (!tokens.peekIs(TokenEOL)) parseExpressionUntilSeparator(tokens) else null
-        tokens.consumeType(TokenEOL)
+        val value = if (!tokens.peekIs(TokenType.EOL)) parseExpressionUntilSeparator(tokens) else null
+        tokens.consumeType(TokenType.EOL)
         return AstNode.fromReturn(value)
     }
 
     fun parseBreakStatement(): AstNode {
-        tokens.consumeType(TokenKeywordBreak)
+        tokens.consumeType(TokenType.Break)
         return AstNode.fromBreak()
     }
 
@@ -217,41 +217,41 @@ class AstParser(tokens: List<Token>) {
     }
 
     fun parseOptionalTypeDefinition(allowNoTypeName: Boolean): TypeDefinition? {
-        if (!tokens.peekIs(TokenColon, consumeMatch = true)) {
+        if (!tokens.peekIs(TokenType.Colon, consumeMatch = true)) {
             return null
         }
-        val explicitNew = tokens.peekIs(TokenKeywordNew, consumeMatch = true)
+        val explicitNew = tokens.peekIs(TokenType.KeywordNew, consumeMatch = true)
 
         val type: String = if (!allowNoTypeName) {
             tokens.consumeIdentifier()
         } else {
-            if (tokens.peekIs<TokenIdentifier>()) {
+            if (tokens.peekIs(TokenType.Identifier)) {
                 tokens.consumeIdentifier()
             } else {
                 return TypeDefinition(VOID_TYPE_NAME)
             }
         }
 
-        val isArray = tokens.peekIs(TokenLeftBracket)
+        val isArray = tokens.peekIs(TokenType.LeftBracket)
         if (isArray) {
-            tokens.consumeType(TokenLeftBracket)
-            tokens.consumeType(TokenRightBracket)
+            tokens.consumeType(TokenType.LeftBracket)
+            tokens.consumeType(TokenType.RightBracket)
         }
         return TypeDefinition(type, explicitNew, isArray)
     }
 
 
     fun parseStruct(): AstNode {
-        tokens.consumeType(TokenKeywordStruct)
+        tokens.consumeType(TokenType.KeywordStruct)
         val name = tokens.consumeIdentifier()
-        tokens.consumeType(TokenColon)
-        tokens.consumeType(TokenEOL)
-        tokens.consumeType(TokenBeginBlock)
+        tokens.consumeType(TokenType.Colon)
+        tokens.consumeType(TokenType.EOL)
+        tokens.consumeType(TokenType.BeginBlock)
 
         val members = mutableListOf<AstNode>()
 
-        while (!tokens.peekIs(TokenEndBlock, true)) {
-            if (tokens.peekIs(TokenEOL, true))
+        while (!tokens.peekIs(TokenType.EndBlock, true)) {
+            if (tokens.peekIs(TokenType.EOL, true))
                 continue
 
             members.add(parsePrimitiveMemberDeclaration())

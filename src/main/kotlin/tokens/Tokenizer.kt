@@ -4,20 +4,6 @@ import java.io.Reader
 
 class TokenError(message: String) : Exception(message)
 
-open class Token(
-    val type: TokenType,
-) {
-    override fun toString(): String {
-        return "Token type:$type"
-    }
-}
-
-open class ExpressionSeparator(type: TokenType) : Token(type)
-open class TokenSingleOperation(type: TokenType) : Token(type)
-
-data class TokenIdentifier(val target: String) : Token(TokenType.Identifier)
-data class TokenNumericConstant(val value: Int) : Token(TokenType.NumericConstant)
-data class TokenString(val value: String) : Token(TokenType.String)
 enum class TokenType {
     EOL,
     Identifier,
@@ -51,33 +37,69 @@ enum class TokenType {
     Break,
 }
 
-val TokenEOL = ExpressionSeparator(TokenType.EOL)
-val TokenLeftParenthesis = ExpressionSeparator(TokenType.LeftParenthesis)
-val TokenRightParenthesis = ExpressionSeparator(TokenType.RightParenthesis)
-val TokenLeftBracket = Token(TokenType.LeftBracket)
-val TokenRightBracket = ExpressionSeparator(TokenType.RightBracket)
-val TokenComma = ExpressionSeparator(TokenType.Comma)
-val TokenColon = ExpressionSeparator(TokenType.Colon)
-val TokenAssign = ExpressionSeparator(TokenType.Equals)
-val TokenDot = TokenSingleOperation(TokenType.Dot)
-val TokenDeref = TokenSingleOperation(TokenType.Deref)
-val TokenKeywordDef = Token(TokenType.KeywordDef)
-val TokenKeywordWhile = Token(TokenType.KeywordWhile)
-val TokenKeywordIf = Token(TokenType.KeywordIf)
-val TokenKeywordElse = Token(TokenType.KeywordElse)
-val TokenKeywordReturn = Token(TokenType.KeywordReturn)
-val TokenKeywordStruct = Token(TokenType.KeywordStruct)
-val TokenKeywordNew = Token(TokenType.KeywordNew)
-val TokenKeywordBreak = TokenSingleOperation(TokenType.Break)
-val TokenKeywordVal = Token(TokenType.KeywordVal)
-val TokenBeginBlock = Token(TokenType.BeginBlock)
-val TokenEndBlock = Token(TokenType.EndBlock)
-val TokenPlusSign = TokenSingleOperation(TokenType.PlusSign)
-val TokenMinusSign = TokenSingleOperation(TokenType.MinusSign)
-val TokenGreaterSign = Token(TokenType.GreaterSign)
-val TokenLesserSign = Token(TokenType.LesserSign)
-val TokenNotEqual = TokenSingleOperation(TokenType.NotEqual)
-val TokenDoubleEqual = TokenSingleOperation(TokenType.DoubleEqual)
+data class Token(
+    val type: TokenType,
+    val additionalData: String
+) {
+    override fun toString(): String {
+        return "Token type:$type"
+    }
+
+    fun asConstant(): Int {
+        assert(type == TokenType.NumericConstant)
+        return additionalData.toInt()
+    }
+
+    fun isExpressionSeparator(): Boolean {
+        return type in listOf(
+            TokenType.EOL,
+            TokenType.LeftParenthesis,
+            TokenType.RightParenthesis,
+            TokenType.RightBracket,
+            TokenType.Comma,
+            TokenType.Colon,
+            TokenType.Equals
+        )
+    }
+
+    fun isSingleOperation(): Boolean {
+        return type in listOf(
+            TokenType.Dot,
+            TokenType.PlusSign,
+            TokenType.MinusSign,
+            TokenType.NotEqual,
+            TokenType.DoubleEqual,
+        )
+    }
+}
+
+val TokenEOL = Token(TokenType.EOL, "")
+val TokenLeftParenthesis = Token(TokenType.LeftParenthesis, "")
+val TokenRightParenthesis = Token(TokenType.RightParenthesis, "")
+val TokenLeftBracket = Token(TokenType.LeftBracket, "")
+val TokenRightBracket = Token(TokenType.RightBracket, "")
+val TokenComma = Token(TokenType.Comma, "")
+val TokenColon = Token(TokenType.Colon, "")
+val TokenAssign = Token(TokenType.Equals, "")
+val TokenDot = Token(TokenType.Dot, "")
+val TokenDeref = Token(TokenType.Deref, "")
+val TokenKeywordDef = Token(TokenType.KeywordDef, "")
+val TokenKeywordWhile = Token(TokenType.KeywordWhile, "")
+val TokenKeywordIf = Token(TokenType.KeywordIf, "")
+val TokenKeywordElse = Token(TokenType.KeywordElse, "")
+val TokenKeywordReturn = Token(TokenType.KeywordReturn, "")
+val TokenKeywordStruct = Token(TokenType.KeywordStruct, "")
+val TokenKeywordNew = Token(TokenType.KeywordNew, "")
+val TokenKeywordBreak = Token(TokenType.Break, "")
+val TokenKeywordVal = Token(TokenType.KeywordVal, "")
+val TokenBeginBlock = Token(TokenType.BeginBlock, "")
+val TokenEndBlock = Token(TokenType.EndBlock, "")
+val TokenPlusSign = Token(TokenType.PlusSign, "")
+val TokenMinusSign = Token(TokenType.MinusSign, "")
+val TokenGreaterSign = Token(TokenType.GreaterSign, "")
+val TokenLesserSign = Token(TokenType.LesserSign, "")
+val TokenNotEqual = Token(TokenType.NotEqual, "")
+val TokenDoubleEqual = Token(TokenType.DoubleEqual, "")
 
 private val ALWAYS_DELIMITER = listOf('(', ')', ',', ':', '"')
 
@@ -222,7 +244,7 @@ private fun consumeString(feeder: OneSymbolAtATime): Token {
     while (feeder.hasMore()) {
         val symbol = feeder.next()
         if (symbol == '"') {
-            return TokenString(current)
+            return Token(TokenType.String, current)
         }
         current += symbol
     }
@@ -297,7 +319,7 @@ fun toToken(text: String): Token {
         throw TokenError("text is empty")
 
     if (isNumeric(text))
-        return TokenNumericConstant(text.toInt())
+        return Token(TokenType.NumericConstant, text)
 
     when (text) {
         "(" -> TokenLeftParenthesis
@@ -332,6 +354,6 @@ fun toToken(text: String): Token {
         "new" -> TokenKeywordNew
         "break" -> TokenKeywordBreak
         "val" -> TokenKeywordVal
-        else -> TokenIdentifier(text)
+        else -> Token(TokenType.Identifier, text)
     }
 }

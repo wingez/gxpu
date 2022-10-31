@@ -39,28 +39,28 @@ val operatorToNodesType = mapOf(
 
 private fun parseSingleValue(tokens: TokenIterator): AstNode {
 
-    if (tokens.peekIs(TokenLeftParenthesis, true)) {
+    if (tokens.peekIs(TokenType.LeftParenthesis, true)) {
         val result = parseExpressionUntilSeparator(tokens)
-        tokens.consumeType(TokenRightParenthesis, "Mismatched parenthesis")
+        tokens.consumeType(TokenType.RightParenthesis, "Mismatched parenthesis")
         return result
-    } else if (tokens.peekIs<TokenNumericConstant>()) {
-        val constant = tokens.consumeType<TokenNumericConstant>().value
+    } else if (tokens.peekIs(TokenType.NumericConstant)) {
+        val constant = tokens.consumeType(TokenType.NumericConstant).asConstant()
         return AstNode.fromConstant(constant)
-    } else if (tokens.peekIs<TokenString>()) {
-        val stringToken = tokens.consumeType<TokenString>()
-        return AstNode.fromString(stringToken.value)
-    } else if (tokens.peekIs<TokenIdentifier>()) {
+    } else if (tokens.peekIs(TokenType.String)) {
+        val string = tokens.consumeType(TokenType.String).additionalData
+        return AstNode.fromString(string)
+    } else if (tokens.peekIs(TokenType.Identifier)) {
 
         val identifier = tokens.consumeIdentifier()
 
-        if (tokens.peekIs(TokenLeftParenthesis, consumeMatch = true)) {
+        if (tokens.peekIs(TokenType.LeftParenthesis, consumeMatch = true)) {
             val parameters = mutableListOf<AstNode>()
 
-            while (!tokens.peekIs(TokenRightParenthesis, true)) {
+            while (!tokens.peekIs(TokenType.RightParenthesis, true)) {
                 val paramValue = parseExpressionUntilSeparator(tokens)
                 parameters.add(paramValue)
 
-                tokens.peekIs(TokenComma, true)
+                tokens.peekIs(TokenType.Comma, true)
             }
 
             return AstNode.fromCall(identifier, FunctionType.Normal, parameters)
@@ -78,7 +78,7 @@ fun parseExpressionUntilSeparator(tokens: TokenIterator): AstNode {
 
     val values = mutableListOf(parseSingleValue(tokens))
     val operations = mutableListOf<Token>()
-    while (!tokens.peekIs<ExpressionSeparator>()) {
+    while (!tokens.peek().isExpressionSeparator()) {
         val operatorToken = tokens.consume()
         operations.add(operatorToken)
 
@@ -86,7 +86,7 @@ fun parseExpressionUntilSeparator(tokens: TokenIterator): AstNode {
         //Close array access
         if (operatorToken == TokenLeftBracket) {
             values.add(parseExpressionUntilSeparator(tokens))
-            tokens.consumeType(TokenRightBracket)
+            tokens.consumeType(TokenType.RightBracket)
         } else {
             values.add(parseSingleValue(tokens))
         }

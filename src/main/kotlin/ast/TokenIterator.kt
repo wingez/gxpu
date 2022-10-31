@@ -1,7 +1,7 @@
 package se.wingez.ast
 
 import se.wingez.tokens.Token
-import se.wingez.tokens.TokenIdentifier
+import se.wingez.tokens.TokenType
 
 class TokenIterator(private val tokens: List<Token>) {
 
@@ -13,16 +13,8 @@ class TokenIterator(private val tokens: List<Token>) {
         return tokens[index]
     }
 
-    inline fun <reified T : Token> peekIs(consumeMatch: Boolean = false): Boolean {
-        val result = peek() is T
-        if (result && consumeMatch) {
-            consume()
-        }
-        return result
-    }
-
-    fun peekIs(token: Token, consumeMatch: Boolean = false): Boolean {
-        val result = peek() == token
+    fun peekIs(tokenType: TokenType, consumeMatch: Boolean = false): Boolean {
+        val result = peek().type == tokenType
         if (result && consumeMatch) {
             consume()
         }
@@ -35,24 +27,18 @@ class TokenIterator(private val tokens: List<Token>) {
         return result
     }
 
-    inline fun <reified T : Token> consumeType(): T {
-        if (!peekIs<T>())
-            throw ParserError("Token was not of expected type")
-        return consume() as T
+    fun consumeType(tokenType: TokenType): Token {
+        return consumeType(tokenType, "Expected token to be of type $tokenType")
     }
 
-    fun consumeType(token: Token): Token {
-        return consumeType(token, "Expected token to be of type $token")
-    }
-
-    fun consumeType(token: Token, errorMessage: String): Token {
-        if (!peekIs(token))
+    fun consumeType(tokenType: TokenType, errorMessage: String): Token {
+        if (!peekIs(tokenType))
             throw ParserError(errorMessage)
         return consume()
     }
 
     fun consumeIdentifier(): String {
-        return consumeType<TokenIdentifier>().target
+        return consumeType(TokenType.Identifier).additionalData
     }
 
     fun hasMore(): Boolean {
