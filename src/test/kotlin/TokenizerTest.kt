@@ -17,16 +17,15 @@ internal class TokenizerTest {
 
     @Test
     fun testIndentation() {
-        assertEquals(Pair(0, "test"), getIndentation("test"))
-        assertEquals(Pair(1, "temp"), getIndentation("\ttemp"))
-        assertEquals(Pair(0, "rest\t"), getIndentation("rest\t"))
+        assertEquals(IndentationResult(0, 0, "test"), getIndentation("test"))
+        assertEquals(IndentationResult(0, 0, "test  "), getIndentation("test  "))
         for (i in 0..9) {
-            assertEquals(Pair(i, "test"), getIndentation("\t".repeat(i) + "test"))
-            assertEquals(Pair(i, "test"), getIndentation("  ".repeat(i) + "test"))
+            assertEquals(IndentationResult(i, i * 2, "test"), getIndentation("  ".repeat(i) + "test"))
         }
 
         assertThrows(TokenError::class.java) { getIndentation(" test") }
         assertThrows(TokenError::class.java) { getIndentation("  \ttemp") }
+        assertThrows(TokenError::class.java) { getIndentation("\ttemp") }
     }
 
     @Test

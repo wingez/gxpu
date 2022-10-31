@@ -108,36 +108,30 @@ private val ALWAYS_DELIMITER = listOf('(', ')', ',', ':', '"')
 fun isNumeric(str: String) = str.all { it in '0'..'9' }
 fun isAlNumeric(str: String) = str.all { it in '0'..'9' || it in 'a'..'z' || it in 'A'..'Z' || it == '_' }
 
-fun getIndentation(line: String): Pair<Int, String> {
+data class IndentationResult(
+    val indentationLevel: Int,
+    val lineStartsAtIndex: Int,
+    val line: String,
+)
+
+fun getIndentation(line: String): IndentationResult {
     var indentation = 0
-    var hasTabs = false
-    var hasSpaces = false
     var current = line
 
-    while (true) {
-        var indentLetters = 0
+    val indentLetters = "  ".length
 
+    while (true) {
         if (current.startsWith("\t")) {
-            if (hasSpaces)
-                throw TokenError("Cannot mix tabs and spaces")
-            hasTabs = true
-            indentLetters = 1
+            throw TokenError("Tabs are not allowed to indent a line with")
         }
         if (current.startsWith("  ")) {
-            if (hasTabs)
-                throw TokenError("Cannot mix tabs and spaces")
-            hasSpaces = true
-            indentLetters = 2
-        }
-
-        if (current[0] == ' ' && current[1] != ' ')
-            throw TokenError("Mismatched spaces")
-
-        if (indentLetters > 0) {
             indentation++
             current = current.substring(indentLetters)
         } else {
-            return Pair(indentation, current)
+            if (current[0] == ' ' && current[1] != ' ')
+                throw TokenError("Mismatched spaces")
+
+            return IndentationResult(indentation, indentation * indentLetters, current)
         }
     }
 }
@@ -149,12 +143,16 @@ fun parseFile(input: Reader): List<Token> {
     var baseIndentation = 0
 
 
-    input.forEachLine {
-        val lineToParse = it.trim('\n')
-        if (lineToParse.trim(' ', '\t').isEmpty())
-            return@forEachLine
+    val lines = mutableListOf<String>()
+    input.forEachLine { lines.add(it) }
 
-        val (indentation, line) = getIndentation(lineToParse)
+    for ((index, lineRaw) in lines.withIndex()) {
+        val lineToParse = lineRaw.trim('\n')
+        if (lineToParse.trim(' ', '\t').isEmpty()) {
+            continue
+        }
+
+        val (indentation, lineStartAt, line) = getIndentation(lineToParse)
         if (currentIndentation == -1) {
             baseIndentation = indentation
         } else {
