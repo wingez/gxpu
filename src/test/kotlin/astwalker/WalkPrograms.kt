@@ -2,6 +2,7 @@ package se.wingez.astwalker
 
 import org.junit.jupiter.api.Test
 import se.wingez.ast.parserFromFile
+import se.wingez.compiler.backends.astwalker.walk
 import kotlin.test.assertEquals
 
 

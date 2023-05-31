@@ -1,14 +1,16 @@
-package se.wingez.astwalker
+package se.wingez.compiler.backends.astwalker
 
 import se.wingez.ast.FunctionType
 import se.wingez.ast.OperatorBuiltIns
+import se.wingez.astwalker.Datatype
+import se.wingez.compiler.frontend.FunctionDefinition
 
 abstract class Function(
     name: String,
     functionType: FunctionType,
     parameterTypes: List<Datatype>,
     returnType: Datatype,
-) : IFunction {
+) : IWalkerFunction {
     override val definition = FunctionDefinition(name, parameterTypes, returnType, functionType)
 }
 

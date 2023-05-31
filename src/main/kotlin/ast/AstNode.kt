@@ -288,3 +288,16 @@ data class TypeDefinition(
     val explicitNew: Boolean = false,
     val isArray: Boolean = false,
 )
+
+fun iterateAstNode(node: AstNode): Iterable<AstNode> {
+
+    fun iterateRecursive(node: AstNode, list: MutableList<AstNode>) {
+        list.add(node)
+        for (child in node.childNodes) {
+            iterateRecursive(child, list)
+        }
+    }
+    val result = mutableListOf<AstNode>()
+    iterateRecursive(node, result)
+    return result
+}

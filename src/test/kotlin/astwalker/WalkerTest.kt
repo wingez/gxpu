@@ -6,6 +6,9 @@ import org.junit.jupiter.api.assertThrows
 import se.wingez.ast.function
 import se.wingez.ast.parserFromFile
 import se.wingez.ast.parserFromLine
+import se.wingez.compiler.backends.astwalker.WalkConfig
+import se.wingez.compiler.backends.astwalker.WalkerException
+import se.wingez.compiler.backends.astwalker.walk
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 

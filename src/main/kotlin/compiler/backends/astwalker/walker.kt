@@ -1,8 +1,11 @@
-package se.wingez.astwalker
+package se.wingez.compiler.backends.astwalker
 
 import se.wingez.ast.AstNode
 import se.wingez.ast.FunctionType
 import se.wingez.ast.NodeTypes
+import se.wingez.astwalker.Datatype
+import se.wingez.astwalker.TypeProvider
+import se.wingez.compiler.frontend.FunctionProvider
 
 class WalkerException(msg: String = "") : Exception(msg)
 
@@ -46,7 +49,7 @@ enum class ControlFlow {
 class WalkerState(
     val nodes: List<AstNode>,
     val config: WalkConfig,
-) : TypeProvider, FunctionProvider, VariableProvider {
+) : TypeProvider, FunctionProvider<IWalkerFunction>, VariableProvider {
 
     val output = WalkerOutput()
     val frameStack = mutableListOf<WalkFrame>()
@@ -60,7 +63,7 @@ class WalkerState(
         "void" to Datatype.Void,
     )
 
-    val availableFunctions = mutableListOf<IFunction>()
+    val availableFunctions = mutableListOf<IWalkerFunction>()
 
     override fun getType(name: String): Datatype {
         if (name !in types) {
@@ -84,12 +87,12 @@ class WalkerState(
         name: String,
         functionType: FunctionType,
         parameterTypes: List<Datatype>
-    ): IFunction {
+    ): IWalkerFunction {
         return availableFunctions.find { it.definition.matches(name, functionType, parameterTypes) }
             ?: throw WalkerException("No functions matches $name($parameterTypes)")
     }
 
-    private fun addFunction(function: IFunction) {
+    private fun addFunction(function: IWalkerFunction) {
         if (hasFunctionMatching(
                 function.definition.name,
                 function.definition.functionType,

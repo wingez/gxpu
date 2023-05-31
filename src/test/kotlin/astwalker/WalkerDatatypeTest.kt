@@ -1,12 +1,14 @@
 package se.wingez.astwalker
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import se.wingez.ast.FunctionType
 import se.wingez.ast.OperatorBuiltIns
 import se.wingez.ast.parserFromFile
+import se.wingez.compiler.backends.astwalker.*
+import se.wingez.compiler.frontend.FunctionProvider
+import se.wingez.compiler.frontend.IFunction
 import java.util.NoSuchElementException
 import kotlin.test.assertEquals
 

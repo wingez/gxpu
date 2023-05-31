@@ -1,8 +1,9 @@
-package se.wingez.compiler
+package compiler.frontend
 
 import se.wingez.ast.AstNode
 import se.wingez.ast.NodeTypes
 import se.wingez.ast.ParserError
+import se.wingez.compiler.*
 
 class StructBuilder {
     private var currentSize = 0

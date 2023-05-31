@@ -1,7 +1,10 @@
-package se.wingez.astwalker
+package se.wingez.compiler.backends.astwalker
 
 import se.wingez.ast.AstNode
 import se.wingez.ast.NodeTypes
+import se.wingez.astwalker.Datatype
+import se.wingez.astwalker.TypeProvider
+import se.wingez.compiler.frontend.FunctionProvider
 
 class Value private constructor(
     val datatype: Datatype,
@@ -37,7 +40,7 @@ class Value private constructor(
         }
         if (isArray()) {
             assert(name == "size")
-            return ConstantValueHolder(Value.primitive(Datatype.Integer, arrayValueHolders!!.size))
+            return ConstantValueHolder(primitive(Datatype.Integer, arrayValueHolders!!.size))
         }
         return compositeValueHolders!!.getValue(name)
     }
@@ -165,7 +168,7 @@ fun createDefaultValue(datatype: Datatype): Value {
     throw WalkerException("Cannot instanciate empty variable of type $datatype")
 }
 
-fun findType(node: AstNode, variableProvider: VariableProvider, functionProvider: FunctionProvider): Datatype {
+fun findType(node: AstNode, variableProvider: VariableProvider, functionProvider: FunctionProvider<IWalkerFunction>): Datatype {
 
     return when (node.type) {
         NodeTypes.Identifier -> variableProvider.getTypeOfVariable(node.asIdentifier())
@@ -202,7 +205,7 @@ interface VariableProvider {
 fun createTypeFromNode(
     node: AstNode,
     variableProvider: VariableProvider,
-    functionProvider: FunctionProvider,
+    functionProvider: FunctionProvider<IWalkerFunction>,
     typeProvider: TypeProvider
 ): Datatype {
     assert(node.type == NodeTypes.Struct)

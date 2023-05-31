@@ -1,5 +1,6 @@
 package se.wingez.compiler
 
+import compiler.frontend.StructBuilder
 import se.wingez.ast.OperatorBuiltIns
 import se.wingez.emulator.DefaultEmulator
 

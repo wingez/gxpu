@@ -1,33 +1,19 @@
-package se.wingez.astwalker
+package se.wingez.compiler.backends.astwalker
 
 import se.wingez.ast.AstNode
-import se.wingez.ast.FunctionType
 import se.wingez.ast.NodeTypes
+import se.wingez.astwalker.TypeProvider
+import se.wingez.compiler.frontend.FunctionDefinition
+import se.wingez.compiler.frontend.IFunction
 
-interface FunctionProvider {
-    fun getFunctionMatching(name: String, functionType: FunctionType, parameterTypes: List<Datatype>): IFunction
-}
-
-data class FunctionDefinition(
-    val name: String,
-    val parameterTypes: List<Datatype>,
-    val returnType: Datatype,
-    val functionType: FunctionType,
-) {
-    fun matches(name: String, functionType: FunctionType, parameterTypes: List<Datatype>): Boolean {
-        return name == this.name && functionType == this.functionType && parameterTypes == this.parameterTypes
-    }
-}
-
-interface IFunction {
-    val definition: FunctionDefinition
+interface IWalkerFunction : IFunction {
     fun execute(values: List<Value>, state: WalkerState): Value
 }
 
 class NodeFunction(
     val node: AstNode,
     override val definition: FunctionDefinition
-) : IFunction {
+) : IWalkerFunction {
     override fun execute(values: List<Value>, state: WalkerState): Value {
         return state.walkFunction(node, values)
     }

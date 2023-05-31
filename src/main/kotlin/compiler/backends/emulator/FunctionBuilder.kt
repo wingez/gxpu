@@ -1,5 +1,6 @@
 package se.wingez.compiler
 
+import compiler.frontend.StructBuilder
 import se.wingez.ast.AstNode
 import se.wingez.ast.NodeTypes
 import se.wingez.emulator.DefaultEmulator
