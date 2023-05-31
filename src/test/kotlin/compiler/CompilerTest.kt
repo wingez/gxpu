@@ -1,5 +1,6 @@
 package se.wingez.compiler
 
+import compiler.frontend.StructBuilder
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import se.wingez.ast.AstNode

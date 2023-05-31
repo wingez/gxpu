@@ -5,6 +5,7 @@ import se.wingez.ast.FunctionType
 import se.wingez.ast.NodeTypes
 import se.wingez.astwalker.Datatype
 import se.wingez.astwalker.TypeProvider
+import se.wingez.compiler.flattener.*
 import se.wingez.compiler.frontend.FunctionProvider
 
 class WalkerException(msg: String = "") : Exception(msg)
@@ -115,54 +116,40 @@ class WalkerState(
         }
 
         for (node in nodes.filter { it.type == NodeTypes.Function }) {
-            addFunction(definitionFromFuncNode(node, this))
+            addFunction(definitionFromFuncNode(node, this, this))
         }
 
-        call("main", FunctionType.Normal, emptyList())
+        val mainFunction = getFunctionMatching("main", FunctionType.Normal, emptyList())
+
+        call(mainFunction, emptyList())
 
         return output
     }
 
-    fun call(funcName: String, functionType: FunctionType, parameters: List<Value>): Value {
-
-        val parameterTypes = parameters.map { it.datatype }
-        val funcToCall = getFunctionMatching(funcName, functionType, parameterTypes)
-
-        return funcToCall.execute(parameters, this)
+    fun call(function: IWalkerFunction, parameters: List<Value>): Value {
+        return function.execute(parameters, this)
     }
 
-    fun walkFunction(node: AstNode, parameters: List<Value>): Value {
-        assert(node.type == NodeTypes.Function)
-        val funcNode = node.asFunction()
-
+    fun walkUserFunction(userFunction: UserFunction, parameters: List<Value>): Value {
 
         // Push new frame
         frameStack.add(WalkFrame())
 
         // Add result variable
-        createNewVariable("result", getType(funcNode.returnType))
+        createNewVariable("result", getType(userFunction.definition.returnType.name))
 
         // Add arguments as local variables
-        funcNode.arguments.map { it.asNewVariable() }.zip(parameters).forEach { (memberInfo, value) ->
+        /*funcNode.arguments.map { it.asNewVariable() }.zip(parameters).forEach { (memberInfo, value) ->
             assert(getType(memberInfo.optionalTypeDefinition!!).instantiate() == value.datatype)
             val name = memberInfo.name
             createNewVariable(name, value.datatype)
             currentFrame.valueHolders.getValue(memberInfo.name).value = value
-        }
+        }*/
 
         // Walk the function
-        for (child in node.childNodes) {
-            // This is the topmost. We need to handle every state. When statement should be exhaustive
-            val shouldContinue = when (walkRecursive(child)) {
-                ControlFlow.Normal -> true
-                ControlFlow.Return -> false
-                ControlFlow.Break -> {
-                    throw WalkerException("No loop to break from")
-                }
-            }
-            if (!shouldContinue) {
-                break
-            }
+
+        for (instr in userFunction.codeBlock.instructions) {
+            walkInstruction(instr)
         }
 
         val result = currentFrame.valueHolders.getValue("result").value
@@ -173,7 +160,18 @@ class WalkerState(
         return result
     }
 
-    private fun walkRecursive(node: AstNode): ControlFlow {
+    private fun walkInstruction(instruction: Instruction) {
+
+        when (instruction) {
+            is Execute -> {
+                getValueOf(instruction.expression)
+            }
+        }
+
+
+    }
+
+    /*private fun walkRecursive(node: AstNode): ControlFlow {
 
 
         return when (node.type) {
@@ -207,7 +205,7 @@ class WalkerState(
 
             else -> throw WalkerException("Cannot execute node of type ${node.type} (yet)")
         }
-    }
+    }*/
 
     private fun handleReturn(node: AstNode): ControlFlow {
         assert(node.type == NodeTypes.Return)
@@ -240,7 +238,7 @@ class WalkerState(
         return ControlFlow.Normal
     }
 
-    fun handleWhile(node: AstNode): ControlFlow {
+    /*fun handleWhile(node: AstNode): ControlFlow {
         assert(node.type == NodeTypes.While)
         val whileNode = node.asWhile()
 
@@ -281,10 +279,10 @@ class WalkerState(
         }
 
         return ControlFlow.Normal
-    }
+    }*/
 
 
-    private fun handleIf(node: AstNode): ControlFlow {
+    /*private fun handleIf(node: AstNode): ControlFlow {
         assert(node.type == NodeTypes.If)
         val ifNode = node.asIf()
 
@@ -312,13 +310,13 @@ class WalkerState(
             }
         }
         return ControlFlow.Normal
-    }
+    }*/
 
     fun modifyVariable(name: String, newValue: Value) {
 
     }
 
-    private fun handleAssign(child: AstNode): ControlFlow {
+    /*private fun handleAssign(child: AstNode): ControlFlow {
         val assignNode = child.asAssign()
 
         val valueToAssign = getValueOf(assignNode.value)
@@ -330,24 +328,28 @@ class WalkerState(
 
         holderToAssignTo.value = valueToAssign
         return ControlFlow.Normal
-    }
+    }*/
 
-    fun handleCallIgnoreResult(node: AstNode): ControlFlow {
+    /*fun handleCallIgnoreResult(node: AstNode): ControlFlow {
         handleCall(node)
         return ControlFlow.Normal
-    }
+    }*/
 
-    fun handleCall(node: AstNode): Value {
-        assert(node.type == NodeTypes.Call)
-        val callNode = node.asCall()
+    fun handleCall(callExpression: CallExpression): Value {
 
-        val arguments = callNode.parameters
+        val arguments = callExpression.parameters
             .map { getValueOf(it) }
 
-        return call(callNode.targetName, callNode.functionType, arguments)
+        val function = getFunctionMatching(
+            callExpression.function.definition.name,
+            callExpression.function.definition.functionType,
+            callExpression.function.definition.parameterTypes,
+        )
+
+        return call(function, arguments)
     }
 
-    fun getArrayIndexValueHolder(node: AstNode): ValueHolder {
+    /*fun getArrayIndexValueHolder(node: AstNode): ValueHolder {
         assert(node.type == NodeTypes.ArrayAccess)
         val arrayAccess = node.asArrayAccess()
         val arrayPointer = getValueOf(arrayAccess.parent)
@@ -364,14 +366,14 @@ class WalkerState(
             throw WalkerException("Cannot do array access on type ${arrayPointer.datatype}")
         }
         return array.arrayAccess(index.getPrimitiveValue())
-    }
+    }*/
 
-    fun getMemberValueHolder(node: AstNode): IValueHolder {
+    /*fun getMemberValueHolder(node: AstNode): IValueHolder {
         val toAccessPointer = getValueOf(node.childNodes[0])
         assert(toAccessPointer.isPointer())
         val toAccess = toAccessPointer.derefPointer().value
         return toAccess.getFieldValueHolder(node.data as String)
-    }
+    }*/
 
     override fun getTypeOfVariable(variableName: String): Datatype {
         return getVariable(variableName).datatype
@@ -388,7 +390,7 @@ class WalkerState(
         return getVariableHolder(variableName).value
     }
 
-    fun getValueHolderOf(node: AstNode): IValueHolder {
+    /*fun getValueHolderOf(node: AstNode): IValueHolder {
         return when (node.type) {
             NodeTypes.Identifier -> getVariableHolder(node.asIdentifier())
             NodeTypes.ArrayAccess -> getArrayIndexValueHolder(node)
@@ -396,11 +398,19 @@ class WalkerState(
 
             else -> throw WalkerException("Not supported yet")
         }
-    }
+    }*/
 
-    fun getValueOf(node: AstNode): Value {
+    fun getValueOf(valueExpression: ValueExpression): Value {
 
-        return when (node.type) {
+        return when (valueExpression) {
+            is ConstantExpression -> Value.primitive(Datatype.Integer, valueExpression.value)
+            is CallExpression -> handleCall(valueExpression)
+
+            else -> throw NotImplementedError()
+        }
+
+
+        /*return when (node.type) {
             NodeTypes.Identifier -> getValueHolderOf(node).value
             NodeTypes.ArrayAccess -> getValueHolderOf(node).value
             NodeTypes.MemberAccess -> getValueHolderOf(node).value
@@ -413,7 +423,7 @@ class WalkerState(
             else -> {
                 throw WalkerException("Cannot get value of node of type ${node.type}")
             }
-        }
+        }*/
     }
 }
 

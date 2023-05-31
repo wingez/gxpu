@@ -1,5 +1,6 @@
 package se.wingez.compiler
 
+import compiler.frontend.buildStruct
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import se.wingez.ast.struct

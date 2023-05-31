@@ -48,12 +48,12 @@ internal class WalkerDatatypeTest {
                 return types.getValue(name)
             }
         }
-        val functionProvider = object : FunctionProvider {
+        val functionProvider = object : FunctionProvider<IWalkerFunction> {
             override fun getFunctionMatching(
                 name: String,
                 functionType: FunctionType,
                 parameterTypes: List<Datatype>
-            ): IFunction {
+            ): IWalkerFunction {
                 TODO("Not yet implemented")
             }
         }
