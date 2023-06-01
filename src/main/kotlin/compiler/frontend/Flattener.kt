@@ -4,6 +4,8 @@ import compiler.frontend.Datatype
 import compiler.frontend.TypeProvider
 import se.wingez.ast.*
 
+const val RETURN_VALUE_NAME = "result"
+
 class FrontendCompilerError(message: String) : Error(message)
 
 interface Instruction {
@@ -68,6 +70,9 @@ class JumpOnFalse(
     val label: Label,
 ) : Instruction
 
+class Return(
+
+) : Instruction
 
 data class Label(
     val identifier: String
@@ -218,6 +223,8 @@ private class FunctionCompiler(
                 loopContext ?: throw FrontendCompilerError("No loop to break from")
                 codeBlock.addInstruction(Jump(loopContext.endLabel))
             }
+
+            NodeTypes.Return -> codeBlock.addInstruction(Return())
 
             else -> {
                 val valueExpression = parseExpression(node)
@@ -374,7 +381,7 @@ private class FunctionCompiler(
     private fun addVariables(
         functionNode: AstNode,
     ) {
-
+        variables.add(Variable(RETURN_VALUE_NAME, definition.returnType, VariableType.Local))
 
         for ((parameterName, type) in parameterTypes(functionNode, typeProvider)) {
             variables.add(Variable(parameterName, type, VariableType.Parameter))

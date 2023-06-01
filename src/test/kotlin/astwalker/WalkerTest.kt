@@ -126,7 +126,7 @@ internal class WalkerTest {
         assertDoesNotThrow { walk(function) }
 
         assertDoesNotThrow { walk(function, WalkConfig(maxLoopIterations = 50)) }
-        assertThrows<WalkerException>("Max iterations exceeded") { walk(function, WalkConfig(maxLoopIterations = 5)) }
+        assertThrows<WalkerException>("Max iterations exceeded") { walk(function, WalkConfig(maxLoopIterations = 20)) }
     }
 
     @Test

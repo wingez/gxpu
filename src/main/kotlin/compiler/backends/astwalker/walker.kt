@@ -140,22 +140,18 @@ class WalkerState(
 
         // Push new frame
         frameStack.add(WalkFrame())
-
-        // Add result variable
-        createNewVariable("result", getType(userFunction.definition.returnType.name))
-
-        // Add local variables
+        
+        // Create variables for parameters & local variables
         userFunction.functionContent.localVariables.forEach {
             createNewVariable(it.name, it.datatype)
         }
 
         // Add arguments as local variables
-        /*funcNode.arguments.map { it.asNewVariable() }.zip(parameters).forEach { (memberInfo, value) ->
-            assert(getType(memberInfo.optionalTypeDefinition!!).instantiate() == value.datatype)
-            val name = memberInfo.name
-            createNewVariable(name, value.datatype)
-            currentFrame.valueHolders.getValue(memberInfo.name).value = value
-        }*/
+        userFunction.functionContent.localVariables.filter { it.type == VariableType.Parameter }.zip(parameters)
+            .forEach { (variable, value) ->
+                assert(variable.datatype == value.datatype)
+                currentFrame.valueHolders.getValue(variable.name).value = value
+            }
 
         // Walk the function
 
@@ -183,7 +179,7 @@ class WalkerState(
                     currentInstructionIndex = code.labels.getValue(jumpLabel!!)
                 }
 
-                ControlFlow.Return -> throw NotImplementedError()
+                ControlFlow.Return -> break
             }
         }
 
@@ -220,6 +216,12 @@ class WalkerState(
             is Assign -> {
                 handleAssign(instruction)
             }
+
+            is Return -> {
+                return ControlFlow.Return to null
+            }
+
+            else -> throw NotImplementedError(instruction.toString())
         }
 
         return ControlFlow.Normal to null
