@@ -36,10 +36,10 @@ internal class WalkPrograms {
         val program = """
           def main():
             val a = "abcd"
-            val b:int[] = createArray(a.size)
+            val b:int[] = createArray(a.size())
             
             val index = 0
-            while index != a.size:
+            while index != a.size():
               val letter = a[index]
               letter = letter+1
               b[index] = letter

@@ -24,6 +24,8 @@ class OperatorBuiltIns {
         const val Equal = "eq"
         const val LessThan = "lt"
         const val GreaterThan = "gt"
+        const val ArrayRead = "arrayread"
+        const val ArrayWrite = "arraywrite"
     }
 }
 

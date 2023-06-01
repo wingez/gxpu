@@ -12,6 +12,11 @@ abstract class Function(
     returnType: Datatype,
 ) : IWalkerFunction {
     override val definition = FunctionDefinition(name, parameterTypes, returnType, functionType)
+
+    override fun toString(): String {
+        return "${definition.name}${definition.parameterTypes}: ${definition.returnType}"
+
+    }
 }
 
 class BuiltInPrintInteger : Function(
@@ -37,6 +42,51 @@ class BuiltInPrintString : Function(
             result += Char(array.arrayAccess(i).value.getPrimitiveValue())
         }
         state.output.result.add(result)
+        return Value.void()
+    }
+}
+
+class BuiltInArraySize : Function(
+    "size", FunctionType.Instance, listOf(Datatype.ArrayPointer(Datatype.Integer)), Datatype.Integer
+) {
+    override fun execute(values: List<Value>, state: WalkerState): Value {
+        val array = values[0].derefPointer().value
+
+        val arraySize = array.getFieldValueHolder("size").value.getPrimitiveValue()
+        return Value.primitive(Datatype.Integer, arraySize)
+    }
+}
+
+class BuiltInArrayRead : Function(
+    OperatorBuiltIns.ArrayRead,
+    FunctionType.Operator,
+    listOf(Datatype.ArrayPointer(Datatype.Integer), Datatype.Integer),
+    Datatype.Integer
+) {
+    override fun execute(values: List<Value>, state: WalkerState): Value {
+        val array = values[0].derefPointer().value
+
+        val index = values[1].getPrimitiveValue()
+
+        return array.arrayAccess(index).value
+    }
+}
+
+class BuiltInArrayWrite : Function(
+    OperatorBuiltIns.ArrayWrite,
+    FunctionType.Operator,
+    listOf(Datatype.ArrayPointer(Datatype.Integer), Datatype.Integer, Datatype.Integer),
+    Datatype.Void
+) {
+    override fun execute(values: List<Value>, state: WalkerState): Value {
+        val array = values[0].derefPointer().value
+
+        val index = values[1].getPrimitiveValue()
+
+        val value = values[2]
+
+        array.arrayAccess(index).value = value
+
         return Value.void()
     }
 }
@@ -103,6 +153,9 @@ val integerDiv = IntegerArithmetic("idiv", FunctionType.Normal) { val1, val2 ->
 val builtInList = listOf(
     BuiltInPrintInteger(),
     BuiltInPrintString(),
+    BuiltInArraySize(),
+    BuiltInArrayRead(),
+    BuiltInArrayWrite(),
 
     IntegerArithmetic(OperatorBuiltIns.Addition, FunctionType.Operator) { val1, val2 -> val1 + val2 },
     IntegerArithmetic(OperatorBuiltIns.Subtraction, FunctionType.Operator) { val1, val2 -> val1 - val2 },

@@ -140,7 +140,7 @@ class WalkerState(
 
         // Push new frame
         frameStack.add(WalkFrame())
-        
+
         // Create variables for parameters & local variables
         userFunction.functionContent.localVariables.forEach {
             createNewVariable(it.name, it.datatype)

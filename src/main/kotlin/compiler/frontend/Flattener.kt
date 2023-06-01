@@ -262,6 +262,18 @@ private class FunctionCompiler(
             NodeTypes.Identifier -> VariableExpression(lookupVariable(node.asIdentifier(), variables))
             NodeTypes.String -> StringExpression(node.asString())
             NodeTypes.MemberAccess -> parseMemberAccess(node)
+            NodeTypes.ArrayAccess -> {
+                val member = parseExpression(node.asArrayAccess().parent)
+                val index = parseExpression(node.asArrayAccess().index)
+
+                //TODO: generic-ify
+                val definition = FunctionDefinition(
+                    OperatorBuiltIns.ArrayRead, listOf(Datatype.ArrayPointer(Datatype.Integer), Datatype.Integer),
+                    Datatype.Integer, FunctionType.Operator
+                )
+                CallExpression(definition, listOf(member, index))
+            }
+
             else -> throw AssertionError("Cannot parse node ${node.type} yet")
         }
     }
@@ -379,10 +391,39 @@ private class FunctionCompiler(
     ) {
         val assign = node.asAssign()
 
+        val value = parseExpression(assign.value)
+
+
+        if (assign.target.type == NodeTypes.ArrayAccess) {
+            // Special case for writing to array
+            // TODO: generic-ify this
+
+            val arrayAccess = assign.target.asArrayAccess()
+
+            val array = parseExpression(arrayAccess.parent)
+            if (array.type != Datatype.ArrayPointer(Datatype.Integer))
+                throw NotImplementedError()
+
+            val index = parseExpression(arrayAccess.index)
+
+
+            currentCodeBlock.addInstruction(
+                Execute(
+                    CallExpression(
+                        FunctionDefinition(
+                            OperatorBuiltIns.ArrayWrite, listOf(
+                                Datatype.ArrayPointer(Datatype.Integer), Datatype.Integer,
+                                Datatype.Integer
+                            ), Datatype.Void, FunctionType.Operator
+                        ), parameters = listOf(array, index, value)
+                    )
+                )
+            )
+            return
+        }
+
         assert(assign.target.type == NodeTypes.Identifier)
         val targetName = assign.target.asIdentifier()
-
-        val value = parseExpression(assign.value)
 
         currentCodeBlock.addInstruction(Assign(targetName, value))
     }
@@ -409,10 +450,10 @@ private class FunctionCompiler(
     private fun addVariables(
         functionNode: AstNode,
     ) {
-        variables.add(Variable(RETURN_VALUE_NAME, definition.returnType, VariableType.Local))
+        variables.add(Variable(RETURN_VALUE_NAME, definition.returnType.instantiate(), VariableType.Local))
 
         for ((parameterName, type) in parameterTypes(functionNode, typeProvider)) {
-            variables.add(Variable(parameterName, type, VariableType.Parameter))
+            variables.add(Variable(parameterName, type.instantiate(), VariableType.Parameter))
         }
 
 
@@ -428,7 +469,7 @@ private class FunctionCompiler(
                     if (newVariable.optionalTypeDefinition == null) {
                         throw AssertionError()
                     }
-                    type = typeProvider.getType(newVariable.optionalTypeDefinition)
+                    type = typeProvider.getType(newVariable.optionalTypeDefinition).instantiate()
                 }
 
                 variables.add(Variable(newVariable.name, type, VariableType.Local))
