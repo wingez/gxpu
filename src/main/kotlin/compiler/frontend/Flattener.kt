@@ -11,7 +11,8 @@ interface Instruction {
 }
 
 enum class VariableType {
-    Local
+    Local,
+    Parameter,
 }
 
 data class Variable(
@@ -132,6 +133,9 @@ private class FunctionCompiler(
 ) {
     val variables = mutableListOf<Variable>()
 
+    lateinit var definition: FunctionDefinition
+
+
     var controlStatementCounter = 0
 
     fun compileFunction(functionNode: AstNode): FunctionContent {
@@ -139,11 +143,11 @@ private class FunctionCompiler(
 
         // Step 1
         // Extract definition
-        val definition = FunctionDefinition.fromFunctionNode(functionNode, typeProvider)
+        definition = FunctionDefinition.fromFunctionNode(functionNode, typeProvider)
 
         // Step 2
-        // Extract all local variables
-        extractLocalVariables(functionNode)
+        // Extract all variables
+        addVariables(functionNode)
 
         //TODO: Perhaps handle inlining here?
 
@@ -367,9 +371,15 @@ private class FunctionCompiler(
     }
 
 
-    private fun extractLocalVariables(
+    private fun addVariables(
         functionNode: AstNode,
     ) {
+
+
+        for ((parameterName, type) in parameterTypes(functionNode, typeProvider)) {
+            variables.add(Variable(parameterName, type, VariableType.Parameter))
+        }
+
 
         for (node in iterateAstNode(functionNode)) {
             if (node.type == NodeTypes.NewVariable) {

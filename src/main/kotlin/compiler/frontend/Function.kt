@@ -30,16 +30,25 @@ interface FunctionDefinitionResolver {
     ): FunctionDefinition
 }
 
+fun parameterTypes(functionNode: AstNode, typeProvider: TypeProvider): List<Pair<String, Datatype>> {
+    assert(functionNode.type == NodeTypes.Function)
+
+    val function = functionNode.asFunction()
+
+    return function.arguments.map {
+        assert(it.type == NodeTypes.NewVariable)
+        val type = typeProvider.getType(it.asNewVariable().optionalTypeDefinition!!)
+
+        it.asNewVariable().name to type
+    }
+}
 
 private fun definitionFromFunctionNode(functionNode: AstNode, typeProvider: TypeProvider): FunctionDefinition {
     assert(functionNode.type == NodeTypes.Function)
 
     val function = functionNode.asFunction()
 
-    val parameters = function.arguments.map {
-        assert(it.type == NodeTypes.NewVariable)
-        typeProvider.getType(it.asNewVariable().optionalTypeDefinition!!)
-    }
+    val parameters = parameterTypes(functionNode, typeProvider).map { it.second }
 
     val returnType = typeProvider.getType(function.returnType)
 
