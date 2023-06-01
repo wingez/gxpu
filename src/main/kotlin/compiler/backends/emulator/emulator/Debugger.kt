@@ -1,4 +1,4 @@
-package se.wingez.emulator
+package se.wingez.compiler.backends.emulator.emulator
 
 import se.wingez.ast.AstParser
 import se.wingez.compiler.BuiltFunction

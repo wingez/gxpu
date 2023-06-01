@@ -3,8 +3,8 @@ package se.wingez.compiler
 import compiler.frontend.buildStruct
 import se.wingez.ast.AstNode
 import se.wingez.ast.NodeTypes
-import se.wingez.emulator.DefaultEmulator
-import se.wingez.instructions.Instruction
+import se.wingez.compiler.backends.emulator.emulator.DefaultEmulator
+import se.wingez.compiler.backends.emulator.instructions.Instruction
 
 data class GenerateLater(
     val instruction: Instruction,

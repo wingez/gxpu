@@ -2,7 +2,7 @@ package se.wingez.compiler
 
 import se.wingez.ast.AstNode
 import se.wingez.ast.NodeTypes
-import se.wingez.emulator.DefaultEmulator
+import se.wingez.compiler.backends.emulator.emulator.DefaultEmulator
 
 
 data class AllocateReturnAndVariables(

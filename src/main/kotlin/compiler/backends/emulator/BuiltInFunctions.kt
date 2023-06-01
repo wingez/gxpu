@@ -2,7 +2,7 @@ package se.wingez.compiler
 
 import compiler.frontend.StructBuilder
 import se.wingez.ast.OperatorBuiltIns
-import se.wingez.emulator.DefaultEmulator
+import se.wingez.compiler.backends.emulator.emulator.DefaultEmulator
 
 interface BuiltIn {
 

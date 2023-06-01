@@ -4,6 +4,9 @@ import org.junit.jupiter.api.Assertions.assertIterableEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
+import se.wingez.compiler.backends.emulator.instructions.AssembleError
+import se.wingez.compiler.backends.emulator.instructions.Instruction
+import se.wingez.compiler.backends.emulator.instructions.InstructionSet
 
 internal class TestAssembleFile {
     @Test

@@ -8,7 +8,7 @@ import se.wingez.ast.function
 import se.wingez.ast.parseExpressions
 import se.wingez.ast.parserFromFile
 import se.wingez.byte
-import se.wingez.emulator.DefaultEmulator
+import se.wingez.compiler.backends.emulator.emulator.DefaultEmulator
 import se.wingez.tokens.parseFile
 import java.io.StringReader
 import kotlin.test.assertEquals

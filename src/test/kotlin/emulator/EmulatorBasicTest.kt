@@ -6,7 +6,8 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import se.wingez.byte
 import se.wingez.bytes
-import se.wingez.instructions.InstructionSet
+import se.wingez.compiler.backends.emulator.emulator.*
+import se.wingez.compiler.backends.emulator.instructions.InstructionSet
 import java.io.StringReader
 
 internal class EmulatorBasicTest {

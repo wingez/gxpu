@@ -11,8 +11,8 @@ import se.wingez.compiler.CompileError
 import se.wingez.compiler.Compiler
 import se.wingez.compiler.DummyBuiltInProvider
 import se.wingez.compiler.buildSingleMainFunction
-import se.wingez.emulator.DefaultEmulator
-import se.wingez.emulator.EmulatorCyclesExceeded
+import se.wingez.compiler.backends.emulator.emulator.DefaultEmulator
+import se.wingez.compiler.backends.emulator.emulator.EmulatorCyclesExceeded
 import se.wingez.tokens.parseFile
 import java.io.StringReader
 import kotlin.test.assertEquals
