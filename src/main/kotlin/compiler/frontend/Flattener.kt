@@ -122,6 +122,10 @@ fun compileFunction(
 
 }
 
+private data class LoopContext(
+    val endLabel: Label
+)
+
 private class FunctionCompiler(
     val functionProvider: FunctionDefinitionResolver,
     val typeProvider: TypeProvider,
@@ -168,7 +172,7 @@ private class FunctionCompiler(
 
         val mainCodeBlock = CodeBlock(Label("function: ${function.name}"))
 
-        flattenStatements(functionNode.childNodes, mainCodeBlock)
+        flattenStatements(functionNode.childNodes, mainCodeBlock, loopContext = null)
 
         return mainCodeBlock
     }
@@ -176,15 +180,17 @@ private class FunctionCompiler(
     private fun flattenStatements(
         nodes: List<AstNode>,
         codeBlock: CodeBlock,
+        loopContext: LoopContext?
     ) {
         for (node in nodes) {
-            flattenStatement(node, codeBlock)
+            flattenStatement(node, codeBlock, loopContext)
         }
     }
 
     private fun flattenStatement(
         node: AstNode,
         codeBlock: CodeBlock,
+        loopContext: LoopContext?,
     ) {
 
         when (node.type) {
@@ -202,8 +208,12 @@ private class FunctionCompiler(
             }
 
             NodeTypes.Assign -> parseAssign(node, codeBlock)
-            NodeTypes.If -> parseIf(node, codeBlock)
+            NodeTypes.If -> parseIf(node, codeBlock, loopContext)
             NodeTypes.While -> parseWhile(node, codeBlock)
+            NodeTypes.Break -> {
+                loopContext ?: throw FrontendCompilerError("No loop to break from")
+                codeBlock.addInstruction(Jump(loopContext.endLabel))
+            }
 
             else -> {
                 val valueExpression = parseExpression(node)
@@ -237,6 +247,7 @@ private class FunctionCompiler(
     fun parseIf(
         node: AstNode,
         currentCodeBlock: CodeBlock,
+        loopContext: LoopContext?
     ) {
 
         val ifNode = node.asIf()
@@ -264,7 +275,7 @@ private class FunctionCompiler(
                 )
             )
             val trueBodyCodeBlock = currentCodeBlock.newCodeBlock(trueLabel)
-            flattenStatements(ifNode.ifBody, trueBodyCodeBlock)
+            flattenStatements(ifNode.ifBody, trueBodyCodeBlock, loopContext)
 
             currentCodeBlock.newCodeBlock(endLabel)
 
@@ -279,11 +290,11 @@ private class FunctionCompiler(
             )
 
             val trueBodyCodeBlock = currentCodeBlock.newCodeBlock(trueLabel)
-            flattenStatements(ifNode.ifBody, trueBodyCodeBlock)
+            flattenStatements(ifNode.ifBody, trueBodyCodeBlock, loopContext)
             trueBodyCodeBlock.addInstruction(Jump(endLabel))
 
             val elseBodyCodeBlock = currentCodeBlock.newCodeBlock(elseLabel)
-            flattenStatements(ifNode.elseBody, elseBodyCodeBlock)
+            flattenStatements(ifNode.elseBody, elseBodyCodeBlock, loopContext)
 
             currentCodeBlock.newCodeBlock(endLabel)
         }
@@ -305,9 +316,10 @@ private class FunctionCompiler(
 
         val whileBodyLabel = Label("while-$id-begin")
         val endLabel = Label("while-$id-end")
-
+        val loopContext = LoopContext(endLabel)
 
         val bodyCodeBlock = currentCodeBlock.newCodeBlock(whileBodyLabel)
+
 
         bodyCodeBlock.addInstruction(
             JumpOnFalse(
@@ -315,7 +327,7 @@ private class FunctionCompiler(
                 endLabel
             )
         )
-        flattenStatements(whileNode.body, bodyCodeBlock)
+        flattenStatements(whileNode.body, bodyCodeBlock, loopContext)
         bodyCodeBlock.addInstruction(Jump(whileBodyLabel))
         currentCodeBlock.newCodeBlock(endLabel)
 

@@ -157,7 +157,7 @@ internal class WalkerTest {
         """.trimIndent()
         ).parse()
 
-        val msg = assertThrows<WalkerException> { walk(function) }
+        val msg = assertThrows<FrontendCompilerError> { walk(function) }
         assertTrue { msg.message!!.contains("No loop to break from") }
 
     }
