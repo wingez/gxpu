@@ -1,13 +1,10 @@
-package se.wingez.compiler.flattener
+package se.wingez.compiler.frontend
 
 import se.wingez.ast.AstNode
 import se.wingez.ast.FunctionType
 import se.wingez.ast.NodeTypes
 import se.wingez.ast.iterateAstNode
 import se.wingez.astwalker.*
-import se.wingez.compiler.frontend.FunctionDefinition
-import se.wingez.compiler.frontend.FunctionProvider
-import se.wingez.compiler.frontend.IFunction
 
 interface Instruction {
 
@@ -24,10 +21,10 @@ class ConstantExpression(
 }
 
 class CallExpression(
-    val function: IFunction,
+    val function: FunctionDefinition,
     val parameters: List<ValueExpression>
 ) : ValueExpression {
-    override val type: Datatype = function.definition.returnType
+    override val type: Datatype = function.returnType
 }
 
 class Execute(
@@ -54,10 +51,10 @@ class CodeBlock(
     }*/
 }
 
-class Function(
-    override val definition: FunctionDefinition,
+data class FunctionContent(
+    val definition: FunctionDefinition,
     val codeBlock: CodeBlock,
-) : IFunction {
+) {
 
 }
 
@@ -66,7 +63,7 @@ private fun assertFunctionNode(node: AstNode) {
 }
 
 
-fun <T : IFunction> flattenFunction(functionNode: AstNode, functionProvider: FunctionProvider<T>): Function {
+fun flattenFunction(functionNode: AstNode, functionProvider: FunctionDefinitionResolver): FunctionContent {
 
     assertFunctionNode(functionNode)
 
@@ -85,13 +82,13 @@ fun <T : IFunction> flattenFunction(functionNode: AstNode, functionProvider: Fun
     for (expression in functionNode.childNodes) {
         flattenExpression(expression, mainCodeBlock, functionProvider)
     }
-    return Function(definition, mainCodeBlock)
+    return FunctionContent(definition, mainCodeBlock)
 }
 
-private fun <T : IFunction> flattenExpression(
+private fun flattenExpression(
     node: AstNode,
     codeBlock: CodeBlock,
-    functionProvider: FunctionProvider<T>
+    functionProvider: FunctionDefinitionResolver
 ) {
 
     val valueExpression = parseExpression(node, functionProvider)
@@ -101,18 +98,19 @@ private fun <T : IFunction> flattenExpression(
 
 }
 
-private fun <T : IFunction> parseExpression(node: AstNode, functionProvider: FunctionProvider<T>): ValueExpression {
+private fun parseExpression(node: AstNode, functionProvider: FunctionDefinitionResolver): ValueExpression {
     return when (node.type) {
         NodeTypes.Call -> {
             flattenCall(node, functionProvider)
         }
+
         NodeTypes.Constant -> ConstantExpression(node.asConstant())
 
         else -> throw AssertionError()
     }
 }
 
-private fun <T : IFunction> flattenCall(callNode: AstNode, functionProvider: FunctionProvider<T>): ValueExpression {
+private fun flattenCall(callNode: AstNode, functionProvider: FunctionDefinitionResolver): ValueExpression {
     assert(callNode.type == NodeTypes.Call)
 
     val callInfo = callNode.asCall()
@@ -121,7 +119,7 @@ private fun <T : IFunction> flattenCall(callNode: AstNode, functionProvider: Fun
 
     val parameterTypes = parameters.map { it.type }
 
-    val function = functionProvider.getFunctionMatching(callInfo.targetName, callInfo.functionType, parameterTypes)
+    val function = functionProvider.getFunctionDefinitionMatching(callInfo.targetName, callInfo.functionType, parameterTypes)
 
 
     return CallExpression(function, parameters)

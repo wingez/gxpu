@@ -7,8 +7,8 @@ import se.wingez.ast.FunctionType
 import se.wingez.ast.OperatorBuiltIns
 import se.wingez.ast.parserFromFile
 import se.wingez.compiler.backends.astwalker.*
-import se.wingez.compiler.frontend.FunctionProvider
-import se.wingez.compiler.frontend.IFunction
+import se.wingez.compiler.frontend.FunctionDefinition
+import se.wingez.compiler.frontend.FunctionDefinitionResolver
 import java.util.NoSuchElementException
 import kotlin.test.assertEquals
 
@@ -48,12 +48,12 @@ internal class WalkerDatatypeTest {
                 return types.getValue(name)
             }
         }
-        val functionProvider = object : FunctionProvider<IWalkerFunction> {
-            override fun getFunctionMatching(
+        val functionProvider = object : FunctionDefinitionResolver {
+            override fun getFunctionDefinitionMatching(
                 name: String,
                 functionType: FunctionType,
                 parameterTypes: List<Datatype>
-            ): IWalkerFunction {
+            ): FunctionDefinition {
                 TODO("Not yet implemented")
             }
         }

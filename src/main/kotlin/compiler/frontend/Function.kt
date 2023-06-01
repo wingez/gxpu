@@ -15,10 +15,6 @@ data class FunctionDefinition(
     }
 }
 
-interface IFunction {
-    val definition: FunctionDefinition
-}
-
-interface FunctionProvider<T : IFunction> {
-    fun getFunctionMatching(name: String, functionType: FunctionType, parameterTypes: List<Datatype>): T
+interface FunctionDefinitionResolver {
+    fun getFunctionDefinitionMatching(name: String, functionType: FunctionType, parameterTypes: List<Datatype>): FunctionDefinition
 }

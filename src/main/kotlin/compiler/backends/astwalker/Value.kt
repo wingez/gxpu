@@ -4,7 +4,7 @@ import se.wingez.ast.AstNode
 import se.wingez.ast.NodeTypes
 import se.wingez.astwalker.Datatype
 import se.wingez.astwalker.TypeProvider
-import se.wingez.compiler.frontend.FunctionProvider
+import se.wingez.compiler.frontend.FunctionDefinitionResolver
 
 class Value private constructor(
     val datatype: Datatype,
@@ -168,7 +168,7 @@ fun createDefaultValue(datatype: Datatype): Value {
     throw WalkerException("Cannot instanciate empty variable of type $datatype")
 }
 
-fun findType(node: AstNode, variableProvider: VariableProvider, functionProvider: FunctionProvider<IWalkerFunction>): Datatype {
+fun findType(node: AstNode, variableProvider: VariableProvider, functionProvider: FunctionDefinitionResolver): Datatype {
 
     return when (node.type) {
         NodeTypes.Identifier -> variableProvider.getTypeOfVariable(node.asIdentifier())
@@ -177,9 +177,9 @@ fun findType(node: AstNode, variableProvider: VariableProvider, functionProvider
         NodeTypes.Call -> {
             val callNode = node.asCall()
             val parameterTypes = callNode.parameters.map { findType(it, variableProvider, functionProvider) }
-            return functionProvider.getFunctionMatching(
+            return functionProvider.getFunctionDefinitionMatching(
                 callNode.targetName, callNode.functionType, parameterTypes
-            ).definition.returnType
+            ).returnType
         }
 
         NodeTypes.ArrayAccess -> {
@@ -205,7 +205,7 @@ interface VariableProvider {
 fun createTypeFromNode(
     node: AstNode,
     variableProvider: VariableProvider,
-    functionProvider: FunctionProvider<IWalkerFunction>,
+    functionProvider: FunctionDefinitionResolver,
     typeProvider: TypeProvider
 ): Datatype {
     assert(node.type == NodeTypes.Struct)

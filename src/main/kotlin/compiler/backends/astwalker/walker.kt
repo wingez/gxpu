@@ -5,8 +5,7 @@ import se.wingez.ast.FunctionType
 import se.wingez.ast.NodeTypes
 import se.wingez.astwalker.Datatype
 import se.wingez.astwalker.TypeProvider
-import se.wingez.compiler.flattener.*
-import se.wingez.compiler.frontend.FunctionProvider
+import se.wingez.compiler.frontend.*
 
 class WalkerException(msg: String = "") : Exception(msg)
 
@@ -50,7 +49,7 @@ enum class ControlFlow {
 class WalkerState(
     val nodes: List<AstNode>,
     val config: WalkConfig,
-) : TypeProvider, FunctionProvider<IWalkerFunction>, VariableProvider {
+) : TypeProvider, FunctionDefinitionResolver, VariableProvider {
 
     val output = WalkerOutput()
     val frameStack = mutableListOf<WalkFrame>()
@@ -84,13 +83,19 @@ class WalkerState(
         return availableFunctions.any { it.definition.matches(name, functionType, parameterTypes) }
     }
 
-    override fun getFunctionMatching(
+    fun getFunctionFromSignature(functionDefinition: FunctionDefinition): IWalkerFunction {
+        return availableFunctions.find { it.definition == functionDefinition }
+            ?: throw WalkerException("No functions matches $functionDefinition")
+    }
+
+    override fun getFunctionDefinitionMatching(
         name: String,
         functionType: FunctionType,
         parameterTypes: List<Datatype>
-    ): IWalkerFunction {
-        return availableFunctions.find { it.definition.matches(name, functionType, parameterTypes) }
+    ): FunctionDefinition {
+        val func = availableFunctions.find { it.definition.matches(name, functionType, parameterTypes) }
             ?: throw WalkerException("No functions matches $name($parameterTypes)")
+        return func.definition
     }
 
     private fun addFunction(function: IWalkerFunction) {
@@ -119,8 +124,9 @@ class WalkerState(
             addFunction(definitionFromFuncNode(node, this, this))
         }
 
-        val mainFunction = getFunctionMatching("main", FunctionType.Normal, emptyList())
-
+        val mainFunction = getFunctionFromSignature(
+            FunctionDefinition("main", emptyList(), Datatype.Void, FunctionType.Normal)
+        )
         call(mainFunction, emptyList())
 
         return output
@@ -340,11 +346,7 @@ class WalkerState(
         val arguments = callExpression.parameters
             .map { getValueOf(it) }
 
-        val function = getFunctionMatching(
-            callExpression.function.definition.name,
-            callExpression.function.definition.functionType,
-            callExpression.function.definition.parameterTypes,
-        )
+        val function = getFunctionFromSignature(callExpression.function)
 
         return call(function, arguments)
     }
