@@ -1,5 +1,8 @@
 package se.wingez.compiler
 
+import compiler.backends.emulator.DataType
+import compiler.backends.emulator.StructType
+import compiler.backends.emulator.byteType
 import se.wingez.ast.AstNode
 import se.wingez.ast.NodeTypes
 import se.wingez.compiler.backends.emulator.emulator.DefaultEmulator

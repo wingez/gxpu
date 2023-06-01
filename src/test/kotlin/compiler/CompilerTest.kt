@@ -1,5 +1,8 @@
 package se.wingez.compiler
 
+import compiler.backends.emulator.DataType
+import compiler.backends.emulator.byteType
+import compiler.backends.emulator.voidType
 import compiler.frontend.StructBuilder
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test

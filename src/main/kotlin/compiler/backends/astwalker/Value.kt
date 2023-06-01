@@ -2,8 +2,8 @@ package se.wingez.compiler.backends.astwalker
 
 import se.wingez.ast.AstNode
 import se.wingez.ast.NodeTypes
-import se.wingez.astwalker.Datatype
-import se.wingez.astwalker.TypeProvider
+import compiler.frontend.Datatype
+import compiler.frontend.TypeProvider
 import se.wingez.compiler.frontend.FunctionDefinitionResolver
 
 class Value private constructor(

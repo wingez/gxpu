@@ -1,5 +1,8 @@
 package se.wingez.compiler
 
+import compiler.backends.emulator.StructDataField
+import compiler.backends.emulator.StructType
+import compiler.backends.emulator.byteType
 import compiler.frontend.buildStruct
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test

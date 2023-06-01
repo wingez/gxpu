@@ -9,6 +9,7 @@ import se.wingez.ast.parserFromLine
 import se.wingez.compiler.backends.astwalker.WalkConfig
 import se.wingez.compiler.backends.astwalker.WalkerException
 import se.wingez.compiler.backends.astwalker.walk
+import se.wingez.compiler.frontend.FrontendCompilerError
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -52,13 +53,13 @@ internal class WalkerTest {
             parserFromFile(
                 """
                 def main():
-                  val a=5
+                  val a:int=5
                   print(a)
             """.trimIndent()
             ).parseFunctionDefinition()
         assertEquals(listOf("5"), walk(function).result)
 
-        assertThrows<WalkerException> {
+        assertThrows<FrontendCompilerError> {
             walk(
                 parserFromFile(
                     """

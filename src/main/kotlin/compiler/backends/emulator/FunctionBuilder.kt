@@ -1,5 +1,9 @@
 package se.wingez.compiler
 
+import compiler.backends.emulator.DataType
+import compiler.backends.emulator.StructType
+import compiler.backends.emulator.TypeProvider
+import compiler.backends.emulator.stackFrameType
 import compiler.frontend.StructBuilder
 import se.wingez.ast.AstNode
 import se.wingez.ast.NodeTypes

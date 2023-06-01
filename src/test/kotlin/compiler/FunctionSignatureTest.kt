@@ -1,5 +1,6 @@
 package se.wingez.compiler
 
+import compiler.backends.emulator.*
 import compiler.frontend.StructBuilder
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals

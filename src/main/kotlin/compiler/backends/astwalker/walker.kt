@@ -3,8 +3,8 @@ package se.wingez.compiler.backends.astwalker
 import se.wingez.ast.AstNode
 import se.wingez.ast.FunctionType
 import se.wingez.ast.NodeTypes
-import se.wingez.astwalker.Datatype
-import se.wingez.astwalker.TypeProvider
+import compiler.frontend.Datatype
+import compiler.frontend.TypeProvider
 import se.wingez.compiler.frontend.*
 
 class WalkerException(msg: String = "") : Exception(msg)
@@ -144,6 +144,11 @@ class WalkerState(
         // Add result variable
         createNewVariable("result", getType(userFunction.definition.returnType.name))
 
+        // Add local variables
+        userFunction.functionContent.localVariables.forEach {
+            createNewVariable(it.name, it.datatype)
+        }
+
         // Add arguments as local variables
         /*funcNode.arguments.map { it.asNewVariable() }.zip(parameters).forEach { (memberInfo, value) ->
             assert(getType(memberInfo.optionalTypeDefinition!!).instantiate() == value.datatype)
@@ -171,6 +176,10 @@ class WalkerState(
         when (instruction) {
             is Execute -> {
                 getValueOf(instruction.expression)
+            }
+
+            is Assign -> {
+                handleAssign(instruction)
             }
         }
 
@@ -322,19 +331,18 @@ class WalkerState(
 
     }
 
-    /*private fun handleAssign(child: AstNode): ControlFlow {
-        val assignNode = child.asAssign()
+    private fun handleAssign(instr: Assign) {
 
-        val valueToAssign = getValueOf(assignNode.value)
-        val holderToAssignTo = getValueHolderOf(assignNode.target)
+        val valueToAssign = getValueOf(instr.value)
+        val holderToAssignTo = getValueHolderOf(instr.member)
 
         if (valueToAssign.datatype != holderToAssignTo.type) {
             throw WalkerException("Type mismatch. Expected ${holderToAssignTo.type}, got ${valueToAssign.datatype}")
         }
 
         holderToAssignTo.value = valueToAssign
-        return ControlFlow.Normal
-    }*/
+        //return ControlFlow.Normal
+    }
 
     /*fun handleCallIgnoreResult(node: AstNode): ControlFlow {
         handleCall(node)
@@ -392,21 +400,23 @@ class WalkerState(
         return getVariableHolder(variableName).value
     }
 
-    /*fun getValueHolderOf(node: AstNode): IValueHolder {
-        return when (node.type) {
+    fun getValueHolderOf(variableName: String): IValueHolder {
+        return getVariableHolder(variableName)
+        /*return when (node.type) {
             NodeTypes.Identifier -> getVariableHolder(node.asIdentifier())
-            NodeTypes.ArrayAccess -> getArrayIndexValueHolder(node)
-            NodeTypes.MemberAccess -> getMemberValueHolder(node)
+            //NodeTypes.ArrayAccess -> getArrayIndexValueHolder(node)
+            //NodeTypes.MemberAccess -> getMemberValueHolder(node)
 
             else -> throw WalkerException("Not supported yet")
-        }
-    }*/
+        }*/
+    }
 
     fun getValueOf(valueExpression: ValueExpression): Value {
 
         return when (valueExpression) {
             is ConstantExpression -> Value.primitive(Datatype.Integer, valueExpression.value)
             is CallExpression -> handleCall(valueExpression)
+            is VariableExpression -> getVariable(valueExpression.variable.name)
 
             else -> throw NotImplementedError()
         }

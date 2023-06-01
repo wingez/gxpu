@@ -2,7 +2,7 @@ package se.wingez.compiler.backends.astwalker
 
 import se.wingez.ast.FunctionType
 import se.wingez.ast.OperatorBuiltIns
-import se.wingez.astwalker.Datatype
+import compiler.frontend.Datatype
 import se.wingez.compiler.frontend.FunctionDefinition
 
 abstract class Function(

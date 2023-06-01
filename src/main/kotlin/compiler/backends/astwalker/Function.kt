@@ -1,11 +1,11 @@
 package se.wingez.compiler.backends.astwalker
 
 import se.wingez.ast.AstNode
-import se.wingez.astwalker.TypeProvider
+import compiler.frontend.TypeProvider
 import se.wingez.compiler.frontend.FunctionContent
 import se.wingez.compiler.frontend.FunctionDefinition
 import se.wingez.compiler.frontend.FunctionDefinitionResolver
-import se.wingez.compiler.frontend.flattenFunction
+import se.wingez.compiler.frontend.compileFunction
 
 interface IWalkerFunction {
     val definition: FunctionDefinition
@@ -13,10 +13,10 @@ interface IWalkerFunction {
 }
 
 class UserFunction(
-    frontendFunction: FunctionContent
+    val functionContent: FunctionContent
 ) : IWalkerFunction {
-    override val definition: FunctionDefinition = frontendFunction.definition
-    val codeBlock = frontendFunction.codeBlock
+    override val definition: FunctionDefinition = functionContent.definition
+    val codeBlock = functionContent.codeBlock
 
     override fun execute(values: List<Value>, state: WalkerState): Value {
         return state.walkUserFunction(this, values)
@@ -29,7 +29,7 @@ fun definitionFromFuncNode(
     functionProvider: FunctionDefinitionResolver
 ): UserFunction {
 
-    val function = flattenFunction(node, functionProvider)
+    val function = compileFunction(node, functionProvider, typeProvider)
 
     return UserFunction(function)
 }

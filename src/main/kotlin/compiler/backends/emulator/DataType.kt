@@ -1,6 +1,8 @@
-package se.wingez.compiler
+package compiler.backends.emulator
 
 import se.wingez.ast.TypeDefinition
+import se.wingez.compiler.PC_STACK_SIZE
+import se.wingez.compiler.SP_STACK_SIZE
 
 interface DataType {
     val size: Int

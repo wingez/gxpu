@@ -1,5 +1,7 @@
 package se.wingez.astwalker
 
+import compiler.frontend.Datatype
+import compiler.frontend.TypeProvider
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows

@@ -1,4 +1,4 @@
-package se.wingez.astwalker
+package compiler.frontend
 
 import se.wingez.ast.TypeDefinition
 
