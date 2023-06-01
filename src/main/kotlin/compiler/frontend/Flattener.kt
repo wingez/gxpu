@@ -39,6 +39,14 @@ class VariableExpression(
     override val type = variable.datatype
 }
 
+class MemberAccess(
+    val name: String,
+    val value: ValueExpression,
+) : ValueExpression {
+    override val type: Datatype
+        get() = value.type.compositeMembers.getValue(name)
+}
+
 class CallExpression(
     val function: FunctionDefinition,
     val parameters: List<ValueExpression>
@@ -253,8 +261,20 @@ private class FunctionCompiler(
             NodeTypes.Constant -> ConstantExpression(node.asConstant())
             NodeTypes.Identifier -> VariableExpression(lookupVariable(node.asIdentifier(), variables))
             NodeTypes.String -> StringExpression(node.asString())
+            NodeTypes.MemberAccess -> parseMemberAccess(node)
             else -> throw AssertionError("Cannot parse node ${node.type} yet")
         }
+    }
+
+    private fun parseMemberAccess(node: AstNode): ValueExpression {
+        val value = parseExpression(node.childNodes.first())
+        val memberName = node.asIdentifier()
+
+        if (!value.type.isComposite() || value.type.compositeMembers.contains(memberName)) {
+            throw FrontendCompilerError("Type ${value.type} has no field $memberName")
+        }
+
+        return MemberAccess(memberName, value)
     }
 
     private fun findTypeOfExpression(
