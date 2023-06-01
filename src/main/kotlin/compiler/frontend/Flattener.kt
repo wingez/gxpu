@@ -3,7 +3,6 @@ package se.wingez.compiler.frontend
 import compiler.frontend.Datatype
 import compiler.frontend.TypeProvider
 import se.wingez.ast.*
-import se.wingez.compiler.CompiledProgram
 
 class FrontendCompilerError(message: String) : Error(message)
 
@@ -204,6 +203,7 @@ private class FunctionCompiler(
 
             NodeTypes.Assign -> parseAssign(node, codeBlock)
             NodeTypes.If -> parseIf(node, codeBlock)
+            NodeTypes.While -> parseWhile(node, codeBlock)
 
             else -> {
                 val valueExpression = parseExpression(node)
@@ -288,6 +288,39 @@ private class FunctionCompiler(
             currentCodeBlock.newCodeBlock(endLabel)
         }
     }
+
+    fun parseWhile(
+        node: AstNode,
+        currentCodeBlock: CodeBlock,
+    ) {
+
+        val whileNode = node.asWhile()
+
+        val condition = parseExpression(whileNode.condition)
+        if (condition.type != Datatype.Boolean) {
+            throw FrontendCompilerError("type of condition must be bool")
+        }
+
+        val id = controlStatementCounter++
+
+        val whileBodyLabel = Label("while-$id-begin")
+        val endLabel = Label("while-$id-end")
+
+
+        val bodyCodeBlock = currentCodeBlock.newCodeBlock(whileBodyLabel)
+
+        bodyCodeBlock.addInstruction(
+            JumpOnFalse(
+                condition,
+                endLabel
+            )
+        )
+        flattenStatements(whileNode.body, bodyCodeBlock)
+        bodyCodeBlock.addInstruction(Jump(whileBodyLabel))
+        currentCodeBlock.newCodeBlock(endLabel)
+
+    }
+
 
     private fun parseAssign(
         node: AstNode,
