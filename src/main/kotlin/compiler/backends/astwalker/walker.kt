@@ -42,7 +42,7 @@ fun walk(nodes: List<AstNode>, config: WalkConfig = WalkConfig.default): WalkerO
 
 enum class ControlFlow {
     Normal,
-    Break,
+    Jump,
     Return,
 }
 
@@ -159,8 +159,32 @@ class WalkerState(
 
         // Walk the function
 
-        for (instr in userFunction.codeBlock.instructions) {
-            walkInstruction(instr)
+        val code = userFunction.code
+
+        var currentInstructionIndex = 0
+
+        var totalInstructionsCounter = 0
+        while (true) {
+            if (totalInstructionsCounter++ > config.maxLoopIterations) {
+                throw WalkerException("Maximum instructions exceeded")
+            }
+
+            if (currentInstructionIndex >= code.instructions.size) {
+                // FIXME: Auto return??
+                break
+            }
+
+            val toExecute = code.instructions[currentInstructionIndex]
+            val (controlFlow, jumpLabel) = walkInstruction(toExecute)
+
+            when (controlFlow) {
+                ControlFlow.Normal -> currentInstructionIndex++
+                ControlFlow.Jump -> {
+                    currentInstructionIndex = code.labels.getValue(jumpLabel!!)
+                }
+
+                ControlFlow.Return -> throw NotImplementedError()
+            }
         }
 
         val result = currentFrame.valueHolders.getValue("result").value
@@ -171,9 +195,24 @@ class WalkerState(
         return result
     }
 
-    private fun walkInstruction(instruction: Instruction) {
+    /**
+    A non-null value represents the next label we should go to
+     **/
+    private fun walkInstruction(instruction: Instruction): Pair<ControlFlow, Label?> {
 
         when (instruction) {
+            is Jump -> {
+                return ControlFlow.Jump to instruction.label
+            }
+
+            is JumpOnTrue -> {
+                return jumpHelper(instruction.condition, jumpOn = true, instruction.label)
+            }
+
+            is JumpOnFalse -> {
+                return jumpHelper(instruction.condition, jumpOn = false, instruction.label)
+            }
+
             is Execute -> {
                 getValueOf(instruction.expression)
             }
@@ -181,6 +220,20 @@ class WalkerState(
             is Assign -> {
                 handleAssign(instruction)
             }
+        }
+
+        return ControlFlow.Normal to null
+    }
+
+    private fun jumpHelper(condition: ValueExpression, jumpOn: Boolean, label: Label): Pair<ControlFlow, Label?> {
+        val value = getValueOf(condition)
+        assert(value.datatype == Datatype.Boolean)
+
+        val compareValue = if (jumpOn) 1 else 0
+        if (value.getPrimitiveValue() == compareValue) {
+            return ControlFlow.Jump to label
+        } else {
+            return ControlFlow.Normal to null
         }
 
 
