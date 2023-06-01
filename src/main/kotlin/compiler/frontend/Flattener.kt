@@ -46,6 +46,12 @@ class CallExpression(
     override val type: Datatype = function.returnType
 }
 
+class StringExpression(
+    val string: String
+) : ValueExpression {
+    override val type: Datatype = Datatype.Str
+}
+
 class Execute(
     val expression: ValueExpression
 ) : Instruction
@@ -156,6 +162,8 @@ private class FunctionCompiler(
 
         //TODO: Perhaps handle inlining here?
 
+        //TODO: Perhaps extract strings??
+
         // Step 3
         // Convert to code block
         val functionCodeBlock = flattenFunction(functionNode)
@@ -244,7 +252,7 @@ private class FunctionCompiler(
 
             NodeTypes.Constant -> ConstantExpression(node.asConstant())
             NodeTypes.Identifier -> VariableExpression(lookupVariable(node.asIdentifier(), variables))
-
+            NodeTypes.String -> StringExpression(node.asString())
             else -> throw AssertionError("Cannot parse node ${node.type} yet")
         }
     }

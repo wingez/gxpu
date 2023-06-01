@@ -472,6 +472,7 @@ class WalkerState(
             is ConstantExpression -> Value.primitive(Datatype.Integer, valueExpression.value)
             is CallExpression -> handleCall(valueExpression)
             is VariableExpression -> getVariable(valueExpression.variable.name)
+            is StringExpression -> createFromString(valueExpression.string)
 
             else -> throw NotImplementedError()
         }

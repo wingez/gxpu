@@ -98,6 +98,8 @@ class Datatype private constructor(
         val Void = Datatype("void", DatatypeClass.Void, null, null, DefaultInstanceBehaviour.Raw)
         val Boolean = Datatype("bool", DatatypeClass.Bool, null, null, DefaultInstanceBehaviour.Raw)
 
+        val Str = Pointer(Array(Integer))
+
         fun Composite(name: String, members: Map<String, Datatype>): Datatype {
             return Datatype(name, DatatypeClass.Composite, members, null, DefaultInstanceBehaviour.Pointer)
         }
