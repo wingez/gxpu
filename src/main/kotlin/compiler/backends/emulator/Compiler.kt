@@ -1,14 +1,10 @@
-package se.wingez.compiler
+package compiler.backends.emulator
 
-import compiler.backends.emulator.DEFAULT_TYPE
-import compiler.backends.emulator.DataType
-import compiler.backends.emulator.TypeProvider
-import compiler.backends.emulator.voidType
+import compiler.backends.emulator.emulator.DefaultEmulator
+import compiler.backends.emulator.instructions.Instruction
 import compiler.frontend.buildStruct
 import se.wingez.ast.AstNode
 import se.wingez.ast.NodeTypes
-import se.wingez.compiler.backends.emulator.emulator.DefaultEmulator
-import se.wingez.compiler.backends.emulator.instructions.Instruction
 
 data class GenerateLater(
     val instruction: Instruction,

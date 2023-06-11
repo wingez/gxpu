@@ -5,7 +5,7 @@ import compiler.backends.emulator.TypeProvider
 import se.wingez.ast.AstNode
 import se.wingez.ast.NodeTypes
 import se.wingez.ast.ParserError
-import se.wingez.compiler.CompileError
+import compiler.backends.emulator.CompileError
 
 class StructBuilder {
     private var currentSize = 0

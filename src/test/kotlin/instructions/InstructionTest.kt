@@ -1,13 +1,13 @@
 package se.wingez.instructions
 
+import compiler.backends.emulator.emulator.Emulator
+import compiler.backends.emulator.instructions.Instruction
+import compiler.backends.emulator.instructions.InstructionBuilderError
+import compiler.backends.emulator.instructions.InstructionSet
+import compiler.backends.emulator.instructions.RegisterInstructionError
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import se.wingez.bytes
-import se.wingez.compiler.backends.emulator.emulator.Emulator
-import se.wingez.compiler.backends.emulator.instructions.Instruction
-import se.wingez.compiler.backends.emulator.instructions.InstructionBuilderError
-import se.wingez.compiler.backends.emulator.instructions.InstructionSet
-import se.wingez.compiler.backends.emulator.instructions.RegisterInstructionError
 
 val emptyEmulate = { _: Emulator -> }
 

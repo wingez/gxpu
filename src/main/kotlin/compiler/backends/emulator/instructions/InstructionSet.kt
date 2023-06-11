@@ -1,7 +1,7 @@
-package se.wingez.compiler.backends.emulator.instructions
+package compiler.backends.emulator.instructions
 
-import se.wingez.compiler.backends.emulator.emulator.Emulator
-import se.wingez.compiler.backends.emulator.instructions.Instruction.Companion.MNEMONIC_DELIMITERS
+import compiler.backends.emulator.emulator.Emulator
+import compiler.backends.emulator.instructions.Instruction.Companion.MNEMONIC_DELIMITERS
 import se.wingez.splitMany
 import java.io.StringReader
 

@@ -1,9 +1,5 @@
-package se.wingez.compiler
+package compiler.backends.emulator
 
-import compiler.backends.emulator.DataType
-import compiler.backends.emulator.StructDataField
-import compiler.backends.emulator.TypeProvider
-import compiler.backends.emulator.voidType
 import se.wingez.ast.AstNode
 import se.wingez.ast.NodeTypes
 

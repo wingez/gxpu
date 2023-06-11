@@ -1,13 +1,13 @@
 package se.wingez.emulator
 
+import compiler.backends.emulator.emulator.*
+import compiler.backends.emulator.instructions.InstructionSet
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertIterableEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import se.wingez.byte
 import se.wingez.bytes
-import se.wingez.compiler.backends.emulator.emulator.*
-import se.wingez.compiler.backends.emulator.instructions.InstructionSet
 import java.io.StringReader
 
 internal class EmulatorBasicTest {

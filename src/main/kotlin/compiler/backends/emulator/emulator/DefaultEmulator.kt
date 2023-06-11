@@ -1,7 +1,7 @@
-package se.wingez.compiler.backends.emulator.emulator
+package compiler.backends.emulator.emulator
 
+import compiler.backends.emulator.instructions.InstructionSet
 import se.wingez.byte
-import se.wingez.compiler.backends.emulator.instructions.InstructionSet
 
 class DefaultEmulator : Emulator(instructionSet) {
 

@@ -1,9 +1,9 @@
-package se.wingez.compiler.backends.emulator.emulator
+package compiler.backends.emulator.emulator
 
 import se.wingez.ast.AstParser
-import se.wingez.compiler.BuiltFunction
-import se.wingez.compiler.BuiltInFunctions
-import se.wingez.compiler.Compiler
+import compiler.backends.emulator.BuiltFunction
+import compiler.backends.emulator.BuiltInFunctions
+import compiler.backends.emulator.Compiler
 import se.wingez.tokens.parseFile
 import java.io.File
 import kotlin.math.max

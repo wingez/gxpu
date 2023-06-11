@@ -1,6 +1,7 @@
-package se.wingez.compiler.backends.emulator.emulator
+package compiler.backends.emulator.emulator
 
-import se.wingez.compiler.backends.emulator.instructions.InstructionSet
+import compiler.backends.emulator.instructions.InstructionSet
+
 
 open class EmulatorRuntimeError(message: String) : Exception(message)
 class EmulatorCyclesExceeded(message: String) : EmulatorRuntimeError(message)

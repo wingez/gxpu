@@ -1,8 +1,7 @@
 package se.wingez.compiler
 
-import compiler.backends.emulator.DataType
-import compiler.backends.emulator.byteType
-import compiler.backends.emulator.voidType
+import compiler.backends.emulator.*
+import compiler.backends.emulator.emulator.DefaultEmulator
 import compiler.frontend.StructBuilder
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
@@ -11,7 +10,6 @@ import se.wingez.ast.function
 import se.wingez.ast.parseExpressions
 import se.wingez.ast.parserFromFile
 import se.wingez.byte
-import se.wingez.compiler.backends.emulator.emulator.DefaultEmulator
 import se.wingez.tokens.parseFile
 import java.io.StringReader
 import kotlin.test.assertEquals

@@ -1,4 +1,4 @@
-package se.wingez.compiler
+package compiler.backends.emulator
 
 class CompileError(message: String) : Exception(message)
 

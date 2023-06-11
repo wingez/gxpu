@@ -7,12 +7,12 @@ import org.junit.jupiter.api.assertThrows
 import se.wingez.TokenEndBlock
 import se.wingez.ast.AstParser
 import se.wingez.bytes
-import se.wingez.compiler.CompileError
-import se.wingez.compiler.Compiler
+import compiler.backends.emulator.CompileError
+import compiler.backends.emulator.Compiler
+import compiler.backends.emulator.emulator.DefaultEmulator
+import compiler.backends.emulator.emulator.EmulatorCyclesExceeded
 import se.wingez.compiler.DummyBuiltInProvider
 import se.wingez.compiler.buildSingleMainFunction
-import se.wingez.compiler.backends.emulator.emulator.DefaultEmulator
-import se.wingez.compiler.backends.emulator.emulator.EmulatorCyclesExceeded
 import se.wingez.tokens.parseFile
 import java.io.StringReader
 import kotlin.test.assertEquals
