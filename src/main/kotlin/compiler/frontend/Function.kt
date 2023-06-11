@@ -56,6 +56,6 @@ private fun definitionFromFunctionNode(functionNode: AstNode, typeProvider: Type
         name = function.name,
         parameterTypes = parameters,
         returnType = returnType,
-        functionType = FunctionType.Normal,
+        functionType = function.type,
     )
 }
