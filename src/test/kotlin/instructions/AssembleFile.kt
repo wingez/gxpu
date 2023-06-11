@@ -1,12 +1,12 @@
 package se.wingez.instructions
 
-import compiler.backends.emulator.instructions.AssembleError
 import compiler.backends.emulator.instructions.Instruction
 import compiler.backends.emulator.instructions.InstructionSet
 import org.junit.jupiter.api.Assertions.assertIterableEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
+import se.wingez.compiler.backends.emulator.instructions.AssembleError
 
 internal class TestAssembleFile {
     @Test
