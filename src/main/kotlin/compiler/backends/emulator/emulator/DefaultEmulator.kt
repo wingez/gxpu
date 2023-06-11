@@ -132,16 +132,13 @@ class DefaultEmulator : Emulator(instructionSet) {
 
         val call_addr = instructionSet.createInstruction("CALL #addr", group = FLOW_CONTROL) {
             val addr = it.getIncPC()
-            it.push(it.fp)
-            it.push(it.pc)
-            it.fp = it.sp
+            it.pushFrame()
             it.pc = addr
         }
 
         val ret = instructionSet.createInstruction("RET", group = FLOW_CONTROL) {
             it.sp = it.fp
-            it.pc = it.pop()
-            it.fp = it.pop()
+            it.restoreFrame()
         }
 
         val jump = instructionSet.createInstruction("JMP #addr", group = FLOW_CONTROL) {

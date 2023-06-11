@@ -7,6 +7,11 @@ class EmulatorCyclesExceeded(message: String) : EmulatorRuntimeError(message)
 class EmulatorInstructionError(message: String) : EmulatorRuntimeError(message)
 class EmulatorInvalidInstructionError(message: String) : EmulatorRuntimeError(message)
 
+private data class Frame(
+    val pc: UByte,
+    val fp: UByte,
+)
+
 open class Emulator(
     val instructionSet: InstructionSet,
     val memorySize: Int = MEMORY_SIZE,
@@ -18,13 +23,15 @@ open class Emulator(
     val outputStream = mutableListOf<UByte>()
     val memory = Array<UByte>(memorySize) { 0u }
 
+    private val frameStack = mutableListOf<Frame>()
+
+
     var a: UByte = 0u
     var pc: UByte = 0u
     var fp: UByte = 0u
     var sp: UByte = 0u
     var zeroFlag: Boolean = false
     var shouldHalt: Boolean = false
-
     fun reset() {
         a = 0u
         pc = 0u
@@ -111,5 +118,16 @@ open class Emulator(
             }
         }
         throw EmulatorCyclesExceeded("Maximum execution cycles exceeded, stuck in infinite loop perhaps?")
+    }
+
+    fun pushFrame() {
+        frameStack.add(Frame(pc=pc, fp = fp))
+    }
+
+    fun restoreFrame() {
+        frameStack.removeLast().also {
+            this.pc = it.pc
+            this.fp = it.fp
+        }
     }
 }

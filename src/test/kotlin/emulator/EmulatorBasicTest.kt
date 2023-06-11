@@ -150,10 +150,8 @@ internal class EmulatorBasicTest {
         val e = assembleLoadEmulator(program)
         e.run()
 
-        assertEquals(e.getMemoryAt(25 - 1), byte(25))
-        assertEquals(e.getMemoryAt(25 - 2), byte(6))
-        assertEquals(e.fp, byte(23))
-        assertEquals(e.sp, byte(23))
+        assertEquals(e.fp, byte(25))
+        assertEquals(e.sp, byte(25))
     }
 
     @Test
