@@ -222,15 +222,7 @@ private class FunctionCompiler(
         when (node.type) {
 
             NodeTypes.NewVariable -> {
-                val newVal = node.asNewVariable()
-                if (newVal.hasTypeFromAssignment) {
-                    parseAssign(
-                        AstNode.fromAssign(
-                            target = AstNode.fromIdentifier(newVal.name),
-                            value = newVal.assignmentType
-                        ), codeBlock
-                    )
-                }
+                //Do nothing
             }
 
             NodeTypes.Assign -> parseAssign(node, codeBlock)
