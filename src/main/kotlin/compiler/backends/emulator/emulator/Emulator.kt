@@ -89,12 +89,13 @@ open class Emulator(
     }
 
     fun push(value: UByte) {
-        sp--
         setMemoryAt(sp.toInt(), value)
+        sp++
     }
 
     fun pop(): UByte {
-        return getMemoryAt((sp++).toInt())
+        sp--
+        return getMemoryAt((sp).toInt())
     }
 
     fun halt() {
@@ -122,7 +123,7 @@ open class Emulator(
     }
 
     fun pushFrame() {
-        frameStack.add(Frame(pc=pc, fp = fp))
+        frameStack.add(Frame(pc = pc, fp = fp))
     }
 
     fun restoreFrame() {
