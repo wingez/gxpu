@@ -1,7 +1,6 @@
 package compiler.frontend
 
 import compiler.backends.emulator.*
-import compiler.backends.emulator.TypeProvider
 import se.wingez.ast.AstNode
 import se.wingez.ast.NodeTypes
 import se.wingez.ast.ParserError
@@ -50,9 +49,10 @@ fun buildStruct(node: AstNode, typeProvider: TypeProvider): StructType {
 
         val fieldType: DataType = if (memberDeclaration.optionalTypeDefinition!!.typeName.isEmpty())
             DEFAULT_TYPE
-        else
-            typeProvider.getType(memberDeclaration.optionalTypeDefinition)
-
+        else {
+            throw NotImplementedError()
+            //typeProvider.getType(memberDeclaration.optionalTypeDefinition)
+        }
         builder.addMember(memberDeclaration.name, fieldType)
     }
 

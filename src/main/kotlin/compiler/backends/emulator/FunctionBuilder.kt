@@ -3,31 +3,29 @@ package compiler.backends.emulator
 import compiler.backends.emulator.emulator.DefaultEmulator
 import compiler.backends.emulator.instructions.Instruction
 import compiler.frontend.StructBuilder
+import compiler.frontend.TypeProvider
 import se.wingez.ast.AstNode
-import se.wingez.ast.NodeTypes
-
-
-interface FunctionProvider {
-    fun findSignature(name: String, parameterSignature: List<DataType>): FunctionSignature
-}
+import se.wingez.byte
+import se.wingez.compiler.frontend.*
 
 data class BuiltFunction(
-    val signature: FunctionSignature,
+    val signature: FunctionDefinition,
     val generator: CodeGenerator,
     val layout: StructType,
     val sizeOfVars: Int,
 )
 
 fun buildFunctionBody(
-    nodes: List<AstNode>,
-    signature: FunctionSignature,
-    functionProvider: FunctionProvider,
+    node: AstNode,
+    signature: FunctionDefinition,
+    functionProvider: FunctionDefinitionResolver,
     typeProvider: TypeProvider,
+    datatypeLayoutProvider: DatatypeLayoutProvider,
 ): BuiltFunction {
 
-    val builder = FunctionBuilder(signature, functionProvider, typeProvider)
+    val builder = FunctionBuilder(signature, functionProvider, typeProvider, datatypeLayoutProvider)
 
-    return builder.buildBody(nodes)
+    return builder.buildBody(node)
 }
 
 private data class VariableLink(
@@ -37,9 +35,10 @@ private data class VariableLink(
 )
 
 class FunctionBuilder(
-    val signature: FunctionSignature,
-    val functionProvider: FunctionProvider,
+    val signature: FunctionDefinition,
+    val functionProvider: FunctionDefinitionResolver,
     val typeProvider: TypeProvider,
+    val datatypeLayoutProvider: DatatypeLayoutProvider,
 ) {
 
     val generator = CodeGenerator()
@@ -55,26 +54,27 @@ class FunctionBuilder(
     }
 
     fun addLocalVariable(name: String, type: DataType) {
-        if (name == "result" ||
-            name in signature.parameters.map { it.name } ||
-            name in localVariables
-        ) {
-            throw CompileError("Already added a variable with name $name")
-        }
+//        if (name == "result" ||
+//            name in signature.parameters.map { it.name } ||
+//            name in localVariables
+//        ) {
+//            throw CompileError("Already added a variable with name $name")
+//        }
+//
+//        localVariables[name] = type
+//    }
 
-        localVariables[name] = type
-    }
-
-    fun getLocalVariableType(name: String): DataType {
-        if (name == "result") {
-            return signature.returnType
-        }
-        val parameter = signature.parameters.find { it.name == name }
-        if (parameter != null) {
-            return parameter.type
-        }
-
-        return localVariables.getValue(name)
+//    fun getLocalVariableType(name: String): DataType {
+//        if (name == "result") {
+//            return signature.returnType
+//        }
+//        val parameter = signature.parameters.find { it.name == name }
+//        if (parameter != null) {
+//            return parameter.type
+//        }
+//
+//        return localVariables.getValue(name)
+        throw NotImplementedError()
     }
 
 
@@ -86,11 +86,6 @@ class FunctionBuilder(
 
     fun handleStatement(node: AstNode) {
 
-        if (node.type == NodeTypes.Assign) {
-            buildAssignment(node, this)
-        } else {
-            buildNoResultStatement(node, this)
-        }
     }
 
     fun handleReturn(node: AstNode) {
@@ -100,67 +95,78 @@ class FunctionBuilder(
         generator.generate(DefaultEmulator.ret.build())
     }
 
-    private fun handleIf(node: AstNode) {
-        val ifData = node.asIf()
-
-        putOnStack(ifData.condition, this)
-
-        generator.generate(DefaultEmulator.test_pop.build())
-        val jumpToFalseCondition = generator.makeSpaceFor(DefaultEmulator.jump_zero)
-        buildNodes(ifData.ifBody)
-
-        val jumpToEnd = if (ifData.hasElse) generator.makeSpaceFor(DefaultEmulator.jump) else null
-
-        //TODO size
-        generator.link(jumpToFalseCondition, signature, LinkType.FunctionAddress, generator.currentSize)
-
-        if (ifData.hasElse) {
-            buildNodes(ifData.elseBody)
-            jumpToEnd ?: throw AssertionError()
-            //TODO size
-            generator.link(jumpToEnd, signature, LinkType.FunctionAddress, generator.currentSize)
-        }
-    }
-
-
-    private fun handleWhile(node: AstNode) {
-        val startOfBlock = generator.currentSize
-
-        putOnStack(node.asWhile().condition, this)
-        generator.generate(DefaultEmulator.test_pop.build())
-
-        val jumpToExit = generator.makeSpaceFor(DefaultEmulator.jump_zero)
-        buildNodes(node.asWhile().body)
-        //TODO size
-        generator.link(DefaultEmulator.jump, signature, LinkType.FunctionAddress, startOfBlock)
-        generator.link(jumpToExit, signature, LinkType.FunctionAddress, generator.currentSize)
-    }
 
     fun handleMemberDeclaration(node: AstNode) {
-        assert(node.type == NodeTypes.NewVariable)
-        val memberData = node.asNewVariable()
-        val memberType = typeProvider.getType(memberData.optionalTypeDefinition!!)
-
-
-        addLocalVariable(memberData.name, memberType)
     }
 
     fun buildStatement(node: AstNode) {
 
 
-        when (node.type) {
-            // TODO: what should we do here???
-            NodeTypes.NewVariable -> handleMemberDeclaration(node)
-            NodeTypes.Return -> handleReturn(node)
-            NodeTypes.If -> handleIf(node)
-            NodeTypes.While -> handleWhile(node)
-            else -> handleStatement(node)
-
-        }
     }
 
-    fun buildBody(nodes: Iterable<AstNode>): BuiltFunction {
-        buildNodes(nodes)
+    private fun putOnStack(expr: ValueExpression) {
+
+        when (expr) {
+            is ConstantExpression -> {
+                generator.generate(DefaultEmulator.push.build(mapOf("val" to expr.value)))
+            }
+
+            else -> throw AssertionError()
+        }
+
+
+    }
+
+    private fun handleCall(instr: Execute) {
+        //TODO: handle pop result
+
+        val expr = instr.expression
+
+        if (expr !is CallExpression) throw NotImplementedError()
+
+        for (parameterExpr in expr.parameters) {
+            putOnStack(parameterExpr)
+        }
+
+        generator.link(DefaultEmulator.call_addr, expr.function, LinkType.FunctionAddress)
+
+        // pop arguments if neccesary
+        val argumentSize = expr.parameters.sumOf { this.datatypeLayoutProvider.sizeOf(it.type) }
+        if (argumentSize > 0) {
+            generator.generate(DefaultEmulator.add_sp.build(mapOf("val" to argumentSize)))
+        }
+
+    }
+
+    private fun buildInstruction(instr: se.wingez.compiler.frontend.Instruction) {
+
+
+        when (instr) {
+            is Execute -> handleCall(instr)
+        }
+
+
+    }
+
+    private fun buildCodeBody(code: SemiCompiledCode) {
+
+
+        for ((index, instruction) in code.instructions.withIndex()) {
+            buildInstruction(instruction)
+
+        }
+
+
+    }
+
+    fun buildBody(node: AstNode): BuiltFunction {
+
+        val functionContent = compileFunction(node, functionProvider, typeProvider)
+
+        assert(functionContent.localVariables.isEmpty())
+        //FIXME: ADD variables
+
+        buildCodeBody(functionContent.code)
 
         handleReturn(AstNode.fromReturn())
 
@@ -171,15 +177,15 @@ class FunctionBuilder(
             .addMember("frame", stackFrameType)
 
 
-        for (parameter in signature.parameters) {
-            layoutBuilder.addMember(parameter.name, parameter.type)
-        }
+        // for (parameter in signature.parameters) {
+        //   layoutBuilder.addMember(parameter.name, parameter.type)
+        //}
 
         for (localVar in localVariables) {
             layoutBuilder.addMember(localVar.key, localVar.value)
         }
 
-        layoutBuilder.addMember("result", signature.returnType)
+        //layoutBuilder.addMember("result", signature.returnType)
 
         val struct = layoutBuilder.getStruct(signature.name)
 
@@ -190,4 +196,6 @@ class FunctionBuilder(
 
         return BuiltFunction(signature, generator, struct, localVariables.values.sumOf { it.size })
     }
+
 }
+

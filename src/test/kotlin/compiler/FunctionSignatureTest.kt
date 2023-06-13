@@ -1,28 +1,33 @@
 package se.wingez.compiler
 
 import compiler.backends.emulator.*
+import compiler.frontend.Datatype
 import compiler.frontend.StructBuilder
+import compiler.frontend.TypeProvider
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertIterableEquals
 import org.junit.jupiter.api.Test
 import se.wingez.ast.AstParser
+import se.wingez.ast.FunctionType
+import se.wingez.compiler.frontend.FunctionDefinition
+import se.wingez.compiler.frontend.FunctionDefinitionResolver
 import se.wingez.tokens.parseFile
 import java.io.StringReader
 
 class TypeContainer(
-    private val types: List<DataType>
+    private val types: List<Datatype>
 ) : TypeProvider {
-    override fun getType(name: String): DataType {
+    override fun getType(name: String): Datatype {
         if (name.isEmpty())
-            return byteType
+            return Datatype.Integer
 
         return types.find { it.name == name } ?: throw AssertionError("Did not find $name")
 
     }
 }
 
-private val defaultTypes = listOf(voidType, byteType)
+private val defaultTypes = listOf(Datatype.Void, Datatype.Integer)
 
 val dummyTypeContainer = TypeContainer(
     defaultTypes
@@ -35,20 +40,24 @@ internal class FunctionSignatureTest {
         val node = AstParser(parseFile(StringReader(program))).parseFunctionDefinition()
 
 
-        val functionProvider = object : FunctionProvider {
-            override fun findSignature(name: String, parameterSignature: List<DataType>): FunctionSignature {
-                return FunctionSignature.fromNode(node, dummyTypeContainer)
+        val functionProvider = object : FunctionDefinitionResolver {
+            override fun getFunctionDefinitionMatching(
+                name: String,
+                functionType: FunctionType,
+                parameterTypes: List<Datatype>
+            ): FunctionDefinition {
+                return FunctionDefinition.fromFunctionNode(node, dummyTypeContainer)
             }
 
         }
 
 
         val builder = FunctionBuilder(
-            FunctionSignature.fromNode(node, dummyTypeContainer),
-            functionProvider, dummyTypeContainer
+            FunctionDefinition.fromFunctionNode(node, dummyTypeContainer),
+            functionProvider, dummyTypeContainer, dummyDatatypeSizeProvider
         )
 
-        return builder.buildBody(node.childNodes)
+        return builder.buildBody(node)
     }
 
     @Test

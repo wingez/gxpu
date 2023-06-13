@@ -2,34 +2,34 @@ package se.wingez.compiler
 
 import compiler.backends.emulator.*
 import compiler.backends.emulator.emulator.DefaultEmulator
+import compiler.frontend.Datatype
 import compiler.frontend.StructBuilder
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import se.wingez.ast.AstNode
-import se.wingez.ast.function
-import se.wingez.ast.parseExpressions
-import se.wingez.ast.parserFromFile
+import se.wingez.ast.*
 import se.wingez.byte
+import se.wingez.compiler.frontend.FunctionDefinition
+import se.wingez.compiler.frontend.FunctionDefinitionResolver
 import se.wingez.tokens.parseFile
 import java.io.StringReader
 import kotlin.test.assertEquals
 
 
 class DummyBuiltInProvider(
-    private val builtIns: List<BuiltIn> = listOf(Print(), ByteAddition(), ByteSubtraction())
-) : BuiltInProvider, FunctionProvider {
-    override fun getSignatures(): List<FunctionSignature> {
+    private val builtIns: List<BuiltIn> = listOf(Print())//, ByteAddition(), ByteSubtraction()) TODO:
+) : BuiltInProvider, FunctionDefinitionResolver {
+    override fun getSignatures(): List<FunctionDefinition> {
         return builtIns.map { it.signature }
     }
 
-    override fun getTypes(): Map<String, DataType> {
+    override fun getTypes(): Map<String, Datatype> {
         return mapOf(
-            "void" to voidType,
-            "byte" to byteType,
+            "void" to Datatype.Void,
+            "byte" to Datatype.Integer,
         )
     }
 
-    override fun buildSignature(signature: FunctionSignature): BuiltFunction {
+    override fun buildSignature(signature: FunctionDefinition): BuiltFunction {
         for (builtIn in builtIns) {
             if (builtIn.signature == signature) {
 
@@ -42,16 +42,19 @@ class DummyBuiltInProvider(
         throw AssertionError()
     }
 
-    override fun findSignature(name: String, parameterSignature: List<DataType>): FunctionSignature {
+    override fun getFunctionDefinitionMatching(
+        name: String,
+        functionType: FunctionType,
+        parameterTypes: List<Datatype>
+    ): FunctionDefinition {
         for (builtIn in builtIns) {
-            if (builtIn.signature.matchesHeader(name, parameterSignature)) {
+            if (builtIn.signature.matches(name,functionType, parameterTypes)) {
                 return builtIn.signature
             }
         }
 
         throw AssertionError()
     }
-
 }
 
 fun buildSingleMainFunction(nodes: List<AstNode>): List<UByte> {
@@ -65,17 +68,17 @@ fun buildBody(body: String): List<UByte> {
     val nodes = parseExpressions(tokens)
 
 
-    val node = function("main", emptyList(), nodes, "")
-    val signature = FunctionSignature.fromNode(node, dummyTypeContainer)
+    val node = function("main", emptyList(), nodes, "void")
+    val signature = FunctionDefinition.fromFunctionNode(node, dummyTypeContainer)
 
-    val builtFunction = buildFunctionBody(node.childNodes, signature, DummyBuiltInProvider(), dummyTypeContainer)
+    val builtFunction = buildFunctionBody(node, signature, DummyBuiltInProvider(), dummyTypeContainer, dummyDatatypeSizeProvider)
 
     builtFunction.generator.applyLinks(object : LinkAddressProvider {
-        override fun getFunctionAddress(signature: FunctionSignature): Int {
+        override fun getFunctionAddress(signature: FunctionDefinition): Int {
             return 0
         }
 
-        override fun getFunctionVarsSize(signature: FunctionSignature): Int {
+        override fun getFunctionVarsSize(signature: FunctionDefinition): Int {
             return 0
         }
 

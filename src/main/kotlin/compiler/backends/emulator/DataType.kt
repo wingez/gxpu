@@ -1,6 +1,12 @@
 package compiler.backends.emulator
 
+import compiler.frontend.Datatype
 import se.wingez.ast.TypeDefinition
+
+
+interface DatatypeLayoutProvider {
+    fun sizeOf(dataType: Datatype): Int
+}
 
 interface DataType {
     val size: Int
@@ -11,17 +17,6 @@ interface FieldContainer {
     fun hasField(field: String): Boolean
     fun getField(field: String): StructDataField
     fun getDescription(): List<String>
-}
-
-
-interface TypeProvider {
-    fun getType(name: String): DataType
-    fun getType(typeDefinition: TypeDefinition): DataType {
-        assert(!typeDefinition.isArray)
-        //assert(!typeDefinition.explicitNew)
-        return getType(typeDefinition.typeName)
-    }
-
 }
 
 data class PrimitiveDatatype(

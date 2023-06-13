@@ -15,6 +15,7 @@ interface Instruction {
 enum class VariableType {
     Local,
     Parameter,
+    Result,
 }
 
 data class Variable(
@@ -452,7 +453,7 @@ private class FunctionCompiler(
     ) {
 
         if (definition.returnType!= Datatype.Void){
-            variables.add(Variable(RETURN_VALUE_NAME, definition.returnType.instantiate(), VariableType.Local))
+            variables.add(Variable(RETURN_VALUE_NAME, definition.returnType.instantiate(), VariableType.Result))
         }
 
 

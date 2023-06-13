@@ -2,9 +2,14 @@ package compiler.backends.emulator
 
 import compiler.backends.emulator.emulator.DefaultEmulator
 import compiler.backends.emulator.instructions.Instruction
+import compiler.frontend.Datatype
+import compiler.frontend.TypeProvider
 import compiler.frontend.buildStruct
 import se.wingez.ast.AstNode
+import se.wingez.ast.FunctionType
 import se.wingez.ast.NodeTypes
+import se.wingez.compiler.frontend.FunctionDefinition
+import se.wingez.compiler.frontend.FunctionDefinitionResolver
 
 data class GenerateLater(
     val instruction: Instruction,
@@ -23,20 +28,20 @@ enum class LinkType {
 
 data class Link(
     val generateLater: GenerateLater,
-    val linkSignature: FunctionSignature,
+    val linkSignature: FunctionDefinition,
     val LinkType: LinkType,
     val offset: Int,
 )
 
 interface LinkAddressProvider {
-    fun getFunctionAddress(signature: FunctionSignature): Int
-    fun getFunctionVarsSize(signature: FunctionSignature): Int
+    fun getFunctionAddress(signature: FunctionDefinition): Int
+    fun getFunctionVarsSize(signature: FunctionDefinition): Int
 }
 
 class CodeGenerator {
     private val codeList = mutableListOf<UByte>()
     private val unpopulatedLinks = mutableListOf<Link>()
-    private val dependents = mutableSetOf<FunctionSignature>()
+    private val dependents = mutableSetOf<FunctionDefinition>()
 
     fun generate(code: List<UByte>) {
         codeList.addAll(code)
@@ -56,12 +61,12 @@ class CodeGenerator {
         return GenerateLater(instruction, pos, this)
     }
 
-    fun link(callInstruction: Instruction, functionSignature: FunctionSignature, type: LinkType, offset: Int = 0) {
+    fun link(callInstruction: Instruction, functionSignature: FunctionDefinition, type: LinkType, offset: Int = 0) {
         val generateLater = makeSpaceFor(callInstruction)
         link(generateLater, functionSignature, type, offset)
     }
 
-    fun link(generateAt: GenerateLater, functionSignature: FunctionSignature, type: LinkType, offset: Int = 0) {
+    fun link(generateAt: GenerateLater, functionSignature: FunctionDefinition, type: LinkType, offset: Int = 0) {
         unpopulatedLinks.add(Link(generateAt, functionSignature, type, offset))
         dependents.add(functionSignature)
     }
@@ -75,6 +80,7 @@ class CodeGenerator {
                     linkValue = addressProvider.getFunctionAddress(link.linkSignature)
                     argName = "addr"
                 }
+
                 LinkType.VarsSize -> {
                     linkValue = addressProvider.getFunctionVarsSize(link.linkSignature)
                     argName = "val"
@@ -97,7 +103,7 @@ class CodeGenerator {
         return codeList.toList()
     }
 
-    fun getDependents(): List<FunctionSignature> {
+    fun getDependents(): List<FunctionDefinition> {
         return dependents.toList()
     }
 }
@@ -108,20 +114,20 @@ data class CompiledProgram(
 )
 
 interface BuiltInProvider {
-    fun getSignatures(): List<FunctionSignature>
-    fun getTypes(): Map<String, DataType>
+    fun getSignatures(): List<FunctionDefinition>
+    fun getTypes(): Map<String, Datatype>
 
-    fun buildSignature(signature: FunctionSignature): BuiltFunction
+    fun buildSignature(signature: FunctionDefinition): BuiltFunction
 }
 
 private interface FunctionSource {
-    val signature: FunctionSignature
+    val signature: FunctionDefinition
     fun build(): BuiltFunction
 }
 
 private class BuiltinSource(
     val builtInProvider: BuiltInProvider,
-    override val signature: FunctionSignature,
+    override val signature: FunctionDefinition,
 ) : FunctionSource {
 
     override fun build(): BuiltFunction {
@@ -131,13 +137,14 @@ private class BuiltinSource(
 
 private class CodeSource(
     val node: AstNode,
-    override val signature: FunctionSignature,
+    override val signature: FunctionDefinition,
     val typeProvider: TypeProvider,
-    val functionProvider: FunctionProvider,
+    val functionProvider: FunctionDefinitionResolver,
+    val datatypeLayoutProvider: DatatypeLayoutProvider,
 ) : FunctionSource {
 
     override fun build(): BuiltFunction {
-        return buildFunctionBody(node.childNodes, signature, functionProvider, typeProvider)
+        return buildFunctionBody(node, signature, functionProvider, typeProvider, datatypeLayoutProvider)
     }
 }
 
@@ -145,16 +152,16 @@ private class CodeSource(
 class Compiler(
     val builtInProvider: BuiltInProvider,
     val nodes: List<AstNode>
-) : TypeProvider, FunctionProvider {
+) : TypeProvider, FunctionDefinitionResolver {
 
     private val functionSources = mutableListOf<FunctionSource>()
 
-    val includedTypes = mutableMapOf<String, DataType>()
+    val includedTypes = mutableMapOf<String, Datatype>()
 
 
-    override fun getType(name: String): DataType {
+    override fun getType(name: String): Datatype {
         if (name.isEmpty()) {
-            return DEFAULT_TYPE
+            return Datatype.Integer
         }
         if (name !in includedTypes) {
             throw CompileError("No type with name $name found")
@@ -162,9 +169,13 @@ class Compiler(
         return includedTypes.getValue(name)
     }
 
-    override fun findSignature(name: String, parameterSignature: List<DataType>): FunctionSignature {
+    override fun getFunctionDefinitionMatching(
+        name: String,
+        functionType: FunctionType,
+        parameterTypes: List<Datatype>
+    ): FunctionDefinition {
         for (source in functionSources) {
-            if (source.signature.matchesHeader(name, parameterSignature)) {
+            if (source.signature.matches(name, functionType, parameterTypes)) {
                 return source.signature
             }
         }
@@ -179,7 +190,8 @@ class Compiler(
             if (struct.name in includedTypes) {
                 throw CompileError("Function ${struct.name} already exists")
             }
-            includedTypes[struct.name] = struct
+            //TODO:
+            //includedTypes[struct.name] = struct
         }
     }
 
@@ -193,11 +205,11 @@ class Compiler(
             functionSources.add(BuiltinSource(builtInProvider, signature))
         }
         for (functionNode in nodes.filter { it.type == NodeTypes.Function }) {
-            val signature = FunctionSignature.fromNode(functionNode, this)
-            functionSources.add(CodeSource(functionNode, signature, this, this))
+            val signature = FunctionDefinition.fromFunctionNode(functionNode, this)
+            functionSources.add(CodeSource(functionNode, signature, this, this, dummyDatatypeSizeProvider))
         }
 
-        val includedFunctions = mutableMapOf<FunctionSignature, BuiltFunction>()
+        val includedFunctions = mutableMapOf<FunctionDefinition, BuiltFunction>()
 
         for (source in functionSources) {
 
@@ -208,7 +220,7 @@ class Compiler(
 
 
         val mainSignature = SignatureBuilder("main")
-            .setReturnType(voidType)
+            .setReturnType(Datatype.Void)
             .getSignature()
 
 
@@ -224,7 +236,7 @@ class Compiler(
 
         val resultingCode = mutableListOf<UByte>()
 
-        val alreadyPlaced = mutableMapOf<FunctionSignature, Int>()
+        val alreadyPlaced = mutableMapOf<FunctionDefinition, Int>()
 
         val toPlace = mutableListOf(mainSignature)
 
@@ -259,11 +271,11 @@ class Compiler(
             alreadyPlaced[included.signature] = resultingCode.size
 
             val indexProvider = object : LinkAddressProvider {
-                override fun getFunctionAddress(signature: FunctionSignature): Int {
+                override fun getFunctionAddress(signature: FunctionDefinition): Int {
                     return alreadyPlaced.getValue(signature)
                 }
 
-                override fun getFunctionVarsSize(signature: FunctionSignature): Int {
+                override fun getFunctionVarsSize(signature: FunctionDefinition): Int {
                     return includedFunctions.getValue(signature).sizeOfVars
                 }
             }
@@ -291,6 +303,15 @@ class Compiler(
 
         return CompiledProgram(resultingCode, placedMap)
     }
+}
+
+val dummyDatatypeSizeProvider = object : DatatypeLayoutProvider {
+    override fun sizeOf(dataType: Datatype): Int {
+        return when (dataType) {
+            Datatype.Integer -> 1
+            else -> throw NotImplementedError()
+        }
 
 
+    }
 }
