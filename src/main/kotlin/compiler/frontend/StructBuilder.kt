@@ -10,14 +10,17 @@ class StructBuilder {
     private var currentSize = 0
     private val fields = mutableMapOf<String, StructDataField>()
 
-    fun addMember(name: String, type: DataType): StructBuilder {
+    private val datatypeLayoutProvider = dummyDatatypeSizeProvider //FIXME
+
+    fun addMember(name: String, type: Datatype): StructBuilder {
 
         if (name in fields) {
             throw CompileError("Duplicate field: $name")
         }
+        val size = datatypeLayoutProvider.sizeOf(type)
 
-        fields[name] = StructDataField(name, currentSize, type)
-        currentSize += type.size
+        fields[name] = StructDataField(name, type, currentSize, size)
+        currentSize += size
         return this
     }
 
@@ -47,8 +50,8 @@ fun buildStruct(node: AstNode, typeProvider: TypeProvider): StructType {
 
         val memberDeclaration = member.asNewVariable()
 
-        val fieldType: DataType = if (memberDeclaration.optionalTypeDefinition!!.typeName.isEmpty())
-            DEFAULT_TYPE
+        val fieldType: Datatype = if (memberDeclaration.optionalTypeDefinition!!.typeName.isEmpty())
+            Datatype.Void
         else {
             throw NotImplementedError()
             //typeProvider.getType(memberDeclaration.optionalTypeDefinition)

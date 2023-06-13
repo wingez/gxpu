@@ -10,6 +10,7 @@ import se.wingez.ast.FunctionType
 import se.wingez.ast.NodeTypes
 import se.wingez.compiler.frontend.FunctionDefinition
 import se.wingez.compiler.frontend.FunctionDefinitionResolver
+import se.wingez.compiler.frontend.VariableType
 
 data class GenerateLater(
     val instruction: Instruction,
@@ -276,7 +277,7 @@ class Compiler(
                 }
 
                 override fun getFunctionVarsSize(signature: FunctionDefinition): Int {
-                    return includedFunctions.getValue(signature).sizeOfVars
+                    return includedFunctions.getValue(signature).layout.sizeOfType(VariableType.Local)
                 }
             }
 
@@ -287,7 +288,7 @@ class Compiler(
 
 
         callMain.generate(mapOf("addr" to alreadyPlaced.getValue(mainSignature)))
-        allocMainVars.generate(mapOf("val" to includedFunctions.getValue(mainSignature).sizeOfVars))
+        allocMainVars.generate(mapOf("val" to includedFunctions.getValue(mainSignature).layout.sizeOfType(VariableType.Local)))
 
         headerGenerator.getResultingCode().forEachIndexed { index, value ->
             resultingCode[index] = value

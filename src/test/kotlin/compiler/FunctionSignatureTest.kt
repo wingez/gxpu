@@ -10,19 +10,25 @@ import org.junit.jupiter.api.Assertions.assertIterableEquals
 import org.junit.jupiter.api.Test
 import se.wingez.ast.AstParser
 import se.wingez.ast.FunctionType
+import se.wingez.ast.OperatorBuiltIns
 import se.wingez.compiler.frontend.FunctionDefinition
 import se.wingez.compiler.frontend.FunctionDefinitionResolver
+import se.wingez.compiler.frontend.Variable
+import se.wingez.compiler.frontend.VariableType
 import se.wingez.tokens.parseFile
 import java.io.StringReader
 
 class TypeContainer(
-    private val types: List<Datatype>
+    private val types: List<Datatype>,
+    private val aliases: Map<String, Datatype>
 ) : TypeProvider {
+
+    private val allTypes = aliases + types.map { it.name to it }.toMap()
     override fun getType(name: String): Datatype {
         if (name.isEmpty())
             return Datatype.Integer
 
-        return types.find { it.name == name } ?: throw AssertionError("Did not find $name")
+        return allTypes[name] ?: throw AssertionError("Did not find $name")
 
     }
 }
@@ -30,7 +36,8 @@ class TypeContainer(
 private val defaultTypes = listOf(Datatype.Void, Datatype.Integer)
 
 val dummyTypeContainer = TypeContainer(
-    defaultTypes
+    defaultTypes,
+    mapOf("byte" to Datatype.Integer)
 )
 
 internal class FunctionSignatureTest {
@@ -46,7 +53,25 @@ internal class FunctionSignatureTest {
                 functionType: FunctionType,
                 parameterTypes: List<Datatype>
             ): FunctionDefinition {
-                return FunctionDefinition.fromFunctionNode(node, dummyTypeContainer)
+
+                return when (name) {
+                    OperatorBuiltIns.Equal -> FunctionDefinition(
+                        OperatorBuiltIns.Equal, listOf(
+                            Datatype.Integer,
+                            Datatype.Integer
+                        ), Datatype.Boolean, FunctionType.Operator
+                    )
+
+                    "print" -> FunctionDefinition(
+                        "print", listOf(
+                            Datatype.Integer,
+                            Datatype.Integer
+                        ), Datatype.Void, FunctionType.Normal
+                    )
+
+                    "main", "test1" -> FunctionDefinition.fromFunctionNode(node, dummyTypeContainer)
+                    else -> throw NotImplementedError()
+                }
             }
 
         }
@@ -70,10 +95,9 @@ internal class FunctionSignatureTest {
         )
         val layout = build.layout
 
-        assertEquals(layout.size, 2)
-        assertEquals(build.sizeOfVars, 0)
-        assertThat(layout.fields).hasSize(2)
-        assertThat(layout.fields).containsEntry("frame", StructDataField("frame", 0, stackFrameType))
+        assertEquals(layout.size, 0)
+        assertEquals(layout.sizeOfType(VariableType.Local), 0)
+        assertThat(layout.layout).hasSize(0)
     }
 
     @Test
@@ -85,13 +109,15 @@ internal class FunctionSignatureTest {
     """
         )
         val layout = built.layout
-        assertEquals(layout.size, 3)
-        assertEquals(built.sizeOfVars, 0)
+        assertEquals(layout.size, 1)
+        assertEquals(layout.sizeOfType(VariableType.Local), 0)
         assertEquals(
-            layout.fields, mapOf(
-                "result" to StructDataField("result", 3, voidType),
-                "frame" to StructDataField("frame", 0, stackFrameType),
-                "test" to StructDataField("test", 2, byteType)
+            layout.layout, mapOf(
+                Variable("test", Datatype.Integer, VariableType.Parameter) to StructDataField(
+                    "test",
+                    Datatype.Integer,
+                    -1, 1
+                )
             )
         )
     }
@@ -105,9 +131,12 @@ internal class FunctionSignatureTest {
     """
         )
         val layout = built.layout
-        assertEquals(layout.size, 3)
-        assertEquals(built.sizeOfVars, 1)
-        assertThat(layout.fields).containsEntry("var", StructDataField("var", 2, byteType))
+        assertEquals(layout.size, 1)
+        assertEquals(layout.sizeOfType(VariableType.Local), 1)
+        assertThat(layout.layout).containsEntry(
+            Variable("var", Datatype.Integer, VariableType.Local),
+            StructDataField("var", Datatype.Integer, 0, 1)
+        )
     }
 
     @Test
@@ -118,16 +147,18 @@ internal class FunctionSignatureTest {
               val var:byte=5
     """
         )
-        assertEquals(built.layout.size, 5)
-        assertEquals(built.sizeOfVars, 1)
+        assertEquals(built.layout.size, 3)
+        assertEquals(built.layout.sizeOfType(VariableType.Local), 1)
 
         assertEquals(
-            StructBuilder()
-                .addMember("frame", stackFrameType)
-                .addMember("param", byteType)
-                .addMember("var", byteType)
-                .addMember("result", byteType)
-                .getFields(), built.layout.fields
+            mapOf(
+                Variable("result", Datatype.Integer, VariableType.Result) to
+                        StructDataField("result", Datatype.Integer, -2, 1),
+                Variable("param", Datatype.Integer, VariableType.Parameter) to
+                        StructDataField("param", Datatype.Integer, -1, 1),
+                Variable("var", Datatype.Integer, VariableType.Local) to
+                        StructDataField("var", Datatype.Integer, 0, 1)
+            ), built.layout.layout
         )
 
     }
@@ -137,21 +168,21 @@ internal class FunctionSignatureTest {
         val built = getSignature(
             """
             def test1():
-              if 5:
+              if 5==0:
                 val var:byte=2
               else:
                 val var1:byte=3
     """
         )
-        assertEquals(built.layout.size, 4)
-        assertEquals(built.sizeOfVars, 2)
+        assertEquals(built.layout.size, 2)
+        assertEquals(built.layout.sizeOfType(VariableType.Local), 2)
         assertEquals(
             mapOf(
-                "result" to StructDataField("result", 4, voidType),
-                "frame" to StructDataField("frame", 0, stackFrameType),
-                "var1" to StructDataField("var1", 3, byteType),
-                "var" to StructDataField("var", 2, byteType),
-            ), built.layout.fields
+                Variable("var1", Datatype.Integer, VariableType.Local) to
+                        StructDataField("var1", Datatype.Integer, 1, 1),
+                Variable("var", Datatype.Integer, VariableType.Local) to
+                        StructDataField("var", Datatype.Integer, 0, 1),
+            ), built.layout.layout
         )
     }
 
@@ -159,28 +190,26 @@ internal class FunctionSignatureTest {
     fun testDescription() {
         val built = getSignature(
             """
-            def test1(var2:byte):
+            def test1(var2:byte):byte
               val var:byte=1
             """
         )
-        assertEquals(built.layout.size, 4)
-        assertEquals(built.sizeOfVars, 1)
+        assertEquals(built.layout.size, 3)
+        assertEquals(built.layout.sizeOfType(VariableType.Local), 1)
         assertEquals(
-            built.layout.fields, mapOf(
-                "result" to StructDataField("result", 4, voidType),
-                "var" to StructDataField("var", 3, byteType),
+            built.layout.layout, mapOf(
+                Variable("result", Datatype.Integer, VariableType.Result) to StructDataField("result", Datatype.Integer, -2, 1),
 
-                "var2" to StructDataField("var2", 2, byteType),
-                "frame" to StructDataField("frame", 0, stackFrameType),
+                Variable("var2", Datatype.Integer, VariableType.Parameter) to StructDataField("var2", Datatype.Integer, -1, 1),
+                Variable("var", Datatype.Integer, VariableType.Local) to StructDataField("var", Datatype.Integer, 0, 1),
             )
         )
 
-        assertIterableEquals(
+        assertEquals(
             listOf(
-                "  0: frame: stackFrame",
-                "  2: var2: byte",
-                "  3: var: byte",
-                "  4: result: void",
+                "-2: result: integer",
+                "-1: var2: integer",
+                "0: var: integer",
             ),
             built.layout.getDescription(),
         )

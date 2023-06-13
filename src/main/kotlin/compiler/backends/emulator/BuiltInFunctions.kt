@@ -3,7 +3,6 @@ package compiler.backends.emulator
 import compiler.backends.emulator.emulator.DefaultEmulator
 import compiler.frontend.Datatype
 import compiler.frontend.StructBuilder
-import se.wingez.ast.OperatorBuiltIns
 import se.wingez.compiler.frontend.FunctionDefinition
 
 interface BuiltIn {
@@ -120,11 +119,10 @@ class BuiltInFunctions : BuiltInProvider {
         result.compile(generator)
 
         val layoutBuilder = StructBuilder()
-            .addMember("frame", stackFrameType)
 
-        if (result.sizeOfVars > 0) {
-            layoutBuilder.addMember("locals", PrimitiveDatatype(result.sizeOfVars, "Builtin_${result.name}_locals"))
-        }
+        //if (result.sizeOfVars > 0) {
+         //   layoutBuilder.addMember("locals", PrimitiveDatatype(result.sizeOfVars, "Builtin_${result.name}_locals"))
+        //}
         //TODO what does this do?
 //
 //        for (parameter in signature.parameters) {
@@ -136,8 +134,8 @@ class BuiltInFunctions : BuiltInProvider {
         val struct = layoutBuilder.getStruct(signature.name)
 
 
-
-        return BuiltFunction(result.signature, generator, struct, 0)
+        throw NotImplementedError()
+        //return BuiltFunction(result.signature, generator, struct, 0)
     }
 }
 

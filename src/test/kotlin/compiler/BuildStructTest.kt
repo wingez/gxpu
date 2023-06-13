@@ -3,6 +3,7 @@ package se.wingez.compiler
 import compiler.backends.emulator.StructDataField
 import compiler.backends.emulator.StructType
 import compiler.backends.emulator.byteType
+import compiler.frontend.Datatype
 import compiler.frontend.buildStruct
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -17,8 +18,8 @@ class BuildStructTest {
         assertEquals(
             StructType(
                 "type1", mapOf(
-                    "member1" to StructDataField("member1", 0, byteType),
-                    "member2" to StructDataField("member2", 1, byteType),
+                    "member1" to StructDataField("member1", Datatype.Integer, 0, 1),
+                    "member2" to StructDataField("member2", Datatype.Integer, 1, 1),
                 )
             ),
             buildStruct(

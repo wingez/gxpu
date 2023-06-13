@@ -33,8 +33,9 @@ val DEFAULT_TYPE = byteType
 
 data class StructDataField(
     val name: String,
+    val type: Datatype,
     val offset: Int,
-    val type: DataType,
+    val size:Int,
 )
 
 private fun describeFields(fields: Map<String, StructDataField>): List<String> {
@@ -65,7 +66,7 @@ open class StructType(
     }
 
     override val size: Int
-        get() = fields.values.sumOf { it.type.size }
+        get() = throw NotImplementedError() //fields.values.sumOf { it.type.size }
 
     override fun getDescription(): List<String> {
         return describeFields(fields)

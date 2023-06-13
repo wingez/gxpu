@@ -36,7 +36,9 @@ class DummyBuiltInProvider(
                 val generator = CodeGenerator()
                 builtIn.compile(generator)
 
-                return BuiltFunction(builtIn.signature, generator, StructBuilder().getStruct("dummy"), 0)
+                throw NotImplementedError()
+                //FIXME
+                //return BuiltFunction(builtIn.signature, generator, StructBuilder().getStruct("dummy"), 0)
             }
         }
         throw AssertionError()

@@ -138,7 +138,7 @@ class InteractiveDebugger(
             if (i == emulator.sp.toInt()) labels.add("sp")
 
             if (function != null) {
-                for (field in function.layout.fields.values) {
+                for (field in function.layout.layout.values) {
                     if (i == emulator.fp.toInt() + field.offset) {
                         labels.add("$functionName.${field.name}")
                     }

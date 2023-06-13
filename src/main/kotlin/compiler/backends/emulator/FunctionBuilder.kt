@@ -2,18 +2,16 @@ package compiler.backends.emulator
 
 import compiler.backends.emulator.emulator.DefaultEmulator
 import compiler.backends.emulator.instructions.Instruction
-import compiler.frontend.StructBuilder
 import compiler.frontend.TypeProvider
 import se.wingez.ast.AstNode
-import se.wingez.byte
 import se.wingez.compiler.frontend.*
 
 data class BuiltFunction(
     val signature: FunctionDefinition,
     val generator: CodeGenerator,
-    val layout: StructType,
-    val sizeOfVars: Int,
-)
+    val layout: FunctionFrameLayout,
+) {
+}
 
 fun buildFunctionBody(
     node: AstNode,
@@ -47,6 +45,7 @@ class FunctionBuilder(
 
     private val localVariables = mutableMapOf<String, DataType>()
 
+    private lateinit var layout: FunctionFrameLayout
 
     fun linkVariable(instruction: Instruction, variableName: String, offset: Int) {
         val generateLater = generator.makeSpaceFor(instruction)
@@ -163,39 +162,67 @@ class FunctionBuilder(
 
         val functionContent = compileFunction(node, functionProvider, typeProvider)
 
-        assert(functionContent.localVariables.isEmpty())
-        //FIXME: ADD variables
+        layout = calculateLayout(functionContent, datatypeLayoutProvider)
 
         buildCodeBody(functionContent.code)
 
         handleReturn(AstNode.fromReturn())
 
-
-        // Finalize
-
-        val layoutBuilder = StructBuilder()
-            .addMember("frame", stackFrameType)
-
-
-        // for (parameter in signature.parameters) {
-        //   layoutBuilder.addMember(parameter.name, parameter.type)
-        //}
-
-        for (localVar in localVariables) {
-            layoutBuilder.addMember(localVar.key, localVar.value)
-        }
-
-        //layoutBuilder.addMember("result", signature.returnType)
-
-        val struct = layoutBuilder.getStruct(signature.name)
-
-        for (link in variableLinks) {
-            link.generateLater.generate(mapOf("offset" to struct.getField(link.variableName).offset + link.offset))
-        }
-
-
-        return BuiltFunction(signature, generator, struct, localVariables.values.sumOf { it.size })
+        return BuiltFunction(signature, generator, layout)
     }
+
 
 }
 
+
+data class FunctionFrameLayout(
+    val layout: Map<Variable, StructDataField>,
+    val size: Int,
+) {
+    fun sizeOfType(variableType: VariableType): Int {
+        return layout.keys.filter { it.type == variableType }.sumOf { layout.getValue(it).size }
+    }
+
+    fun getDescription(): List<String> {
+
+        return layout.values.sortedBy { it.offset }.map {
+            "${it.offset}: ${it.name}: ${it.type}"
+        }
+    }
+}
+
+private fun assertFrameMatchesDefinition(layout: FunctionFrameLayout, definition: FunctionDefinition) {
+
+
+}
+
+private fun calculateLayout(
+    functionContent: FunctionContent,
+    datatypeLayoutProvider: DatatypeLayoutProvider
+): FunctionFrameLayout {
+
+    val variablesInOrder = mutableListOf<Pair<Variable, StructDataField>>()
+    var totalSizeSoFar = 0
+
+    // Add in this order
+    for (variableType in listOf(VariableType.Result, VariableType.Parameter, VariableType.Local)) {
+        for (variable in functionContent.localVariables.filter { it.type == variableType }) {
+
+            val size = datatypeLayoutProvider.sizeOf(variable.datatype)
+
+            variablesInOrder.add(variable to StructDataField(variable.name, variable.datatype, totalSizeSoFar, size))
+            totalSizeSoFar += size
+        }
+    }
+
+    //first local variable should be at index 0.
+    //subtract the size of Result & parameters
+    val offset =
+        variablesInOrder.filter { it.first.type == VariableType.Result || it.first.type == VariableType.Parameter }
+            .sumOf { datatypeLayoutProvider.sizeOf(it.first.datatype) }
+
+
+    return variablesInOrder.map { (variable, field) ->
+        variable to field.copy(offset = field.offset - offset)
+    }.let { FunctionFrameLayout(it.toMap(), totalSizeSoFar) }
+}
