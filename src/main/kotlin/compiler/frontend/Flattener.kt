@@ -450,7 +450,11 @@ private class FunctionCompiler(
     private fun addVariables(
         functionNode: AstNode,
     ) {
-        variables.add(Variable(RETURN_VALUE_NAME, definition.returnType.instantiate(), VariableType.Local))
+
+        if (definition.returnType!= Datatype.Void){
+            variables.add(Variable(RETURN_VALUE_NAME, definition.returnType.instantiate(), VariableType.Local))
+        }
+
 
         for ((parameterName, type) in parameterTypes(functionNode, typeProvider)) {
             variables.add(Variable(parameterName, type.instantiate(), VariableType.Parameter))
