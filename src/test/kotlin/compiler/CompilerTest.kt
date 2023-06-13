@@ -176,9 +176,9 @@ class CompilerTest {
     fun testCopy() {
         val expected = """
         PUSH #5
-        POP[FP #2]
-        PUSH [FP #2]
-        POP [FP #3]
+        POP[FP #0]
+        PUSH [FP #0]
+        POP [FP #1]
         RET
         """
 

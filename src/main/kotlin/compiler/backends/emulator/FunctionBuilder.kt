@@ -111,6 +111,15 @@ class FunctionBuilder(
                 generator.generate(DefaultEmulator.push.build(mapOf("val" to expr.value)))
             }
 
+            is VariableExpression -> {
+                assert(expr.type == Datatype.Integer)
+
+                val field = layout.layout.values.find { it.name == expr.variable.name } ?: throw AssertionError()
+
+                generator.generate(DefaultEmulator.push_fp_offset.build(mapOf("offset" to field.offset)))
+
+            }
+
             else -> throw AssertionError()
         }
 
