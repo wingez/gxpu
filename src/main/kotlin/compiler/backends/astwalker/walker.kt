@@ -183,7 +183,11 @@ class WalkerState(
             }
         }
 
-        val result = currentFrame.valueHolders.getValue("result").value
+        val result = if (userFunction.definition.returnType== Datatype.Void){
+            Value.void()
+        } else{
+            currentFrame.valueHolders.getValue("result").value
+        }
 
         // Pop frame
         frameStack.removeLast()
