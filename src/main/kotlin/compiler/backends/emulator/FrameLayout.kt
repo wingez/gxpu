@@ -10,7 +10,7 @@ const val POINTER_SIZE = 1
 
 const val SP_STACK_SIZE = 1
 const val PC_STACK_SIZE = 1
-const val STACK_START = 255
+const val STACK_START = 100
 
 
 class SignatureBuilder(val name: String) {

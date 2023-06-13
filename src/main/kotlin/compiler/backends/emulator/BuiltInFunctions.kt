@@ -4,6 +4,8 @@ import compiler.backends.emulator.emulator.DefaultEmulator
 import compiler.frontend.Datatype
 import compiler.frontend.StructBuilder
 import se.wingez.compiler.frontend.FunctionDefinition
+import se.wingez.compiler.frontend.Variable
+import se.wingez.compiler.frontend.VariableType
 
 interface BuiltIn {
 
@@ -25,7 +27,7 @@ class Print : BuiltIn {
 
     override fun compile(generator: CodeGenerator) {
 
-        val valueOffset = stackFrameType.size
+        val valueOffset = -1
 
         generator.generate(
             DefaultEmulator.lda_at_fp_offset.build(
@@ -118,24 +120,18 @@ class BuiltInFunctions : BuiltInProvider {
         val generator = CodeGenerator()
         result.compile(generator)
 
-        val layoutBuilder = StructBuilder()
 
-        //if (result.sizeOfVars > 0) {
-         //   layoutBuilder.addMember("locals", PrimitiveDatatype(result.sizeOfVars, "Builtin_${result.name}_locals"))
-        //}
-        //TODO what does this do?
-//
-//        for (parameter in signature.parameters) {
-//            layoutBuilder.addMember(parameter.name, parameter.type)
-//        }
-//
-//        layoutBuilder.addMember("result", signature.returnType)
+        val variables = mutableListOf<Variable>()
+        if (signature.returnType != Datatype.Void) {
+            variables.add(Variable("result", signature.returnType, VariableType.Result))
+        }
+        for ((index, parameterType) in signature.parameterTypes.withIndex()) {
+            variables.add(Variable("param$index", parameterType, VariableType.Parameter))
+        }
 
-        val struct = layoutBuilder.getStruct(signature.name)
+        val layout = calculateLayout(variables, dummyDatatypeSizeProvider)
 
-
-        throw NotImplementedError()
-        //return BuiltFunction(result.signature, generator, struct, 0)
+        return BuiltFunction(result.signature, generator, layout)
     }
 }
 

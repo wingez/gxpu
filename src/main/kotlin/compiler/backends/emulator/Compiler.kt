@@ -162,7 +162,7 @@ class Compiler(
 
     override fun getType(name: String): Datatype {
         if (name.isEmpty()) {
-            return Datatype.Integer
+            return Datatype.Void
         }
         if (name !in includedTypes) {
             throw CompileError("No type with name $name found")

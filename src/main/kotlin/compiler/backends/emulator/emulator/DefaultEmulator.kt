@@ -35,7 +35,7 @@ class DefaultEmulator : Emulator(instructionSet) {
 
         val lda_at_fp_offset = instructionSet.createInstruction("LDA [FP #offset]", group = LOAD_STORE) {
             val offset = it.getIncPC()
-            it.a = it.getMemoryAt(it.fp + offset)
+            it.a = it.getMemoryAt(it.fp.toInt() + offset.toByte().toInt())
         }
 
         val lda_at_a_offset = instructionSet.createInstruction("LDA [A #offset]", group = LOAD_STORE) {
@@ -133,6 +133,7 @@ class DefaultEmulator : Emulator(instructionSet) {
         val call_addr = instructionSet.createInstruction("CALL #addr", group = FLOW_CONTROL) {
             val addr = it.getIncPC()
             it.pushFrame()
+            it.fp = it.sp
             it.pc = addr
         }
 

@@ -10,6 +10,8 @@ import se.wingez.ast.*
 import se.wingez.byte
 import se.wingez.compiler.frontend.FunctionDefinition
 import se.wingez.compiler.frontend.FunctionDefinitionResolver
+import se.wingez.compiler.frontend.Variable
+import se.wingez.compiler.frontend.VariableType
 import se.wingez.tokens.parseFile
 import java.io.StringReader
 import kotlin.test.assertEquals
@@ -36,9 +38,18 @@ class DummyBuiltInProvider(
                 val generator = CodeGenerator()
                 builtIn.compile(generator)
 
-                throw NotImplementedError()
-                //FIXME
-                //return BuiltFunction(builtIn.signature, generator, StructBuilder().getStruct("dummy"), 0)
+
+                val variables = mutableListOf<Variable>()
+                if (builtIn.signature.returnType != Datatype.Void) {
+                    variables.add(Variable("result", builtIn.signature.returnType, VariableType.Result))
+                }
+                for ((index, parameterType) in builtIn.signature.parameterTypes.withIndex()) {
+                    variables.add(Variable("param$index", parameterType, VariableType.Parameter))
+                }
+
+                val layout = calculateLayout(variables, dummyDatatypeSizeProvider)
+
+                return BuiltFunction(builtIn.signature, generator, layout)
             }
         }
         throw AssertionError()
@@ -50,7 +61,7 @@ class DummyBuiltInProvider(
         parameterTypes: List<Datatype>
     ): FunctionDefinition {
         for (builtIn in builtIns) {
-            if (builtIn.signature.matches(name,functionType, parameterTypes)) {
+            if (builtIn.signature.matches(name, functionType, parameterTypes)) {
                 return builtIn.signature
             }
         }
@@ -73,7 +84,8 @@ fun buildBody(body: String): List<UByte> {
     val node = function("main", emptyList(), nodes, "void")
     val signature = FunctionDefinition.fromFunctionNode(node, dummyTypeContainer)
 
-    val builtFunction = buildFunctionBody(node, signature, DummyBuiltInProvider(), dummyTypeContainer, dummyDatatypeSizeProvider)
+    val builtFunction =
+        buildFunctionBody(node, signature, DummyBuiltInProvider(), dummyTypeContainer, dummyDatatypeSizeProvider)
 
     builtFunction.generator.applyLinks(object : LinkAddressProvider {
         override fun getFunctionAddress(signature: FunctionDefinition): Int {

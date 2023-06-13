@@ -64,8 +64,8 @@ data class Instruction(
             val size = variableSizes.getValue(variableName)
             val maxVal = (1 shl (size * 8)) - 1
 
-            if (value < 0 || value > maxVal) {
-                throw InstructionBuilderError("Variable $variableName must be within (0, $maxVal), not $value")
+            if (value < -127 || value > maxVal) {
+                throw InstructionBuilderError("Variable $variableName must be within (-127, $maxVal), not $value")
             }
 
             for (i in 0 until size) {

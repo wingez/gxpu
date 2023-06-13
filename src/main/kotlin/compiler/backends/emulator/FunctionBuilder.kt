@@ -188,7 +188,7 @@ class FunctionBuilder(
 
         val functionContent = compileFunction(node, functionProvider, typeProvider)
 
-        layout = calculateLayout(functionContent, datatypeLayoutProvider)
+        layout = calculateLayout(functionContent.localVariables, datatypeLayoutProvider)
 
         buildCodeBody(functionContent.code)
 
@@ -222,8 +222,8 @@ private fun assertFrameMatchesDefinition(layout: FunctionFrameLayout, definition
 
 }
 
-private fun calculateLayout(
-    functionContent: FunctionContent,
+fun calculateLayout(
+    localVariables: List<Variable>,
     datatypeLayoutProvider: DatatypeLayoutProvider
 ): FunctionFrameLayout {
 
@@ -232,7 +232,7 @@ private fun calculateLayout(
 
     // Add in this order
     for (variableType in listOf(VariableType.Result, VariableType.Parameter, VariableType.Local)) {
-        for (variable in functionContent.localVariables.filter { it.type == variableType }) {
+        for (variable in localVariables.filter { it.type == variableType }) {
 
             val size = datatypeLayoutProvider.sizeOf(variable.datatype)
 
