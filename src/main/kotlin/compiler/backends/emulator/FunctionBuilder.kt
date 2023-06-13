@@ -2,6 +2,7 @@ package compiler.backends.emulator
 
 import compiler.backends.emulator.emulator.DefaultEmulator
 import compiler.backends.emulator.instructions.Instruction
+import compiler.frontend.Datatype
 import compiler.frontend.TypeProvider
 import se.wingez.ast.AstNode
 import se.wingez.compiler.frontend.*
@@ -132,8 +133,21 @@ class FunctionBuilder(
         // pop arguments if neccesary
         val argumentSize = expr.parameters.sumOf { this.datatypeLayoutProvider.sizeOf(it.type) }
         if (argumentSize > 0) {
-            generator.generate(DefaultEmulator.add_sp.build(mapOf("val" to argumentSize)))
+            generator.generate(DefaultEmulator.sub_sp.build(mapOf("val" to argumentSize)))
         }
+
+    }
+
+
+    private fun handleAssign(instr: Assign) {
+        putOnStack(instr.value)
+
+        val field = layout.layout.values.find { it.name == instr.member } ?: throw AssertionError()
+
+        assert(field.type == Datatype.Integer)
+
+        val offset = field.offset
+        generator.generate(DefaultEmulator.pop_fp_offset.build(mapOf("offset" to offset)))
 
     }
 
@@ -142,10 +156,13 @@ class FunctionBuilder(
 
         when (instr) {
             is Execute -> handleCall(instr)
+            is Assign -> handleAssign(instr)
+            else -> TODO()
         }
 
 
     }
+
 
     private fun buildCodeBody(code: SemiCompiledCode) {
 

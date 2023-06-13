@@ -158,24 +158,14 @@ class CompilerTest {
 
     @Test
     fun testBasicAssign() {
-        var expected = """
+
+        val expected = """
         push #5
-        addsp #1
+        pop [FP #0]
         ret
         """
 
-        var body = """
-          5
-        """
-        bodyShouldMatchAssembled(body, expected)
-
-        expected = """
-        push #5
-        pop [FP #2]
-        ret
-        """
-
-        body = """
+        val body = """
           val var:byte=5
         """
         bodyShouldMatchAssembled(body, expected)
@@ -205,7 +195,7 @@ class CompilerTest {
         // main
         push #5
         call #0
-        addsp #1
+        subsp #1
         ret
         """
 
