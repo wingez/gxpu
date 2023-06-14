@@ -16,6 +16,7 @@ const val STACK_START = 100
 class SignatureBuilder(val name: String) {
     private val parameters = mutableListOf<Datatype>()
     private var returnType: Datatype = Datatype.Void
+    private var functionType = FunctionType.Normal
 
     fun addParameter(type: Datatype): SignatureBuilder {
         parameters.add(type)
@@ -27,7 +28,12 @@ class SignatureBuilder(val name: String) {
         return this
     }
 
+    fun setFunctionType(type: FunctionType): SignatureBuilder {
+        functionType = type
+        return this
+    }
+
     fun getSignature(): FunctionDefinition {
-        return FunctionDefinition(name, parameters, returnType, FunctionType.Normal)
+        return FunctionDefinition(name, parameters, returnType, functionType)
     }
 }

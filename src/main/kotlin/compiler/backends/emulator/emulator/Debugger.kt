@@ -1,5 +1,5 @@
 package compiler.backends.emulator.emulator
-/*
+
 
 import se.wingez.ast.AstParser
 import compiler.backends.emulator.BuiltFunction
@@ -7,6 +7,7 @@ import compiler.backends.emulator.BuiltInFunctions
 import compiler.backends.emulator.Compiler
 import compiler.backends.emulator.STACK_START
 import se.wingez.compiler.backends.emulator.EmulatorInstruction
+import se.wingez.compiler.frontend.functionEntryLabel
 import se.wingez.tokens.parseFile
 import java.io.File
 import kotlin.math.max
@@ -17,7 +18,7 @@ class InteractiveDebugger(
 ) {
 
     companion object {
-        const val WIDTH = 80
+        const val WIDTH = 180
         const val HEIGHT = 25
     }
 
@@ -33,6 +34,7 @@ class InteractiveDebugger(
     fun reset() {
         emulator.reset()
         emulator.clearMemory()
+        emulator.setProgram(instructions)
     }
 
     fun clearBuffer() {
@@ -64,50 +66,57 @@ class InteractiveDebugger(
         }
     }
 
-    fun getCurrentFunction(): BuiltFunction? {
-
-        var bestMatch: BuiltFunction? = null
-
-        for (func in functions) {
-            if (func.value <= emulator.pc.toInt()) {
-                if (bestMatch == null || func.value > functions.getValue(bestMatch))
-                    bestMatch = func.key
+    fun getFunctionPositions(): List<Pair<String, Int>> {
+        val result = mutableListOf<Pair<String, Int>>()
+        for ((index, instr) in instructions.withIndex()) {
+            for (ref in instr.references) {
+                if (ref.label == functionEntryLabel) {
+                    result.add(ref.function.name to index)
+                }
             }
         }
-        return bestMatch
+
+        return result.sortedBy { it.second }
+    }
+
+    private fun getCurrentFunction(): String? {
+        val current = emulator.pc.toInt()
+
+        for ((s, i) in getFunctionPositions()) {
+            if (current >= i) {
+                return s
+            }
+        }
+        return null
     }
 
     fun printProgram() {
 
-        val instructions = emulator.instructionSet.disassembleWithIndex(initialCode).entries.sortedBy { it.key }
-
-        val currentIndex = instructions.indexOfFirst { it.key == emulator.pc.toInt() }
-        if (currentIndex == -1)
-            throw AssertionError()
+        val currentIndex = emulator.pc.toInt()
 
         val startPos = max(0, currentIndex - 10)
         val endPos = min(instructions.size, startPos + 25)
+
+        val functionPositions = getFunctionPositions()
 
         (startPos until endPos).forEachIndexed { i, position ->
 
             val labels = mutableListOf<String>()
 
-            val mempos = instructions[position].key
 
-
-            for (f in functions) {
-                if (mempos == f.value) {
-                    labels.add(f.key.signature.name)
+            for ((f, mempos) in functionPositions) {
+                if (mempos == position) {
+                    labels.add(f)
                 }
             }
-            if (mempos == emulator.pc.toInt()) {
+            if (position == currentIndex) {
                 labels.add(">")
             }
 
             val prefixes = labels.joinToString(" ").padStart(15)
 
 
-            val line = "$prefixes ${instructions[position].value}"
+            val line = "$prefixes ${instructions[position]}"
 
             setText(line, 40, i)
         }
@@ -116,7 +125,7 @@ class InteractiveDebugger(
     fun renderStatus() {
 
         val function = getCurrentFunction()
-        val functionName = function?.signature?.name ?: "no"
+        val functionName = function ?: "no"
 
         val registerX = 0
         val registerY = 0
@@ -139,11 +148,11 @@ class InteractiveDebugger(
             if (i == emulator.sp.toInt()) labels.add("sp")
 
             if (function != null) {
-                for (field in function.layout.layout.values) {
-                    if (i == emulator.fp.toInt() + field.offset) {
-                        labels.add("$functionName.${field.name}")
-                    }
-                }
+//                for (field in function.layout.layout.values) {
+//                    if (i == emulator.fp.toInt() + field.offset) {
+//                        labels.add("$functionName.${field.name}")
+//                    }
+//                }
             }
 
             val prefixes = labels.joinToString().padEnd(15)
@@ -156,6 +165,7 @@ class InteractiveDebugger(
 
 
     }
+
 
     fun interactiveLoop() {
 
@@ -189,8 +199,7 @@ fun main(array: Array<String>) {
     val compiler = Compiler(BuiltInFunctions(), nodes)
     val program = compiler.buildProgram()
 
-    val i = InteractiveDebugger(program)
+    val i = InteractiveDebugger(program.instructions)
 
     i.interactiveLoop()
 }
-*/

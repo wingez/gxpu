@@ -85,7 +85,7 @@ class Assembler(
 
     private fun getVariableOrConstant(value: String): Value {
 
-        if (!value.all { it.isDigit() }) {
+        if (!value.all { it.isDigit()||it=='-' }) {
             return Value(reference = Reference(SignatureBuilder("main").getSignature(), Label(value)))
         }
 

@@ -69,9 +69,11 @@ open class Emulator(
     }
 
     fun setMemoryAt(position: Int, value: UByte) {
-        if (position !in 0 until memorySize)
-            throw EmulatorRuntimeError("Trying to access memory at $position, which is outside memory range")
-        memory[position] = value
+        val wrapped = position% MEMORY_SIZE
+
+        if (wrapped !in 0 until memorySize)
+            throw EmulatorRuntimeError("Trying to access memory at $wrapped, which is outside memory range")
+        memory[wrapped] = value
     }
 
     fun setMemoryAt(position: UInt, value: UByte) {
@@ -79,9 +81,10 @@ open class Emulator(
     }
 
     fun getMemoryAt(position: Int): UByte {
-        if (position !in 0 until memorySize)
-            throw EmulatorRuntimeError("Trying to access memory at $position, which is outside memory range")
-        return memory[position]
+        val wrapped = position% MEMORY_SIZE
+        if (wrapped !in 0 until memorySize)
+            throw EmulatorRuntimeError("Trying to access memory at $wrapped, which is outside memory range")
+        return memory[wrapped]
     }
 
     fun getMemoryAt(position: UInt): UByte {

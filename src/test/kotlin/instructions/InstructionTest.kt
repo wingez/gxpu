@@ -175,11 +175,11 @@ internal class InstructionTest {
     @Test
     fun testAssembleNegativeSymbol() {
         val i = InstructionSet()
-        i.addInstruction(Instruction("sta fp, #offset", emulate = emptyEmulate, 1u))
-        i.addInstruction(Instruction("sta fp, -#offset", emulate = emptyEmulate, 2u))
+        val instr = Instruction("sta fp, #offset", emulate = emptyEmulate, 1u)
+        i.addInstruction(instr)
 
-        assertIterableEquals(i.assembleMnemonic("sta fp, #5"), bytes(1, 5))
-        assertIterableEquals(i.assembleMnemonic("sta fp, -#10"), bytes(2, 10))
+        assertIterableEquals(i.assembleMnemonic("sta fp, #5"), listOf(emulate(instr, "offset" to 5)))
+        assertIterableEquals(i.assembleMnemonic("sta fp, #-10"), listOf(emulate(instr, "offset" to -10)))
     }
 
     @Test

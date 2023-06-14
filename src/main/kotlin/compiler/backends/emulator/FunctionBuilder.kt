@@ -122,6 +122,16 @@ class FunctionBuilder(
             return
         }
 
+        //Maks space for result variable
+        if (expr.function.returnType != Datatype.Void) {
+            addInstruction(
+                emulate(
+                    DefaultEmulator.add_sp,
+                    "val" to datatypeLayoutProvider.sizeOf(expr.function.returnType)
+                )
+            )
+        }
+
         for (parameterExpr in expr.parameters) {
             putOnStack(parameterExpr)
         }
@@ -191,6 +201,7 @@ class FunctionBuilder(
 
     private fun buildCodeBody(code: IntermediateCode) {
 
+
         val referencesToAdd = mutableMapOf<Int, MutableList<Reference>>()
 
         for ((label, index) in code.labels) {
@@ -202,9 +213,20 @@ class FunctionBuilder(
         }
 
 
+
+
         for ((index, instruction) in code.instructions.withIndex()) {
 
             val indexOfAddedInstructions = resultingCode.size
+
+            if (index == 0) {
+                // Make space for local variables if necessary
+                val sizeOfLocalVariables = layout.sizeOfType(VariableType.Local)
+                if (sizeOfLocalVariables > 0) {
+                    addInstruction(emulate(DefaultEmulator.add_sp, "val" to sizeOfLocalVariables))
+                }
+            }
+
 
             buildInstruction(instruction)
 

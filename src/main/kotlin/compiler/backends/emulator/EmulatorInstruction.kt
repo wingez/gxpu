@@ -29,6 +29,10 @@ data class Value(
             throw AssertionError()
         }
     }
+
+    override fun toString(): String {
+        return if (isConstant) {constant.toString()} else {"${reference!!.function.name}.${reference.label.identifier}"}
+    }
 }
 
 

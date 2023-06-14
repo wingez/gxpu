@@ -3,6 +3,8 @@ package compiler.backends.emulator
 import compiler.backends.emulator.emulator.DefaultEmulator
 import compiler.frontend.Datatype
 import compiler.frontend.StructBuilder
+import se.wingez.ast.FunctionType
+import se.wingez.ast.OperatorBuiltIns
 import se.wingez.compiler.backends.emulator.EmulatorInstruction
 import se.wingez.compiler.backends.emulator.Reference
 import se.wingez.compiler.backends.emulator.emulate
@@ -55,64 +57,59 @@ class Bool : BuiltIn {
 
     override val sizeOfVars: Int = 0
 }
-//
-//class ByteAddition : BuiltIn {
-//    override val name = OperatorBuiltIns.Addition
-//    override val signature: FunctionSignature
-//        get() = SignatureBuilder(name)
-//            .addParameter("left", byteType)
-//            .addParameter("right", byteType)
-//            .setReturnType(byteType)
-//            .getSignature()
-//
-//    override val sizeOfVars = 0
-//
-//    override fun compile(generator: CodeGenerator) {
-//
-//        generator.generate(
-//            DefaultEmulator.instructionSet.assembleMnemonicFile(
-//                """
-//            ADDSP #${stackFrameType.size}
-//            POPA
-//            POP ADDA
-//            STA [SP #0]
-//            ret
-//        """
-//            )
-//        )
-//    }
-//}
-//
-//class ByteSubtraction : BuiltIn {
-//    override val name = OperatorBuiltIns.Subtraction
-//    override val signature: FunctionSignature
-//        get() = SignatureBuilder(name)
-//            .addParameter("initial", byteType)
-//            .addParameter("toSubtract", byteType)
-//            .setReturnType(byteType)
-//            .getSignature()
-//
-//    override val sizeOfVars = 0
-//
-//    override fun compile(generator: CodeGenerator) {
-//        generator.generate(
-//            DefaultEmulator.instructionSet.assembleMnemonicFile(
-//                """
-//            ADDSP #${stackFrameType.size}
-//            POPA
-//            POP SUBA
-//            STA [SP #0]
-//            ret
-//        """
-//            )
-//        )
-//    }
-//}
+
+class ByteAddition : BuiltIn {
+    override val name = OperatorBuiltIns.Addition
+    override fun compile(): List<EmulatorInstruction> {
+        return DefaultEmulator.instructionSet.assembleMnemonicFile(
+            """
+            POPA
+            POP ADDA
+            SUBSP #1
+            STA [SP #0]
+            ret
+        """
+        )
+    }
+
+    override val signature = SignatureBuilder(name)
+        .addParameter(Datatype.Integer)
+        .addParameter(Datatype.Integer)
+        .setReturnType(Datatype.Integer)
+        .setFunctionType(FunctionType.Operator)
+        .getSignature()
+
+    override val sizeOfVars = 0
+
+}
+
+class ByteSubtraction : BuiltIn {
+    override val name = OperatorBuiltIns.Subtraction
+    override fun compile(): List<EmulatorInstruction> {
+        return DefaultEmulator.instructionSet.assembleMnemonicFile(
+            """
+            LDA [SP #-2]
+            POP SUBA
+            STA [FP #-3]
+            ret
+        """
+        )
+    }
+
+    override val signature = SignatureBuilder(name)
+        .addParameter(Datatype.Integer)
+        .addParameter(Datatype.Integer)
+        .setReturnType(Datatype.Integer)
+        .setFunctionType(FunctionType.Operator)
+        .getSignature()
+
+    override val sizeOfVars = 0
+}
 
 class BuiltInFunctions : BuiltInProvider {
 
     private val available = listOf(
-        Print(), //ByteAddition(), ByteSubtraction(),
+        Print(), ByteAddition(), ByteSubtraction(),
     )
 
     override fun getTypes(): Map<String, Datatype> {

@@ -19,7 +19,7 @@ import kotlin.test.assertEquals
 
 
 class DummyBuiltInProvider(
-    private val builtIns: List<BuiltIn> = listOf(Print(), Bool())//, ByteAddition(), ByteSubtraction()) TODO:
+    private val builtIns: List<BuiltIn> = listOf(Print(), Bool(), ByteAddition(), ByteSubtraction())
 ) : BuiltInProvider, FunctionDefinitionResolver {
     override fun getSignatures(): List<FunctionDefinition> {
         return builtIns.map { it.signature }
