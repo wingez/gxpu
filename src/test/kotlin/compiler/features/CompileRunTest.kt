@@ -1,4 +1,4 @@
-package se.wingez.everything
+package se.wingez.compiler.features
 
 import org.junit.jupiter.api.Assertions.assertIterableEquals
 import org.junit.jupiter.api.Disabled
@@ -11,8 +11,8 @@ import compiler.backends.emulator.CompileError
 import compiler.backends.emulator.Compiler
 import compiler.backends.emulator.emulator.DefaultEmulator
 import compiler.backends.emulator.emulator.EmulatorCyclesExceeded
-import se.wingez.compiler.DummyBuiltInProvider
-import se.wingez.compiler.buildSingleMainFunction
+import compiler.backendemulator.DummyBuiltInProvider
+import compiler.backendemulator.buildSingleMainFunction
 import se.wingez.tokens.parseFile
 import java.io.StringReader
 import kotlin.test.assertEquals

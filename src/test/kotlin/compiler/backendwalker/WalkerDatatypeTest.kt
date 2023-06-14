@@ -1,4 +1,4 @@
-package se.wingez.astwalker
+package se.wingez.compiler.backendwalker
 
 import compiler.frontend.Datatype
 import compiler.frontend.TypeProvider

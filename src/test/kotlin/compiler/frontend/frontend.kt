@@ -1,4 +1,4 @@
-package se.wingez
+package compiler.frontend
 
 import compiler.frontend.Datatype
 import org.junit.jupiter.api.Test

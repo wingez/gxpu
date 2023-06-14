@@ -1,4 +1,4 @@
-package se.wingez.astwalker
+package se.wingez.compiler.backendwalker
 
 import org.junit.jupiter.api.Test
 import se.wingez.ast.parserFromFile

@@ -1,4 +1,4 @@
-package se.wingez.compiler
+package compiler.backendemulator
 
 import compiler.backends.emulator.*
 import compiler.backends.emulator.emulator.DefaultEmulator
@@ -6,11 +6,10 @@ import compiler.frontend.Datatype
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import se.wingez.ast.*
-import se.wingez.byte
 import se.wingez.compiler.backends.emulator.EmulatorInstruction
 import se.wingez.compiler.backends.emulator.Reference
-import se.wingez.compiler.backends.emulator.Value
 import se.wingez.compiler.backends.emulator.emulate
+import se.wingez.compiler.dummyTypeContainer
 import se.wingez.compiler.frontend.*
 import se.wingez.tokens.parseFile
 import java.io.StringReader
@@ -126,7 +125,7 @@ fun programShouldMatchAssembled(program: String, expectedAssembly: String) {
     shouldMatch(code.instructions, expected)
 }
 
-class CompilerTest {
+class CompilerCompareWithAssembly {
     @Test
     fun testFpOffset() {
 

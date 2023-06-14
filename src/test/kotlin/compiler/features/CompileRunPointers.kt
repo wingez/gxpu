@@ -1,4 +1,4 @@
-package se.wingez.everything
+package se.wingez.compiler.features
 
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test

@@ -1,9 +1,9 @@
-package se.wingez.emulator
+package se.wingez.compiler.backendemulator
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import se.wingez.byte
-import se.wingez.emulator.EmulatorBasicTest.Companion.assembleLoadEmulator
+import se.wingez.compiler.backendemulator.EmulatorBasicTest.Companion.assembleLoadEmulator
 
 class EmulatorStackTest {
 

@@ -1,7 +1,7 @@
-package se.wingez.everything.programs
+package se.wingez.compiler.features.programs
 
 import org.junit.jupiter.api.Test
-import se.wingez.everything.runProgramCheckOutput
+import se.wingez.compiler.features.runProgramCheckOutput
 
 class Fibonacci {
 
