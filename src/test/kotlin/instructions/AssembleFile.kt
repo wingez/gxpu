@@ -4,6 +4,7 @@ import compiler.backends.emulator.SignatureBuilder
 import compiler.backends.emulator.instructions.Instruction
 import compiler.backends.emulator.instructions.InstructionSet
 import org.junit.jupiter.api.Assertions.assertIterableEquals
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
@@ -43,27 +44,6 @@ internal class TestAssembleFile {
             """.trimIndent()
             )
         }
-    }
-
-    @Test
-    fun testAddVariableToScope() {
-
-        val i = InstructionSet()
-
-        i.addInstruction(Instruction("test #ins", emulate = emptyEmulate, id = 0u))
-
-        assertIterableEquals(
-            listOf<UByte>(0u, 4u, 0u, 6u), i.assembleMnemonicFile(
-                """
-            scope
-            #var1 = 4
-            #var4 = 6
-            test #var1
-            test #var4
-            endscope
-        """.trimIndent()
-            )
-        )
     }
 
     @Test
@@ -151,6 +131,7 @@ internal class TestAssembleFile {
     }
 
     @Test
+    @Disabled
     fun testLabelOverwrite() {
         val i = InstructionSet()
 

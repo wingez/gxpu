@@ -141,7 +141,10 @@ internal class InstructionTest {
             i.assembleMnemonic("test #5 #6"),
             listOf(emulate(test2, values = listOf("ins" to 5, "tmp" to 6), references = emptyList()))
         )
-        assertIterableEquals(i.assembleMnemonic("test    #5   #6"), listOf(emulate(test2, values = listOf("ins" to 5, "tmp" to 6), references = emptyList())))
+        assertIterableEquals(
+            i.assembleMnemonic("test    #5   #6"),
+            listOf(emulate(test2, values = listOf("ins" to 5, "tmp" to 6), references = emptyList()))
+        )
 
         assertIterableEquals(i.assembleMnemonic("    "), emptyList<EmulatorInstruction>())
     }
@@ -149,9 +152,18 @@ internal class InstructionTest {
     @Test
     fun testAssembleMnemonicSizes() {
         val i = InstructionSet()
-        i.addInstruction(Instruction("test ##var, #val", emptyEmulate, 0u))
+        val instr = Instruction("test ##var, #val", emptyEmulate, 0u)
+        i.addInstruction(instr)
 
-        assertIterableEquals(bytes(0, 0x02, 0x1, 8), i.assembleMnemonic("test ##258 #8"))
+        assertIterableEquals(
+            listOf(
+                emulate(
+                    instr,
+                    values = listOf("var" to 258, "val" to 8),
+                    references = emptyList()
+                )
+            ), i.assembleMnemonic("test ##258 #8")
+        )
     }
 
     @Test
