@@ -11,7 +11,7 @@ class Multiply {
     @EnumSource(CompilerBackend::class)
     fun multiply(compiler: CompilerBackend) {
         val program = """
-          def mul(a:byte,b:byte):byte
+          def mul(a:int,b:int):int
             result=0
             while bool(b):
               result=result+a

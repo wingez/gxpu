@@ -141,6 +141,16 @@ class BuiltInCreateArray : Function(
     }
 }
 
+class BoolConverter : Function(
+    "bool", FunctionType.Normal, listOf(Datatype.Integer), Datatype.Boolean
+) {
+    override fun execute(values: List<Value>, state: WalkerState): Value {
+        val primitive = values[0].getPrimitiveValue()
+
+        return Value.primitive(Datatype.Boolean, primitive)
+    }
+}
+
 val modulus = IntegerArithmetic("mod", FunctionType.Normal) { val1, val2 ->
     val1 % val2
 }
@@ -166,6 +176,7 @@ val builtInList = listOf(
     IntegerComparator(OperatorBuiltIns.NotEqual) { val1, val2 -> val1 != val2 },
     IntegerComparator(OperatorBuiltIns.LessThan) { val1, val2 -> val1 < val2 },
     IntegerComparator(OperatorBuiltIns.GreaterThan) { val1, val2 -> val1 > val2 },
+    BoolConverter(),
 
     BuiltInCreateArray(),
 )

@@ -31,7 +31,7 @@ class CompileRunCall {
     @EnumSource(CompilerBackend::class)
     fun testCallSingleParameter(compiler: CompilerBackend) {
         val program = """
-          def test(var:byte):
+          def test(var:int):
             print(var)
           
           def main():
@@ -46,7 +46,7 @@ class CompileRunCall {
     @EnumSource(CompilerBackend::class)
     fun testCallManyParameters(compiler: CompilerBackend) {
         val program = """
-            def test(param1:byte,param2:byte):
+            def test(param1:int,param2:int):
               print(param2+1)
               print(param1)
               
@@ -64,12 +64,12 @@ class CompileRunCall {
     @EnumSource(CompilerBackend::class)
     fun testCallManyVariables(compiler: CompilerBackend) {
         val program = """
-            def test(arg1:byte,arg2:byte,arg3:byte):
-              val v:byte = arg1+arg2
+            def test(arg1:int,arg2:int,arg3:int):
+              val v:int = arg1+arg2
               print(v+arg3)
               
             def main():
-              val var:byte = 2
+              val var:int = 2
               test(1,var,3)
               test(1,var,var) 
             

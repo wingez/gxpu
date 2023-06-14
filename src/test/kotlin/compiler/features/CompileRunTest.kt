@@ -8,6 +8,7 @@ import compiler.features.CompilerBackend
 import compiler.features.runBodyCheckOutput
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
+import se.wingez.compiler.backends.astwalker.WalkerException
 
 
 class CompileRunTest {
@@ -101,8 +102,16 @@ class CompileRunTest {
               print(5)
             
         """
-        assertThrows<EmulatorCyclesExceeded> {
-            runBodyCheckOutput(compiler, code)
+        when (compiler) {
+            CompilerBackend.Emulator -> assertThrows<EmulatorCyclesExceeded> {
+                runBodyCheckOutput(compiler, code)
+            }
+
+            CompilerBackend.Walker -> assertThrows<WalkerException> {
+                runBodyCheckOutput(compiler, code)
+            }
+
+            else -> TODO()
         }
     }
 

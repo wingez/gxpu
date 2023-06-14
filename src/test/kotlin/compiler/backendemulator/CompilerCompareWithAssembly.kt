@@ -27,6 +27,7 @@ class DummyBuiltInProvider(
         return mapOf(
             "void" to Datatype.Void,
             "byte" to Datatype.Integer,
+            "int" to Datatype.Integer,
         )
     }
 
