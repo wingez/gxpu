@@ -93,7 +93,7 @@ data class Label(
     val identifier: String
 )
 
-data class SemiCompiledCode(
+data class IntermediateCode(
     val instructions: List<Instruction>,
     val labels: Map<Label, Int>
 )
@@ -101,7 +101,7 @@ data class SemiCompiledCode(
 data class FunctionContent(
     val definition: FunctionDefinition,
     val localVariables: List<Variable>,
-    val code: SemiCompiledCode,
+    val code: IntermediateCode,
 )
 
 
@@ -132,22 +132,11 @@ private fun assertFunctionNode(node: AstNode): FunctionData {
     return node.asFunction()
 }
 
-
-fun compileFunction(
-    functionNode: AstNode,
-    functionProvider: FunctionDefinitionResolver,
-    typeProvider: TypeProvider
-): FunctionContent {
-
-    return FunctionCompiler(functionProvider, typeProvider).compileFunction(functionNode)
-
-}
-
 private data class LoopContext(
     val endLabel: Label
 )
 
-private class FunctionCompiler(
+class FunctionCompiler(
     val functionProvider: FunctionDefinitionResolver,
     val typeProvider: TypeProvider,
 ) {
@@ -288,7 +277,7 @@ private class FunctionCompiler(
         return parseExpression(node).type
     }
 
-    fun parseIf(
+    private fun parseIf(
         node: AstNode,
         currentCodeBlock: CodeBlock,
         loopContext: LoopContext?
@@ -344,7 +333,7 @@ private class FunctionCompiler(
         }
     }
 
-    fun parseWhile(
+    private fun parseWhile(
         node: AstNode,
         currentCodeBlock: CodeBlock,
     ) {
@@ -482,7 +471,7 @@ private class FunctionCompiler(
 }
 
 
-private fun flattenCodeBlock(codeBlock: CodeBlock): SemiCompiledCode {
+private fun flattenCodeBlock(codeBlock: CodeBlock): IntermediateCode {
 
     val labels = mutableMapOf<Label, Int>()
     val instructions = mutableListOf<Instruction>()
@@ -505,7 +494,7 @@ private fun flattenCodeBlock(codeBlock: CodeBlock): SemiCompiledCode {
 
     placeCodeBlockRecursive(codeBlock)
 
-    return SemiCompiledCode(instructions, labels)
+    return IntermediateCode(instructions, labels)
 
 }
 

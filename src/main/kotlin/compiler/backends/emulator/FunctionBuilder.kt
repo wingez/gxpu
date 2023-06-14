@@ -173,7 +173,7 @@ class FunctionBuilder(
     }
 
 
-    private fun buildCodeBody(code: SemiCompiledCode) {
+    private fun buildCodeBody(code: IntermediateCode) {
 
 
         for ((index, instruction) in code.instructions.withIndex()) {
