@@ -10,7 +10,7 @@ class Multiply {
         val program = """
           def mul(a:byte,b:byte):byte
             result=0
-            while b:
+            while bool(b):
               result=result+a
               b=b-1
           
