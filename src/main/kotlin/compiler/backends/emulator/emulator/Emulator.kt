@@ -120,6 +120,7 @@ open class Emulator(
         :return:
          */
         val ins = instructions[pc.toInt()]
+        pc++
         ins.emulate(this, this)
     }
 

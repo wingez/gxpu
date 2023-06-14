@@ -8,6 +8,8 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import se.wingez.byte
 import se.wingez.bytes
+import se.wingez.compiler.backends.emulator.EmulatorInstruction
+import se.wingez.compiler.backends.emulator.emulate
 import java.io.StringReader
 
 internal class EmulatorBasicTest {
@@ -93,29 +95,28 @@ internal class EmulatorBasicTest {
     fun testExecutionGeneral() {
         val e = DefaultEmulator()
 
-        fun buildAndRun(vararg instructions: Iterable<UByte>): List<UByte> {
-
-            val code = mutableListOf<UByte>()
-            instructions.forEach { code.addAll(it) }
+        fun buildAndRun(vararg instructions: EmulatorInstruction): List<UByte> {
 
             e.reset()
+            e.clearMemory()
             e.outputStream.clear()
-            e.setAllMemory(code)
+            e.setProgram(instructions.toList())
             e.run()
             return e.outputStream.toList()
         }
 
         assertIterableEquals(
             buildAndRun(
-                DefaultEmulator.print.build(), DefaultEmulator.exit.build()
+                emulate(DefaultEmulator.print),
+                emulate(DefaultEmulator.exit)
             ), bytes(0)
         )
         assertIterableEquals(
             buildAndRun(
-                DefaultEmulator.print.build(),
-                DefaultEmulator.lda_constant.build(mapOf("val" to 10)),
-                DefaultEmulator.print.build(),
-                DefaultEmulator.exit.build()
+                emulate(DefaultEmulator.print),
+                emulate(DefaultEmulator.lda_constant, "val" to 10),
+                emulate(DefaultEmulator.print),
+                emulate(DefaultEmulator.exit)
             ), bytes(0, 10)
         )
     }

@@ -21,7 +21,7 @@ data class Value(
         assertValid()
     }
 
-    val isReference = reference == null
+    val isReference = reference != null
     val isConstant = !isReference
 
     private fun assertValid() {
