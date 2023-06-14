@@ -191,6 +191,8 @@ class FunctionCompiler(
 
         flattenStatements(functionNode.childNodes, mainCodeBlock, loopContext = null)
 
+        addReturn(mainCodeBlock) //TODO: only add return if needed
+
         return mainCodeBlock
     }
 
@@ -224,14 +226,17 @@ class FunctionCompiler(
                 codeBlock.addInstruction(Jump(loopContext.endLabel))
             }
 
-            NodeTypes.Return -> codeBlock.addInstruction(Return())
+            NodeTypes.Return -> addReturn(codeBlock)
 
             else -> {
                 val valueExpression = parseExpression(node)
                 codeBlock.addInstruction(Execute(valueExpression))
             }
         }
+    }
 
+    private fun addReturn(codeBlock: CodeBlock) {
+        codeBlock.addInstruction(Return())
     }
 
     private fun parseExpression(

@@ -14,7 +14,7 @@ class Fibonacci {
             val c:byte=0
     
             val counter:byte=0
-            while (10-counter):
+            while bool(10-counter):
               print(a)
               c=a+b
               b=a

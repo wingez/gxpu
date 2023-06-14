@@ -65,10 +65,7 @@ class FunctionBuilder(
 
     }
 
-    fun handleReturn(node: AstNode) {
-        if (node.asReturn().hasValue()) {
-            throw NotImplementedError()
-        }
+    fun handleReturn() {
         addInstruction(emulate(DefaultEmulator.ret))
     }
 
@@ -181,6 +178,7 @@ class FunctionBuilder(
             is JumpOnFalse -> jumpHelper(instr.condition, false, instr.label)
             is JumpOnTrue -> jumpHelper(instr.condition, true, instr.label)
             is Jump -> addInstruction(emulate(DefaultEmulator.jump, "addr" to Reference(signature, instr.label)))
+            is Return -> handleReturn()
             else -> TODO(instr.toString())
         }
 
@@ -248,8 +246,6 @@ class FunctionBuilder(
         layout = calculateLayout(functionContent.localVariables, datatypeLayoutProvider)
 
         buildCodeBody(functionContent.code)
-
-        handleReturn(AstNode.fromReturn())
 
         return BuiltFunction(signature, layout, resultingCode)
     }

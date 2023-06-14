@@ -165,6 +165,7 @@ class CompilerTest {
     fun testBasicAssign() {
 
         val expected = """
+        addsp #1
         push #5
         pop [FP #0]
         ret
@@ -180,6 +181,7 @@ class CompilerTest {
     @Test
     fun testCopy() {
         val expected = """
+        ADDSP #2
         PUSH #5
         POP[FP #0]
         PUSH [FP #0]

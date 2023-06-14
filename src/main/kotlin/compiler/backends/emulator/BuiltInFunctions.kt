@@ -16,7 +16,6 @@ import se.wingez.compiler.frontend.functionEntryLabel
 interface BuiltIn {
 
     val signature: FunctionDefinition
-    val sizeOfVars: Int
     val name: String
     fun compile(): List<EmulatorInstruction>
 }
@@ -29,7 +28,6 @@ class Print : BuiltIn {
             .addParameter(Datatype.Integer)
             .getSignature()
 
-    override val sizeOfVars = 0
 
     override fun compile(): List<EmulatorInstruction> {
 
@@ -55,7 +53,6 @@ class Bool : BuiltIn {
         return listOf(emulate(DefaultEmulator.exit))
     }
 
-    override val sizeOfVars: Int = 0
 }
 
 class ByteAddition : BuiltIn {
@@ -79,8 +76,6 @@ class ByteAddition : BuiltIn {
         .setFunctionType(FunctionType.Operator)
         .getSignature()
 
-    override val sizeOfVars = 0
-
 }
 
 class ByteSubtraction : BuiltIn {
@@ -102,8 +97,6 @@ class ByteSubtraction : BuiltIn {
         .setReturnType(Datatype.Integer)
         .setFunctionType(FunctionType.Operator)
         .getSignature()
-
-    override val sizeOfVars = 0
 }
 
 class BuiltInFunctions : BuiltInProvider {
