@@ -71,17 +71,15 @@ internal class EmulatorBasicTest {
 
     @Test
     fun testExecutionCyclesExceeded() {
-        val e = Emulator(dummyInstructions)
 
-        // Exit
-        e.setAllMemory(
-            bytes(
-                // 4x Load A, #0
-                3, 0, 3, 0, 3, 0, 3, 0,
-                // Exit
-                1,
-            )
-        )
+        val program = """
+         LDA #0
+         LDA #0
+         LDA #0
+         LDA #0
+         exit
+        """
+        val e = assembleLoadEmulator(program)
         e.run()
         e.reset()
 
@@ -128,8 +126,9 @@ internal class EmulatorBasicTest {
          LDSP #25
          LDFP #25
          
-         CALL #7
+         CALL #exit
          invalid
+         :exit
          EXIT
         """
         val e = assembleLoadEmulator(program)
@@ -148,11 +147,11 @@ internal class EmulatorBasicTest {
     LDA #1
     OUT
     
-    CALL #13
+    CALL #func
     LDA #3
     OUT
     EXIT
-    
+    :func
     ldfp sp
     LDA #2
     OUT
@@ -225,13 +224,14 @@ internal class EmulatorBasicTest {
         val program = """
     lda #1
     tsta
-    jmpz #6
+    jmpz #jumphere
     out
+    :jumphere
     lda #0
     tsta
-    jmpz #12
+    jmpz #exit
     out
-    
+    :exit
     exit
     """
         val e = assembleLoadEmulator(program)
