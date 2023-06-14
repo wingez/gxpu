@@ -218,14 +218,15 @@ class CompilerTest {
         PUSH #5
         TST POP
        
-        jmpz #11
+        jmpz #end
         PUSH #1
         CALL #0
-        ADDSP #1
+        subSP #1
+        :end
         RET
         """
         val body = """
-          if 5:
+          if bool(5):
             print(1)
         """
         bodyShouldMatchAssembled(body, expected)
@@ -236,18 +237,20 @@ class CompilerTest {
         val expected = """
         PUSH #5
         TST POP
-        JMPZ #13
+        JMPZ #else
         PUSH #1
         CALL #0
-        ADDSP #1
-        JMP #19
+        subSP #1
+        JMP #end
+        :else
         PUSH #2
         CALL #0
-        ADDSP #1
+        subSP #1
+        :end
         RET
         """
         val body = """
-          if 5:
+          if bool(5):
             print(1)
           else:
             print(2)

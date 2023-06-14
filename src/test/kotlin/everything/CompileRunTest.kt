@@ -124,7 +124,7 @@ class CompileRunTest {
     @Test
     fun testWhileInfinity() {
         val code = """
-            while 1:
+            while bool(1):
               print(5)
             
         """
@@ -137,7 +137,7 @@ class CompileRunTest {
     fun testWhileDecrement() {
         val code = """
         val var:byte = 5
-        while var:
+        while bool(var):
           print(var)
           var=var-1
         """
@@ -147,9 +147,9 @@ class CompileRunTest {
     @Test
     fun testNested() {
         var body = """
-        if 10:
+        if bool(10):
           print(1)
-          if 0:
+          if bool(0):
             print(0)
           print(2)
         """
@@ -157,8 +157,8 @@ class CompileRunTest {
 
         body = """
         val a:byte=3
-        while a:
-          if (a-2):
+        while bool(a):
+          if bool(a-2):
             print(8)
           print(a)
           a=a-1
