@@ -49,7 +49,8 @@ class Bool : BuiltIn {
             .getSignature()
 
     override fun compile(): List<EmulatorInstruction> {
-        return emptyList()
+        // Should hopefully not be called
+        return listOf(emulate(DefaultEmulator.exit))
     }
 
     override val sizeOfVars: Int = 0

@@ -277,29 +277,30 @@ class CompilerTest {
     @Test
     fun testCall() {
         val expected = """
-        LDFP #255
-        LDSP #255
-        SUBSP #0
-        CALL #20
+        LDFP #100
+        LDSP #100
+        CALL #main
         exit
-        // print
-        LDA [FP #2]
+        
+        :main
+        CALL #test1
+        PUSH #3
+        CALL #print
+        SUBSP #1
+        RET
+        
+        :print
+        LDA [FP #-1]
         OUT
         RET
         
-       // test1 
+        
+        :test1 
         PUSH #10
-        CALL #9
-        ADDSP #1
+        CALL #print
+        SUBSP #1
         RET
-        //main
-        SUBSP #0
-        CALL #13
-        ADDSP #0
-        PUSH #3
-        CALL #9
-        ADDSP #1
-        RET
+        
         """
         val body = """
           def test1():

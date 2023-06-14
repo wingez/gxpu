@@ -16,7 +16,10 @@ data class BuiltFunction(
 ) {
 
     fun getDependents(): Set<FunctionDefinition> {
-        return instructions.flatMap { it.references }.map { it.function }.toSet()
+        val result =
+            instructions.flatMap { it.values.values }.filter { it.isReference }.map { it.reference!!.function }
+                .toSet()
+        return result
     }
 
 }
@@ -113,7 +116,7 @@ class FunctionBuilder(
     private fun handleCall(expr: CallExpression) {
 
         //TODO: extract a generic way to inline stuff like this
-        if (expr.function == Bool().signature){
+        if (expr.function == Bool().signature) {
             putOnStack(expr.parameters.first())
             //Do nothing in this case. Conversation is implicit
             return
