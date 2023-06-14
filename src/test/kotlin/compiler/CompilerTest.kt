@@ -37,7 +37,7 @@ class DummyBuiltInProvider(
             if (builtIn.signature == signature) {
 
                 val instructions = builtIn.compile()
-                instructions.first().reference = Reference(signature, functionEntryLabel)
+                instructions.first().addReference(Reference(signature, functionEntryLabel))
 
                 val variables = mutableListOf<Variable>()
                 if (builtIn.signature.returnType != Datatype.Void) {
@@ -262,7 +262,7 @@ class CompilerTest {
         JMPZ #13
         PUSH #1
         CALL #0
-        ADDSP #1
+        SUBSP #1
         JMP #0
         RET 
         """

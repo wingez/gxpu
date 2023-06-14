@@ -125,7 +125,7 @@ open class Emulator(
 
     override fun getIndexOfReference(reference: Reference): Int {
         for ((index, instr) in instructions.withIndex()) {
-            if (reference == instr.reference) {
+            if (reference in instr.references) {
                 return index
             }
         }

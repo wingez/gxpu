@@ -135,7 +135,7 @@ class BuiltInFunctions : BuiltInProvider {
 
         val instructions = result.compile()
 
-        instructions.first().reference = Reference(signature, functionEntryLabel)
+        instructions.first().addReference(Reference(signature, functionEntryLabel))
 
         val variables = mutableListOf<Variable>()
         if (signature.returnType != Datatype.Void) {

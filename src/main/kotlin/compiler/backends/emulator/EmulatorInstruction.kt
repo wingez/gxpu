@@ -35,9 +35,17 @@ data class Value(
 class EmulatorInstruction(
     val instruction: Instruction,
     val values: Map<String, Value>,
-
-    var reference: Reference? = null
 ) {
+
+    private val referenceList = mutableListOf<Reference>()
+
+    val references: List<Reference>
+        get() = referenceList
+
+    fun addReference(reference: Reference) {
+        referenceList.add(reference)
+    }
+
     fun emulate(emulator: Emulator, indexProvider: ReferenceIndexProvider) {
 
         val parameters = values.entries.associate { (name, value) ->
@@ -51,7 +59,10 @@ class EmulatorInstruction(
         }
 
         instruction.emulate.invoke(emulator, parameters)
+    }
 
+    override fun toString(): String {
+        return "${instruction.mnemonic}, $values"
     }
 
 }

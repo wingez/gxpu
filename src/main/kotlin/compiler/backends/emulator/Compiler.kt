@@ -180,7 +180,7 @@ val dummyDatatypeSizeProvider = object : DatatypeLayoutProvider {
     override fun sizeOf(dataType: Datatype): Int {
         return when (dataType) {
             Datatype.Integer -> 1
-            else -> throw NotImplementedError()
+            else -> throw TODO(dataType.toString())
         }
 
 

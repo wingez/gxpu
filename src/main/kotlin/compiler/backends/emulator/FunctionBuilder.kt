@@ -16,7 +16,7 @@ data class BuiltFunction(
 ) {
 
     fun getDependents(): Set<FunctionDefinition> {
-        return instructions.mapNotNull { it.reference?.function }.toSet()
+        return instructions.flatMap { it.references }.map { it.function }.toSet()
     }
 
 }
@@ -101,18 +101,23 @@ class FunctionBuilder(
                 )
             }
 
-            else -> throw AssertionError()
+            is CallExpression -> handleCall(expr)
+
+            else -> TODO(expr.toString())
+
         }
 
 
     }
 
-    private fun handleCall(instr: Execute) {
-        //TODO: handle pop result
+    private fun handleCall(expr: CallExpression) {
 
-        val expr = instr.expression
-
-        if (expr !is CallExpression) throw NotImplementedError()
+        //TODO: extract a generic way to inline stuff like this
+        if (expr.function == Bool().signature){
+            putOnStack(expr.parameters.first())
+            //Do nothing in this case. Conversation is implicit
+            return
+        }
 
         for (parameterExpr in expr.parameters) {
             putOnStack(parameterExpr)
@@ -124,6 +129,20 @@ class FunctionBuilder(
         val argumentSize = expr.parameters.sumOf { this.datatypeLayoutProvider.sizeOf(it.type) }
         if (argumentSize > 0) {
             addInstruction(emulate(DefaultEmulator.sub_sp, "val" to argumentSize))
+        }
+    }
+
+    private fun handleExecute(instr: Execute) {
+        //TODO: handle pop result
+
+        val expr = instr.expression
+
+        if (expr !is CallExpression) throw NotImplementedError()
+
+        handleCall(expr)
+
+        if (expr.type != Datatype.Void) {
+            addInstruction(emulate(DefaultEmulator.sub_sp, "val" to datatypeLayoutProvider.sizeOf(expr.type)))
         }
 
     }
@@ -140,14 +159,15 @@ class FunctionBuilder(
         addInstruction(emulate(DefaultEmulator.pop_fp_offset, "offset" to offset))
     }
 
-    private fun buildInstruction(instr: se.wingez.compiler.frontend.Instruction) {
+    private fun buildInstruction(instr: Instruction) {
 
 
         when (instr) {
-            is Execute -> handleCall(instr)
+            is Execute -> handleExecute(instr)
             is Assign -> handleAssign(instr)
             is JumpOnFalse -> jumpHelper(instr.condition, false, instr.label)
             is JumpOnTrue -> jumpHelper(instr.condition, true, instr.label)
+            is Jump -> addInstruction(emulate(DefaultEmulator.jump, "addr" to Reference(signature, instr.label)))
             else -> TODO(instr.toString())
         }
 
@@ -158,21 +178,24 @@ class FunctionBuilder(
         assert(expr.type == Datatype.Boolean)
 
         putOnStack(expr)
-        //generator.generate(DefaultEmulator.test_pop.build())
+        addInstruction(emulate(DefaultEmulator.test_pop))
         if (!jumpOn) {
+            addInstruction(emulate(DefaultEmulator.jump_zero, "addr" to Reference(signature, label)))
+        } else {
             TODO()
-            //generator.link(DefaultEmulator.jump_zero,)
         }
     }
 
     private fun buildCodeBody(code: IntermediateCode) {
 
-        val referencesToAdd = mutableMapOf<Int,Reference>()
+        val referencesToAdd = mutableMapOf<Int, MutableList<Reference>>()
 
         for ((label, index) in code.labels) {
             val reference = Reference(signature, label)
-            assert(index !in referencesToAdd)
-            referencesToAdd[index] = reference
+            if (index !in referencesToAdd) {
+                referencesToAdd[index] = mutableListOf()
+            }
+            referencesToAdd.getValue(index).add(reference)
         }
 
 
@@ -183,7 +206,10 @@ class FunctionBuilder(
             buildInstruction(instruction)
 
             if (index in referencesToAdd) {
-                resultingCode[indexOfAddedInstructions].reference = referencesToAdd.getValue(index)
+                val references = referencesToAdd.getValue(index)
+                references.forEach {
+                    resultingCode[indexOfAddedInstructions].addReference(it)
+                }
             }
         }
 
