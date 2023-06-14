@@ -32,7 +32,7 @@ data class Value(
 }
 
 
-class EmulatorInstruction(
+data class EmulatorInstruction(
     val instruction: Instruction,
     val values: Map<String, Value>,
 ) {
@@ -42,8 +42,9 @@ class EmulatorInstruction(
     val references: List<Reference>
         get() = referenceList
 
-    fun addReference(reference: Reference) {
+    fun addReference(reference: Reference):EmulatorInstruction {
         referenceList.add(reference)
+        return this
     }
 
     fun emulate(emulator: Emulator, indexProvider: ReferenceIndexProvider) {

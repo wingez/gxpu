@@ -174,9 +174,10 @@ internal class EmulatorBasicTest {
     
     lda #5
     out
-    jmp #7
+    jmp #jumphere
     lda #7
     
+    :jumphere
     out
     exit
     """

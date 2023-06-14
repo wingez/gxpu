@@ -1,10 +1,13 @@
 package se.wingez.compiler.backends.emulator.instructions
 
+import compiler.backends.emulator.SignatureBuilder
 import compiler.backends.emulator.instructions.Instruction
 import compiler.backends.emulator.instructions.InstructionBuilderError
 import compiler.backends.emulator.instructions.InstructionSet
 import se.wingez.compiler.backends.emulator.EmulatorInstruction
+import se.wingez.compiler.backends.emulator.Reference
 import se.wingez.compiler.backends.emulator.Value
+import se.wingez.compiler.frontend.Label
 import se.wingez.splitMany
 
 class AssembleError(message: String) : Exception(message)
@@ -15,6 +18,7 @@ class Assembler(
 ) {
     private val scopes = mutableListOf<MutableMap<String, String>>()
     private var currentLine = 0
+    private var referencesToAddToNextInstruction = mutableListOf<Reference>()
 
     private val NEW_SCOPE = "scope"
     private val END_SCOPE = "endscope"
@@ -79,15 +83,13 @@ class Assembler(
         throw AssembleError("No variable with name: $variable")
     }
 
-    private fun getVariableOrConstant(value: String): Int {
-
-        var toConvert = value
+    private fun getVariableOrConstant(value: String): Value {
 
         if (!value.all { it.isDigit() }) {
-            toConvert = getVariable(value)
+            return Value(reference = Reference(SignatureBuilder("main").getSignature(), Label(value)))
         }
 
-        return toConvert.toInt()
+        return Value(constant = value.toInt())
     }
 
     private fun isEmptyOrComment(line: String): Boolean {
@@ -131,7 +133,7 @@ class Assembler(
         }
         if (isLabel(trimmedMnemonic)) {
             val labelName = trimmedMnemonic.substring(LABEL.length)
-            setVariable(labelName, currentSize.toString())
+            referencesToAddToNextInstruction.add(Reference(SignatureBuilder("main").getSignature(), Label(labelName)))
             return
         }
 
@@ -148,10 +150,14 @@ class Assembler(
 
         for ((variableName, variableValue) in parseResult.variableMap.entries) {
             val value = getVariableOrConstant(variableValue)
-            instructionValues.put(variableName, Value(value))
+            instructionValues.put(variableName, value)
         }
 
-        currentInstructions.add(EmulatorInstruction(parseResult.instruction, instructionValues))
+        val instr = EmulatorInstruction(parseResult.instruction, instructionValues)
+        referencesToAddToNextInstruction.forEach { instr.addReference(it) }
+        referencesToAddToNextInstruction.clear()
+
+        currentInstructions.add(instr)
     }
 
     private fun findInstruction(line: String): InstructionParseResult {
