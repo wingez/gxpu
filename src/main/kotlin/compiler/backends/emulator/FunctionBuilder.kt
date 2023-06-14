@@ -1,17 +1,24 @@
 package compiler.backends.emulator
 
 import compiler.backends.emulator.emulator.DefaultEmulator
-import compiler.backends.emulator.instructions.Instruction
 import compiler.frontend.Datatype
 import compiler.frontend.TypeProvider
 import se.wingez.ast.AstNode
+import se.wingez.compiler.backends.emulator.EmulatorInstruction
+import se.wingez.compiler.backends.emulator.Reference
+import se.wingez.compiler.backends.emulator.emulate
 import se.wingez.compiler.frontend.*
 
 data class BuiltFunction(
     val signature: FunctionDefinition,
-    val generator: CodeGenerator,
     val layout: FunctionFrameLayout,
+    val instructions: List<EmulatorInstruction>
 ) {
+
+    fun getDependents(): Set<FunctionDefinition> {
+        return instructions.mapNotNull { it.reference?.function }.toSet()
+    }
+
 }
 
 fun buildFunctionBody(
@@ -27,56 +34,23 @@ fun buildFunctionBody(
     return builder.buildBody(node)
 }
 
-private data class VariableLink(
-    val generateLater: GenerateLater,
-    val variableName: String,
-    val offset: Int,
-)
-
 class FunctionBuilder(
     val signature: FunctionDefinition,
     val functionProvider: FunctionDefinitionResolver,
     val typeProvider: TypeProvider,
     val datatypeLayoutProvider: DatatypeLayoutProvider,
-) {
+) : CodeGenerator {
 
-    val generator = CodeGenerator()
+    val resultingCode = mutableListOf<EmulatorInstruction>()
 
-    private val variableLinks = mutableListOf<VariableLink>()
 
     private val localVariables = mutableMapOf<String, DataType>()
 
     private lateinit var layout: FunctionFrameLayout
 
-    fun linkVariable(instruction: Instruction, variableName: String, offset: Int) {
-        val generateLater = generator.makeSpaceFor(instruction)
-        variableLinks.add(VariableLink(generateLater, variableName, offset))
+    override fun addInstruction(emulatorInstruction: EmulatorInstruction) {
+        resultingCode.add(emulatorInstruction)
     }
-
-    fun addLocalVariable(name: String, type: DataType) {
-//        if (name == "result" ||
-//            name in signature.parameters.map { it.name } ||
-//            name in localVariables
-//        ) {
-//            throw CompileError("Already added a variable with name $name")
-//        }
-//
-//        localVariables[name] = type
-//    }
-
-//    fun getLocalVariableType(name: String): DataType {
-//        if (name == "result") {
-//            return signature.returnType
-//        }
-//        val parameter = signature.parameters.find { it.name == name }
-//        if (parameter != null) {
-//            return parameter.type
-//        }
-//
-//        return localVariables.getValue(name)
-        throw NotImplementedError()
-    }
-
 
     private fun buildNodes(nodes: Iterable<AstNode>) {
         for (node in nodes) {
@@ -92,7 +66,7 @@ class FunctionBuilder(
         if (node.asReturn().hasValue()) {
             throw NotImplementedError()
         }
-        generator.generate(DefaultEmulator.ret.build())
+        addInstruction(emulate(DefaultEmulator.ret))
     }
 
 
@@ -108,7 +82,11 @@ class FunctionBuilder(
 
         when (expr) {
             is ConstantExpression -> {
-                generator.generate(DefaultEmulator.push.build(mapOf("val" to expr.value)))
+                addInstruction(
+                    emulate(
+                        DefaultEmulator.push, "val" to expr.value
+                    )
+                )
             }
 
             is VariableExpression -> {
@@ -116,8 +94,11 @@ class FunctionBuilder(
 
                 val field = layout.layout.values.find { it.name == expr.variable.name } ?: throw AssertionError()
 
-                generator.generate(DefaultEmulator.push_fp_offset.build(mapOf("offset" to field.offset)))
-
+                addInstruction(
+                    emulate(
+                        DefaultEmulator.push_fp_offset, "offset" to field.offset
+                    )
+                )
             }
 
             else -> throw AssertionError()
@@ -137,12 +118,12 @@ class FunctionBuilder(
             putOnStack(parameterExpr)
         }
 
-        generator.link(DefaultEmulator.call_addr, expr.function, LinkType.FunctionAddress)
+        addInstruction(emulate(DefaultEmulator.call_addr, "addr" to Reference(expr.function, functionEntryLabel)))
 
         // pop arguments if neccesary
         val argumentSize = expr.parameters.sumOf { this.datatypeLayoutProvider.sizeOf(it.type) }
         if (argumentSize > 0) {
-            generator.generate(DefaultEmulator.sub_sp.build(mapOf("val" to argumentSize)))
+            addInstruction(emulate(DefaultEmulator.sub_sp, "val" to argumentSize))
         }
 
     }
@@ -156,8 +137,7 @@ class FunctionBuilder(
         assert(field.type == Datatype.Integer)
 
         val offset = field.offset
-        generator.generate(DefaultEmulator.pop_fp_offset.build(mapOf("offset" to offset)))
-
+        addInstruction(emulate(DefaultEmulator.pop_fp_offset, "offset" to offset))
     }
 
     private fun buildInstruction(instr: se.wingez.compiler.frontend.Instruction) {
@@ -166,19 +146,45 @@ class FunctionBuilder(
         when (instr) {
             is Execute -> handleCall(instr)
             is Assign -> handleAssign(instr)
-            else -> TODO()
+            is JumpOnFalse -> jumpHelper(instr.condition, false, instr.label)
+            is JumpOnTrue -> jumpHelper(instr.condition, true, instr.label)
+            else -> TODO(instr.toString())
         }
 
 
     }
 
+    private fun jumpHelper(expr: ValueExpression, jumpOn: Boolean, label: Label) {
+        assert(expr.type == Datatype.Boolean)
+
+        putOnStack(expr)
+        //generator.generate(DefaultEmulator.test_pop.build())
+        if (!jumpOn) {
+            TODO()
+            //generator.link(DefaultEmulator.jump_zero,)
+        }
+    }
 
     private fun buildCodeBody(code: IntermediateCode) {
 
+        val referencesToAdd = mutableMapOf<Int,Reference>()
+
+        for ((label, index) in code.labels) {
+            val reference = Reference(signature, label)
+            assert(index !in referencesToAdd)
+            referencesToAdd[index] = reference
+        }
+
 
         for ((index, instruction) in code.instructions.withIndex()) {
+
+            val indexOfAddedInstructions = resultingCode.size
+
             buildInstruction(instruction)
 
+            if (index in referencesToAdd) {
+                resultingCode[indexOfAddedInstructions].reference = referencesToAdd.getValue(index)
+            }
         }
 
 
@@ -194,7 +200,7 @@ class FunctionBuilder(
 
         handleReturn(AstNode.fromReturn())
 
-        return BuiltFunction(signature, generator, layout)
+        return BuiltFunction(signature, layout, resultingCode)
     }
 
 

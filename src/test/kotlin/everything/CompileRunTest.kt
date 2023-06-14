@@ -24,7 +24,7 @@ fun runBodyCheckOutput(program: String, vararg result: Int) {
 
     val code = buildSingleMainFunction(nodes)
     val emulator = DefaultEmulator()
-    emulator.setAllMemory(code)
+    emulator.setProgram(code.instructions)
     emulator.run()
 
     assertIterableEquals(bytes(*result), emulator.outputStream)
@@ -38,7 +38,7 @@ fun runProgramCheckOutput(program: String, vararg result: Int) {
     val generator = c.buildProgram()
 
     val emulator = DefaultEmulator()
-    emulator.setAllMemory(generator.code)
+    emulator.setProgram(generator.instructions)
     emulator.run()
 
     assertEquals(bytes(*result), emulator.outputStream)

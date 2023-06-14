@@ -3,6 +3,8 @@ package se.wingez.compiler.backends.emulator.instructions
 import compiler.backends.emulator.instructions.Instruction
 import compiler.backends.emulator.instructions.InstructionBuilderError
 import compiler.backends.emulator.instructions.InstructionSet
+import se.wingez.compiler.backends.emulator.EmulatorInstruction
+import se.wingez.compiler.backends.emulator.Value
 import se.wingez.splitMany
 
 class AssembleError(message: String) : Exception(message)
@@ -26,10 +28,10 @@ class Assembler(
     }
 
 
-    private val currentCode = mutableListOf<UByte>()
+    private val currentInstructions = mutableListOf<EmulatorInstruction>()
 
     private val currentSize: Int
-        get() = currentCode.size
+        get() = currentInstructions.size
 
     private fun pushScope() {
         scopes.add(mutableMapOf())
@@ -142,14 +144,14 @@ class Assembler(
 
         val parseResult = findInstruction(trimmedMnemonic)
 
-        val instructionValues = mutableMapOf<String, Int>()
+        val instructionValues = mutableMapOf<String, Value>()
 
         for ((variableName, variableValue) in parseResult.variableMap.entries) {
             val value = getVariableOrConstant(variableValue)
-            instructionValues.put(variableName, value)
+            instructionValues.put(variableName, Value(value))
         }
 
-        currentCode.addAll(parseResult.instruction.build(instructionValues))
+        currentInstructions.add(EmulatorInstruction(parseResult.instruction, instructionValues))
     }
 
     private fun findInstruction(line: String): InstructionParseResult {
@@ -236,7 +238,7 @@ class Assembler(
         return null
     }
 
-    fun getResultingCode(): List<UByte> {
+    fun getResultingInstructions(): List<EmulatorInstruction> {
 
         for ((index, line) in lines.indices.zip(lines)) {
             currentLine = index
@@ -250,7 +252,7 @@ class Assembler(
             throw AssembleError("Forgot to close a scope??")
         }
 
-        return currentCode
+        return currentInstructions
     }
 }
 

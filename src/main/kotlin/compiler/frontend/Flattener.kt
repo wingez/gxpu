@@ -6,6 +6,8 @@ import se.wingez.ast.*
 
 const val RETURN_VALUE_NAME = "result"
 
+val functionEntryLabel = Label("function_entry")
+
 class FrontendCompilerError(message: String) : Error(message)
 
 interface Instruction {
@@ -185,7 +187,7 @@ class FunctionCompiler(
     ): CodeBlock {
         val function = assertFunctionNode(functionNode)
 
-        val mainCodeBlock = CodeBlock(Label("function: ${function.name}"))
+        val mainCodeBlock = CodeBlock(functionEntryLabel)
 
         flattenStatements(functionNode.childNodes, mainCodeBlock, loopContext = null)
 
@@ -433,7 +435,7 @@ class FunctionCompiler(
         functionNode: AstNode,
     ) {
 
-        if (definition.returnType!= Datatype.Void){
+        if (definition.returnType != Datatype.Void) {
             variables.add(Variable(RETURN_VALUE_NAME, definition.returnType.instantiate(), VariableType.Result))
         }
 

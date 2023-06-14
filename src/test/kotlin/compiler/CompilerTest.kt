@@ -8,17 +8,18 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import se.wingez.ast.*
 import se.wingez.byte
-import se.wingez.compiler.frontend.FunctionDefinition
-import se.wingez.compiler.frontend.FunctionDefinitionResolver
-import se.wingez.compiler.frontend.Variable
-import se.wingez.compiler.frontend.VariableType
+import se.wingez.compiler.backends.emulator.EmulatorInstruction
+import se.wingez.compiler.backends.emulator.Reference
+import se.wingez.compiler.backends.emulator.Value
+import se.wingez.compiler.backends.emulator.emulate
+import se.wingez.compiler.frontend.*
 import se.wingez.tokens.parseFile
 import java.io.StringReader
 import kotlin.test.assertEquals
 
 
 class DummyBuiltInProvider(
-    private val builtIns: List<BuiltIn> = listOf(Print())//, ByteAddition(), ByteSubtraction()) TODO:
+    private val builtIns: List<BuiltIn> = listOf(Print(), Bool())//, ByteAddition(), ByteSubtraction()) TODO:
 ) : BuiltInProvider, FunctionDefinitionResolver {
     override fun getSignatures(): List<FunctionDefinition> {
         return builtIns.map { it.signature }
@@ -35,9 +36,8 @@ class DummyBuiltInProvider(
         for (builtIn in builtIns) {
             if (builtIn.signature == signature) {
 
-                val generator = CodeGenerator()
-                builtIn.compile(generator)
-
+                val instructions = builtIn.compile()
+                instructions.first().reference = Reference(signature, functionEntryLabel)
 
                 val variables = mutableListOf<Variable>()
                 if (builtIn.signature.returnType != Datatype.Void) {
@@ -49,7 +49,7 @@ class DummyBuiltInProvider(
 
                 val layout = calculateLayout(variables, dummyDatatypeSizeProvider)
 
-                return BuiltFunction(builtIn.signature, generator, layout)
+                return BuiltFunction(builtIn.signature, layout, instructions)
             }
         }
         throw AssertionError()
@@ -70,13 +70,13 @@ class DummyBuiltInProvider(
     }
 }
 
-fun buildSingleMainFunction(nodes: List<AstNode>): List<UByte> {
+fun buildSingleMainFunction(nodes: List<AstNode>): CompiledProgram {
     val node = function("main", emptyList(), nodes, "")
     val c = Compiler(DummyBuiltInProvider(), listOf(node))
-    return c.buildProgram().code
+    return c.buildProgram()
 }
 
-fun buildBody(body: String): List<UByte> {
+fun buildBody(body: String): List<EmulatorInstruction> {
     val tokens = parseFile(StringReader(body))
     val nodes = parseExpressions(tokens)
 
@@ -87,33 +87,27 @@ fun buildBody(body: String): List<UByte> {
     val builtFunction =
         buildFunctionBody(node, signature, DummyBuiltInProvider(), dummyTypeContainer, dummyDatatypeSizeProvider)
 
-    builtFunction.generator.applyLinks(object : LinkAddressProvider {
-        override fun getFunctionAddress(signature: FunctionDefinition): Int {
-            return 0
-        }
 
-        override fun getFunctionVarsSize(signature: FunctionDefinition): Int {
-            return 0
-        }
-
-    })
-
-    return builtFunction.generator.getResultingCode()
+    return builtFunction.instructions
 }
 
-fun buildProgram(body: String): List<UByte> {
+fun buildProgram(body: String): CompiledProgram {
     val nodes = parserFromFile(body).parse()
 
     val c = Compiler(DummyBuiltInProvider(), nodes)
     val program = c.buildProgram()
 
-    return program.code
+    return program
 }
 
-fun shouldMatch(code: List<UByte>, expected: List<UByte>) {
+fun shouldMatch(code: List<EmulatorInstruction>, expected: List<EmulatorInstruction>) {
+
+    //Fixme compare references also
+
+
     assertEquals(
-        code, expected,
-        (listOf("Disassembled: ") + DefaultEmulator().instructionSet.disassemble(code)).joinToString(
+        expected.map { it.instruction }, code.map { it.instruction },
+        (listOf("Disassembled: ") + code.map { it.toString() }).joinToString(
             "\n"
         )
     )
@@ -130,7 +124,7 @@ fun bodyShouldMatchAssembled(body: String, expectedAssembly: String) {
 fun programShouldMatchAssembled(program: String, expectedAssembly: String) {
     val code = buildProgram(program)
     val expected = DefaultEmulator().instructionSet.assembleMnemonicFile(StringReader(expectedAssembly))
-    shouldMatch(code, expected)
+    shouldMatch(code.instructions, expected)
 }
 
 class CompilerTest {
@@ -150,21 +144,20 @@ class CompilerTest {
         ret
          */
 
+
         val code = buildSingleMainFunction(emptyList())
         assertEquals(
             listOf(
                 // Init stack and frame
-                DefaultEmulator.ldfp.id, byte(255),
-                DefaultEmulator.ldsp.id, byte(255),
-                // Place local vars
-                DefaultEmulator.sub_sp.id, byte(0),
+                emulate(DefaultEmulator.ldfp, "val" to 255),
+                emulate(DefaultEmulator.ldsp, "val" to 255),
                 // Call
-                DefaultEmulator.call_addr.id, byte(9),
+                emulate(DefaultEmulator.call_addr, "addr" to Reference(mainSignature, functionEntryLabel)),
                 // On return
-                DefaultEmulator.exit.id,
+                emulate(DefaultEmulator.exit),
                 //Start of function
-                DefaultEmulator.ret.id,
-            ), code
+                emulate(DefaultEmulator.ret),
+            ), code.instructions
         )
     }
 
@@ -274,7 +267,7 @@ class CompilerTest {
         RET 
         """
         val body = """
-          while 5:
+          while bool(5):
             print(1)
         """
 

@@ -1,6 +1,7 @@
 package compiler.backends.emulator.instructions
 
 import compiler.backends.emulator.emulator.Emulator
+import se.wingez.compiler.backends.emulator.EmulatorInstruction
 import se.wingez.compiler.backends.emulator.instructions.Assembler
 import se.wingez.splitMany
 import java.io.StringReader
@@ -11,7 +12,7 @@ class InstructionBuilderError(message: String) : Exception(message)
 data class Instruction(
     val mnemonic: String,
 
-    val emulate: (Emulator) -> Unit,
+    val emulate: (Emulator, Map<String, UByte>) -> Unit,
     var id: UByte = AUTO_INDEX_ASSIGMENT,
     val group: String = "",
     var variableOrder: List<String> = emptyList(),
@@ -119,7 +120,7 @@ class InstructionSet(val maxSize: UByte = Instruction.MAX_SIZE) {
         mnemonic: String,
         index: UByte = Instruction.AUTO_INDEX_ASSIGMENT,
         group: String = "",
-        emulate: (Emulator) -> Unit
+        emulate: (Emulator, Map<String, UByte>) -> Unit
     ): Instruction {
         val instr = Instruction(
             mnemonic,
@@ -142,23 +143,23 @@ class InstructionSet(val maxSize: UByte = Instruction.MAX_SIZE) {
     }
 
 
-    fun assembleMnemonic(mnemonic: String): List<UByte> {
+    fun assembleMnemonic(mnemonic: String): List<EmulatorInstruction> {
 
         val assembler = Assembler(listOf(mnemonic), this)
-        return assembler.getResultingCode()
+        return assembler.getResultingInstructions()
     }
 
-    fun assembleMnemonicFile(file: String): List<UByte> {
+    fun assembleMnemonicFile(file: String): List<EmulatorInstruction> {
         return assembleMnemonicFile(StringReader(file))
     }
 
-    fun assembleMnemonicFile(file: StringReader): List<UByte> {
+    fun assembleMnemonicFile(file: StringReader): List<EmulatorInstruction> {
 
         val lines = file.readLines().map { it.trim('\n') }.toList()
 
         val assembler = Assembler(lines, this)
 
-        return assembler.getResultingCode()
+        return assembler.getResultingInstructions()
     }
 
     fun disassemble(code: List<UByte>): List<String> {

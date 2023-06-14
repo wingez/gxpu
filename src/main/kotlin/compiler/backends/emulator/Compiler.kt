@@ -1,117 +1,23 @@
 package compiler.backends.emulator
 
 import compiler.backends.emulator.emulator.DefaultEmulator
-import compiler.backends.emulator.instructions.Instruction
 import compiler.frontend.Datatype
 import compiler.frontend.TypeProvider
 import compiler.frontend.buildStruct
 import se.wingez.ast.AstNode
 import se.wingez.ast.FunctionType
 import se.wingez.ast.NodeTypes
-import se.wingez.compiler.frontend.FunctionDefinition
-import se.wingez.compiler.frontend.FunctionDefinitionResolver
-import se.wingez.compiler.frontend.VariableType
+import se.wingez.compiler.backends.emulator.EmulatorInstruction
+import se.wingez.compiler.backends.emulator.Reference
+import se.wingez.compiler.backends.emulator.emulate
+import se.wingez.compiler.frontend.*
 
-data class GenerateLater(
-    val instruction: Instruction,
-    val pos: Int,
-    private val generator: CodeGenerator
-) {
-    fun generate(args: Map<String, Int> = emptyMap()) {
-        generator.generateAt(instruction.build(args), pos)
-    }
-}
-
-enum class LinkType {
-    FunctionAddress,
-    VarsSize,
-}
-
-data class Link(
-    val generateLater: GenerateLater,
-    val linkSignature: FunctionDefinition,
-    val LinkType: LinkType,
-    val offset: Int,
-)
-
-interface LinkAddressProvider {
-    fun getFunctionAddress(signature: FunctionDefinition): Int
-    fun getFunctionVarsSize(signature: FunctionDefinition): Int
-}
-
-class CodeGenerator {
-    private val codeList = mutableListOf<UByte>()
-    private val unpopulatedLinks = mutableListOf<Link>()
-    private val dependents = mutableSetOf<FunctionDefinition>()
-
-    fun generate(code: List<UByte>) {
-        codeList.addAll(code)
-    }
-
-    fun generateAt(code: List<UByte>, at: Int) {
-        code.forEachIndexed { index, byte ->
-            codeList[at + index] = byte
-        }
-    }
-
-    fun makeSpaceFor(instruction: Instruction): GenerateLater {
-        val pos = currentSize
-        for (i in 0 until instruction.size) {
-            generate(listOf(0u))
-        }
-        return GenerateLater(instruction, pos, this)
-    }
-
-    fun link(callInstruction: Instruction, functionSignature: FunctionDefinition, type: LinkType, offset: Int = 0) {
-        val generateLater = makeSpaceFor(callInstruction)
-        link(generateLater, functionSignature, type, offset)
-    }
-
-    fun link(generateAt: GenerateLater, functionSignature: FunctionDefinition, type: LinkType, offset: Int = 0) {
-        unpopulatedLinks.add(Link(generateAt, functionSignature, type, offset))
-        dependents.add(functionSignature)
-    }
-
-    fun applyLinks(addressProvider: LinkAddressProvider) {
-        for (link in unpopulatedLinks) {
-            var linkValue: Int
-            var argName: String
-            when (link.LinkType) {
-                LinkType.FunctionAddress -> {
-                    linkValue = addressProvider.getFunctionAddress(link.linkSignature)
-                    argName = "addr"
-                }
-
-                LinkType.VarsSize -> {
-                    linkValue = addressProvider.getFunctionVarsSize(link.linkSignature)
-                    argName = "val"
-                }
-            }
-            linkValue += link.offset
-            link.generateLater.generate(mapOf(argName to linkValue))
-        }
-        unpopulatedLinks.clear()
-    }
-
-    val currentSize: Int
-        get() = codeList.size
-
-    fun getResultingCode(): List<UByte> {
-        if (unpopulatedLinks.size > 0) {
-            throw AssertionError()
-        }
-
-        return codeList.toList()
-    }
-
-    fun getDependents(): List<FunctionDefinition> {
-        return dependents.toList()
-    }
+interface CodeGenerator {
+    fun addInstruction(emulatorInstruction: EmulatorInstruction)
 }
 
 data class CompiledProgram(
-    val code: List<UByte>,
-    val functionMapping: Map<BuiltFunction, Int>
+    val instructions: List<EmulatorInstruction>
 )
 
 interface BuiltInProvider {
@@ -149,16 +55,25 @@ private class CodeSource(
     }
 }
 
+val mainSignature = SignatureBuilder("main")
+    .setReturnType(Datatype.Void)
+    .getSignature()
 
 class Compiler(
     val builtInProvider: BuiltInProvider,
     val nodes: List<AstNode>
-) : TypeProvider, FunctionDefinitionResolver {
+) : TypeProvider, FunctionDefinitionResolver, CodeGenerator {
+
+    private val resultingInstructions = mutableListOf<EmulatorInstruction>()
 
     private val functionSources = mutableListOf<FunctionSource>()
 
     val includedTypes = mutableMapOf<String, Datatype>()
 
+
+    override fun addInstruction(emulatorInstruction: EmulatorInstruction) {
+        resultingInstructions.add(emulatorInstruction)
+    }
 
     override fun getType(name: String): Datatype {
         if (name.isEmpty()) {
@@ -198,10 +113,21 @@ class Compiler(
 
     fun buildProgram(): CompiledProgram {
 
-        includedTypes.putAll(builtInProvider.getTypes())
+        /// Add the header, should always be present
 
+
+        addInstruction(emulate(DefaultEmulator.ldfp, "val" to STACK_START))
+        addInstruction(emulate(DefaultEmulator.ldsp, "val" to STACK_START))
+
+        addInstruction(emulate(DefaultEmulator.call_addr, "addr" to Reference(mainSignature, functionEntryLabel)))
+        addInstruction(emulate(DefaultEmulator.exit))
+
+
+        /// Find all types
+        includedTypes.putAll(builtInProvider.getTypes())
         buildStructs()
 
+        /// Find all available function signatures
         for (signature in builtInProvider.getSignatures()) {
             functionSources.add(BuiltinSource(builtInProvider, signature))
         }
@@ -210,42 +136,20 @@ class Compiler(
             functionSources.add(CodeSource(functionNode, signature, this, this, dummyDatatypeSizeProvider))
         }
 
-        val includedFunctions = mutableMapOf<FunctionDefinition, BuiltFunction>()
+        /// Compile all functions
+        val compiledFunctions = mutableMapOf<FunctionDefinition, BuiltFunction>()
 
         for (source in functionSources) {
-
             val builtFunction = source.build()
-
-            includedFunctions[source.signature] = builtFunction
+            compiledFunctions[source.signature] = builtFunction
         }
 
-
-        val mainSignature = SignatureBuilder("main")
-            .setReturnType(Datatype.Void)
-            .getSignature()
-
-
-        val headerGenerator = CodeGenerator()
-
-        headerGenerator.generate(DefaultEmulator.ldfp.build(mapOf("val" to STACK_START)))
-        headerGenerator.generate(DefaultEmulator.ldsp.build(mapOf("val" to STACK_START)))
-
-        val allocMainVars = headerGenerator.makeSpaceFor(DefaultEmulator.sub_sp)
-        val callMain = headerGenerator.makeSpaceFor(DefaultEmulator.call_addr)
-        headerGenerator.generate(DefaultEmulator.exit.build())
-
-
-        val resultingCode = mutableListOf<UByte>()
-
-        val alreadyPlaced = mutableMapOf<FunctionDefinition, Int>()
+        // Then add the main-function and all functions it references (recursively)
+        val alreadyPlaced = mutableSetOf<FunctionDefinition>()
 
         val toPlace = mutableListOf(mainSignature)
 
-        for (i in headerGenerator.getResultingCode()) {
-            resultingCode.add(0u)
-        }
-
-        while (toPlace.size > 0) {
+        while (toPlace.isNotEmpty()) {
 
             val top = toPlace.removeLast()
 
@@ -253,56 +157,22 @@ class Compiler(
                 continue
             }
 
-            val included = includedFunctions.getValue(top)
+            val included = compiledFunctions.getValue(top)
 
-            val notAddedDependents = included.generator.getDependents()
+            // Add all dependents to be included
+            val notAddedDependents = included.getDependents()
                 .filter { it !in alreadyPlaced }
                 .filter { it != top }
 
-
-            if (notAddedDependents.isNotEmpty()) {
-                // Dependents still needed to take care of
-                toPlace.add(top)
-                toPlace.addAll(notAddedDependents)
-                continue
-            }
+            toPlace.addAll(notAddedDependents)
 
 
-            // All dependents added, lets add this
-            alreadyPlaced[included.signature] = resultingCode.size
+            alreadyPlaced.add(included.signature)
 
-            val indexProvider = object : LinkAddressProvider {
-                override fun getFunctionAddress(signature: FunctionDefinition): Int {
-                    return alreadyPlaced.getValue(signature)
-                }
-
-                override fun getFunctionVarsSize(signature: FunctionDefinition): Int {
-                    return includedFunctions.getValue(signature).layout.sizeOfType(VariableType.Local)
-                }
-            }
-
-            included.generator.applyLinks(indexProvider)
-            resultingCode.addAll(included.generator.getResultingCode())
-
+            included.instructions.forEach { addInstruction(it) }
         }
 
-
-        callMain.generate(mapOf("addr" to alreadyPlaced.getValue(mainSignature)))
-        allocMainVars.generate(mapOf("val" to includedFunctions.getValue(mainSignature).layout.sizeOfType(VariableType.Local)))
-
-        headerGenerator.getResultingCode().forEachIndexed { index, value ->
-            resultingCode[index] = value
-        }
-
-        val placedMap = mutableMapOf<BuiltFunction, Int>()
-        for (entry in alreadyPlaced) {
-            val layout = includedFunctions.getValue(entry.key)
-
-            placedMap[layout] = entry.value
-
-        }
-
-        return CompiledProgram(resultingCode, placedMap)
+        return CompiledProgram(resultingInstructions)
     }
 }
 

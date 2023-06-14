@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import se.wingez.bytes
 
-val emptyEmulate = { _: Emulator -> }
+val emptyEmulate = { _: Emulator, _: Map<String, UByte> -> }
 
 internal class InstructionTest {
 
@@ -18,7 +18,7 @@ internal class InstructionTest {
     fun testAutoId() {
         val i = InstructionSet(maxSize = 3u)
 
-        val createDummy = { index: UByte -> Instruction("dummy", { }, index) }
+        val createDummy = { index: UByte -> Instruction("dummy", emptyEmulate, index) }
 
         val i1 = createDummy(1u)
         val i0 = createDummy(0u)

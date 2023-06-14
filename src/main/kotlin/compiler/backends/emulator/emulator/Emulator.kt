@@ -1,12 +1,19 @@
 package compiler.backends.emulator.emulator
 
 import compiler.backends.emulator.instructions.InstructionSet
+import se.wingez.compiler.backends.emulator.EmulatorInstruction
+import se.wingez.compiler.backends.emulator.Reference
 
 
 open class EmulatorRuntimeError(message: String) : Exception(message)
 class EmulatorCyclesExceeded(message: String) : EmulatorRuntimeError(message)
 class EmulatorInstructionError(message: String) : EmulatorRuntimeError(message)
 class EmulatorInvalidInstructionError(message: String) : EmulatorRuntimeError(message)
+
+
+interface ReferenceIndexProvider {
+    fun getIndexOfReference(reference: Reference): Int
+}
 
 private data class Frame(
     val pc: UByte,
@@ -16,7 +23,7 @@ private data class Frame(
 open class Emulator(
     val instructionSet: InstructionSet,
     val memorySize: Int = MEMORY_SIZE,
-) {
+) : ReferenceIndexProvider {
     companion object {
         const val MEMORY_SIZE = 256
     }
@@ -26,6 +33,7 @@ open class Emulator(
 
     private val frameStack = mutableListOf<Frame>()
 
+    lateinit var instructions: List<EmulatorInstruction>
 
     var a: UByte = 0u
     var pc: UByte = 0u
@@ -46,6 +54,10 @@ open class Emulator(
         for (i in 0 until memorySize) {
             memory[i] = 0u
         }
+    }
+
+    fun setProgram(program: List<EmulatorInstruction>) {
+        this.instructions = program
     }
 
     fun setAllMemory(content: Collection<UByte>) {
@@ -80,7 +92,7 @@ open class Emulator(
         return getMemoryAt(position.toInt())
     }
 
-    fun getIncPC(): UByte {
+    private fun getIncPC(): UByte {
         return getMemoryAt((pc++).toInt())
     }
 
@@ -107,8 +119,17 @@ open class Emulator(
         Runs a single instruction, return True if the instruction indicated the program should terminate, False otherwise
         :return:
          */
-        val ins = instructionSet.instructionFromID(getIncPC())
-        ins.emulate.invoke(this)
+        val ins = instructions[pc.toInt()]
+        ins.emulate(this, this)
+    }
+
+    override fun getIndexOfReference(reference: Reference): Int {
+        for ((index, instr) in instructions.withIndex()) {
+            if (reference == instr.reference) {
+                return index
+            }
+        }
+        throw AssertionError()
     }
 
     fun run(maxClockCycles: Int = 1000) {

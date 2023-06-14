@@ -3,16 +3,20 @@ package compiler.backends.emulator
 import compiler.backends.emulator.emulator.DefaultEmulator
 import compiler.frontend.Datatype
 import compiler.frontend.StructBuilder
+import se.wingez.compiler.backends.emulator.EmulatorInstruction
+import se.wingez.compiler.backends.emulator.Reference
+import se.wingez.compiler.backends.emulator.emulate
 import se.wingez.compiler.frontend.FunctionDefinition
 import se.wingez.compiler.frontend.Variable
 import se.wingez.compiler.frontend.VariableType
+import se.wingez.compiler.frontend.functionEntryLabel
 
 interface BuiltIn {
 
     val signature: FunctionDefinition
     val sizeOfVars: Int
     val name: String
-    fun compile(generator: CodeGenerator)
+    fun compile(): List<EmulatorInstruction>
 }
 
 
@@ -25,18 +29,30 @@ class Print : BuiltIn {
 
     override val sizeOfVars = 0
 
-    override fun compile(generator: CodeGenerator) {
+    override fun compile(): List<EmulatorInstruction> {
 
         val valueOffset = -1
-
-        generator.generate(
-            DefaultEmulator.lda_at_fp_offset.build(
-                mapOf("offset" to valueOffset)
-            )
+        return listOf(
+            emulate(DefaultEmulator.lda_at_fp_offset, "offset" to valueOffset),
+            emulate(DefaultEmulator.print),
+            emulate(DefaultEmulator.ret),
         )
-        generator.generate(DefaultEmulator.print.build())
-        generator.generate(DefaultEmulator.ret.build())
     }
+}
+
+class Bool : BuiltIn {
+    override val name = "bool"
+    override val signature: FunctionDefinition
+        get() = SignatureBuilder(name)
+            .addParameter(Datatype.Integer)
+            .setReturnType(Datatype.Boolean)
+            .getSignature()
+
+    override fun compile(): List<EmulatorInstruction> {
+        return emptyList()
+    }
+
+    override val sizeOfVars: Int = 0
 }
 //
 //class ByteAddition : BuiltIn {
@@ -117,9 +133,9 @@ class BuiltInFunctions : BuiltInProvider {
             TODO()
         }
 
-        val generator = CodeGenerator()
-        result.compile(generator)
+        val instructions = result.compile()
 
+        instructions.first().reference = Reference(signature, functionEntryLabel)
 
         val variables = mutableListOf<Variable>()
         if (signature.returnType != Datatype.Void) {
@@ -131,7 +147,7 @@ class BuiltInFunctions : BuiltInProvider {
 
         val layout = calculateLayout(variables, dummyDatatypeSizeProvider)
 
-        return BuiltFunction(result.signature, generator, layout)
+        return BuiltFunction(result.signature, layout, instructions)
     }
 }
 

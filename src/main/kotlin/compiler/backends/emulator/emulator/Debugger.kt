@@ -1,18 +1,19 @@
 package compiler.backends.emulator.emulator
+/*
 
 import se.wingez.ast.AstParser
 import compiler.backends.emulator.BuiltFunction
 import compiler.backends.emulator.BuiltInFunctions
 import compiler.backends.emulator.Compiler
 import compiler.backends.emulator.STACK_START
+import se.wingez.compiler.backends.emulator.EmulatorInstruction
 import se.wingez.tokens.parseFile
 import java.io.File
 import kotlin.math.max
 import kotlin.math.min
 
 class InteractiveDebugger(
-    val initialCode: List<UByte>,
-    val functions: Map<BuiltFunction, Int>,
+    val instructions: List<EmulatorInstruction>
 ) {
 
     companion object {
@@ -32,7 +33,6 @@ class InteractiveDebugger(
     fun reset() {
         emulator.reset()
         emulator.clearMemory()
-        emulator.setAllMemory(initialCode)
     }
 
     fun clearBuffer() {
@@ -131,7 +131,7 @@ class InteractiveDebugger(
         val memoryStartX = 1
         val memoryStartY = 10
 
-        ((STACK_START-3)..(STACK_START+10)).reversed().forEachIndexed { rowPos, i ->
+        ((STACK_START - 3)..(STACK_START + 10)).reversed().forEachIndexed { rowPos, i ->
 
             val labels = mutableListOf<String>()
 
@@ -189,7 +189,8 @@ fun main(array: Array<String>) {
     val compiler = Compiler(BuiltInFunctions(), nodes)
     val program = compiler.buildProgram()
 
-    val i = InteractiveDebugger(program.code, program.functionMapping)
+    val i = InteractiveDebugger(program)
 
     i.interactiveLoop()
 }
+*/
