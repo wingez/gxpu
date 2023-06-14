@@ -1,15 +1,18 @@
 package se.wingez.compiler.features.programs
 
+import compiler.features.CompilerBackend
+import compiler.features.runProgramCheckOutput
 import org.junit.jupiter.api.Disabled
-import org.junit.jupiter.api.Test
-import se.wingez.compiler.features.runProgramCheckOutput
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.EnumSource
 
 
 class ArrayTests {
 
-    @Test
+    @ParameterizedTest
+    @EnumSource(CompilerBackend::class)
     @Disabled
-    fun testPrintArray() {
+    fun testPrintArray(compiler: CompilerBackend) {
         val program = """
           def printArray(arr:byte[]):
             counter:byte=0
@@ -28,12 +31,13 @@ class ArrayTests {
             
             printArray(arr)
     """
-        runProgramCheckOutput(program, 5, 10, 15)
+        runProgramCheckOutput(compiler, program, 5, 10, 15)
     }
 
-    @Test
+    @ParameterizedTest
+    @EnumSource(CompilerBackend::class)
     @Disabled
-    fun testEditArrayInFunction() {
+    fun testEditArrayInFunction(compiler: CompilerBackend) {
         val program = """
           def editArray(arr:byte[]):
             arr[0]=100
@@ -46,6 +50,6 @@ class ArrayTests {
             editArray(arr)
             print(arr[0])
     """
-        runProgramCheckOutput(program, 100)
+        runProgramCheckOutput(compiler, program, 100)
     }
 }

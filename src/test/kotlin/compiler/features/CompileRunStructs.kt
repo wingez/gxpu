@@ -1,12 +1,19 @@
 package se.wingez.compiler.features
 
+import compiler.features.CompilerBackend
+import compiler.features.runProgramCheckOutput
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.EnumSource
 
 class CompileRunStructs {
 
-    @Test
-    fun testSingleStructVariable() {
+    @ParameterizedTest
+    @EnumSource(CompilerBackend::class)
+    @Disabled
+
+    fun testSingleStructVariable(compiler: CompilerBackend) {
         val program = """
     
           struct type1:
@@ -23,11 +30,15 @@ class CompileRunStructs {
             print(a.member2)
      
     """
-        runProgramCheckOutput(program, 2, 5)
+        runProgramCheckOutput(compiler, program, 2, 5)
     }
 
-    @Test
-    fun testSingleStructVariableArithmetic() {
+
+    @ParameterizedTest
+    @EnumSource(CompilerBackend::class)
+    @Disabled
+
+    fun testSingleStructVariableArithmetic(compiler: CompilerBackend) {
         val program = """
     
           struct type1:
@@ -44,11 +55,15 @@ class CompileRunStructs {
             print((a.member2)+(a.member1))
      
     """
-        runProgramCheckOutput(program, 4, 7)
+        runProgramCheckOutput(compiler, program, 4, 7)
     }
 
-    @Test
-    fun testStructNested() {
+
+    @ParameterizedTest
+    @EnumSource(CompilerBackend::class)
+    @Disabled
+
+    fun testStructNested(compiler: CompilerBackend) {
         val program = """
           struct children:
             child1:byte
@@ -71,12 +86,14 @@ class CompileRunStructs {
             print((a.child).child2)
      
     """
-        runProgramCheckOutput(program, 1, 2, 3)
+        runProgramCheckOutput(compiler, program, 1, 2, 3)
     }
 
-    @Test
+
+    @ParameterizedTest
+    @EnumSource(CompilerBackend::class)
     @Disabled
-    fun testCreateArray() {
+    fun testCreateArray(compiler: CompilerBackend) {
         val program = """
             
           def main():
@@ -89,12 +106,14 @@ class CompileRunStructs {
             print(arr2->size)
             
         """
-        runProgramCheckOutput(program, 8, 2)
+        runProgramCheckOutput(compiler, program, 8, 2)
     }
 
-    @Test
+
+    @ParameterizedTest
+    @EnumSource(CompilerBackend::class)
     @Disabled
-    fun testWriteArray() {
+    fun testWriteArray(compiler: CompilerBackend) {
         val program = """
           def main():
             arr:byte[]
@@ -108,7 +127,7 @@ class CompileRunStructs {
             print(arr[0])
             
         """
-        runProgramCheckOutput(program, 8, 2, 8)
+        runProgramCheckOutput(compiler, program, 8, 2, 8)
     }
 
 }

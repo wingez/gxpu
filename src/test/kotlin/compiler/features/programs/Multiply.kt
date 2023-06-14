@@ -1,12 +1,15 @@
 package se.wingez.compiler.features.programs
 
-import org.junit.jupiter.api.Test
-import se.wingez.compiler.features.runProgramCheckOutput
+import compiler.features.CompilerBackend
+import compiler.features.runProgramCheckOutput
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.EnumSource
 
 class Multiply {
 
-    @Test
-    fun multiply() {
+    @ParameterizedTest
+    @EnumSource(CompilerBackend::class)
+    fun multiply(compiler: CompilerBackend) {
         val program = """
           def mul(a:byte,b:byte):byte
             result=0
@@ -19,7 +22,7 @@ class Multiply {
             print(mul(4,5))
             print(mul(10,0))
           """
-        runProgramCheckOutput(program, 0, 20, 0)
+        runProgramCheckOutput(compiler, program, 0, 20, 0)
     }
 
 }

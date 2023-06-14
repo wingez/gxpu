@@ -1,13 +1,18 @@
 package se.wingez.compiler.features
 
+import compiler.features.CompilerBackend
+import compiler.features.runProgramCheckOutput
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.EnumSource
 
 class CompileRunPointers {
 
-    @Test
+    @ParameterizedTest
+    @EnumSource(CompilerBackend::class)
     @Disabled
-    fun testCallWithPointer() {
+    fun testCallWithPointer(compiler: CompilerBackend) {
         val program = """
           struct type:
             val1:byte
@@ -27,12 +32,13 @@ class CompileRunPointers {
             toCall(a)
                  
     """
-        runProgramCheckOutput(program, 11, 13)
+        runProgramCheckOutput(compiler, program, 11, 13)
     }
 
-    @Test
+    @ParameterizedTest
+    @EnumSource(CompilerBackend::class)
     @Disabled
-    fun testEditPointerFromCallee() {
+    fun testEditPointerFromCallee(compiler: CompilerBackend) {
         val program = """
           struct type:
             val1:byte
@@ -54,7 +60,7 @@ class CompileRunPointers {
             
                  
     """
-        runProgramCheckOutput(program, 5, 13)
+        runProgramCheckOutput(compiler, program, 5, 13)
     }
 
 

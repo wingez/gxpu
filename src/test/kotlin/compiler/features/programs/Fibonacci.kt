@@ -1,12 +1,15 @@
 package se.wingez.compiler.features.programs
 
-import org.junit.jupiter.api.Test
-import se.wingez.compiler.features.runProgramCheckOutput
+import compiler.features.CompilerBackend
+import compiler.features.runProgramCheckOutput
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.EnumSource
 
 class Fibonacci {
 
-    @Test
-    fun fibonacci() {
+    @ParameterizedTest
+    @EnumSource(CompilerBackend::class)
+    fun fibonacci(compiler: CompilerBackend) {
         val program = """
           def main():
             val a:byte=1
@@ -23,6 +26,6 @@ class Fibonacci {
               counter = counter+1 
                   
     """
-        runProgramCheckOutput(program, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55)
+        runProgramCheckOutput(compiler, program, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55)
     }
 }

@@ -1,12 +1,16 @@
 package se.wingez.compiler.features
 
-import org.junit.jupiter.api.Test
+import compiler.features.CompilerBackend
+import compiler.features.runProgramCheckOutput
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.EnumSource
 
 class CompileRunCall {
 
 
-    @Test
-    fun testCallNoParameters() {
+    @ParameterizedTest
+    @EnumSource(CompilerBackend::class)
+    fun testCallNoParameters(compiler: CompilerBackend) {
         val program = """
           def test1():
             print(5)
@@ -20,11 +24,12 @@ class CompileRunCall {
             print(3)
     """
 
-        runProgramCheckOutput(program, 5, 10, 3)
+        runProgramCheckOutput(compiler, program, 5, 10, 3)
     }
 
-    @Test
-    fun testCallSingleParameter() {
+    @ParameterizedTest
+    @EnumSource(CompilerBackend::class)
+    fun testCallSingleParameter(compiler: CompilerBackend) {
         val program = """
           def test(var:byte):
             print(var)
@@ -34,11 +39,12 @@ class CompileRunCall {
             print(1)
           """
 
-        runProgramCheckOutput(program, 5, 1)
+        runProgramCheckOutput(compiler, program, 5, 1)
     }
 
-    @Test
-    fun testCallManyParameters() {
+    @ParameterizedTest
+    @EnumSource(CompilerBackend::class)
+    fun testCallManyParameters(compiler: CompilerBackend) {
         val program = """
             def test(param1:byte,param2:byte):
               print(param2+1)
@@ -51,11 +57,12 @@ class CompileRunCall {
             
     """
 
-        runProgramCheckOutput(program, 5, 7, 10, 7)
+        runProgramCheckOutput(compiler, program, 5, 7, 10, 7)
     }
 
-    @Test
-    fun testCallManyVariables() {
+    @ParameterizedTest
+    @EnumSource(CompilerBackend::class)
+    fun testCallManyVariables(compiler: CompilerBackend) {
         val program = """
             def test(arg1:byte,arg2:byte,arg3:byte):
               val v:byte = arg1+arg2
@@ -67,6 +74,6 @@ class CompileRunCall {
               test(1,var,var) 
             
     """
-        runProgramCheckOutput(program, 6, 5)
+        runProgramCheckOutput(compiler, program, 6, 5)
     }
 }

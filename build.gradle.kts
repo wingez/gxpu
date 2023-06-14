@@ -13,6 +13,7 @@ repositories {
 
 dependencies {
     testImplementation("org.assertj:assertj-core:3.11.1")
+    testImplementation("org.junit.jupiter:junit-jupiter-params:5.9.2")
     testImplementation(kotlin("test"))
     implementation(kotlin("stdlib-jdk8"))
 }

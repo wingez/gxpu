@@ -1,103 +1,74 @@
 package se.wingez.compiler.features
 
-import org.junit.jupiter.api.Assertions.assertIterableEquals
 import org.junit.jupiter.api.Disabled
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import se.wingez.TokenEndBlock
-import se.wingez.ast.AstParser
-import se.wingez.bytes
 import compiler.backends.emulator.CompileError
-import compiler.backends.emulator.Compiler
-import compiler.backends.emulator.emulator.DefaultEmulator
 import compiler.backends.emulator.emulator.EmulatorCyclesExceeded
-import compiler.backendemulator.DummyBuiltInProvider
-import compiler.backendemulator.buildSingleMainFunction
-import se.wingez.tokens.parseFile
-import java.io.StringReader
-import kotlin.test.assertEquals
+import compiler.features.CompilerBackend
+import compiler.features.runBodyCheckOutput
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.EnumSource
 
-
-fun runBodyCheckOutput(program: String, vararg result: Int) {
-    val tokens = parseFile(StringReader(program))
-    val nodes = AstParser(tokens + listOf(TokenEndBlock)).parseStatementsUntilEndblock()
-
-    val code = buildSingleMainFunction(nodes)
-    val emulator = DefaultEmulator()
-    emulator.setProgram(code.instructions)
-    emulator.run()
-
-    assertIterableEquals(bytes(*result), emulator.outputStream)
-}
-
-fun runProgramCheckOutput(program: String, vararg result: Int) {
-    val tokens = parseFile(StringReader(program))
-    val nodes = AstParser(tokens).parse()
-
-    val c = Compiler(DummyBuiltInProvider(), nodes)
-    val generator = c.buildProgram()
-
-    val emulator = DefaultEmulator()
-    emulator.setProgram(generator.instructions)
-    emulator.run()
-
-    assertEquals(bytes(*result), emulator.outputStream)
-}
 
 class CompileRunTest {
-
-    @Test
-    fun testPrintConstant() {
+    @ParameterizedTest
+    @EnumSource(CompilerBackend::class)
+    fun testPrintConstant(compiler: CompilerBackend) {
         val code = """
         print(5)
     """
-        runBodyCheckOutput(code, 5)
+        runBodyCheckOutput(compiler, code, 5)
     }
 
-    @Test
-    fun testPrintVariable() {
+    @ParameterizedTest
+    @EnumSource(CompilerBackend::class)
+    fun testPrintVariable(compiler: CompilerBackend) {
         val code = """
             val var:byte=5
             print(var)
         """
-        runBodyCheckOutput(code, 5)
+        runBodyCheckOutput(compiler, code, 5)
     }
 
-    @Test
-    fun testPrintManyVariables() {
+    @ParameterizedTest
+    @EnumSource(CompilerBackend::class)
+    fun testPrintManyVariables(compiler: CompilerBackend) {
         val code = """
             val var:byte=5
             val var1:byte=10
             print(var)
             print(var1)
         """
-        runBodyCheckOutput(code, 5, 10)
+        runBodyCheckOutput(compiler, code, 5, 10)
     }
 
-    @Test
-    fun testReassignVariable() {
+    @ParameterizedTest
+    @EnumSource(CompilerBackend::class)
+    fun testReassignVariable(compiler: CompilerBackend) {
         val code = """
             val var:byte=5
             print(var)
             var=3
             print(var)
         """
-        runBodyCheckOutput(code, 5, 3)
+        runBodyCheckOutput(compiler, code, 5, 3)
     }
 
-    @Test
-    fun testVariableIncrement() {
+    @ParameterizedTest
+    @EnumSource(CompilerBackend::class)
+    fun testVariableIncrement(compiler: CompilerBackend) {
         val code = """
             val var:byte=5
             print(var)
             var= var+1
             print(var)
         """
-        runBodyCheckOutput(code, 5, 6)
+        runBodyCheckOutput(compiler, code, 5, 6)
     }
 
-    @Test
-    fun testVariableMove() {
+    @ParameterizedTest
+    @EnumSource(CompilerBackend::class)
+    fun testVariableMove(compiler: CompilerBackend) {
         val code = """
             val var1:byte=2
             val var2:byte = var1
@@ -105,47 +76,51 @@ class CompileRunTest {
             print(var2)
             print(var1)
         """
-        runBodyCheckOutput(code, 2, 1)
+        runBodyCheckOutput(compiler, code, 2, 1)
     }
 
-    @Test
+    @ParameterizedTest
+    @EnumSource(CompilerBackend::class)
     @Disabled
-    fun testInvalidVariableName() {
+    fun testInvalidVariableName(compiler: CompilerBackend) {
         val code = """
             var=5
             var1 = var2
             print(var)
         """
         assertThrows<CompileError> {
-            runBodyCheckOutput(code, 5)
+            runBodyCheckOutput(compiler, code, 5)
         }
     }
 
-    @Test
-    fun testWhileInfinity() {
+    @ParameterizedTest
+    @EnumSource(CompilerBackend::class)
+    fun testWhileInfinity(compiler: CompilerBackend) {
         val code = """
             while bool(1):
               print(5)
             
         """
         assertThrows<EmulatorCyclesExceeded> {
-            runBodyCheckOutput(code)
+            runBodyCheckOutput(compiler, code)
         }
     }
 
-    @Test
-    fun testWhileDecrement() {
+    @ParameterizedTest
+    @EnumSource(CompilerBackend::class)
+    fun testWhileDecrement(compiler: CompilerBackend) {
         val code = """
         val var:byte = 5
         while bool(var):
           print(var)
           var=var-1
         """
-        runBodyCheckOutput(code, 5, 4, 3, 2, 1)
+        runBodyCheckOutput(compiler, code, 5, 4, 3, 2, 1)
     }
 
-    @Test
-    fun testNested() {
+    @ParameterizedTest
+    @EnumSource(CompilerBackend::class)
+    fun testNested(compiler: CompilerBackend) {
         var body = """
         if bool(10):
           print(1)
@@ -153,7 +128,7 @@ class CompileRunTest {
             print(0)
           print(2)
         """
-        runBodyCheckOutput(body, 1, 2)
+        runBodyCheckOutput(compiler, body, 1, 2)
 
         body = """
         val a:byte=3
@@ -164,7 +139,7 @@ class CompileRunTest {
           a=a-1
         
         """
-        runBodyCheckOutput(body, 8, 3, 2, 8, 1)
+        runBodyCheckOutput(compiler, body, 8, 3, 2, 8, 1)
     }
 }
 
