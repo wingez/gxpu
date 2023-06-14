@@ -134,8 +134,8 @@ class CompilerTest {
 
         /**
         #Expected
-        ldfp #255
-        ldsp #255
+        ldfp #100
+        ldsp #100
         subsp #0
         subsp #0
         call #7
@@ -149,8 +149,8 @@ class CompilerTest {
         assertEquals(
             listOf(
                 // Init stack and frame
-                emulate(DefaultEmulator.ldfp, "val" to 255),
-                emulate(DefaultEmulator.ldsp, "val" to 255),
+                emulate(DefaultEmulator.ldfp, "val" to 100),
+                emulate(DefaultEmulator.ldsp, "val" to 100),
                 // Call
                 emulate(DefaultEmulator.call_addr, "addr" to Reference(mainSignature, functionEntryLabel)),
                 // On return
