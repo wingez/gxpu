@@ -8,6 +8,9 @@ import compiler.backends.emulator.instructions.RegisterInstructionError
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import se.wingez.bytes
+import se.wingez.compiler.backends.emulator.EmulatorInstruction
+import se.wingez.compiler.backends.emulator.Value
+import se.wingez.compiler.backends.emulator.emulate
 
 val emptyEmulate = { _: Emulator, _: Map<String, UByte> -> }
 
@@ -86,8 +89,8 @@ internal class InstructionTest {
         val mnem1 = "LDA [FP #5]"
         val mnem2 = "LDA FP #4"
 
-        assertEquals(i.assembleMnemonic(mnem1), lda_at_fp_offset.build(mapOf("offset" to 5)))
-        assertEquals(i.assembleMnemonic(mnem2), lda_fp_offset.build(mapOf("offset" to 4)))
+        assertEquals(i.assembleMnemonic(mnem1), listOf(emulate(lda_at_fp_offset, "offset" to 5)))
+        assertEquals(i.assembleMnemonic(mnem2), listOf(emulate(lda_fp_offset, "offset" to 4)))
     }
 
     @Test
@@ -120,21 +123,27 @@ internal class InstructionTest {
     @Test
     fun testAssembleMnemonic() {
         val i = InstructionSet()
-        i.addInstruction(Instruction("test", emptyEmulate, 0u))
-        i.addInstruction(Instruction("test #ins #tmp", emptyEmulate, 2u))
-        i.addInstruction(Instruction("test #ins", emptyEmulate, 1u))
+        val test1 = Instruction("test", emptyEmulate, 0u)
+        val test2 = Instruction("test #ins #tmp", emptyEmulate, 2u)
+        val test3 = Instruction("test #ins", emptyEmulate, 1u)
+        i.addInstruction(test1)
+        i.addInstruction(test2)
+        i.addInstruction(test3)
 
-        assertIterableEquals(i.assembleMnemonic("test"), bytes(0))
-        assertIterableEquals(i.assembleMnemonic("test #4"), bytes(1, 4))
+        assertIterableEquals(i.assembleMnemonic("test"), listOf(emulate(test1)))
+        assertIterableEquals(i.assembleMnemonic("test #4"), listOf(emulate(test3, "ins" to 4)))
 
         assertThrows(InstructionBuilderError::class.java) {
             i.assembleMnemonic("test 4")
         }
 
-        assertIterableEquals(i.assembleMnemonic("test #5 #6"), bytes(2, 5, 6))
-        assertIterableEquals(i.assembleMnemonic("test    #5   #6"), bytes(2, 5, 6))
+        assertIterableEquals(
+            i.assembleMnemonic("test #5 #6"),
+            listOf(emulate(test2, values = listOf("ins" to 5, "tmp" to 6), references = emptyList()))
+        )
+        assertIterableEquals(i.assembleMnemonic("test    #5   #6"), listOf(emulate(test2, values = listOf("ins" to 5, "tmp" to 6), references = emptyList())))
 
-        assertIterableEquals(i.assembleMnemonic("    "), bytes())
+        assertIterableEquals(i.assembleMnemonic("    "), emptyList<EmulatorInstruction>())
     }
 
     @Test
@@ -153,12 +162,14 @@ internal class InstructionTest {
     @Test
     fun testAssembleMnemonicCaseInvariance() {
         val i = InstructionSet()
-        i.addInstruction(Instruction("test #ins", emptyEmulate, 1u))
-        i.addInstruction(Instruction("TEst2 #ins", emptyEmulate, 2u))
+        val test = Instruction("test #ins", emptyEmulate, 1u)
+        val test2 = Instruction("test2 #ins", emptyEmulate, 2u)
+        i.addInstruction(test)
+        i.addInstruction(test2)
 
-        assertIterableEquals(i.assembleMnemonic("test #0"), bytes(1, 0))
-        assertIterableEquals(i.assembleMnemonic("TesT #0"), bytes(1, 0))
-        assertIterableEquals(i.assembleMnemonic("test2 #0"), bytes(2, 0))
+        assertIterableEquals(i.assembleMnemonic("test #0"), listOf(emulate(test, "ins" to 0)))
+        assertIterableEquals(i.assembleMnemonic("TesT #0"), listOf(emulate(test, "ins" to 0)))
+        assertIterableEquals(i.assembleMnemonic("test2 #0"), listOf(emulate(test2, "ins" to 0)))
     }
 
     @Test
