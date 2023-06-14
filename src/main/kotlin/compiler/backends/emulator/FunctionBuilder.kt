@@ -46,37 +46,12 @@ class FunctionBuilder(
 
     val resultingCode = mutableListOf<EmulatorInstruction>()
 
-
-    private val localVariables = mutableMapOf<String, DataType>()
-
     private lateinit var layout: FunctionFrameLayout
 
     override fun addInstruction(emulatorInstruction: EmulatorInstruction) {
         resultingCode.add(emulatorInstruction)
     }
 
-    private fun buildNodes(nodes: Iterable<AstNode>) {
-        for (node in nodes) {
-            buildStatement(node)
-        }
-    }
-
-    fun handleStatement(node: AstNode) {
-
-    }
-
-    fun handleReturn() {
-        addInstruction(emulate(DefaultEmulator.ret))
-    }
-
-
-    fun handleMemberDeclaration(node: AstNode) {
-    }
-
-    fun buildStatement(node: AstNode) {
-
-
-    }
 
     private fun putOnStack(expr: ValueExpression) {
 
@@ -106,8 +81,6 @@ class FunctionBuilder(
             else -> TODO(expr.toString())
 
         }
-
-
     }
 
     private fun handleCall(expr: CallExpression) {
@@ -154,7 +127,10 @@ class FunctionBuilder(
         if (expr.type != Datatype.Void) {
             addInstruction(emulate(DefaultEmulator.sub_sp, "val" to datatypeLayoutProvider.sizeOf(expr.type)))
         }
+    }
 
+    fun handleReturn() {
+        addInstruction(emulate(DefaultEmulator.ret))
     }
 
 

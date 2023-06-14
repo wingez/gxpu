@@ -3,7 +3,6 @@ package se.wingez.compiler
 import compiler.backends.emulator.*
 import compiler.backends.emulator.emulator.DefaultEmulator
 import compiler.frontend.Datatype
-import compiler.frontend.StructBuilder
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import se.wingez.ast.*

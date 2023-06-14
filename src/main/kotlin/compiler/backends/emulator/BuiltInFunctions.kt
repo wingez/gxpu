@@ -2,7 +2,6 @@ package compiler.backends.emulator
 
 import compiler.backends.emulator.emulator.DefaultEmulator
 import compiler.frontend.Datatype
-import compiler.frontend.StructBuilder
 import se.wingez.ast.FunctionType
 import se.wingez.ast.OperatorBuiltIns
 import se.wingez.compiler.backends.emulator.EmulatorInstruction

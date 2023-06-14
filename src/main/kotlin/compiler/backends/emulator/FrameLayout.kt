@@ -6,10 +6,6 @@ import se.wingez.ast.FunctionType
 import se.wingez.ast.NodeTypes
 import se.wingez.compiler.frontend.FunctionDefinition
 
-const val POINTER_SIZE = 1
-
-const val SP_STACK_SIZE = 1
-const val PC_STACK_SIZE = 1
 const val STACK_START = 100
 
 

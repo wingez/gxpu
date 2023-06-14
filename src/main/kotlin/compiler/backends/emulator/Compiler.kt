@@ -3,7 +3,6 @@ package compiler.backends.emulator
 import compiler.backends.emulator.emulator.DefaultEmulator
 import compiler.frontend.Datatype
 import compiler.frontend.TypeProvider
-import compiler.frontend.buildStruct
 import se.wingez.ast.AstNode
 import se.wingez.ast.FunctionType
 import se.wingez.ast.NodeTypes
@@ -15,6 +14,7 @@ import se.wingez.compiler.frontend.*
 interface CodeGenerator {
     fun addInstruction(emulatorInstruction: EmulatorInstruction)
 }
+
 
 data class CompiledProgram(
     val instructions: List<EmulatorInstruction>
@@ -100,12 +100,12 @@ class Compiler(
 
     fun buildStructs() {
         for (node in nodes.filter { it.type == NodeTypes.Struct }) {
-
-            val struct = buildStruct(node, this)
-
-            if (struct.name in includedTypes) {
-                throw CompileError("Function ${struct.name} already exists")
-            }
+            TODO()
+//            val struct = buildStruct(node, this)
+//
+//            if (struct.name in includedTypes) {
+//                throw CompileError("Function ${struct.name} already exists")
+//            }
             //TODO:
             //includedTypes[struct.name] = struct
         }
