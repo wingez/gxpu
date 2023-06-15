@@ -178,7 +178,7 @@ class AstParserStructTest {
         assertEquals(
             AstNode.fromArrayAccess(
                 AstNode.fromIdentifier("test"),
-                AstNode.fromOperation(TokenType.PlusSign, constant(5), constant(5))
+                AstNode.fromBinaryOperation(TokenType.PlusSign, constant(5), constant(5))
             ),
             parseExpression("test[5+5]")
         )

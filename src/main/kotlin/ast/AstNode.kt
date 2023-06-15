@@ -1,6 +1,5 @@
 package se.wingez.ast
 
-import se.wingez.tokens.Token
 import se.wingez.tokens.TokenType
 
 enum class NodeTypes {
@@ -164,9 +163,9 @@ data class AstNode(
     companion object {
 
 
-        fun fromOperation(type: TokenType, left: AstNode, right: AstNode): AstNode {
+        fun fromBinaryOperation(type: TokenType, left: AstNode, right: AstNode): AstNode {
 
-            val name = operatorToNodesType.getValue(type)
+            val name = binaryOperatorToNodesType.getValue(type)
             return fromCall(name, FunctionType.Operator, listOf(left, right))
         }
 

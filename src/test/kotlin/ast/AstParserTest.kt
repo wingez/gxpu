@@ -202,7 +202,7 @@ internal class AstParserTest {
         )
 
         assertEquals(
-            AstNode.fromReturn(AstNode.fromOperation(TokenType.PlusSign, constant(5), identifier("a"))),
+            AstNode.fromReturn(AstNode.fromBinaryOperation(TokenType.PlusSign, constant(5), identifier("a"))),
             parserFromLine("return 5+a").parseReturnStatement(),
         )
     }
@@ -270,9 +270,9 @@ internal class AstParserTest {
         )
         assertEquals(
             AstNode.fromIf(
-                AstNode.fromOperation(
+                AstNode.fromBinaryOperation(
                     TokenType.NotEqual,
-                    AstNode.fromOperation(TokenType.MinusSign, identifier("a"), constant(2)),
+                    AstNode.fromBinaryOperation(TokenType.MinusSign, identifier("a"), constant(2)),
                     constant(0)
                 ),
                 listOf(call("print", listOf(constant(5)))),
@@ -323,7 +323,7 @@ internal class AstParserTest {
     fun testString() {
         assertEquals(
             listOf(
-                AstNode.fromOperation(
+                AstNode.fromBinaryOperation(
                     TokenType.PlusSign,
                     AstNode.fromConstant(5),
                     AstNode.fromString("hello"),

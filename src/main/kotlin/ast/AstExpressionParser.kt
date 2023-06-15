@@ -3,8 +3,7 @@ package se.wingez.ast
 import se.wingez.tokens.*
 
 
-val operationPriorities = mapOf(
-    TokenType.LeftBracket to 10,
+val binaryOperationPriorities = mapOf(
     TokenType.PlusSign to 5,
     TokenType.MinusSign to 5,
     TokenType.LesserSign to 2,
@@ -29,7 +28,7 @@ class OperatorBuiltIns {
     }
 }
 
-val operatorToNodesType = mapOf(
+val binaryOperatorToNodesType = mapOf(
     TokenType.PlusSign to OperatorBuiltIns.Addition,
     TokenType.MinusSign to OperatorBuiltIns.Subtraction,
     TokenType.NotEqual to OperatorBuiltIns.NotEqual,
@@ -37,6 +36,210 @@ val operatorToNodesType = mapOf(
     TokenType.GreaterSign to OperatorBuiltIns.GreaterThan,
     TokenType.DoubleEqual to OperatorBuiltIns.Equal,
 )
+
+
+private enum class ValueType {
+    Token,
+    Node,
+    ParenthesisBlock,
+}
+
+private class Value(
+    val type: ValueType,
+    private val token: Token? = null,
+    private val node: AstNode? = null,
+    private val parenthesisBlock: Token? = null,
+) {
+    val valueToken get() = token!!
+    val valueNode get() = node!!
+    val valueParenthesisBlock get() = parenthesisBlock!!
+
+    override fun toString(): String {
+        return when (type) {
+            ValueType.Node -> valueNode.toString()
+            ValueType.Token -> valueToken.toString()
+            ValueType.ParenthesisBlock -> valueParenthesisBlock.toString()
+        }
+
+    }
+}
+
+private data class ReduceResult(
+    val result: Value
+)
+
+private const val priorityHighest = 100
+private const val priorityLowest = 0
+
+private interface Reducer {
+
+    val priority: Int
+
+    val requiredValueCount: Int
+    fun tryReduce(values: List<Value>): ReduceResult?
+}
+
+private interface ValueMatcher {
+    fun match(value: Value): Boolean
+}
+
+private object anyNodeMatcher : ValueMatcher {
+    override fun match(value: Value): Boolean {
+        return value.type == ValueType.Node
+    }
+}
+
+private class TokenMatcher(
+    private val tokenType: TokenType
+) : ValueMatcher {
+    override fun match(value: Value): Boolean {
+        return value.type == ValueType.Token && value.valueToken.type == tokenType
+    }
+}
+
+private class MultiTokenMatcher(
+    private val tokens: Set<TokenType>
+) : ValueMatcher {
+    override fun match(value: Value): Boolean {
+        if (value.type != ValueType.Token) {
+            return false
+        }
+        return value.valueToken.type in tokens
+    }
+}
+
+private abstract class MatchingReducer(
+    private val matchers: List<ValueMatcher>
+) : Reducer {
+    final override val requiredValueCount = matchers.size
+
+    final override fun tryReduce(values: List<Value>): ReduceResult? {
+        for (i in 0 until requiredValueCount) {
+            if (!matchers[i].match(values[i])) {
+                return null
+            }
+        }
+        return tryReduceMatched(values)
+    }
+
+    abstract fun tryReduceMatched(values: List<Value>): ReduceResult?
+}
+
+private class BinaryOperatorReducer(
+    private val tokenType: TokenType,
+) : MatchingReducer(
+    listOf(anyNodeMatcher, TokenMatcher(tokenType), anyNodeMatcher)
+) {
+    override val priority = binaryOperationPriorities.getValue(tokenType)
+
+    override fun tryReduceMatched(values: List<Value>): ReduceResult {
+        return ReduceResult(
+            Value(
+                ValueType.Node,
+                node = AstNode.fromBinaryOperation(
+                    tokenType,
+                    values[0].valueNode,
+                    values[2].valueNode,
+                )
+            )
+        )
+    }
+}
+
+private class SingleValueParenthesis : MatchingReducer(
+    listOf(TokenMatcher(TokenType.LeftParenthesis), anyNodeMatcher, TokenMatcher(TokenType.RightParenthesis))
+) {
+    override val priority = priorityLowest
+
+    override fun tryReduceMatched(values: List<Value>): ReduceResult {
+        return ReduceResult(Value(ValueType.Node, node = values[1].valueNode))
+    }
+
+}
+
+private val reducers: List<Reducer> = listOf(
+    SingleValueParenthesis()
+) + binaryOperationPriorities.keys.map { BinaryOperatorReducer(it) }
+
+private val reducersOrdered = reducers.sortedBy { -it.priority }
+
+private fun applyReductions(values: List<Value>): AstNode {
+
+    val valuesMutable = values.toMutableList()
+
+    val maxIterations = valuesMutable.size
+
+    for (i in 0..maxIterations) {
+        if (valuesMutable.size == 1) {
+            break
+        }
+
+        val valuesCount = valuesMutable.size
+
+        var didReduce = false
+        for (reducer in reducersOrdered) {
+            for (startIndex in valuesMutable.indices) {
+                if (startIndex + reducer.requiredValueCount > valuesCount) {
+                    continue
+                }
+
+                val reduceResult =
+                    reducer.tryReduce(valuesMutable.subList(startIndex, startIndex + reducer.requiredValueCount))
+
+                if (reduceResult != null) {
+                    val newValue = reduceResult.result
+
+                    for (j in 0 until reducer.requiredValueCount) {
+                        valuesMutable.removeAt(startIndex)
+                    }
+                    valuesMutable.add(startIndex, newValue)
+                    didReduce = true
+                }
+                if (didReduce) {
+                    break
+                }
+            }
+            if (didReduce) {
+                break
+            }
+        }
+        if (!didReduce) {
+            throw ParserError("could not parse expression")
+        }
+
+
+    }
+
+
+
+
+
+    assert(valuesMutable.size == 1)
+    val resultValue = valuesMutable.first()
+    assert(resultValue.type == ValueType.Node)
+
+    return resultValue.valueNode
+}
+
+private fun newParse(tokens: List<Token>): AstNode {
+
+    // Do some sanity checks
+    if (tokens.count{it.type==TokenType.LeftParenthesis} != tokens.count{it.type==TokenType.RightParenthesis}){
+        throw ParserError("Mismatched parenthesis")
+    }
+
+    // Do initial reduction
+    val valueList = tokens.map { token ->
+        when (token.type) {
+            TokenType.NumericConstant -> Value(ValueType.Node, node = AstNode.fromConstant(token.asConstant()))
+            TokenType.Identifier -> Value(ValueType.Node, node = AstNode.fromIdentifier(token.additionalData))
+            else -> Value(ValueType.Token, token = token)
+        }
+    }
+
+    //TODO merge
+    return applyReductions(valueList)
+}
 
 
 private fun parseSingleValue(tokens: TokenIterator): AstNode {
@@ -86,11 +289,8 @@ fun parseExpressionUntil(tokens: TokenIterator, delimiter: List<TokenType>): Ast
     while (delimiter.all { !tokens.peekIs(it) }) {
         result.add(tokens.consume())
     }
-    result.add(Token(TokenType.EOL, "", 0, 0))
 
-    val newIterator = TokenIterator(result)
-
-    return parseExpressionUntilSeparator(newIterator)
+    return newParse(result)
 }
 
 private fun parseExpressionUntilSeparator(tokens: TokenIterator): AstNode {
@@ -117,8 +317,8 @@ private fun parseExpressionUntilSeparator(tokens: TokenIterator): AstNode {
         var index = 0
 
         operations.forEachIndexed { i, token ->
-            if (operationPriorities.getValue(token.type) > highestPriority) {
-                highestPriority = operationPriorities.getValue(token.type)
+            if (binaryOperationPriorities.getValue(token.type) > highestPriority) {
+                highestPriority = binaryOperationPriorities.getValue(token.type)
                 index = i
             }
         }
@@ -128,8 +328,8 @@ private fun parseExpressionUntilSeparator(tokens: TokenIterator): AstNode {
 
         val result: AstNode
 
-        if (operatorToken.type in operatorToNodesType) {
-            result = AstNode.fromOperation(operatorToken.type, first, second)
+        if (operatorToken.type in binaryOperatorToNodesType) {
+            result = AstNode.fromBinaryOperation(operatorToken.type, first, second)
         } else {
             result = when (operatorToken.type) {
                 TokenType.Deref -> handleDeref(first, second)
