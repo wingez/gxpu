@@ -12,11 +12,6 @@ internal class WalkPrograms {
     fun testFibonacci() {
         val program = """
           def main():
-            val a=1
-            val b=0
-            val c=0
-    
-            val counter=0
             while (10-counter)!=0:
               print(a)
               c=a+b

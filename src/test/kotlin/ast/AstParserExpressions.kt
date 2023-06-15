@@ -96,4 +96,39 @@ class AstParserExpressions {
             parseExpression("5+6!=7+8")
         )
     }
+
+    @Test
+    fun testCallNoArgs() {
+        assertEquals(
+            AstNode.fromCall("hello", FunctionType.Normal, listOf()),
+            parseExpression("hello()")
+        )
+    }
+
+    @Test
+    fun testCallWithArgs() {
+        assertEquals(
+            AstNode.fromCall("hello", FunctionType.Normal, listOf(constant(5), constant(6))),
+            parseExpression("hello(5,6)")
+        )
+    }
+
+    @Test
+    fun testMoreBlocks() {
+        assertEquals(
+            AstNode.fromCall(
+                OperatorBuiltIns.NotEqual, FunctionType.Operator, listOf(
+                    AstNode.fromCall(
+                        OperatorBuiltIns.Subtraction, FunctionType.Operator, listOf(
+                            constant(10), identifier("counter")
+                        )
+                    ),
+                    constant(0)
+                )
+            ),
+            parseExpression("(10-counter)!=0")
+        )
+    }
+
 }
+

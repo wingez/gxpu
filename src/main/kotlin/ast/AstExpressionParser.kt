@@ -2,18 +2,34 @@ package se.wingez.ast
 
 import se.wingez.tokens.*
 
+private typealias Priority = Int
+
+private val priorities = object {
+
+
+    val mergeCommaSeparatedValues = 50
+    val mergeIntoParenthesisBlock = 49
+
+    val functionCall = 48
+
+    val binaryPlusMinus = 28
+    val binaryComparisons = 25
+
+
+    //last try to extract a value from a single parenthesis
+    val extractSingleValueFromParenthesis = 0
+
+}
+
 
 val binaryOperationPriorities = mapOf(
-    TokenType.PlusSign to 5,
-    TokenType.MinusSign to 5,
-    TokenType.LesserSign to 2,
-    TokenType.GreaterSign to 2,
-    TokenType.DoubleEqual to 2,
-    TokenType.NotEqual to 1,
-    TokenType.Deref to 10,
-    TokenType.Dot to 10,
-
-    )
+    TokenType.PlusSign to priorities.binaryPlusMinus,
+    TokenType.MinusSign to priorities.binaryPlusMinus,
+    TokenType.LesserSign to priorities.binaryComparisons,
+    TokenType.GreaterSign to priorities.binaryComparisons,
+    TokenType.DoubleEqual to priorities.binaryComparisons,
+    TokenType.NotEqual to priorities.binaryComparisons,
+)
 
 class OperatorBuiltIns {
     companion object {
@@ -41,6 +57,7 @@ val binaryOperatorToNodesType = mapOf(
 private enum class ValueType {
     Token,
     Node,
+    CommaSeparated,
     ParenthesisBlock,
 }
 
@@ -48,28 +65,26 @@ private class Value(
     val type: ValueType,
     private val token: Token? = null,
     private val node: AstNode? = null,
-    private val parenthesisBlock: Token? = null,
+    private val nodeList: List<AstNode>? = null
 ) {
     val valueToken get() = token!!
     val valueNode get() = node!!
-    val valueParenthesisBlock get() = parenthesisBlock!!
+
+    val valueNodeList get() = nodeList!!
 
     override fun toString(): String {
         return when (type) {
             ValueType.Node -> valueNode.toString()
             ValueType.Token -> valueToken.toString()
-            ValueType.ParenthesisBlock -> valueParenthesisBlock.toString()
+            ValueType.ParenthesisBlock -> valueNodeList.toString()
+            ValueType.CommaSeparated -> valueNodeList.toString()
         }
-
     }
 }
 
 private data class ReduceResult(
     val result: Value
 )
-
-private const val priorityHighest = 100
-private const val priorityLowest = 0
 
 private interface Reducer {
 
@@ -83,9 +98,20 @@ private interface ValueMatcher {
     fun match(value: Value): Boolean
 }
 
+private object anythingMatcher : ValueMatcher {
+    override fun match(value: Value) = true
+}
+
 private object anyNodeMatcher : ValueMatcher {
     override fun match(value: Value): Boolean {
         return value.type == ValueType.Node
+    }
+}
+
+
+private class TypeMatcher(val type: ValueType) : ValueMatcher {
+    override fun match(value: Value): Boolean {
+        return value.type == type
     }
 }
 
@@ -146,20 +172,98 @@ private class BinaryOperatorReducer(
     }
 }
 
-private class SingleValueParenthesis : MatchingReducer(
-    listOf(TokenMatcher(TokenType.LeftParenthesis), anyNodeMatcher, TokenMatcher(TokenType.RightParenthesis))
+private class MergeCommaSeparatedValues : MatchingReducer(
+    listOf(anythingMatcher, TokenMatcher(TokenType.Comma), anythingMatcher)
 ) {
-    override val priority = priorityLowest
+    override val priority: Int = priorities.mergeCommaSeparatedValues
+    override fun tryReduceMatched(values: List<Value>): ReduceResult? {
+        val left = when (values[0].type) {
+            ValueType.Node -> listOf(values[0].valueNode)
+            ValueType.CommaSeparated -> values[0].valueNodeList
+            else -> return null
+        }
+
+        val right = when (values[2].type) {
+            ValueType.Node -> listOf(values[2].valueNode)
+            ValueType.CommaSeparated -> values[2].valueNodeList
+            else -> return null
+        }
+        return ReduceResult(Value(ValueType.CommaSeparated, nodeList = left + right))
+    }
+}
+
+private class MergeEmptyParenthesisBlock : MatchingReducer(
+    listOf(TokenMatcher(TokenType.LeftParenthesis), TokenMatcher(TokenType.RightParenthesis))
+) {
+    override val priority: Int = priorities.mergeIntoParenthesisBlock
 
     override fun tryReduceMatched(values: List<Value>): ReduceResult {
-        return ReduceResult(Value(ValueType.Node, node = values[1].valueNode))
+        return ReduceResult(Value(ValueType.ParenthesisBlock, nodeList = emptyList()))
     }
+}
 
+private class MergeParenthesisBlock : MatchingReducer(
+    listOf(TokenMatcher(TokenType.LeftParenthesis), anythingMatcher, TokenMatcher(TokenType.RightParenthesis))
+) {
+    override val priority: Int = priorities.mergeIntoParenthesisBlock
+
+    override fun tryReduceMatched(values: List<Value>): ReduceResult? {
+        val content = when (values[1].type) {
+            ValueType.Node -> listOf(values[1].valueNode)
+            ValueType.CommaSeparated -> values[1].valueNodeList
+            else -> return null
+        }
+        return ReduceResult(Value(ValueType.ParenthesisBlock, nodeList = content))
+
+    }
+}
+
+private class ExtractSingleValueParenthesis : MatchingReducer(
+    listOf(
+        TypeMatcher(ValueType.ParenthesisBlock),
+    )
+) {
+    override val priority = priorities.extractSingleValueFromParenthesis
+
+    override fun tryReduceMatched(values: List<Value>): ReduceResult? {
+        val content = values[0].valueNodeList
+        if (content.size != 1) {
+            return null
+        }
+
+        return ReduceResult(Value(ValueType.Node, node = content.first()))
+    }
+}
+
+private class FunctionCallReduce : MatchingReducer(
+    listOf(anyNodeMatcher, TypeMatcher(ValueType.ParenthesisBlock))
+) {
+    override val priority: Int = priorities.functionCall
+
+    override fun tryReduceMatched(values: List<Value>): ReduceResult? {
+        val identiferNode = values[0].valueNode
+        if (identiferNode.type != NodeTypes.Identifier) {
+            return null
+        }
+        return ReduceResult(
+            Value(
+                ValueType.Node,
+                node = AstNode.fromCall(identiferNode.asIdentifier(), FunctionType.Normal, values[1].valueNodeList)
+            )
+        )
+
+    }
 }
 
 private val reducers: List<Reducer> = listOf(
-    SingleValueParenthesis()
-) + binaryOperationPriorities.keys.map { BinaryOperatorReducer(it) }
+    ExtractSingleValueParenthesis(),
+    MergeCommaSeparatedValues(),
+    MergeParenthesisBlock(),
+    MergeEmptyParenthesisBlock(),
+    MergeCommaSeparatedValues(),
+    FunctionCallReduce(),
+
+    ) + binaryOperationPriorities.keys.map { BinaryOperatorReducer(it) }
 
 private val reducersOrdered = reducers.sortedBy { -it.priority }
 
@@ -170,7 +274,9 @@ private fun applyReductions(values: List<Value>): AstNode {
     val maxIterations = valuesMutable.size
 
     for (i in 0..maxIterations) {
-        if (valuesMutable.size == 1) {
+
+        if (valuesMutable.size == 1 && valuesMutable.first().type == ValueType.Node) {
+            // We've finished early
             break
         }
 
@@ -206,17 +312,11 @@ private fun applyReductions(values: List<Value>): AstNode {
         if (!didReduce) {
             throw ParserError("could not parse expression")
         }
-
-
     }
-
-
-
-
 
     assert(valuesMutable.size == 1)
     val resultValue = valuesMutable.first()
-    assert(resultValue.type == ValueType.Node)
+    assert(resultValue.type == ValueType.Node) { resultValue.type.toString() }
 
     return resultValue.valueNode
 }
@@ -224,7 +324,7 @@ private fun applyReductions(values: List<Value>): AstNode {
 private fun newParse(tokens: List<Token>): AstNode {
 
     // Do some sanity checks
-    if (tokens.count{it.type==TokenType.LeftParenthesis} != tokens.count{it.type==TokenType.RightParenthesis}){
+    if (tokens.count { it.type == TokenType.LeftParenthesis } != tokens.count { it.type == TokenType.RightParenthesis }) {
         throw ParserError("Mismatched parenthesis")
     }
 
@@ -233,6 +333,7 @@ private fun newParse(tokens: List<Token>): AstNode {
         when (token.type) {
             TokenType.NumericConstant -> Value(ValueType.Node, node = AstNode.fromConstant(token.asConstant()))
             TokenType.Identifier -> Value(ValueType.Node, node = AstNode.fromIdentifier(token.additionalData))
+            TokenType.String -> Value(ValueType.Node, node = AstNode.fromString(token.additionalData))
             else -> Value(ValueType.Token, token = token)
         }
     }
@@ -241,41 +342,6 @@ private fun newParse(tokens: List<Token>): AstNode {
     return applyReductions(valueList)
 }
 
-
-private fun parseSingleValue(tokens: TokenIterator): AstNode {
-
-    if (tokens.peekIs(TokenType.LeftParenthesis, true)) {
-        val result = parseExpressionUntilSeparator(tokens)
-        tokens.consumeType(TokenType.RightParenthesis, "Mismatched parenthesis")
-        return result
-    } else if (tokens.peekIs(TokenType.NumericConstant)) {
-        val constant = tokens.consumeType(TokenType.NumericConstant).asConstant()
-        return AstNode.fromConstant(constant)
-    } else if (tokens.peekIs(TokenType.String)) {
-        val string = tokens.consumeType(TokenType.String).additionalData
-        return AstNode.fromString(string)
-    } else if (tokens.peekIs(TokenType.Identifier)) {
-
-        val identifier = tokens.consumeIdentifier()
-
-        if (tokens.peekIs(TokenType.LeftParenthesis, consumeMatch = true)) {
-            val parameters = mutableListOf<AstNode>()
-
-            while (!tokens.peekIs(TokenType.RightParenthesis, true)) {
-                val paramValue = parseExpressionUntilSeparator(tokens)
-                parameters.add(paramValue)
-
-                tokens.peekIs(TokenType.Comma, true)
-            }
-
-            return AstNode.fromCall(identifier, FunctionType.Normal, parameters)
-        }
-
-        return AstNode.fromIdentifier(identifier)
-    } else {
-        throw ParserError("Cannot parse to value provider: ${tokens.peek()}")
-    }
-}
 
 fun parseExpressionUntil(tokens: TokenIterator, delimiter: TokenType): AstNode {
     return parseExpressionUntil(tokens, listOf(delimiter))
@@ -291,80 +357,4 @@ fun parseExpressionUntil(tokens: TokenIterator, delimiter: List<TokenType>): Ast
     }
 
     return newParse(result)
-}
-
-private fun parseExpressionUntilSeparator(tokens: TokenIterator): AstNode {
-
-
-    val values = mutableListOf(parseSingleValue(tokens))
-    val operations = mutableListOf<Token>()
-    while (!tokens.peek().isExpressionSeparator()) {
-        val operatorToken = tokens.consume()
-        operations.add(operatorToken)
-
-
-        //Close array access
-        if (operatorToken.type == TokenType.LeftBracket) {
-            values.add(parseExpressionUntilSeparator(tokens))
-            tokens.consumeType(TokenType.RightBracket)
-        } else {
-            values.add(parseSingleValue(tokens))
-        }
-    }
-
-    while (values.size > 1) {
-        var highestPriority = 0
-        var index = 0
-
-        operations.forEachIndexed { i, token ->
-            if (binaryOperationPriorities.getValue(token.type) > highestPriority) {
-                highestPriority = binaryOperationPriorities.getValue(token.type)
-                index = i
-            }
-        }
-        val first = values.removeAt(index)
-        val second = values.removeAt(index)
-        val operatorToken = operations.removeAt(index)
-
-        val result: AstNode
-
-        if (operatorToken.type in binaryOperatorToNodesType) {
-            result = AstNode.fromBinaryOperation(operatorToken.type, first, second)
-        } else {
-            result = when (operatorToken.type) {
-                TokenType.Deref -> handleDeref(first, second)
-                TokenType.Dot -> handleMemberAccess(first, second)
-                TokenType.LeftBracket -> AstNode.fromArrayAccess(first, second)
-                else -> throw ParserError("You have messed up badly... $operatorToken")
-            }
-        }
-
-        values.add(index, result)
-    }
-    return values.first()
-}
-
-private fun handleMemberAccess(firstNode: AstNode, secondNode: AstNode): AstNode {
-    // Separate case for "a.b" and "a.b()"
-    // "a.b" should be mapped to memberaccess node
-    // "a.b()" to instance function call
-
-    if (secondNode.type == NodeTypes.Identifier) {
-        return AstNode(NodeTypes.MemberAccess, secondNode.data as String, listOf(firstNode))
-    }
-
-    if (secondNode.type == NodeTypes.Call) {
-        val callNode = secondNode.asCall()
-        assert(callNode.functionType == FunctionType.Normal)
-        return AstNode.fromCall(callNode.targetName, FunctionType.Instance, listOf(firstNode) + callNode.parameters)
-    }
-
-    throw ParserError("Expected either member identifier or instance function. Not $secondNode")
-}
-
-private fun handleDeref(firstNode: AstNode, secondNode: AstNode): AstNode {
-    if (secondNode.type != NodeTypes.Identifier) {
-        throw ParserError("Expected identifier, not $secondNode")
-    }
-    return AstNode(NodeTypes.MemberDeref, secondNode.data as String, listOf(firstNode))
 }
