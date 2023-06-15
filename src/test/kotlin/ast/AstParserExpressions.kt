@@ -7,7 +7,7 @@ import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import se.wingez.tokens.TokenType
 
-class AstParserArithmetic {
+class AstParserExpressions {
 
     @Test
     fun testSingleToken() {
