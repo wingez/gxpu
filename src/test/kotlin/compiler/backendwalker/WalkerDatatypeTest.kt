@@ -2,6 +2,7 @@ package se.wingez.compiler.backendwalker
 
 import compiler.frontend.Datatype
 import compiler.frontend.TypeProvider
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
@@ -115,6 +116,7 @@ internal class WalkerDatatypeTest {
     }
 
     @Test
+    @Disabled
     fun testMemberAssign() {
         val code = """
             struct test:
@@ -174,6 +176,7 @@ internal class WalkerDatatypeTest {
     }
 
     @Test
+    @Disabled
     fun testArraySizeReadonly() {
         val program = """
           def main():

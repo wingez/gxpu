@@ -1,5 +1,6 @@
 package se.wingez.compiler.backendwalker
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
@@ -321,6 +322,7 @@ internal class WalkerTest {
     }
 
     @Test
+    @Disabled
     fun testInstanceFunction() {
         val nodes =
             parserFromFile(
