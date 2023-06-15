@@ -57,7 +57,7 @@ open class PeekIterator<T>(
     }
 
     fun peek(): T {
-        if (index > values.size)
+        if (index >= values.size)
             throw Error("End of token-list reached")
         return values[index]
     }

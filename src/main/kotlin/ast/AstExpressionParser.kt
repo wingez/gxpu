@@ -74,8 +74,26 @@ private fun parseSingleValue(tokens: TokenIterator): AstNode {
     }
 }
 
+fun parseExpressionUntil(tokens: TokenIterator, delimiter: TokenType): AstNode {
+    return parseExpressionUntil(tokens, listOf(delimiter))
+}
 
-fun parseExpressionUntilSeparator(tokens: TokenIterator): AstNode {
+
+fun parseExpressionUntil(tokens: TokenIterator, delimiter: List<TokenType>): AstNode {
+
+    val result = mutableListOf<Token>()
+
+    while (delimiter.all { !tokens.peekIs(it) }) {
+        result.add(tokens.consume())
+    }
+    result.add(Token(TokenType.EOL, "", 0, 0))
+
+    val newIterator = TokenIterator(result)
+
+    return parseExpressionUntilSeparator(newIterator)
+}
+
+private fun parseExpressionUntilSeparator(tokens: TokenIterator): AstNode {
 
 
     val values = mutableListOf(parseSingleValue(tokens))

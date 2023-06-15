@@ -25,7 +25,7 @@ fun parseExpressions(tokens: List<Token>): List<AstNode> {
 
 fun parseExpression(expression: String): AstNode {
     val tokensIterator = TokenIterator(parseLine(expression))
-    return parseExpressionUntilSeparator(tokensIterator)
+    return parseExpressionUntil(tokensIterator, TokenType.EOL)
 }
 
 private fun assign(to: String, value: Int): AstNode {

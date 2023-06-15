@@ -68,7 +68,7 @@ class AstParser(tokens: List<Token>) {
 
         val optionalTypeHint: AstNode?
         if (tokens.peekIs(TokenType.Equals, consumeMatch = true)) {
-            optionalTypeHint = parseExpressionUntilSeparator(tokens)
+            optionalTypeHint = parseExpressionUntil(tokens, TokenType.EOL)
         } else {
             optionalTypeHint = null
         }
@@ -88,14 +88,14 @@ class AstParser(tokens: List<Token>) {
     }
 
     fun parseExpression(): List<AstNode> {
-        var first = parseExpressionUntilSeparator(tokens)
+        var first = parseExpressionUntil(tokens, listOf(TokenType.EOL, TokenType.Equals))
 
         if (tokens.peekIs(TokenType.EOL)) {
             return listOf(first)
         }
 
         if (tokens.peekIs(TokenType.Equals, consumeMatch = true)) {
-            val right = parseExpressionUntilSeparator(tokens)
+            val right = parseExpressionUntil(tokens, TokenType.EOL)
 
             first = AstNode.fromAssign(
                 first, right
@@ -169,7 +169,7 @@ class AstParser(tokens: List<Token>) {
 
     fun parseIfStatement(): AstNode {
         tokens.consumeType(TokenType.KeywordIf)
-        val condition = parseExpressionUntilSeparator(tokens)
+        val condition = parseExpressionUntil(tokens, TokenType.Colon)
 
         tokens.consumeType(TokenType.Colon)
         tokens.consumeType(TokenType.EOL)
@@ -193,7 +193,7 @@ class AstParser(tokens: List<Token>) {
 
     fun parseWhileStatement(): AstNode {
         tokens.consumeType(TokenType.KeywordWhile)
-        val condition = parseExpressionUntilSeparator(tokens)
+        val condition = parseExpressionUntil(tokens, TokenType.Colon)
 
         tokens.consumeType(TokenType.Colon)
         tokens.consumeType(TokenType.EOL)
@@ -207,7 +207,7 @@ class AstParser(tokens: List<Token>) {
     fun parseReturnStatement(): AstNode {
         tokens.consumeType(TokenType.KeywordReturn)
 
-        val value = if (!tokens.peekIs(TokenType.EOL)) parseExpressionUntilSeparator(tokens) else null
+        val value = if (!tokens.peekIs(TokenType.EOL)) parseExpressionUntil(tokens, TokenType.EOL) else null
         tokens.consumeType(TokenType.EOL)
         return AstNode.fromReturn(value)
     }
