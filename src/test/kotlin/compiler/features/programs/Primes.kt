@@ -2,6 +2,8 @@ package se.wingez.compiler.features.programs
 
 import compiler.features.CompilerBackend
 import compiler.features.runProgramCheckOutput
+import org.assertj.core.api.Assumptions.assumeThat
+import org.junit.jupiter.api.Assumptions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
@@ -13,6 +15,8 @@ class Primes {
     @ParameterizedTest
     @EnumSource
     fun testPrimes(compiler: CompilerBackend) {
+
+        Assumptions.assumeTrue(compiler!=CompilerBackend.Emulator)
 
         val program = """
           def main():

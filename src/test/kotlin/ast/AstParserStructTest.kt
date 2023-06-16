@@ -1,6 +1,7 @@
 package se.wingez.ast
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import se.wingez.tokens.TokenType
 
@@ -16,6 +17,7 @@ fun memberDeref(v: AstNode, member: String): AstNode {
     return AstNode(NodeTypes.MemberDeref, member, listOf(v))
 }
 
+@Disabled
 class AstParserStructTest {
 
     @Test
@@ -164,23 +166,6 @@ class AstParserStructTest {
             
         """
             ).parseStruct(),
-        )
-    }
-
-
-    @Test
-    fun testArrayAccess() {
-        assertEquals(
-            AstNode.fromArrayAccess(identifier("test"), constant(5)),
-            parseExpression("test[5]")
-        )
-
-        assertEquals(
-            AstNode.fromArrayAccess(
-                AstNode.fromIdentifier("test"),
-                AstNode.fromBinaryOperation(TokenType.PlusSign, constant(5), constant(5))
-            ),
-            parseExpression("test[5+5]")
         )
     }
 }

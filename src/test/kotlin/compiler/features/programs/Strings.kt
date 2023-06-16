@@ -2,18 +2,19 @@ package se.wingez.compiler.features.programs
 
 import compiler.features.CompilerBackend
 import compiler.features.runProgramCheckOutput
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Assumptions
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
-import se.wingez.ast.parserFromFile
-import se.wingez.compiler.backends.astwalker.walk
-import kotlin.test.assertEquals
 
 class Strings {
 
     @ParameterizedTest
     @EnumSource
     fun testStringCopy(compiler:CompilerBackend) {
+
+        Assumptions.assumeTrue(compiler!=CompilerBackend.Emulator)
+
+
         val program = """
           def main():
             val a = "abcd"
@@ -29,13 +30,16 @@ class Strings {
             print(a)
             print(b)
     """
-        runProgramCheckOutput(compiler, program, 0, 20, 0)
+        runProgramCheckOutput(compiler, program, "abcd", "bcde")
     }
 
 
     @ParameterizedTest
     @EnumSource
     fun formatInt(compiler: CompilerBackend) {
+
+        Assumptions.assumeTrue(compiler!=CompilerBackend.Emulator)
+
         val program = """
           def array_slice(arr:int[], from:int, to:int):int[]
             

@@ -181,6 +181,21 @@ class AstParserExpressions {
             AstNode.fromArrayAccess(identifier("a"), constant(5)),
             parseExpression("a[5]")
         )
+
+        assertEquals(
+            AstNode.fromArrayAccess(identifier("test"), constant(5)),
+            parseExpression("test[5]")
+        )
+
+        assertEquals(
+            AstNode.fromArrayAccess(
+                AstNode.fromIdentifier("test"),
+                AstNode.fromBinaryOperation(TokenType.PlusSign, constant(5), constant(5))
+            ),
+            parseExpression("test[5+5]")
+        )
+        assertThrows<ParserError> { parseExpression("a[b,c]")  }
+        assertThrows<ParserError> { parseExpression("a[]")  }
     }
 }
 

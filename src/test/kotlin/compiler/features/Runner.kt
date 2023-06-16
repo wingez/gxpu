@@ -109,4 +109,3 @@ fun runProgramCheckOutput(type: CompilerBackend, program: String, vararg result:
 
     Assertions.assertIterableEquals(expected, actual)
 }
-
