@@ -157,5 +157,14 @@ class AstParserExpressions {
             parseExpression("[]")
         )
     }
+
+    @Test
+    fun testMixedParenthesisBrackets() {
+        assertThrows<ParserError> { parseExpression("(") }
+        assertThrows<ParserError> { parseExpression("((") }
+        assertThrows<ParserError> { parseExpression("([)") }
+        assertThrows<ParserError> { parseExpression("[4,(]") }
+        assertThrows<ParserError> { parseExpression(",") }
+    }
 }
 

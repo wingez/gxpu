@@ -62,7 +62,7 @@ private fun parseBlocksUntil(valueList: List<Value>, matcher: ValueMatcher): Pai
                 val (amountConsumed, valuesInBlock) = parseBlocksUntil(
                     valueList.subList(
                         nextToParse,
-                        valueList.indices.last
+                        valueList.size
                     ),
                     MultiTokenMatcher(setOf(closingToken, TokenType.Comma))
                 )
@@ -70,6 +70,9 @@ private fun parseBlocksUntil(valueList: List<Value>, matcher: ValueMatcher): Pai
 
 
                 nextToParse += amountConsumed
+                if (nextToParse >= valueList.size) {
+                    throw ParserError("Block not closed")
+                }
                 val commaOrClosingParenthesis = valueList[nextToParse]
                 nextToParse++
                 if (TokenMatcher(closingToken).match(commaOrClosingParenthesis)) {
