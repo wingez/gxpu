@@ -37,16 +37,12 @@ val binaryOperatorToNodesType = mapOf(
     TokenType.DoubleEqual to OperatorBuiltIns.Equal,
 )
 
-private data class ReduceResult(
-    val result: Value
-)
-
 private interface Reducer {
 
     val priority: Int
 
     val requiredValueCount: Int
-    fun tryReduce(values: List<Value>): ReduceResult?
+    fun tryReduce(values: List<Value>): Value?
 }
 
 
@@ -55,7 +51,7 @@ private abstract class MatchingReducer(
 ) : Reducer {
     final override val requiredValueCount = matchers.size
 
-    final override fun tryReduce(values: List<Value>): ReduceResult? {
+    final override fun tryReduce(values: List<Value>): Value? {
         for (i in 0 until requiredValueCount) {
             if (!matchers[i].match(values[i])) {
                 return null
@@ -64,7 +60,7 @@ private abstract class MatchingReducer(
         return tryReduceMatched(values)
     }
 
-    abstract fun tryReduceMatched(values: List<Value>): ReduceResult?
+    abstract fun tryReduceMatched(values: List<Value>): Value?
 }
 
 
@@ -75,15 +71,13 @@ private class BinaryOperatorReducer(
 ) {
     override val priority = binaryOperationPriorities.getValue(tokenType)
 
-    override fun tryReduceMatched(values: List<Value>): ReduceResult {
-        return ReduceResult(
-            Value(
-                ValueType.Node,
-                node = AstNode.fromBinaryOperation(
-                    tokenType,
-                    values[0].valueNode,
-                    values[2].valueNode,
-                )
+    override fun tryReduceMatched(values: List<Value>): Value {
+        return Value(
+            ValueType.Node,
+            node = AstNode.fromBinaryOperation(
+                tokenType,
+                values[0].valueNode,
+                values[2].valueNode,
             )
         )
     }
@@ -96,13 +90,13 @@ private class ExtractSingleValueParenthesis : MatchingReducer(
 ) {
     override val priority = priorities.extractSingleValueFromParenthesis
 
-    override fun tryReduceMatched(values: List<Value>): ReduceResult? {
+    override fun tryReduceMatched(values: List<Value>): Value? {
         val content = values[0].valueNodeList
         if (content.size != 1) {
             return null
         }
 
-        return ReduceResult(Value(ValueType.Node, node = content.first()))
+        return Value(ValueType.Node, node = content.first())
     }
 }
 
@@ -111,18 +105,15 @@ private class FunctionCallReduce : MatchingReducer(
 ) {
     override val priority: Int = priorities.functionCall
 
-    override fun tryReduceMatched(values: List<Value>): ReduceResult? {
+    override fun tryReduceMatched(values: List<Value>): Value? {
         val identifierNode = values[0].valueNode
         if (identifierNode.type != NodeTypes.Identifier) {
             return null
         }
-        return ReduceResult(
-            Value(
-                ValueType.Node,
-                node = AstNode.fromCall(identifierNode.asIdentifier(), FunctionType.Normal, values[1].valueNodeList)
-            )
+        return Value(
+            ValueType.Node,
+            node = AstNode.fromCall(identifierNode.asIdentifier(), FunctionType.Normal, values[1].valueNodeList)
         )
-
     }
 }
 
@@ -131,12 +122,10 @@ private class BracketBlockToArray : MatchingReducer(
 ) {
     override val priority: Int = priorities.bracketsBlockToArray
 
-    override fun tryReduceMatched(values: List<Value>): ReduceResult {
-        return ReduceResult(
-            Value(
-                ValueType.Node,
-                node = AstNode.newArray(values[0].valueNodeList)
-            )
+    override fun tryReduceMatched(values: List<Value>): Value {
+        return Value(
+            ValueType.Node,
+            node = AstNode.newArray(values[0].valueNodeList)
         )
     }
 }
@@ -170,16 +159,14 @@ fun applyReductions(values: List<Value>): AstNode {
                     continue
                 }
 
-                val reduceResult =
+                val value =
                     reducer.tryReduce(valuesMutable.subList(startIndex, startIndex + reducer.requiredValueCount))
 
-                if (reduceResult != null) {
-                    val newValue = reduceResult.result
-
+                if (value != null) {
                     for (j in 0 until reducer.requiredValueCount) {
                         valuesMutable.removeAt(startIndex)
                     }
-                    valuesMutable.add(startIndex, newValue)
+                    valuesMutable.add(startIndex, value)
                     didReduce = true
                 }
                 if (didReduce) {
