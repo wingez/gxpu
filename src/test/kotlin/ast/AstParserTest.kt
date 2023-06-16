@@ -312,7 +312,7 @@ internal class AstParserTest {
         assertDoesNotThrow {
             parserFromFile(
                 """
-            while (counter) != (arr -> size):
+            while (counter) != (arr - size):
               print(arr[counter])
             
         """

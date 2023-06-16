@@ -168,10 +168,18 @@ class AstParserExpressions {
     }
 
     @Test
-    fun testInstanceFunction(){
+    fun testInstanceFunction() {
         assertEquals(
             AstNode.fromCall("hello", FunctionType.Instance, listOf(constant(5), constant(6))),
             parseExpression("5.hello(6)"),
+        )
+    }
+
+    @Test
+    fun testArrayAccess() {
+        assertEquals(
+            AstNode.fromArrayAccess(identifier("a"), constant(5)),
+            parseExpression("a[5]")
         )
     }
 }
