@@ -14,6 +14,7 @@ private val priorities = object {
     val binaryPlusMinus = 28
     val binaryComparisons = 25
 
+    val bracketsBlockToArray = 0
 
     //last try to extract a value from a single parenthesis
     val extractSingleValueFromParenthesis = 0
@@ -125,9 +126,25 @@ private class FunctionCallReduce : MatchingReducer(
     }
 }
 
+private class BracketBlockToArray : MatchingReducer(
+    listOf(TypeMatcher(ValueType.BracketsBlock))
+) {
+    override val priority: Int = priorities.bracketsBlockToArray
+
+    override fun tryReduceMatched(values: List<Value>): ReduceResult {
+        return ReduceResult(
+            Value(
+                ValueType.Node,
+                node = AstNode.newArray(values[0].valueNodeList)
+            )
+        )
+    }
+}
+
 private val reducers: List<Reducer> = listOf(
     ExtractSingleValueParenthesis(),
     FunctionCallReduce(),
+    BracketBlockToArray(),
 
     ) + binaryOperationPriorities.keys.map { BinaryOperatorReducer(it) }
 private val reducersOrdered = reducers.sortedBy { -it.priority }
@@ -174,7 +191,7 @@ fun applyReductions(values: List<Value>): AstNode {
             }
         }
         if (!didReduce) {
-            throw ParserError("could not parse expression")
+            throw ParserError("could not parse expression. Got to $valuesMutable")
         }
     }
 

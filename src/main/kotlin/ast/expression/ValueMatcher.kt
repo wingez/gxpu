@@ -8,6 +8,7 @@ enum class ValueType {
     Token,
     Node,
     ParenthesisBlock,
+    BracketsBlock,
 }
 
 class Value(
@@ -25,7 +26,8 @@ class Value(
         return when (type) {
             ValueType.Node -> valueNode.toString()
             ValueType.Token -> valueToken.toString()
-            ValueType.ParenthesisBlock -> valueNodeList.toString()
+            ValueType.ParenthesisBlock -> "($valueNodeList)"
+            ValueType.BracketsBlock -> "[$valueNodeList]"
         }
     }
 }

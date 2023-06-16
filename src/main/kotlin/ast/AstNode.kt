@@ -20,6 +20,7 @@ enum class NodeTypes {
     MemberDeref,
     MemberAccess,
     ArrayAccess,
+    Array,
 }
 
 enum class FunctionType {
@@ -268,6 +269,10 @@ data class AstNode(
         fun fromBreak(): AstNode {
             return AstNode(NodeTypes.Break, null, emptyList())
         }
+
+        fun newArray(content: List<AstNode>): AstNode {
+            return AstNode(NodeTypes.Array, null, content)
+        }
     }
 }
 
@@ -297,6 +302,7 @@ fun iterateAstNode(node: AstNode): Iterable<AstNode> {
             iterateRecursive(child, list)
         }
     }
+
     val result = mutableListOf<AstNode>()
     iterateRecursive(node, result)
     return result

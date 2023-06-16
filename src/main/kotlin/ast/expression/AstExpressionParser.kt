@@ -19,8 +19,13 @@ class OperatorBuiltIns {
     }
 }
 
+private enum class BlockType {
+    Parenthesis,
+    Bracket,
+}
 
 private fun parseBlocksUntil(valueList: List<Value>, matcher: ValueMatcher): Pair<Int, List<Value>> {
+
 
     val result = mutableListOf<Value>()
 
@@ -35,18 +40,31 @@ private fun parseBlocksUntil(valueList: List<Value>, matcher: ValueMatcher): Pai
 
         nextToParse++
 
-        if (TokenMatcher(TokenType.LeftParenthesis).match(currentValue)) {
-            // Enter parenthesis block
-            val parenthesisContent = mutableListOf<AstNode>()
+        val blockType = if (TokenMatcher(TokenType.LeftParenthesis).match(currentValue)) {
+            BlockType.Parenthesis
+        } else if (TokenMatcher(TokenType.LeftBracket).match(currentValue)) {
+            BlockType.Bracket
+        } else {
+            null
+        }
+
+        if (blockType != null) {
+            // Enter block
+            val blockContent = mutableListOf<AstNode>()
+            val closingToken = when (blockType) {
+                BlockType.Parenthesis -> TokenType.RightParenthesis
+                BlockType.Bracket -> TokenType.RightBracket
+            }
 
             while (true) {
+
 
                 val (amountConsumed, valuesInBlock) = parseBlocksUntil(
                     valueList.subList(
                         nextToParse,
                         valueList.indices.last
                     ),
-                    MultiTokenMatcher(setOf(TokenType.RightParenthesis, TokenType.Comma))
+                    MultiTokenMatcher(setOf(closingToken, TokenType.Comma))
                 )
 
 
@@ -54,18 +72,24 @@ private fun parseBlocksUntil(valueList: List<Value>, matcher: ValueMatcher): Pai
                 nextToParse += amountConsumed
                 val commaOrClosingParenthesis = valueList[nextToParse]
                 nextToParse++
-                if (TokenMatcher(TokenType.RightParenthesis).match(commaOrClosingParenthesis)){
+                if (TokenMatcher(closingToken).match(commaOrClosingParenthesis)) {
                     if (valuesInBlock.isNotEmpty()) {
-                        parenthesisContent.add(applyReductions(valuesInBlock))
+                        blockContent.add(applyReductions(valuesInBlock))
                     }
                     break
-                } else if (TokenMatcher(TokenType.Comma).match(commaOrClosingParenthesis)){
-                    parenthesisContent.add(applyReductions(valuesInBlock))
-                } else{
+                } else if (TokenMatcher(TokenType.Comma).match(commaOrClosingParenthesis)) {
+                    blockContent.add(applyReductions(valuesInBlock))
+                } else {
                     throw ParserError("somehting messed up")
                 }
             }
-            result.add(Value(ValueType.ParenthesisBlock, nodeList = parenthesisContent))
+
+            val type = when (blockType) {
+                BlockType.Parenthesis -> ValueType.ParenthesisBlock
+                BlockType.Bracket -> ValueType.BracketsBlock
+            }
+
+            result.add(Value(type, nodeList = blockContent))
         } else {
             result.add(currentValue)
         }

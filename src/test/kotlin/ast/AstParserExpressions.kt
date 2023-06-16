@@ -132,15 +132,16 @@ class AstParserExpressions {
     }
 
     @Test
-    fun testCommaList(){
+    fun testCommaList() {
         assertDoesNotThrow { parseExpression("call()") }
         assertDoesNotThrow { parseExpression("call(5)") }
         assertDoesNotThrow { parseExpression("call(5,6)") }
-        assertThrows<ParserError> { parseExpression("call(,)")  }
-        assertThrows<ParserError> { parseExpression("call(5,,6)")  }
+        assertThrows<ParserError> { parseExpression("call(,)") }
+        assertThrows<ParserError> { parseExpression("call(5,,6)") }
     }
+
     @Test
-    fun testTrailingComma(){
+    fun testTrailingComma() {
         assertDoesNotThrow { parseExpression("call(5,6,)") }
 
         assertEquals(
@@ -149,5 +150,12 @@ class AstParserExpressions {
         )
     }
 
+    @Test
+    fun testNewArray() {
+        assertEquals(
+            AstNode.newArray(emptyList()),
+            parseExpression("[]")
+        )
+    }
 }
 
