@@ -11,6 +11,8 @@ private val priorities = object {
 
     val functionCall = 48
 
+    val instanceFunction = 30
+
     val binaryPlusMinus = 28
     val binaryComparisons = 25
 
@@ -130,10 +132,29 @@ private class BracketBlockToArray : MatchingReducer(
     }
 }
 
+private class InstanceFunction:MatchingReducer(
+    listOf(anyNodeMatcher, TokenMatcher(TokenType.Dot), NodeMatcher(NodeTypes.Call))
+){
+    override val priority = priorities.instanceFunction
+    override fun tryReduceMatched(values: List<Value>): Value? {
+
+        val callInfo = values[2].valueNode.asCall()
+        if (callInfo.functionType!=FunctionType.Normal){
+            return null
+        }
+
+
+        return Value(ValueType.Node, node = AstNode.fromCall(
+            callInfo.targetName,FunctionType.Instance, listOf(values[0].valueNode) + callInfo.parameters)
+        )
+    }
+}
+
 private val reducers: List<Reducer> = listOf(
     ExtractSingleValueParenthesis(),
     FunctionCallReduce(),
     BracketBlockToArray(),
+    InstanceFunction(),
 
     ) + binaryOperationPriorities.keys.map { BinaryOperatorReducer(it) }
 private val reducersOrdered = reducers.sortedBy { -it.priority }

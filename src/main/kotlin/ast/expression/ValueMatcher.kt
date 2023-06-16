@@ -1,6 +1,7 @@
 package se.wingez.ast.expression
 
 import se.wingez.ast.AstNode
+import se.wingez.ast.NodeTypes
 import se.wingez.tokens.Token
 import se.wingez.tokens.TokenType
 
@@ -53,6 +54,14 @@ object anyNodeMatcher : ValueMatcher {
 class TypeMatcher(val type: ValueType) : ValueMatcher {
     override fun match(value: Value): Boolean {
         return value.type == type
+    }
+}
+
+class NodeMatcher(
+    private val nodeTypes: NodeTypes
+) : ValueMatcher {
+    override fun match(value: Value): Boolean {
+        return value.type == ValueType.Node && value.valueNode.type == nodeTypes
     }
 }
 

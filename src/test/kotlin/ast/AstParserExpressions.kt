@@ -166,5 +166,13 @@ class AstParserExpressions {
         assertThrows<ParserError> { parseExpression("[4,(]") }
         assertThrows<ParserError> { parseExpression(",") }
     }
+
+    @Test
+    fun testInstanceFunction(){
+        assertEquals(
+            AstNode.fromCall("hello", FunctionType.Instance, listOf(constant(5), constant(6))),
+            parseExpression("5.hello(6)"),
+        )
+    }
 }
 
