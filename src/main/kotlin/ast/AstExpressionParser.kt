@@ -2,13 +2,8 @@ package se.wingez.ast
 
 import se.wingez.tokens.*
 
-private typealias Priority = Int
 
 private val priorities = object {
-
-
-    val mergeCommaSeparatedValues = 50
-    val mergeIntoParenthesisBlock = 49
 
     val functionCall = 48
 
@@ -57,7 +52,6 @@ val binaryOperatorToNodesType = mapOf(
 private enum class ValueType {
     Token,
     Node,
-    CommaSeparated,
     ParenthesisBlock,
 }
 
@@ -77,7 +71,6 @@ private class Value(
             ValueType.Node -> valueNode.toString()
             ValueType.Token -> valueToken.toString()
             ValueType.ParenthesisBlock -> valueNodeList.toString()
-            ValueType.CommaSeparated -> valueNodeList.toString()
         }
     }
 }
@@ -101,6 +94,11 @@ private interface ValueMatcher {
 private object anythingMatcher : ValueMatcher {
     override fun match(value: Value) = true
 }
+
+private object nothingMatcher : ValueMatcher {
+    override fun match(value: Value) = false
+}
+
 
 private object anyNodeMatcher : ValueMatcher {
     override fun match(value: Value): Boolean {
@@ -172,51 +170,6 @@ private class BinaryOperatorReducer(
     }
 }
 
-private class MergeCommaSeparatedValues : MatchingReducer(
-    listOf(anythingMatcher, TokenMatcher(TokenType.Comma), anythingMatcher)
-) {
-    override val priority: Int = priorities.mergeCommaSeparatedValues
-    override fun tryReduceMatched(values: List<Value>): ReduceResult? {
-        val left = when (values[0].type) {
-            ValueType.Node -> listOf(values[0].valueNode)
-            ValueType.CommaSeparated -> values[0].valueNodeList
-            else -> return null
-        }
-
-        val right = when (values[2].type) {
-            ValueType.Node -> listOf(values[2].valueNode)
-            ValueType.CommaSeparated -> values[2].valueNodeList
-            else -> return null
-        }
-        return ReduceResult(Value(ValueType.CommaSeparated, nodeList = left + right))
-    }
-}
-
-private class MergeEmptyParenthesisBlock : MatchingReducer(
-    listOf(TokenMatcher(TokenType.LeftParenthesis), TokenMatcher(TokenType.RightParenthesis))
-) {
-    override val priority: Int = priorities.mergeIntoParenthesisBlock
-
-    override fun tryReduceMatched(values: List<Value>): ReduceResult {
-        return ReduceResult(Value(ValueType.ParenthesisBlock, nodeList = emptyList()))
-    }
-}
-
-private class MergeParenthesisBlock : MatchingReducer(
-    listOf(TokenMatcher(TokenType.LeftParenthesis), anythingMatcher, TokenMatcher(TokenType.RightParenthesis))
-) {
-    override val priority: Int = priorities.mergeIntoParenthesisBlock
-
-    override fun tryReduceMatched(values: List<Value>): ReduceResult? {
-        val content = when (values[1].type) {
-            ValueType.Node -> listOf(values[1].valueNode)
-            ValueType.CommaSeparated -> values[1].valueNodeList
-            else -> return null
-        }
-        return ReduceResult(Value(ValueType.ParenthesisBlock, nodeList = content))
-
-    }
-}
 
 private class ExtractSingleValueParenthesis : MatchingReducer(
     listOf(
@@ -257,10 +210,6 @@ private class FunctionCallReduce : MatchingReducer(
 
 private val reducers: List<Reducer> = listOf(
     ExtractSingleValueParenthesis(),
-    MergeCommaSeparatedValues(),
-    MergeParenthesisBlock(),
-    MergeEmptyParenthesisBlock(),
-    MergeCommaSeparatedValues(),
     FunctionCallReduce(),
 
     ) + binaryOperationPriorities.keys.map { BinaryOperatorReducer(it) }
@@ -321,6 +270,69 @@ private fun applyReductions(values: List<Value>): AstNode {
     return resultValue.valueNode
 }
 
+private fun parseBlocksUntil(valueList: List<Value>, matcher: ValueMatcher): Pair<Int, List<Value>> {
+
+    val result = mutableListOf<Value>()
+
+    var nextToParse = 0
+
+    while (nextToParse < valueList.size) {
+
+        val currentValue = valueList[nextToParse]
+        if (matcher.match(currentValue)) {
+            return nextToParse to result
+        }
+
+        nextToParse++
+
+        if (TokenMatcher(TokenType.LeftParenthesis).match(currentValue)) {
+            // Enter parenthesis block
+            val parenthesisContent = mutableListOf<AstNode>()
+
+            //Todo loop for commas
+            val (amountConsumed, valuesInBlock) = parseBlocksUntil(
+                valueList.subList(
+                    nextToParse,
+                    valueList.indices.last
+                ),
+                TokenMatcher(TokenType.RightParenthesis) //TODO also commas
+            )
+            if (valuesInBlock.isNotEmpty()) {
+                // Todo this should not be allowed for comma separated
+                parenthesisContent.add(applyReductions(valuesInBlock))
+            }
+            nextToParse += amountConsumed
+
+            val mustBeRightParenthesis = valueList[nextToParse]
+            nextToParse++
+            if (!TokenMatcher(TokenType.RightParenthesis).match(mustBeRightParenthesis)) {
+                throw ParserError("expected right parenthesis")
+            }
+
+            result.add(Value(ValueType.ParenthesisBlock, nodeList = parenthesisContent))
+
+
+        } else {
+
+            result.add(currentValue)
+        }
+
+
+    }
+
+    return nextToParse to result
+}
+
+
+private fun parseValuesToExpression(valueList: List<Value>): AstNode {
+
+    val (amountConsumed, values) = parseBlocksUntil(valueList, nothingMatcher)
+    assert(amountConsumed == valueList.size)
+
+
+    return applyReductions(values)
+}
+
 private fun newParse(tokens: List<Token>): AstNode {
 
     // Do some sanity checks
@@ -338,8 +350,7 @@ private fun newParse(tokens: List<Token>): AstNode {
         }
     }
 
-    //TODO merge
-    return applyReductions(valueList)
+    return parseValuesToExpression(valueList)
 }
 
 
