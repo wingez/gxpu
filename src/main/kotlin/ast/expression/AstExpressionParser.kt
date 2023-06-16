@@ -39,35 +39,36 @@ private fun parseBlocksUntil(valueList: List<Value>, matcher: ValueMatcher): Pai
             // Enter parenthesis block
             val parenthesisContent = mutableListOf<AstNode>()
 
-            //Todo loop for commas
-            val (amountConsumed, valuesInBlock) = parseBlocksUntil(
-                valueList.subList(
-                    nextToParse,
-                    valueList.indices.last
-                ),
-                TokenMatcher(TokenType.RightParenthesis) //TODO also commas
-            )
-            if (valuesInBlock.isNotEmpty()) {
-                // Todo this should not be allowed for comma separated
-                parenthesisContent.add(applyReductions(valuesInBlock))
-            }
-            nextToParse += amountConsumed
+            while (true) {
 
-            val mustBeRightParenthesis = valueList[nextToParse]
-            nextToParse++
-            if (!TokenMatcher(TokenType.RightParenthesis).match(mustBeRightParenthesis)) {
-                throw ParserError("expected right parenthesis")
-            }
+                val (amountConsumed, valuesInBlock) = parseBlocksUntil(
+                    valueList.subList(
+                        nextToParse,
+                        valueList.indices.last
+                    ),
+                    MultiTokenMatcher(setOf(TokenType.RightParenthesis, TokenType.Comma))
+                )
 
+
+
+                nextToParse += amountConsumed
+                val commaOrClosingParenthesis = valueList[nextToParse]
+                nextToParse++
+                if (TokenMatcher(TokenType.RightParenthesis).match(commaOrClosingParenthesis)){
+                    if (valuesInBlock.isNotEmpty()) {
+                        parenthesisContent.add(applyReductions(valuesInBlock))
+                    }
+                    break
+                } else if (TokenMatcher(TokenType.Comma).match(commaOrClosingParenthesis)){
+                    parenthesisContent.add(applyReductions(valuesInBlock))
+                } else{
+                    throw ParserError("somehting messed up")
+                }
+            }
             result.add(Value(ValueType.ParenthesisBlock, nodeList = parenthesisContent))
-
-
         } else {
-
             result.add(currentValue)
         }
-
-
     }
 
     return nextToParse to result
