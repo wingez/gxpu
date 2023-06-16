@@ -5,11 +5,10 @@ import compiler.frontend.Datatype
 import compiler.frontend.TypeProvider
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertIterableEquals
 import org.junit.jupiter.api.Test
 import se.wingez.ast.AstParser
 import se.wingez.ast.FunctionType
-import se.wingez.ast.OperatorBuiltIns
+import ast.expression.OperatorBuiltIns
 import se.wingez.compiler.frontend.FunctionDefinition
 import se.wingez.compiler.frontend.FunctionDefinitionResolver
 import se.wingez.compiler.frontend.Variable

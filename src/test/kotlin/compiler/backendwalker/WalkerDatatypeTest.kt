@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import se.wingez.ast.FunctionType
-import se.wingez.ast.OperatorBuiltIns
+import ast.expression.OperatorBuiltIns
 import se.wingez.ast.parserFromFile
 import se.wingez.compiler.backends.astwalker.*
 import se.wingez.compiler.frontend.FunctionDefinition

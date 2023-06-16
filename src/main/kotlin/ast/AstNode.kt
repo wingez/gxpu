@@ -1,5 +1,6 @@
 package se.wingez.ast
 
+import se.wingez.ast.expression.binaryOperatorToNodesType
 import se.wingez.tokens.TokenType
 
 enum class NodeTypes {
