@@ -1,33 +1,19 @@
-package se.wingez.compiler.backendwalker
+package se.wingez.compiler.features.programs
 
+import compiler.features.CompilerBackend
+import compiler.features.runProgramCheckOutput
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.EnumSource
 import se.wingez.ast.parserFromFile
 import se.wingez.compiler.backends.astwalker.walk
 import kotlin.test.assertEquals
 
+class Strings {
 
-internal class WalkPrograms {
-
-    @Test
-    fun testFibonacci() {
-        val program = """
-          def main():
-            while (10-counter)!=0:
-              print(a)
-              c=a+b
-              b=a
-              a=c
-              
-              counter = counter+1 
-                  
-    """
-        val nodes = parserFromFile(program).parse()
-
-        assertEquals(listOf(1, 1, 2, 3, 5, 8, 13, 21, 34, 55).map { it.toString() }, walk(nodes).result)
-    }
-
-    @Test
-    fun testStringCopy() {
+    @ParameterizedTest
+    @EnumSource
+    fun testStringCopy(compiler:CompilerBackend) {
         val program = """
           def main():
             val a = "abcd"
@@ -43,40 +29,13 @@ internal class WalkPrograms {
             print(a)
             print(b)
     """
-        val nodes = parserFromFile(program).parse()
-
-        assertEquals(listOf("abcd", "bcde"), walk(nodes).result)
+        runProgramCheckOutput(compiler, program, 0, 20, 0)
     }
 
-    @Test
-    fun testPrimes() {
 
-        val program = """
-          def main():
-            
-            val max_number = 30
-            val number = 2
-            while number < max_number:
-              val factor = 2
-              val is_prime = 1
-              while factor < number:
-                if mod(number, factor) == 0:
-                  is_prime = 0
-                  break
-                factor = factor+1
-              
-              if is_prime>0:
-                print(number)
-               
-              number = number+1
-    """.trimIndent()
-        val nodes = parserFromFile(program).parse()
-
-        assertEquals(listOf(2, 3, 5, 7, 11, 13, 17, 19, 23, 29).map { it.toString() }, walk(nodes).result)
-    }
-
-    @Test
-    fun formatInt() {
+    @ParameterizedTest
+    @EnumSource
+    fun formatInt(compiler: CompilerBackend) {
         val program = """
           def array_slice(arr:int[], from:int, to:int):int[]
             
@@ -120,9 +79,7 @@ internal class WalkPrograms {
             
             
     """.trimIndent()
-        val nodes = parserFromFile(program).parse()
 
-        assertEquals(listOf(0,1,10,18,19,207).map { it.toString() }, walk(nodes).result)
+        runProgramCheckOutput(compiler,program,0,1,10,18,19,207)
     }
-
 }
