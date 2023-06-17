@@ -20,13 +20,13 @@ enum class TokenType {
     Colon,
     Equals,
     Dot,
+    Star,
     KeywordDef,
     KeywordWhile,
     KeywordIf,
     KeywordElse,
     KeywordReturn,
     KeywordStruct,
-    KeywordNew,
     KeywordVal,
     KeywordBreak,
     BeginBlock,
@@ -297,6 +297,7 @@ val operatorsToType = mapOf(
     "<" to TokenType.LesserSign,
     "." to TokenType.Dot,
     "->" to TokenType.Deref,
+    "*" to TokenType.Star,
 )
 
 val keywords = mapOf(
@@ -306,7 +307,6 @@ val keywords = mapOf(
     "else" to TokenType.KeywordElse,
     "return" to TokenType.KeywordReturn,
     "struct" to TokenType.KeywordStruct,
-    "new" to TokenType.KeywordNew,
     "break" to TokenType.KeywordBreak,
     "val" to TokenType.KeywordVal,
 )

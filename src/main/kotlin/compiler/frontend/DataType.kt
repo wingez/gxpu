@@ -7,7 +7,6 @@ class Datatype private constructor(
     private val type: DatatypeClass,
     private val compositeMembersNullable: Map<String, Datatype>?,
     private val subTypeNullable: Datatype?,
-    val defaultInstanceBehaviour: DefaultInstanceBehaviour,
 ) {
 
     private enum class DatatypeClass {
@@ -16,11 +15,6 @@ class Datatype private constructor(
         Composite,
         Bool,
         Array,
-        Pointer,
-    }
-
-    enum class DefaultInstanceBehaviour {
-        Raw,
         Pointer,
     }
 
@@ -82,32 +76,25 @@ class Datatype private constructor(
             return subTypeNullable!!
         }
 
-    fun instantiate(): Datatype {
-        return when (defaultInstanceBehaviour) {
-            DefaultInstanceBehaviour.Raw -> this
-            DefaultInstanceBehaviour.Pointer -> Pointer(this)
-        }
-    }
-
     override fun toString(): String {
         return name
     }
 
     companion object {
-        val Integer = Datatype("integer", DatatypeClass.Integer, null, null, DefaultInstanceBehaviour.Raw)
-        val Void = Datatype("void", DatatypeClass.Void, null, null, DefaultInstanceBehaviour.Raw)
-        val Boolean = Datatype("bool", DatatypeClass.Bool, null, null, DefaultInstanceBehaviour.Raw)
+        val Integer = Datatype("integer", DatatypeClass.Integer, null, null)
+        val Void = Datatype("void", DatatypeClass.Void, null, null)
+        val Boolean = Datatype("bool", DatatypeClass.Bool, null, null)
 
         val Str = Pointer(Array(Integer))
 
         fun Composite(name: String, members: Map<String, Datatype>): Datatype {
-            return Datatype(name, DatatypeClass.Composite, members, null, DefaultInstanceBehaviour.Pointer)
+            return Datatype(name, DatatypeClass.Composite, members, null)
         }
 
         fun Array(arrayType: Datatype): Datatype {
             assert(!arrayType.isArray())
             val name = "array[$arrayType]"
-            return Datatype(name, DatatypeClass.Array, null, arrayType, DefaultInstanceBehaviour.Pointer)
+            return Datatype(name, DatatypeClass.Array, null, arrayType)
         }
 
         fun ArrayPointer(arrayType: Datatype): Datatype {
@@ -117,7 +104,7 @@ class Datatype private constructor(
         fun Pointer(toType: Datatype): Datatype {
             assert(!toType.isPointer())
             val name = "pointer[$toType]"
-            return Datatype(name, DatatypeClass.Pointer, null, toType, DefaultInstanceBehaviour.Raw)
+            return Datatype(name, DatatypeClass.Pointer, null, toType)
         }
     }
 }
@@ -129,6 +116,9 @@ interface TypeProvider {
         var type = getType(typeName)
         if (typeDefinition.isArray) {
             type = Datatype.Array(type)
+        }
+        if (typeDefinition.isPointer){
+            type=Datatype.Pointer(type)
         }
         return type
     }

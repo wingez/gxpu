@@ -8,52 +8,6 @@ import se.wingez.*
 import se.wingez.tokens.*
 import java.io.StringReader
 
-fun parse(tokens: List<Token>): List<AstNode> {
-    return AstParser(tokens).parse()
-}
-
-fun parserFromLine(line: String): AstParser {
-    return AstParser(parseLine(line))
-}
-
-fun parserFromFile(file: String): AstParser {
-    return AstParser(parseFile(StringReader(file)))
-}
-
-fun parseExpressions(tokens: List<Token>): List<AstNode> {
-    return AstParser(tokens + listOf(TokenEndBlock)).parseStatementsUntilEndblock()
-}
-
-fun parseExpression(expression: String): AstNode {
-    val tokensIterator = TokenIterator(parseLine(expression))
-    return parseExpressionUntil(tokensIterator, TokenType.EOL)
-}
-
-private fun assign(to: String, value: Int): AstNode {
-    return AstNode.fromAssign(identifier(to), constant(value))
-}
-
-fun identifier(name: String): AstNode {
-    return AstNode.fromIdentifier(name)
-}
-
-fun constant(value: Int): AstNode {
-    return AstNode.fromConstant(value)
-}
-
-fun variable(name: String, type: String = "byte", explicitNew: Boolean = false, isArray: Boolean = false): AstNode {
-    return AstNode.fromNewVariable(name, TypeDefinition(type, explicitNew, isArray), null)
-}
-
-fun call(target: String, parameters: List<AstNode>): AstNode {
-    return AstNode.fromCall(target, FunctionType.Normal, parameters)
-}
-
-fun function(name: String, arguments: List<AstNode>, body: List<AstNode>, returnType: String): AstNode {
-    return AstNode.fromFunction(name, FunctionType.Normal, arguments, body, returnType)
-}
-
-
 internal class AstParserTest {
     @Test
     fun testManyEOL() {
@@ -98,8 +52,8 @@ internal class AstParserTest {
     @Test
     fun testParseFunction() {
         assertEquals(
+            function("test", emptyList(), printBody, null),
             AstParser(getFuncTokens()).parseFunctionDefinition(),
-            function("test", emptyList(), printBody, "void")
         )
     }
 
@@ -108,7 +62,7 @@ internal class AstParserTest {
         assertEquals(
             function(
                 "test", arguments = listOf(variable("param1")),
-                body = printBody, "void"
+                body = printBody, null
             ),
             AstParser(getFuncTokens("param1")).parseFunctionDefinition(),
         )
@@ -122,7 +76,7 @@ internal class AstParserTest {
                     variable("param1"),
                     variable("param2"),
                     variable("param3"),
-                ), body = printBody, "void"
+                ), body = printBody, null
             ),
             AstParser(getFuncTokens("param1", "param2", "param3")).parseFunctionDefinition(),
         )
@@ -141,7 +95,7 @@ internal class AstParserTest {
         assertEquals(
             function(
                 "test", arguments = listOf(variable("param", "type")),
-                body = printBody, "void"
+                body = printBody, null
             ),
             AstParser(tokens).parseFunctionDefinition(),
         )
@@ -368,7 +322,7 @@ internal class AstParserTest {
                         TypeDefinition("int"),
                         null
                     )
-                ), listOf(AstNode.fromCall("call", FunctionType.Normal, emptyList())), "void"
+                ), listOf(AstNode.fromCall("call", FunctionType.Normal, emptyList())), null
             ),
             parserFromFile(
                 """

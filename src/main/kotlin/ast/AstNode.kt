@@ -206,22 +206,13 @@ data class AstNode(
             return AstNode(NodeTypes.Call, CallInfo(targetName, functionType), parameters)
         }
 
-        fun fromFunction(
-            name: String,
-            type: FunctionType,
-            arguments: List<AstNode>,
-            body: List<AstNode>,
-            returnType: String,
-        ): AstNode {
-            return fromFunction(name, type, arguments, body, TypeDefinition(returnType))
-        }
 
         fun fromFunction(
             name: String,
             type: FunctionType,
             arguments: List<AstNode>,
             body: List<AstNode>,
-            returnType: TypeDefinition
+            returnType: TypeDefinition?,
         ): AstNode {
             return AstNode(
                 NodeTypes.Function,
@@ -285,13 +276,13 @@ data class FunctionData(
     val name: String,
     val type: FunctionType,
     val arguments: List<AstNode>,
-    val returnType: TypeDefinition,
+    val returnType: TypeDefinition?,
 )
 
 data class TypeDefinition(
     val typeName: String,
-    val explicitNew: Boolean = false,
     val isArray: Boolean = false,
+    val isPointer: Boolean = false,
 )
 
 fun iterateAstNode(node: AstNode): Iterable<AstNode> {

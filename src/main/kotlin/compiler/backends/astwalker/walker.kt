@@ -290,10 +290,8 @@ class WalkerState(
 
     fun createNewVariable(name: String, type: Datatype) {
 
-        val instantiatedType = type.instantiate()
-
         assert(name !in currentFrame.valueHolders)
-        currentFrame.valueHolders[name] = ValueHolder(instantiatedType)
+        currentFrame.valueHolders[name] = ValueHolder(type)
     }
 
     fun handleNewVariable(node: AstNode): ControlFlow {

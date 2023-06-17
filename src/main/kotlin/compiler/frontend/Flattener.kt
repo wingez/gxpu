@@ -392,7 +392,7 @@ class FunctionCompiler(
 
             val array = parseExpression(arrayAccess.parent)
             if (array.type != Datatype.ArrayPointer(Datatype.Integer))
-                throw NotImplementedError()
+                TODO(array.type.toString())
 
             val index = parseExpression(arrayAccess.index)
 
@@ -442,12 +442,12 @@ class FunctionCompiler(
     ) {
 
         if (definition.returnType != Datatype.Void) {
-            variables.add(Variable(RETURN_VALUE_NAME, definition.returnType.instantiate(), VariableType.Result))
+            variables.add(Variable(RETURN_VALUE_NAME, definition.returnType, VariableType.Result))
         }
 
 
         for ((parameterName, type) in parameterTypes(functionNode, typeProvider)) {
-            variables.add(Variable(parameterName, type.instantiate(), VariableType.Parameter))
+            variables.add(Variable(parameterName, type, VariableType.Parameter))
         }
 
 
@@ -463,7 +463,7 @@ class FunctionCompiler(
                     if (newVariable.optionalTypeDefinition == null) {
                         throw AssertionError()
                     }
-                    type = typeProvider.getType(newVariable.optionalTypeDefinition).instantiate()
+                    type = typeProvider.getType(newVariable.optionalTypeDefinition)
                 }
 
                 variables.add(Variable(newVariable.name, type, VariableType.Local))

@@ -41,7 +41,7 @@ class Strings {
         Assumptions.assumeTrue(compiler!=CompilerBackend.Emulator)
 
         val program = """
-          def array_slice(arr:int[], from:int, to:int):int[]
+          def array_slice(arr:*int[], from:int, to:int):*int[]
             
             val size = to-from
             result=createArray(size)
@@ -51,7 +51,7 @@ class Strings {
               result[counter] = arr[from + counter]
               counter = counter+1
           
-          def format_int(value:int):int[]
+          def format_int(value:int):*int[]
             
             if value ==0:
               result = "0"

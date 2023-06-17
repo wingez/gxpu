@@ -61,8 +61,8 @@ class AstParser(tokens: List<Token>) {
         val memberName = tokens.consumeIdentifier()
         val optionalTypeDefinition: TypeDefinition?
 
-        if (tokens.peekIs(TokenType.Colon)) {
-            optionalTypeDefinition = parseTypeDefinition(allowNoTypeName = false)
+        if (tokens.peekIs(TokenType.Colon,consumeMatch = true)) {
+            optionalTypeDefinition = parseTypeDefinition()
         } else {
             optionalTypeDefinition = null
         }
@@ -112,7 +112,8 @@ class AstParser(tokens: List<Token>) {
          */
 
         val memberName = tokens.consumeIdentifier()
-        val typeDefinition = parseTypeDefinition(allowNoTypeName = false)
+        tokens.consumeType(TokenType.Colon)
+        val typeDefinition = parseTypeDefinition()
 
         return AstNode.fromNewVariable(memberName, typeDefinition, null)
     }
@@ -142,15 +143,19 @@ class AstParser(tokens: List<Token>) {
             tokens.peekIs(TokenType.Comma, true)
         }
 
-        val returnTypeDef = parseOptionalTypeDefinition(allowNoTypeName = true)
-            ?: throw ParserError("Invalid return type")
+        tokens.consumeType(TokenType.Colon)
+        val optionalReturnTypeDef = if (!tokens.peekIs(TokenType.EOL)) {
+            parseTypeDefinition()
+        } else {
+            null
+        }
 
         tokens.consumeType(TokenType.EOL)
         tokens.consumeType(TokenType.BeginBlock)
 
         val statements = parseStatementsUntilEndblock()
 
-        return AstNode.fromFunction(name, type, parameters, statements, returnTypeDef)
+        return AstNode.fromFunction(name, type, parameters, statements, optionalReturnTypeDef)
     }
 
     fun parseStatementsUntilEndblock(): List<AstNode> {
@@ -218,33 +223,17 @@ class AstParser(tokens: List<Token>) {
         return AstNode.fromBreak()
     }
 
-    fun parseTypeDefinition(allowNoTypeName: Boolean): TypeDefinition {
-        return parseOptionalTypeDefinition(allowNoTypeName)
-            ?: throw ParserError("")
-    }
+    fun parseTypeDefinition(): TypeDefinition {
+        val isPointer = tokens.peekIs(TokenType.Star, consumeMatch = true)
 
-    fun parseOptionalTypeDefinition(allowNoTypeName: Boolean): TypeDefinition? {
-        if (!tokens.peekIs(TokenType.Colon, consumeMatch = true)) {
-            return null
-        }
-        val explicitNew = tokens.peekIs(TokenType.KeywordNew, consumeMatch = true)
-
-        val type: String = if (!allowNoTypeName) {
-            tokens.consumeIdentifier()
-        } else {
-            if (tokens.peekIs(TokenType.Identifier)) {
-                tokens.consumeIdentifier()
-            } else {
-                return TypeDefinition(VOID_TYPE_NAME)
-            }
-        }
+        val type: String = tokens.consumeIdentifier()
 
         val isArray = tokens.peekIs(TokenType.LeftBracket)
         if (isArray) {
             tokens.consumeType(TokenType.LeftBracket)
             tokens.consumeType(TokenType.RightBracket)
         }
-        return TypeDefinition(type, explicitNew, isArray)
+        return TypeDefinition(type, isPointer = isPointer, isArray = isArray)
     }
 
 
