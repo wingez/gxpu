@@ -57,7 +57,7 @@ class AddressOf(
 
 class Deref(
     val value: ValueExpression
-): ValueExpression{
+) : ValueExpression, AddressExpression {
     override val type: Datatype
         get() = value.type.pointerType
 }
@@ -266,6 +266,10 @@ class FunctionCompiler(
         return when (node.type) {
             NodeTypes.Identifier -> VariableExpression(lookupVariable(node.asIdentifier(), variables))
 
+            NodeTypes.Deref -> {
+                Deref(parseValueExpression(node.child))
+            }
+
             else -> TODO(node.type.toString())
         }
     }
@@ -301,7 +305,7 @@ class FunctionCompiler(
 
             NodeTypes.Deref -> {
                 val pointer = parseValueExpression(node.child)
-                if (!pointer.type.isPointer()){
+                if (!pointer.type.isPointer()) {
                     throw ParserError("Must be a pointer")
                 }
                 Deref(pointer)

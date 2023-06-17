@@ -181,12 +181,34 @@ class FpField(
     val field: StructDataField,
 ) : GetAddressResult
 
+class DynamicAddress(
+    val instructions: List<EmulatorInstruction>,
+) : GetAddressResult {
+    val where: WhereToPutResult = WhereToPutResult.A
+
+}
+
 fun getAddressOf(expr: AddressExpression, context: FunctionContext): GetAddressResult {
 
     return when (expr) {
         is VariableExpression -> {
             val field = context.getField(expr.variable.name)
             FpField(field)
+        }
+
+        is Deref -> {
+            if (expr.value !is VariableExpression) {
+                TODO()
+            }
+            val field = context.getField(expr.value.variable.name)
+
+            val instructions = listOf(
+                emulate(DefaultEmulator.lda_at_fp_offset, "offset" to field.offset)
+            )
+
+            DynamicAddress(instructions)
+
+
         }
 
         else -> TODO(expr.toString())

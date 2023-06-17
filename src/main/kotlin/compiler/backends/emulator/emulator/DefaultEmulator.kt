@@ -114,6 +114,12 @@ class DefaultEmulator : Emulator(instructionSet) {
             em.setMemoryAt(em.fp + offset, value)
         }
 
+        val pop_at_a_offset = instructionSet.createInstruction("POP [A #offset]", group = STACK) {em, params ->
+            val offset = params.getValue("offset")
+            val value = em.pop()
+            em.setMemoryAt(em.a + offset, value)
+        }
+
         val sub_sp = instructionSet.createInstruction("SUBSP #val", group = STACK) {em, params ->
             val value = params.getValue("val")
             em.sp = (em.sp - value).toUByte()

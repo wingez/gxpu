@@ -87,7 +87,14 @@ class FunctionBuilder(
                 addInstruction(emulate(DefaultEmulator.pop_fp_offset, "offset" to field.offset))
             }
 
-            else-> TODO(targetAddress.toString())
+            is DynamicAddress -> {
+                getValue(instr.value, WhereToPutResult.TopStack, this)
+
+                targetAddress.instructions.forEach { addInstruction(it) }
+                addInstruction(emulate(DefaultEmulator.pop_at_a_offset, "offset" to 0))
+            }
+
+            else -> TODO(targetAddress.toString())
         }
     }
 

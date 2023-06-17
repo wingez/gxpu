@@ -22,4 +22,22 @@ class Pointers {
         runBodyCheckOutput(compiler, body, 5)
     }
 
+    @ParameterizedTest
+    @EnumSource
+    fun writeToPointer(compiler: CompilerBackend) {
+
+        val body = """
+            val i=5
+            
+            val p=&i
+            
+            print(i)
+            *p = 10
+            print(i)
+            
+        """.trimIndent()
+
+        runBodyCheckOutput(compiler, body, 5, 10)
+    }
+
 }
