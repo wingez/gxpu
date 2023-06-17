@@ -10,6 +10,7 @@ class OperatorBuiltIns {
     companion object {
         const val Addition = "add"
         const val Subtraction = "sub"
+        const val Negate = "negate"
         const val NotEqual = "ne"
         const val Equal = "eq"
         const val LessThan = "lt"

@@ -14,8 +14,13 @@ private val priorities = object {
     val arrayAccess = 30
     val instanceFunction = 30
 
+    val negate = 29
+
     val binaryPlusMinus = 28
-    val binaryComparisons = 25
+
+
+    val binaryComparisons = 10
+
 
     val bracketsBlockToArray = 0
 
@@ -25,7 +30,6 @@ private val priorities = object {
 }
 val binaryOperationPriorities = mapOf(
     TokenType.PlusSign to priorities.binaryPlusMinus,
-    TokenType.MinusSign to priorities.binaryPlusMinus,
     TokenType.LesserSign to priorities.binaryComparisons,
     TokenType.GreaterSign to priorities.binaryComparisons,
     TokenType.DoubleEqual to priorities.binaryComparisons,
@@ -34,11 +38,12 @@ val binaryOperationPriorities = mapOf(
 val binaryOperatorToNodesType = mapOf(
     TokenType.PlusSign to OperatorBuiltIns.Addition,
     TokenType.MinusSign to OperatorBuiltIns.Subtraction,
-    TokenType.NotEqual to OperatorBuiltIns.NotEqual,
     TokenType.LesserSign to OperatorBuiltIns.LessThan,
     TokenType.GreaterSign to OperatorBuiltIns.GreaterThan,
     TokenType.DoubleEqual to OperatorBuiltIns.Equal,
+    TokenType.NotEqual to OperatorBuiltIns.NotEqual,
 )
+
 
 private interface Reducer {
 
@@ -81,6 +86,24 @@ private class BinaryOperatorReducer(
                 tokenType,
                 values[0].valueNode,
                 values[2].valueNode,
+            )
+        )
+    }
+}
+
+private class UnaryOperatorReducer(
+    tokenType: TokenType,
+    override val priority: Int,
+) : MatchingReducer(
+    listOf(
+        TokenMatcher(tokenType), anyNodeMatcher
+    )
+) {
+    override fun tryReduceMatched(values: List<Value>): Value? {
+        return Value(
+            ValueType.Node, node =
+            AstNode.fromCall(
+                OperatorBuiltIns.Negate, FunctionType.Operator, listOf(values[1].valueNode)
             )
         )
     }
@@ -153,6 +176,31 @@ private class InstanceFunction : MatchingReducer(
     }
 }
 
+private class SubtractionReducer : MatchingReducer(
+    listOf(anyNodeMatcher, NodeMatcher(NodeTypes.Call))
+) {
+    // Special case since we also have the 'negate' reducer which has higher priority
+    // original:       (5-3)
+    // negate applied: (5(-3))
+    // this            5-3
+    override val priority = priorities.binaryPlusMinus
+    override fun tryReduceMatched(values: List<Value>): Value? {
+
+        val mustBeNegate = values[1].valueNode.asCall()
+        if (mustBeNegate.targetName != OperatorBuiltIns.Negate || mustBeNegate.functionType != FunctionType.Operator) {
+            return null
+        }
+
+        return Value(
+            ValueType.Node, node = AstNode.fromCall(
+                OperatorBuiltIns.Subtraction,
+                FunctionType.Operator,
+                listOf(values[0].valueNode, mustBeNegate.parameters.first())
+            )
+        )
+    }
+}
+
 private class ArrayAccess : MatchingReducer(
     listOf(anyNodeMatcher, TypeMatcher(ValueType.BracketsBlock))
 ) {
@@ -175,6 +223,11 @@ private val reducers: List<Reducer> = listOf(
     BracketBlockToArray(),
     InstanceFunction(),
     ArrayAccess(),
+
+    SubtractionReducer(),
+
+
+    UnaryOperatorReducer(TokenType.MinusSign, priorities.negate),
 
     ) + binaryOperationPriorities.keys.map { BinaryOperatorReducer(it) }
 private val reducersOrdered = reducers.sortedBy { -it.priority }

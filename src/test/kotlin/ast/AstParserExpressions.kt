@@ -194,8 +194,21 @@ class AstParserExpressions {
             ),
             parseExpression("test[5+5]")
         )
-        assertThrows<ParserError> { parseExpression("a[b,c]")  }
-        assertThrows<ParserError> { parseExpression("a[]")  }
+        assertThrows<ParserError> { parseExpression("a[b,c]") }
+        assertThrows<ParserError> { parseExpression("a[]") }
+    }
+
+    @Test
+    fun testNegate() {
+        assertEquals(
+            AstNode.fromCall(OperatorBuiltIns.Negate, FunctionType.Operator, listOf(constant(5))),
+            parseExpression("-5")
+        )
+
+        assertEquals(
+            parseExpression("(-1)+2"),
+            parseExpression("-1+2")
+        )
     }
 }
 
