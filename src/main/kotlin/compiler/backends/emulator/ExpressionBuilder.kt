@@ -95,8 +95,26 @@ fun getValue(expr: ValueExpression, where: WhereToPutResult, context: FunctionCo
 
         }
 
-        is Deref -> {
-            val pointer = getValue(expr.value, WhereToPutResult.A, context)
+        is DerefToValue -> {
+            val address = getAddressOf(expr.value, context)
+
+            when (address) {
+
+                is FpField -> {
+                    val field = address.field
+                    context.addInstruction(
+                        //TODO instruction without offset??
+                        emulate(DefaultEmulator.lda_at_fp_offset, "offset" to field.offset)
+                    )
+                }
+
+                else -> TODO(address.toString())
+            }
+
+            // Address is now in a
+            // Now dereference it
+
+
             context.addInstruction(
                 //TODO instruction without offset??
                 emulate(DefaultEmulator.lda_at_a_offset, "offset" to 0)
@@ -196,7 +214,7 @@ fun getAddressOf(expr: AddressExpression, context: FunctionContext): GetAddressR
             FpField(field)
         }
 
-        is Deref -> {
+        is DerefToAddress -> {
             if (expr.value !is VariableExpression) {
                 TODO()
             }

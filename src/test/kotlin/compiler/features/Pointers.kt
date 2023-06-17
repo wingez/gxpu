@@ -13,13 +13,14 @@ class Pointers {
         val body = """
             val i=5
             
-            val p=&i
             
+            val p=&i
+            print(6)
             print(*p)
             
         """.trimIndent()
 
-        runBodyCheckOutput(compiler, body, 5)
+        runBodyCheckOutput(compiler, body,6, 5)
     }
 
     @ParameterizedTest

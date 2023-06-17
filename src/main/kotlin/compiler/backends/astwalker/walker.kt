@@ -5,6 +5,7 @@ import se.wingez.ast.FunctionType
 import se.wingez.ast.NodeTypes
 import compiler.frontend.Datatype
 import compiler.frontend.TypeProvider
+import se.wingez.compiler.backends.emulator.getAddressOf
 import se.wingez.compiler.frontend.*
 
 class WalkerException(msg: String = "") : Exception(msg)
@@ -167,7 +168,7 @@ class WalkerState(
 
             if (currentInstructionIndex >= code.instructions.size) {
                 // FIXME: Auto return??
-                break
+                throw WalkerException("Missing return??")
             }
 
             val toExecute = code.instructions[currentInstructionIndex]
@@ -183,9 +184,9 @@ class WalkerState(
             }
         }
 
-        val result = if (userFunction.definition.returnType== Datatype.Void){
+        val result = if (userFunction.definition.returnType == Datatype.Void) {
             Value.void()
-        } else{
+        } else {
             currentFrame.valueHolders.getValue("result").value
         }
 
@@ -457,13 +458,19 @@ class WalkerState(
         return getVariableHolder(variableName).value
     }
 
-    fun getValueHolderOf(addressExpression: AddressExpression): IValueHolder {
+    fun getValueHolderOf(addressExpression: AddressExpression): ValueHolder {
 
-        return when(addressExpression){
+        return when (addressExpression) {
             is VariableExpression -> {
                 return getVariableHolder(addressExpression.variable.name)
             }
-            else-> TODO(addressExpression.toString())
+
+            is DerefToAddress -> {
+                val pointer = getValueOf(addressExpression.value)
+                pointer.derefPointer()
+            }
+
+            else -> TODO(addressExpression.toString())
         }
         /*return when (node.type) {
             NodeTypes.Identifier -> getVariableHolder(node.asIdentifier())
@@ -482,7 +489,15 @@ class WalkerState(
             is VariableExpression -> getVariable(valueExpression.variable.name)
             is StringExpression -> createFromString(valueExpression.string)
 
-            else -> throw NotImplementedError()
+            is AddressOf -> {
+                Value.pointer(getValueHolderOf(valueExpression.value))
+            }
+
+            is DerefToValue -> {
+                getValueHolderOf(valueExpression.value).value.derefPointer().value
+            }
+
+            else -> TODO(valueExpression.toString())
         }
 
 

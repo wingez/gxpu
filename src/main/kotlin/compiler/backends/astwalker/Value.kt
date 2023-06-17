@@ -6,12 +6,11 @@ import compiler.frontend.Datatype
 import compiler.frontend.TypeProvider
 import se.wingez.compiler.frontend.FunctionDefinitionResolver
 
+
 class Value private constructor(
     val datatype: Datatype,
-    private val primitiveValue: Int,
-    private val compositeValueHolders: Map<String, ValueHolder>?,
-    private val arrayValueHolders: List<ValueHolder>?,
-    private val pointerTargetHolder: IValueHolder?,
+    private val primitiveValue: Int = 0,
+    private val pointerTargetHolder: ValueHolder? = null,
 ) {
 
     fun isPrimitive() = datatype.isPrimitive()
@@ -21,50 +20,11 @@ class Value private constructor(
         return primitiveValue
     }
 
-    fun isComposite() = datatype.isComposite()
-    fun isArray() = datatype.isArray()
-
     fun isPointer() = datatype.isPointer()
 
-    fun derefPointer(): IValueHolder {
+    fun derefPointer(): ValueHolder {
         assert(isPointer())
         return pointerTargetHolder!!
-    }
-
-    fun getFieldValueHolder(name: String): IValueHolder {
-        assert(isComposite())
-
-
-        if (name !in datatype.compositeMembers) {
-            throw WalkerException("${datatype.name} does not contain member $name")
-        }
-        if (isArray()) {
-            assert(name == "size")
-            return ConstantValueHolder(primitive(Datatype.Integer, arrayValueHolders!!.size))
-        }
-        return compositeValueHolders!!.getValue(name)
-    }
-
-    fun setField(name: String, value: Value) {
-        assert(isComposite())
-        if (isArray()) {
-            throw WalkerException("Cannot change size of array")
-        }
-
-        if (name !in datatype.compositeMembers) {
-            throw WalkerException("${datatype.name} does not contain member $name")
-        }
-        val holder = compositeValueHolders!!.getValue(name)
-        holder.value = value
-    }
-
-
-    fun arrayAccess(index: Int): ValueHolder {
-        val values = arrayValueHolders!!
-        if (index !in values.indices) {
-            throw WalkerException("Index out of range")
-        }
-        return values[index]
     }
 
     override fun toString(): String {
@@ -76,85 +36,29 @@ class Value private constructor(
 
     companion object {
         fun void(): Value {
-            return Value(Datatype.Void, 0, null, null, null)
+            return Value(Datatype.Void, 0, null)
         }
 
         fun primitive(datatype: Datatype, primitiveValue: Int): Value {
             assert(datatype.isPrimitive())
-            return Value(datatype, primitiveValue, null, null, null)
+            return Value(datatype, primitiveValue, null)
         }
 
-        fun composite(datatype: Datatype, memberValues: Map<String, Value>): Value {
-
-            assert(datatype.isComposite())
-
-            val compositeValues = mutableMapOf<String, ValueHolder>()
-            for ((memberName, requiredType) in datatype.compositeMembers.entries) {
-
-                val providedValue = memberValues.getValue(memberName)
-                assert(providedValue.datatype == requiredType)
-
-                val holder = ValueHolder(requiredType)
-                holder.value = providedValue
-
-                compositeValues[memberName] = holder
-            }
-            return Value(datatype, 0, compositeValues, null, null)
-        }
-
-        fun array(datatype: Datatype, size: Int): Value {
-            assert(datatype.isArray())
-
-            val arrayValues = (0 until size).map { createDefaultValue(datatype.arrayType) }
-                .map {
-                    val holder = ValueHolder(it.datatype)
-                    holder.value = it
-                    holder
-                }.toMutableList()
-
-            return Value(datatype, 0, null, arrayValues, null)
-        }
-
-        fun pointer(pointTo: IValueHolder): Value {
-            return Value(Datatype.Pointer(pointTo.type), 0, null, null, pointTo)
+        fun pointer(pointTo: ValueHolder): Value {
+            return Value(Datatype.Pointer(pointTo.type), 0, pointTo)
         }
     }
 }
 
-interface IValueHolder {
-    val type: Datatype
-    var value: Value
-}
-
-private class ConstantValueHolder(private val constant: Value) : IValueHolder {
-    override val type = constant.datatype
-    override var value: Value
-        get() = constant
-        set(value) {
-            throw WalkerException("Cannot assign to constant")
-        }
-}
-
 class ValueHolder(
-    override val type: Datatype,
-) : IValueHolder {
-
-    override var value = createDefaultValue(type)
+    val type: Datatype,
+) {
+    var value = createDefaultValue(type)
 }
 
 fun createDefaultValue(datatype: Datatype): Value {
     if (datatype.isPrimitive()) {
         return Value.primitive(datatype, 0)
-    }
-    if (datatype.isArray()) {
-        return Value.array(datatype, 0)
-    }
-    if (datatype.isComposite()) {
-
-        val members = datatype.compositeMembers.entries.associate { (name, memberType) ->
-            Pair(name, createDefaultValue(memberType))
-        }
-        return Value.composite(datatype, members)
     }
     if (datatype.isVoid()) {
         return Value.void()
@@ -168,7 +72,11 @@ fun createDefaultValue(datatype: Datatype): Value {
     throw WalkerException("Cannot instanciate empty variable of type $datatype")
 }
 
-fun findType(node: AstNode, variableProvider: VariableProvider, functionProvider: FunctionDefinitionResolver): Datatype {
+fun findType(
+    node: AstNode,
+    variableProvider: VariableProvider,
+    functionProvider: FunctionDefinitionResolver
+): Datatype {
 
     return when (node.type) {
         NodeTypes.Identifier -> variableProvider.getTypeOfVariable(node.asIdentifier())
