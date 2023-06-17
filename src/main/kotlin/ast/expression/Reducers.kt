@@ -81,13 +81,8 @@ private class BinaryOperatorReducer(
     override val priority = binaryOperationPriorities.getValue(tokenType)
 
     override fun tryReduceMatched(values: List<Value>): Value {
-        return Value(
-            ValueType.Node,
-            node = AstNode.fromBinaryOperation(
-                tokenType,
-                values[0].valueNode,
-                values[2].valueNode,
-            )
+        return Value.node(
+            AstNode.fromBinaryOperation(tokenType, values[0].node, values[2].node)
         )
     }
 }
@@ -101,11 +96,8 @@ private class UnaryOperatorReducer(
     )
 ) {
     override fun tryReduceMatched(values: List<Value>): Value? {
-        return Value(
-            ValueType.Node, node =
-            AstNode.fromCall(
-                OperatorBuiltIns.Negate, FunctionType.Operator, listOf(values[1].valueNode)
-            )
+        return Value.node(
+            AstNode.fromCall(OperatorBuiltIns.Negate, FunctionType.Operator, listOf(values[1].node))
         )
     }
 }
@@ -118,12 +110,12 @@ private class ExtractSingleValueParenthesis : MatchingReducer(
     override val priority = priorities.extractSingleValueFromParenthesis
 
     override fun tryReduceMatched(values: List<Value>): Value? {
-        val content = values[0].valueNodeList
+        val content = values[0].nodeList
         if (content.size != 1) {
             return null
         }
 
-        return Value(ValueType.Node, node = content.first())
+        return Value.node(content.first())
     }
 }
 
@@ -133,14 +125,11 @@ private class FunctionCallReduce : MatchingReducer(
     override val priority: Int = priorities.functionCall
 
     override fun tryReduceMatched(values: List<Value>): Value? {
-        val identifierNode = values[0].valueNode
+        val identifierNode = values[0].node
         if (identifierNode.type != NodeTypes.Identifier) {
             return null
         }
-        return Value(
-            ValueType.Node,
-            node = AstNode.fromCall(identifierNode.asIdentifier(), FunctionType.Normal, values[1].valueNodeList)
-        )
+        return Value.node(AstNode.fromCall(identifierNode.asIdentifier(), FunctionType.Normal, values[1].nodeList))
     }
 }
 
@@ -150,10 +139,7 @@ private class BracketBlockToArray : MatchingReducer(
     override val priority: Int = priorities.bracketsBlockToArray
 
     override fun tryReduceMatched(values: List<Value>): Value {
-        return Value(
-            ValueType.Node,
-            node = AstNode.newArray(values[0].valueNodeList)
-        )
+        return Value.node(AstNode.newArray(values[0].nodeList))
     }
 }
 
@@ -163,15 +149,15 @@ private class InstanceFunction : MatchingReducer(
     override val priority = priorities.instanceFunction
     override fun tryReduceMatched(values: List<Value>): Value? {
 
-        val callInfo = values[2].valueNode.asCall()
+        val callInfo = values[2].node.asCall()
         if (callInfo.functionType != FunctionType.Normal) {
             return null
         }
 
 
-        return Value(
-            ValueType.Node, node = AstNode.fromCall(
-                callInfo.targetName, FunctionType.Instance, listOf(values[0].valueNode) + callInfo.parameters
+        return Value.node(
+            AstNode.fromCall(
+                callInfo.targetName, FunctionType.Instance, listOf(values[0].node) + callInfo.parameters
             )
         )
     }
@@ -187,16 +173,16 @@ private class SubtractionReducer : MatchingReducer(
     override val priority = priorities.binaryPlusMinus
     override fun tryReduceMatched(values: List<Value>): Value? {
 
-        val mustBeNegate = values[1].valueNode.asCall()
+        val mustBeNegate = values[1].node.asCall()
         if (mustBeNegate.targetName != OperatorBuiltIns.Negate || mustBeNegate.functionType != FunctionType.Operator) {
             return null
         }
 
-        return Value(
-            ValueType.Node, node = AstNode.fromCall(
+        return Value.node(
+            AstNode.fromCall(
                 OperatorBuiltIns.Subtraction,
                 FunctionType.Operator,
-                listOf(values[0].valueNode, mustBeNegate.parameters.first())
+                listOf(values[0].node, mustBeNegate.parameters.first())
             )
         )
     }
@@ -208,13 +194,10 @@ private class ArrayAccess : MatchingReducer(
     override val priority = priorities.arrayAccess
 
     override fun tryReduceMatched(values: List<Value>): Value? {
-        if (values[1].valueNodeList.size != 1) {
+        if (values[1].nodeList.size != 1) {
             return null
         }
-        return Value(
-            ValueType.Node,
-            node = AstNode.fromArrayAccess(values[0].valueNode, values[1].valueNodeList.first())
-        )
+        return Value.node(AstNode.fromArrayAccess(values[0].node, values[1].nodeList.first()))
     }
 }
 
@@ -223,7 +206,7 @@ private class AddressOfReducer : MatchingReducer(
 ) {
     override val priority = priorities.addressOf
     override fun tryReduceMatched(values: List<Value>): Value {
-        return Value(ValueType.Node, node = AstNode.fromAddressOf(values[1].valueNode))
+        return Value.node(AstNode.fromAddressOf(values[1].node))
     }
 }
 
@@ -290,5 +273,5 @@ fun applyReductions(values: List<Value>): AstNode {
     val resultValue = valuesMutable.first()
     assert(resultValue.type == ValueType.Node) { resultValue.type.toString() }
 
-    return resultValue.valueNode
+    return resultValue.node
 }

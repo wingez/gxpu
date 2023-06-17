@@ -12,24 +12,32 @@ enum class ValueType {
     BracketsBlock,
 }
 
-class Value(
+class Value private constructor(
     val type: ValueType,
-    private val token: Token? = null,
-    private val node: AstNode? = null,
-    private val nodeList: List<AstNode>? = null
+    private val _token: Token? = null,
+    private val _node: AstNode? = null,
+    private val _nodeList: List<AstNode>? = null
 ) {
-    val valueToken get() = token!!
-    val valueNode get() = node!!
+    val token get() = _token!!
+    val node get() = _node!!
 
-    val valueNodeList get() = nodeList!!
+    val nodeList get() = _nodeList!!
 
     override fun toString(): String {
         return when (type) {
-            ValueType.Node -> valueNode.toString()
-            ValueType.Token -> valueToken.toString()
-            ValueType.ParenthesisBlock -> "($valueNodeList)"
-            ValueType.BracketsBlock -> "[$valueNodeList]"
+            ValueType.Node -> node.toString()
+            ValueType.Token -> token.toString()
+            ValueType.ParenthesisBlock -> "($nodeList)"
+            ValueType.BracketsBlock -> "[$nodeList]"
         }
+    }
+
+    companion object {
+        fun node(node: AstNode): Value = Value(ValueType.Node, _node = node)
+        fun token(token: Token): Value = Value(ValueType.Token, _token = token)
+        fun parenthesisBlock(content: List<AstNode>): Value = Value(ValueType.ParenthesisBlock, _nodeList = content)
+        fun bracketBlock(content: List<AstNode>): Value = Value(ValueType.BracketsBlock, _nodeList = content)
+
     }
 }
 
@@ -61,7 +69,7 @@ class NodeMatcher(
     private val nodeTypes: NodeTypes
 ) : ValueMatcher {
     override fun match(value: Value): Boolean {
-        return value.type == ValueType.Node && value.valueNode.type == nodeTypes
+        return value.type == ValueType.Node && value.node.type == nodeTypes
     }
 }
 
@@ -69,7 +77,7 @@ class TokenMatcher(
     private val tokenType: TokenType
 ) : ValueMatcher {
     override fun match(value: Value): Boolean {
-        return value.type == ValueType.Token && value.valueToken.type == tokenType
+        return value.type == ValueType.Token && value.token.type == tokenType
     }
 }
 
@@ -80,6 +88,6 @@ class MultiTokenMatcher(
         if (value.type != ValueType.Token) {
             return false
         }
-        return value.valueToken.type in tokens
+        return value.token.type in tokens
     }
 }
