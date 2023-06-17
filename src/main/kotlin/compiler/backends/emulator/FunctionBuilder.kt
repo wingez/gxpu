@@ -74,14 +74,21 @@ class FunctionBuilder(
 
 
     private fun handleAssign(instr: Assign) {
-        getValue(instr.value, WhereToPutResult.TopStack, this)
 
-        val field = layout.layout.values.find { it.name == instr.member } ?: throw AssertionError()
+        val targetAddress = getAddressOf(instr.target, this)
 
-        assert(field.type == Datatype.Integer)
+        when (targetAddress) {
+            is FpField -> {
+                val field = targetAddress.field
+                assert(field.type == Datatype.Integer)
 
-        val offset = field.offset
-        addInstruction(emulate(DefaultEmulator.pop_fp_offset, "offset" to offset))
+                getValue(instr.value, WhereToPutResult.TopStack, this)
+
+                addInstruction(emulate(DefaultEmulator.pop_fp_offset, "offset" to field.offset))
+            }
+
+            else-> TODO(targetAddress.toString())
+        }
     }
 
     private fun buildInstruction(instr: Instruction) {

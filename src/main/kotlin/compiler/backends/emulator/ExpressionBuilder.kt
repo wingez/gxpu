@@ -108,16 +108,36 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
             getValue(expr.parameters[0], WhereToPutResult.A, context)
             context.addInstruction(emulate(DefaultEmulator.print))
         }
+
         BuiltInSignatures.bool -> {
             // Do nothing in this case. Conversation is implicit
             getValue(expr.parameters.first(), where, context)
         }
+
         else -> {
             handleGenericCall(expr, where, context)
         }
     }
 }
 
+interface GetAddressResult {
 
+}
+
+class FpField(
+    val field: StructDataField,
+) : GetAddressResult
+
+fun getAddressOf(expr: AddressExpression, context: FunctionContext): GetAddressResult {
+
+    return when (expr) {
+        is VariableExpression -> {
+            val field = context.getField(expr.variable.name)
+            FpField(field)
+        }
+
+        else -> TODO(expr.toString())
+    }
+}
 
 

@@ -391,7 +391,7 @@ class WalkerState(
     private fun handleAssign(instr: Assign) {
 
         val valueToAssign = getValueOf(instr.value)
-        val holderToAssignTo = getValueHolderOf(instr.member)
+        val holderToAssignTo = getValueHolderOf(instr.target)
 
         if (valueToAssign.datatype != holderToAssignTo.type) {
             throw WalkerException("Type mismatch. Expected ${holderToAssignTo.type}, got ${valueToAssign.datatype}")
@@ -457,8 +457,14 @@ class WalkerState(
         return getVariableHolder(variableName).value
     }
 
-    fun getValueHolderOf(variableName: String): IValueHolder {
-        return getVariableHolder(variableName)
+    fun getValueHolderOf(addressExpression: AddressExpression): IValueHolder {
+
+        return when(addressExpression){
+            is VariableExpression -> {
+                return getVariableHolder(addressExpression.variable.name)
+            }
+            else-> TODO(addressExpression.toString())
+        }
         /*return when (node.type) {
             NodeTypes.Identifier -> getVariableHolder(node.asIdentifier())
             //NodeTypes.ArrayAccess -> getArrayIndexValueHolder(node)

@@ -31,6 +31,10 @@ interface ValueExpression {
     val type: Datatype
 }
 
+interface AddressExpression {
+    val type: Datatype
+}
+
 class ConstantExpression(
     val value: Int,
 ) : ValueExpression {
@@ -39,7 +43,7 @@ class ConstantExpression(
 
 class VariableExpression(
     val variable: Variable,
-) : ValueExpression {
+) : ValueExpression, AddressExpression {
     override val type = variable.datatype
 }
 
@@ -69,7 +73,7 @@ class Execute(
 ) : Instruction
 
 class Assign(
-    val member: String,
+    val target: AddressExpression,
     val value: ValueExpression,
 ) : Instruction
 
@@ -230,7 +234,7 @@ class FunctionCompiler(
             NodeTypes.Return -> addReturn(codeBlock)
 
             else -> {
-                val valueExpression = parseExpression(node)
+                val valueExpression = parseValueExpression(node)
                 codeBlock.addInstruction(Execute(valueExpression))
             }
         }
@@ -240,7 +244,17 @@ class FunctionCompiler(
         codeBlock.addInstruction(Return())
     }
 
-    private fun parseExpression(
+    private fun parseAddressExpression(
+        node: AstNode,
+    ): AddressExpression {
+        return when (node.type) {
+            NodeTypes.Identifier -> VariableExpression(lookupVariable(node.asIdentifier(), variables))
+
+            else -> TODO(node.type.toString())
+        }
+    }
+
+    private fun parseValueExpression(
         node: AstNode,
     ): ValueExpression {
         return when (node.type) {
@@ -253,8 +267,8 @@ class FunctionCompiler(
             NodeTypes.String -> StringExpression(node.asString())
             NodeTypes.MemberAccess -> parseMemberAccess(node)
             NodeTypes.ArrayAccess -> {
-                val member = parseExpression(node.asArrayAccess().parent)
-                val index = parseExpression(node.asArrayAccess().index)
+                val member = parseValueExpression(node.asArrayAccess().parent)
+                val index = parseValueExpression(node.asArrayAccess().index)
 
                 //TODO: generic-ify
                 val definition = FunctionDefinition(
@@ -269,7 +283,7 @@ class FunctionCompiler(
     }
 
     private fun parseMemberAccess(node: AstNode): ValueExpression {
-        val value = parseExpression(node.childNodes.first())
+        val value = parseValueExpression(node.childNodes.first())
         val memberName = node.asIdentifier()
 
         if (!value.type.isComposite() || value.type.compositeMembers.contains(memberName)) {
@@ -282,7 +296,7 @@ class FunctionCompiler(
     private fun findTypeOfExpression(
         node: AstNode,
     ): Datatype {
-        return parseExpression(node).type
+        return parseValueExpression(node).type
     }
 
     private fun parseIf(
@@ -293,7 +307,7 @@ class FunctionCompiler(
 
         val ifNode = node.asIf()
 
-        val condition = parseExpression(ifNode.condition)
+        val condition = parseValueExpression(ifNode.condition)
         if (condition.type != Datatype.Boolean) {
             throw FrontendCompilerError("type of condition must be bool")
         }
@@ -325,7 +339,7 @@ class FunctionCompiler(
 
             currentCodeBlock.addInstruction(
                 JumpOnFalse(
-                    parseExpression(ifNode.condition),
+                    parseValueExpression(ifNode.condition),
                     elseLabel
                 )
             )
@@ -348,7 +362,7 @@ class FunctionCompiler(
 
         val whileNode = node.asWhile()
 
-        val condition = parseExpression(whileNode.condition)
+        val condition = parseValueExpression(whileNode.condition)
         if (condition.type != Datatype.Boolean) {
             throw FrontendCompilerError("type of condition must be bool")
         }
@@ -381,7 +395,7 @@ class FunctionCompiler(
     ) {
         val assign = node.asAssign()
 
-        val value = parseExpression(assign.value)
+        val value = parseValueExpression(assign.value)
 
 
         if (assign.target.type == NodeTypes.ArrayAccess) {
@@ -390,11 +404,11 @@ class FunctionCompiler(
 
             val arrayAccess = assign.target.asArrayAccess()
 
-            val array = parseExpression(arrayAccess.parent)
+            val array = parseValueExpression(arrayAccess.parent)
             if (array.type != Datatype.ArrayPointer(Datatype.Integer))
                 TODO(array.type.toString())
 
-            val index = parseExpression(arrayAccess.index)
+            val index = parseValueExpression(arrayAccess.index)
 
 
             currentCodeBlock.addInstruction(
@@ -412,10 +426,10 @@ class FunctionCompiler(
             return
         }
 
-        assert(assign.target.type == NodeTypes.Identifier)
-        val targetName = assign.target.asIdentifier()
+        val target = parseAddressExpression(assign.target)
 
-        currentCodeBlock.addInstruction(Assign(targetName, value))
+
+        currentCodeBlock.addInstruction(Assign(target, value))
     }
 
     private fun flattenCall(
@@ -425,7 +439,7 @@ class FunctionCompiler(
 
         val callInfo = callNode.asCall()
 
-        val parameters = callNode.childNodes.map { parseExpression(it) }
+        val parameters = callNode.childNodes.map { parseValueExpression(it) }
 
         val parameterTypes = parameters.map { it.type }
 
