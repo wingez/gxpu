@@ -37,7 +37,12 @@ data class AstNode(
     val childNodes: List<AstNode> = emptyList(),
 ) : Iterable<AstNode> {
 
-    val child get() = childNodes.first()
+    val child
+        get() = when (childNodes.size) {
+            1 -> childNodes.first()
+            else -> throw AssertionError(this.toString())
+        }
+
     fun hasChildren(): Boolean {
         return childNodes.isNotEmpty()
     }

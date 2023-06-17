@@ -80,7 +80,7 @@ class FunctionBuilder(
         when (targetAddress) {
             is FpField -> {
                 val field = targetAddress.field
-                assert(field.type == Datatype.Integer)
+                assert(field.type == Datatype.Integer || field.type.isPointer())
 
                 getValue(instr.value, WhereToPutResult.TopStack, this)
 

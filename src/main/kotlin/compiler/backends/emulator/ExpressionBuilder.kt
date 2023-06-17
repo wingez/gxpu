@@ -45,7 +45,7 @@ fun getValue(expr: ValueExpression, where: WhereToPutResult, context: FunctionCo
         }
 
         is VariableExpression -> {
-            assert(expr.type == Datatype.Integer)
+            assert(expr.type == Datatype.Integer || expr.type.isPointer())
 
             val field = context.getField(expr.variable.name)
 
@@ -61,6 +61,59 @@ fun getValue(expr: ValueExpression, where: WhereToPutResult, context: FunctionCo
 
         is CallExpression -> {
             handleCall(expr, where, context)
+        }
+
+        is AddressOf -> {
+
+            val addressType = getAddressOf(expr.value, context)
+            when (addressType) {
+
+                is FpField -> {
+                    val field = addressType.field
+                    context.addInstruction(
+                        emulate(DefaultEmulator.lda_fp_offset, "offset" to field.offset)
+                    )
+                    when (where) {
+                        WhereToPutResult.A -> {
+                            //OK
+                        }
+
+                        WhereToPutResult.TopStack -> {
+                            context.addInstruction(
+                                emulate(DefaultEmulator.pusha)
+                            )
+                        }
+
+                        else -> TODO()
+                    }
+
+                }
+
+                else -> TODO()
+            }
+
+
+        }
+
+        is Deref -> {
+            val pointer = getValue(expr.value, WhereToPutResult.A, context)
+            context.addInstruction(
+                //TODO instruction without offset??
+                emulate(DefaultEmulator.lda_at_a_offset, "offset" to 0)
+            )
+            when (where) {
+                WhereToPutResult.A -> {
+                    // OK!
+                }
+
+                WhereToPutResult.TopStack -> {
+                    context.addInstruction(
+                        emulate(DefaultEmulator.pusha)
+                    )
+                }
+
+                else -> TODO()
+            }
         }
 
         else -> TODO(expr.toString())

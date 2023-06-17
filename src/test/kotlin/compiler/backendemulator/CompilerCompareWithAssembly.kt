@@ -316,6 +316,46 @@ class CompilerCompareWithAssembly {
     }
 
     @Test
+    fun testPointerRead() {
+        val body = """
+          def main():
+            val i=5
+           
+            val p=&i
+            print(*p)  
+          
+        """
+
+        val expected = """
+        LDFP #100
+        LDSP #100
+        CALL #main
+        exit
+        
+        :main
+        ADDSP #2
+        
+        //i=5
+        PUSH #5
+        POP [FP #0]
+        
+        //p=&i
+        LDA FP #0
+        PUSHA
+        POP [FP #1]
+        
+        //print(*p)
+        LDA [FP #1]
+        LDA [A #0]
+        out
+        
+        RET
+        """
+
+        programShouldMatchAssembled(body, expected)
+    }
+
+    @Test
     @Disabled("Not implemented yet")
     fun testPointerDeref() {
         val expected = """

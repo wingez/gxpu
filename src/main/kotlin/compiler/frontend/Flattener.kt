@@ -4,6 +4,7 @@ import ast.expression.OperatorBuiltIns
 import compiler.frontend.Datatype
 import compiler.frontend.TypeProvider
 import se.wingez.ast.*
+import se.wingez.compiler.backends.emulator.getAddressOf
 
 const val RETURN_VALUE_NAME = "result"
 
@@ -46,6 +47,21 @@ class VariableExpression(
 ) : ValueExpression, AddressExpression {
     override val type = variable.datatype
 }
+
+class AddressOf(
+    val value: AddressExpression
+) : ValueExpression {
+    override val type: Datatype
+        get() = Datatype.Pointer(value.type)
+}
+
+class Deref(
+    val value: ValueExpression
+): ValueExpression{
+    override val type: Datatype
+        get() = value.type.pointerType
+}
+
 
 class MemberAccess(
     val name: String,
@@ -276,6 +292,19 @@ class FunctionCompiler(
                     Datatype.Integer, FunctionType.Operator
                 )
                 CallExpression(definition, listOf(member, index))
+            }
+
+            NodeTypes.AddressOf -> {
+                val pointerTo = parseAddressExpression(node.child)
+                AddressOf(pointerTo)
+            }
+
+            NodeTypes.Deref -> {
+                val pointer = parseValueExpression(node.child)
+                if (!pointer.type.isPointer()){
+                    throw ParserError("Must be a pointer")
+                }
+                Deref(pointer)
             }
 
             else -> throw AssertionError("Cannot parse node ${node.type} yet")
