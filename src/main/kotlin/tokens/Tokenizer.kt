@@ -39,6 +39,7 @@ enum class TokenType {
     DoubleEqual,
     Deref,
     String,
+    Ampersand,
 }
 
 data class Token(
@@ -298,6 +299,7 @@ val operatorsToType = mapOf(
     "." to TokenType.Dot,
     "->" to TokenType.Deref,
     "*" to TokenType.Star,
+    "&" to TokenType.Ampersand,
 )
 
 val keywords = mapOf(

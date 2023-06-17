@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import se.wingez.tokens.TokenType
+import kotlin.test.assertNotEquals
 
 class AstParserExpressions {
 
@@ -210,5 +211,23 @@ class AstParserExpressions {
             parseExpression("-1+2")
         )
     }
+
+    @Test
+    fun testAddressOf() {
+        assertEquals(
+            AstNode.fromAddressOf(constant(5)),
+            parseExpression("&5")
+        )
+
+        assertEquals(
+            parseExpression("&5+4"),
+            parseExpression("(&5)+4"),
+        )
+        assertNotEquals(
+            parseExpression("&(5+4)"),
+            parseExpression("&5+4"),
+        )
+    }
+
 }
 

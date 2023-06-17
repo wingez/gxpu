@@ -11,9 +11,10 @@ private val priorities = object {
 
     val functionCall = 48
 
-    val arrayAccess = 30
-    val instanceFunction = 30
+    val arrayAccess = 40
+    val instanceFunction = 40
 
+    val addressOf = 30
     val negate = 29
 
     val binaryPlusMinus = 28
@@ -217,6 +218,15 @@ private class ArrayAccess : MatchingReducer(
     }
 }
 
+private class AddressOfReducer : MatchingReducer(
+    listOf(TokenMatcher(TokenType.Ampersand), anyNodeMatcher)
+) {
+    override val priority = priorities.addressOf
+    override fun tryReduceMatched(values: List<Value>): Value {
+        return Value(ValueType.Node, node = AstNode.fromAddressOf(values[1].valueNode))
+    }
+}
+
 private val reducers: List<Reducer> = listOf(
     ExtractSingleValueParenthesis(),
     FunctionCallReduce(),
@@ -226,7 +236,7 @@ private val reducers: List<Reducer> = listOf(
 
     SubtractionReducer(),
 
-
+    AddressOfReducer(),
     UnaryOperatorReducer(TokenType.MinusSign, priorities.negate),
 
     ) + binaryOperationPriorities.keys.map { BinaryOperatorReducer(it) }

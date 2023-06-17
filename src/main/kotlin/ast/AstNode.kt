@@ -21,6 +21,7 @@ enum class NodeTypes {
     MemberAccess,
     ArrayAccess,
     Array,
+    AddressOf,
 }
 
 enum class FunctionType {
@@ -35,6 +36,7 @@ data class AstNode(
     val childNodes: List<AstNode> = emptyList(),
 ) : Iterable<AstNode> {
 
+    val child get() = childNodes.first()
     fun hasChildren(): Boolean {
         return childNodes.isNotEmpty()
     }
@@ -263,6 +265,10 @@ data class AstNode(
 
         fun newArray(content: List<AstNode>): AstNode {
             return AstNode(NodeTypes.Array, null, content)
+        }
+
+        fun fromAddressOf(node: AstNode): AstNode {
+            return AstNode(NodeTypes.AddressOf, null, listOf(node))
         }
     }
 }
