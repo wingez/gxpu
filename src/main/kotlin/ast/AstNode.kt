@@ -22,6 +22,7 @@ enum class NodeTypes {
     ArrayAccess,
     Array,
     AddressOf,
+    Deref,
 }
 
 enum class FunctionType {
@@ -269,6 +270,10 @@ data class AstNode(
 
         fun fromAddressOf(node: AstNode): AstNode {
             return AstNode(NodeTypes.AddressOf, null, listOf(node))
+        }
+
+        fun fromDeref(node: AstNode): AstNode {
+            return AstNode(NodeTypes.Deref, node, listOf(node))
         }
     }
 }

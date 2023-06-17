@@ -14,7 +14,7 @@ private val priorities = object {
     val arrayAccess = 40
     val instanceFunction = 40
 
-    val addressOf = 30
+    val addressOfAndDeref = 30
     val negate = 29
 
     val binaryPlusMinus = 28
@@ -87,20 +87,45 @@ private class BinaryOperatorReducer(
     }
 }
 
-private class UnaryOperatorReducer(
+private abstract class UnaryReducer(
     tokenType: TokenType,
     override val priority: Int,
 ) : MatchingReducer(
-    listOf(
-        TokenMatcher(tokenType), anyNodeMatcher
-    )
+    listOf(TokenMatcher(tokenType), anyNodeMatcher)
 ) {
+    abstract fun reduce(node: AstNode): AstNode
     override fun tryReduceMatched(values: List<Value>): Value? {
-        return Value.node(
-            AstNode.fromCall(OperatorBuiltIns.Negate, FunctionType.Operator, listOf(values[1].node))
-        )
+        return Value.node(reduce(values[1].node))
     }
 }
+
+private class UnaryOperatorReducer(
+    tokenType: TokenType,
+    priority: Int,
+) : UnaryReducer(tokenType, priority) {
+    override fun reduce(node: AstNode): AstNode {
+        return AstNode.fromCall(OperatorBuiltIns.Negate, FunctionType.Operator, listOf(node))
+    }
+}
+
+private class AddressOfReducer : UnaryReducer(
+    TokenType.Ampersand,
+    priorities.addressOfAndDeref,
+) {
+    override fun reduce(node: AstNode): AstNode {
+        return AstNode.fromAddressOf(node)
+    }
+}
+
+private class DerefReducer : UnaryReducer(
+    TokenType.Star,
+    priorities.addressOfAndDeref,
+) {
+    override fun reduce(node: AstNode): AstNode {
+        return AstNode.fromDeref(node)
+    }
+}
+
 
 private class ExtractSingleValueParenthesis : MatchingReducer(
     listOf(
@@ -201,14 +226,6 @@ private class ArrayAccess : MatchingReducer(
     }
 }
 
-private class AddressOfReducer : MatchingReducer(
-    listOf(TokenMatcher(TokenType.Ampersand), anyNodeMatcher)
-) {
-    override val priority = priorities.addressOf
-    override fun tryReduceMatched(values: List<Value>): Value {
-        return Value.node(AstNode.fromAddressOf(values[1].node))
-    }
-}
 
 private val reducers: List<Reducer> = listOf(
     ExtractSingleValueParenthesis(),
@@ -220,6 +237,8 @@ private val reducers: List<Reducer> = listOf(
     SubtractionReducer(),
 
     AddressOfReducer(),
+    DerefReducer(),
+
     UnaryOperatorReducer(TokenType.MinusSign, priorities.negate),
 
     ) + binaryOperationPriorities.keys.map { BinaryOperatorReducer(it) }

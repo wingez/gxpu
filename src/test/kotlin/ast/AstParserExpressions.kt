@@ -229,5 +229,13 @@ class AstParserExpressions {
         )
     }
 
+    @Test
+    fun testDeref() {
+        assertEquals(
+            AstNode.fromDeref(constant(5)),
+            parseExpression("*5")
+        )
+    }
+
 }
 
