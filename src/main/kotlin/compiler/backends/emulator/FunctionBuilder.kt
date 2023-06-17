@@ -61,7 +61,7 @@ class FunctionBuilder(
 
         if (expr !is CallExpression) throw NotImplementedError()
 
-        handleCall(expr, this)
+        handleCall(expr, WhereToPutResult.TopStack, this)
 
         if (expr.type != Datatype.Void) {
             addInstruction(emulate(DefaultEmulator.sub_sp, "val" to datatypeLayoutProvider.sizeOf(expr.type)))
@@ -74,7 +74,7 @@ class FunctionBuilder(
 
 
     private fun handleAssign(instr: Assign) {
-        putOnStack(instr.value, this)
+        getValue(instr.value, WhereToPutResult.TopStack, this)
 
         val field = layout.layout.values.find { it.name == instr.member } ?: throw AssertionError()
 
@@ -103,8 +103,8 @@ class FunctionBuilder(
     private fun jumpHelper(expr: ValueExpression, jumpOn: Boolean, label: Label) {
         assert(expr.type == Datatype.Boolean)
 
-        putOnStack(expr, this)
-        addInstruction(emulate(DefaultEmulator.test_pop))
+        getValue(expr, WhereToPutResult.A, this)
+        addInstruction(emulate(DefaultEmulator.testa))
         if (!jumpOn) {
             addInstruction(emulate(DefaultEmulator.jump_zero, "addr" to Reference(signature, label)))
         } else {

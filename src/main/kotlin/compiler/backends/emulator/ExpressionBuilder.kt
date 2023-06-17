@@ -15,22 +15,24 @@ private val BuiltInSignatures = object {
     val print = SignatureBuilder("print")
         .addParameter(Datatype.Integer)
         .getSignature()
+    val bool = SignatureBuilder("bool")
+        .addParameter(Datatype.Integer)
+        .setReturnType(Datatype.Boolean)
+        .getSignature()
+
 }
 val builtinInlinedSignatures = listOf(
-    BuiltInSignatures.print
+    BuiltInSignatures.print,
+    BuiltInSignatures.bool,
 )
 
 
-private enum class WhereToPutResult {
+enum class WhereToPutResult {
     A,
     TopStack,
 }
 
-fun putOnStack(expr: ValueExpression, context: FunctionContext) {
-    getValue(expr, WhereToPutResult.TopStack, context)
-}
-
-private fun getValue(expr: ValueExpression, where: WhereToPutResult, context: FunctionContext) {
+fun getValue(expr: ValueExpression, where: WhereToPutResult, context: FunctionContext) {
 
     when (expr) {
         is ConstantExpression -> {
@@ -58,25 +60,14 @@ private fun getValue(expr: ValueExpression, where: WhereToPutResult, context: Fu
         }
 
         is CallExpression -> {
-            handleCall(expr, context)
-            if (where == WhereToPutResult.A) {
-                assert(expr.function.returnType == Datatype.Integer)
-                context.addInstruction(emulate(DefaultEmulator.popa))
-            }
+            handleCall(expr, where, context)
         }
 
         else -> TODO(expr.toString())
     }
 }
 
-private fun handleGenericCall(expr: CallExpression, context: FunctionContext) {
-
-    //TODO: extract a generic way to inline stuff like this
-    if (expr.function == Bool().signature) {
-        putOnStack(expr.parameters.first(), context)
-        //Do nothing in this case. Conversation is implicit
-        return
-    }
+private fun handleGenericCall(expr: CallExpression, where: WhereToPutResult, context: FunctionContext) {
 
     //Maks space for result variable
     if (expr.function.returnType != Datatype.Void) {
@@ -89,7 +80,7 @@ private fun handleGenericCall(expr: CallExpression, context: FunctionContext) {
     }
 
     for (parameterExpr in expr.parameters) {
-        putOnStack(parameterExpr, context)
+        getValue(parameterExpr, WhereToPutResult.TopStack, context)
     }
 
     context.addInstruction(emulate(DefaultEmulator.call_addr, "addr" to Reference(expr.function, functionEntryLabel)))
@@ -100,16 +91,33 @@ private fun handleGenericCall(expr: CallExpression, context: FunctionContext) {
         context.addInstruction(emulate(DefaultEmulator.sub_sp, "val" to argumentSize))
     }
 
-}
-
-fun handleCall(expr: CallExpression, context: FunctionContext) {
-
-    if (expr.function == BuiltInSignatures.print) {
-        getValue(expr.parameters[0], WhereToPutResult.A, context)
-        context.addInstruction(emulate(DefaultEmulator.print))
-    } else {
-        handleGenericCall(expr, context)
+    // Pop value from stack if required
+    if (where == WhereToPutResult.A) {
+        val retType = expr.function.returnType
+        if (retType != Datatype.Integer && retType != Datatype.Boolean) {
+            throw AssertionError(expr.function.returnType.toString())
+        }
+        context.addInstruction(emulate(DefaultEmulator.popa))
     }
 }
+
+fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionContext) {
+
+    when (expr.function) {
+        BuiltInSignatures.print -> {
+            getValue(expr.parameters[0], WhereToPutResult.A, context)
+            context.addInstruction(emulate(DefaultEmulator.print))
+        }
+        BuiltInSignatures.bool -> {
+            // Do nothing in this case. Conversation is implicit
+            getValue(expr.parameters.first(), where, context)
+        }
+        else -> {
+            handleGenericCall(expr, where, context)
+        }
+    }
+}
+
+
 
 

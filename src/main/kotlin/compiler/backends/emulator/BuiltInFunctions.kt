@@ -20,22 +20,6 @@ interface BuiltIn {
     fun compile(): List<EmulatorInstruction>
 }
 
-
-class Bool : BuiltIn {
-    override val name = "bool"
-    override val signature: FunctionDefinition
-        get() = SignatureBuilder(name)
-            .addParameter(Datatype.Integer)
-            .setReturnType(Datatype.Boolean)
-            .getSignature()
-
-    override fun compile(): List<EmulatorInstruction> {
-        // Should hopefully not be called
-        return listOf(emulate(DefaultEmulator.exit))
-    }
-
-}
-
 class ByteAddition : BuiltIn {
     override val name = OperatorBuiltIns.Addition
     override fun compile(): List<EmulatorInstruction> {

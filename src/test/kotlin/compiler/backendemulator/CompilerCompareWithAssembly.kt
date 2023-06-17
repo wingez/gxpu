@@ -18,7 +18,7 @@ import kotlin.test.assertEquals
 
 
 class DummyBuiltInProvider(
-    private val builtIns: List<BuiltIn> = listOf(Bool(), ByteAddition(), ByteSubtraction())
+    private val builtIns: List<BuiltIn> = listOf(ByteAddition(), ByteSubtraction())
 ) : BuiltInProvider, FunctionDefinitionResolver {
     override fun getSignatures(): List<FunctionDefinition> {
         return builtIns.map { it.signature }
@@ -221,8 +221,8 @@ class CompilerCompareWithAssembly {
     @Test
     fun testIfNoElse() {
         val expected = """
-        PUSH #5
-        TST POP
+        LDA #5
+        TSTA
        
         jmpz #end
         LDA #1
@@ -240,8 +240,8 @@ class CompilerCompareWithAssembly {
     @Test
     fun testIfElse() {
         val expected = """
-        PUSH #5
-        TST POP
+        LDA #5
+        TSTA
         JMPZ #else
         LDA #1
         OUT
@@ -265,8 +265,8 @@ class CompilerCompareWithAssembly {
     @Test
     fun testWhile() {
         val expected = """
-        PUSH #5
-        TST POP
+        LDA #5
+        TSTA
         :loop
         JMPZ #end
         LDA #1
