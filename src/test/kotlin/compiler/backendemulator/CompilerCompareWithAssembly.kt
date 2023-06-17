@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test
 import se.wingez.ast.*
 import se.wingez.compiler.backends.emulator.EmulatorInstruction
 import se.wingez.compiler.backends.emulator.Reference
+import se.wingez.compiler.backends.emulator.builtinInlinedSignatures
 import se.wingez.compiler.backends.emulator.emulate
 import se.wingez.compiler.dummyTypeContainer
 import se.wingez.compiler.frontend.*
@@ -17,7 +18,7 @@ import kotlin.test.assertEquals
 
 
 class DummyBuiltInProvider(
-    private val builtIns: List<BuiltIn> = listOf(Print(), Bool(), ByteAddition(), ByteSubtraction())
+    private val builtIns: List<BuiltIn> = listOf(Bool(), ByteAddition(), ByteSubtraction())
 ) : BuiltInProvider, FunctionDefinitionResolver {
     override fun getSignatures(): List<FunctionDefinition> {
         return builtIns.map { it.signature }
@@ -59,6 +60,13 @@ class DummyBuiltInProvider(
         functionType: FunctionType,
         parameterTypes: List<Datatype>
     ): FunctionDefinition {
+
+        for (definition in builtinInlinedSignatures) {
+            if (definition.matches(name, functionType, parameterTypes)) {
+                return definition
+            }
+        }
+
         for (builtIn in builtIns) {
             if (builtIn.signature.matches(name, functionType, parameterTypes)) {
                 return builtIn.signature
@@ -199,9 +207,8 @@ class CompilerCompareWithAssembly {
     fun testPrint() {
         val expected = """
         // main
-        push #5
-        call #0
-        subsp #1
+        LDA #5
+        OUT
         ret
         """
 
@@ -218,9 +225,8 @@ class CompilerCompareWithAssembly {
         TST POP
        
         jmpz #end
-        PUSH #1
-        CALL #0
-        subSP #1
+        LDA #1
+        OUT
         :end
         RET
         """
@@ -237,14 +243,12 @@ class CompilerCompareWithAssembly {
         PUSH #5
         TST POP
         JMPZ #else
-        PUSH #1
-        CALL #0
-        subSP #1
+        LDA #1
+        OUT
         JMP #end
         :else
-        PUSH #2
-        CALL #0
-        subSP #1
+        LDA #2
+        OUT
         :end
         RET
         """
@@ -263,11 +267,12 @@ class CompilerCompareWithAssembly {
         val expected = """
         PUSH #5
         TST POP
-        JMPZ #13
-        PUSH #1
-        CALL #0
-        SUBSP #1
-        JMP #0
+        :loop
+        JMPZ #end
+        LDA #1
+        OUT
+        JMP #loop
+        :end
         RET 
         """
         val body = """
@@ -288,21 +293,13 @@ class CompilerCompareWithAssembly {
         
         :main
         CALL #test1
-        PUSH #3
-        CALL #print
-        SUBSP #1
-        RET
-        
-        :print
-        LDA [FP #-1]
+        LDA #3
         OUT
         RET
         
-        
         :test1 
-        PUSH #10
-        CALL #print
-        SUBSP #1
+        LDA #10
+        OUT
         RET
         
         """

@@ -4,9 +4,7 @@ import compiler.backends.emulator.emulator.DefaultEmulator
 import compiler.frontend.Datatype
 import compiler.frontend.TypeProvider
 import se.wingez.ast.AstNode
-import se.wingez.compiler.backends.emulator.EmulatorInstruction
-import se.wingez.compiler.backends.emulator.Reference
-import se.wingez.compiler.backends.emulator.emulate
+import se.wingez.compiler.backends.emulator.*
 import se.wingez.compiler.frontend.*
 
 data class BuiltFunction(
@@ -38,11 +36,11 @@ fun buildFunctionBody(
 }
 
 class FunctionBuilder(
-    val signature: FunctionDefinition,
-    val functionProvider: FunctionDefinitionResolver,
-    val typeProvider: TypeProvider,
-    val datatypeLayoutProvider: DatatypeLayoutProvider,
-) : CodeGenerator {
+    private val signature: FunctionDefinition,
+    private val functionProvider: FunctionDefinitionResolver,
+    private val typeProvider: TypeProvider,
+    override val datatypeLayoutProvider: DatatypeLayoutProvider,
+) : CodeGenerator, FunctionContext {
 
     val resultingCode = mutableListOf<EmulatorInstruction>()
 
@@ -52,67 +50,8 @@ class FunctionBuilder(
         resultingCode.add(emulatorInstruction)
     }
 
-
-    private fun putOnStack(expr: ValueExpression) {
-
-        when (expr) {
-            is ConstantExpression -> {
-                addInstruction(
-                    emulate(
-                        DefaultEmulator.push, "val" to expr.value
-                    )
-                )
-            }
-
-            is VariableExpression -> {
-                assert(expr.type == Datatype.Integer)
-
-                val field = layout.layout.values.find { it.name == expr.variable.name } ?: throw AssertionError()
-
-                addInstruction(
-                    emulate(
-                        DefaultEmulator.push_fp_offset, "offset" to field.offset
-                    )
-                )
-            }
-
-            is CallExpression -> handleCall(expr)
-
-            else -> TODO(expr.toString())
-
-        }
-    }
-
-    private fun handleCall(expr: CallExpression) {
-
-        //TODO: extract a generic way to inline stuff like this
-        if (expr.function == Bool().signature) {
-            putOnStack(expr.parameters.first())
-            //Do nothing in this case. Conversation is implicit
-            return
-        }
-
-        //Maks space for result variable
-        if (expr.function.returnType != Datatype.Void) {
-            addInstruction(
-                emulate(
-                    DefaultEmulator.add_sp,
-                    "val" to datatypeLayoutProvider.sizeOf(expr.function.returnType)
-                )
-            )
-        }
-
-        for (parameterExpr in expr.parameters) {
-            putOnStack(parameterExpr)
-        }
-
-        addInstruction(emulate(DefaultEmulator.call_addr, "addr" to Reference(expr.function, functionEntryLabel)))
-
-        // pop arguments if neccesary
-        val argumentSize = expr.parameters.sumOf { this.datatypeLayoutProvider.sizeOf(it.type) }
-        if (argumentSize > 0) {
-            addInstruction(emulate(DefaultEmulator.sub_sp, "val" to argumentSize))
-        }
+    override fun getField(name: String): StructDataField {
+        return layout.layout.values.find { it.name == name } ?: throw AssertionError()
     }
 
     private fun handleExecute(instr: Execute) {
@@ -122,7 +61,7 @@ class FunctionBuilder(
 
         if (expr !is CallExpression) throw NotImplementedError()
 
-        handleCall(expr)
+        handleCall(expr, this)
 
         if (expr.type != Datatype.Void) {
             addInstruction(emulate(DefaultEmulator.sub_sp, "val" to datatypeLayoutProvider.sizeOf(expr.type)))
@@ -135,7 +74,7 @@ class FunctionBuilder(
 
 
     private fun handleAssign(instr: Assign) {
-        putOnStack(instr.value)
+        putOnStack(instr.value, this)
 
         val field = layout.layout.values.find { it.name == instr.member } ?: throw AssertionError()
 
@@ -164,7 +103,7 @@ class FunctionBuilder(
     private fun jumpHelper(expr: ValueExpression, jumpOn: Boolean, label: Label) {
         assert(expr.type == Datatype.Boolean)
 
-        putOnStack(expr)
+        putOnStack(expr, this)
         addInstruction(emulate(DefaultEmulator.test_pop))
         if (!jumpOn) {
             addInstruction(emulate(DefaultEmulator.jump_zero, "addr" to Reference(signature, label)))

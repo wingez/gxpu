@@ -8,6 +8,7 @@ import se.wingez.ast.FunctionType
 import se.wingez.ast.NodeTypes
 import se.wingez.compiler.backends.emulator.EmulatorInstruction
 import se.wingez.compiler.backends.emulator.Reference
+import se.wingez.compiler.backends.emulator.builtinInlinedSignatures
 import se.wingez.compiler.backends.emulator.emulate
 import se.wingez.compiler.frontend.*
 
@@ -66,10 +67,9 @@ class Compiler(
 
     private val resultingInstructions = mutableListOf<EmulatorInstruction>()
 
-    private val functionSources = mutableListOf<FunctionSource>()
-
     val includedTypes = mutableMapOf<String, Datatype>()
 
+    private val availableFunctionDefinitions = mutableSetOf<FunctionDefinition>()
 
     override fun addInstruction(emulatorInstruction: EmulatorInstruction) {
         resultingInstructions.add(emulatorInstruction)
@@ -90,9 +90,9 @@ class Compiler(
         functionType: FunctionType,
         parameterTypes: List<Datatype>
     ): FunctionDefinition {
-        for (source in functionSources) {
-            if (source.signature.matches(name, functionType, parameterTypes)) {
-                return source.signature
+        for (definition in availableFunctionDefinitions) {
+            if (definition.matches(name, functionType, parameterTypes)) {
+                return definition
             }
         }
         TODO(name)
@@ -128,11 +128,20 @@ class Compiler(
         buildStructs()
 
         /// Find all available function signatures
+
+        val functionSources = mutableListOf<FunctionSource>()
+
+
         for (signature in builtInProvider.getSignatures()) {
             functionSources.add(BuiltinSource(builtInProvider, signature))
+            availableFunctionDefinitions.add(signature)
         }
+        availableFunctionDefinitions.addAll(builtinInlinedSignatures)
+
+
         for (functionNode in nodes.filter { it.type == NodeTypes.Function }) {
             val signature = FunctionDefinition.fromFunctionNode(functionNode, this)
+            availableFunctionDefinitions.add(signature)
             functionSources.add(CodeSource(functionNode, signature, this, this, dummyDatatypeSizeProvider))
         }
 

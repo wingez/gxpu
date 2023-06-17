@@ -6,6 +6,7 @@ import se.wingez.ast.FunctionType
 import ast.expression.OperatorBuiltIns
 import se.wingez.compiler.backends.emulator.EmulatorInstruction
 import se.wingez.compiler.backends.emulator.Reference
+import se.wingez.compiler.backends.emulator.builtinInlinedSignatures
 import se.wingez.compiler.backends.emulator.emulate
 import se.wingez.compiler.frontend.FunctionDefinition
 import se.wingez.compiler.frontend.Variable
@@ -19,25 +20,6 @@ interface BuiltIn {
     fun compile(): List<EmulatorInstruction>
 }
 
-
-class Print : BuiltIn {
-    override val name = "print"
-    override val signature: FunctionDefinition
-        get() = SignatureBuilder(name)
-            .addParameter(Datatype.Integer)
-            .getSignature()
-
-
-    override fun compile(): List<EmulatorInstruction> {
-
-        val valueOffset = -1
-        return listOf(
-            emulate(DefaultEmulator.lda_at_fp_offset, "offset" to valueOffset),
-            emulate(DefaultEmulator.print),
-            emulate(DefaultEmulator.ret),
-        )
-    }
-}
 
 class Bool : BuiltIn {
     override val name = "bool"
@@ -101,13 +83,14 @@ class ByteSubtraction : BuiltIn {
 class BuiltInFunctions : BuiltInProvider {
 
     private val available = listOf(
-        Print(), ByteAddition(), ByteSubtraction(),
+        ByteAddition(), ByteSubtraction(),
     )
 
     override fun getTypes(): Map<String, Datatype> {
         return mapOf(
             "void" to Datatype.Void,
             "byte" to Datatype.Integer,
+            "int" to Datatype.Integer,
         )
     }
 
@@ -120,7 +103,7 @@ class BuiltInFunctions : BuiltInProvider {
 
         val result = available.find { it.signature == signature }
         if (result == null) {
-            TODO()
+            TODO(signature.toString())
         }
 
         val instructions = result.compile()
