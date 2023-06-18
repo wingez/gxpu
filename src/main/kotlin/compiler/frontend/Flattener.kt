@@ -404,7 +404,7 @@ class FunctionCompiler(
 
         val condition = parseValueExpression(whileNode.condition)
         if (condition.type != Datatype.Boolean) {
-            throw FrontendCompilerError("type of condition must be bool")
+            throw FrontendCompilerError("type of condition must be bool, not ${condition.type}")
         }
 
         val id = controlStatementCounter++

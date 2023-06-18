@@ -44,6 +44,18 @@ private val BuiltInSignatures = object {
         .addParameter(Datatype.Integer)
         .addParameter(Datatype.Integer)
         .getSignature()
+    val notEquals = SignatureBuilder(OperatorBuiltIns.NotEqual)
+        .setFunctionType(FunctionType.Operator)
+        .setReturnType(Datatype.Boolean)
+        .addParameter(Datatype.Integer)
+        .addParameter(Datatype.Integer)
+        .getSignature()
+    val equals = SignatureBuilder(OperatorBuiltIns.NotEqual)
+        .setFunctionType(FunctionType.Operator)
+        .setReturnType(Datatype.Boolean)
+        .addParameter(Datatype.Integer)
+        .addParameter(Datatype.Integer)
+        .getSignature()
 }
 val builtinInlinedSignatures = listOf(
     BuiltInSignatures.print,
@@ -52,6 +64,8 @@ val builtinInlinedSignatures = listOf(
     BuiltInSignatures.createArray,
     BuiltInSignatures.arrayRead,
     BuiltInSignatures.arrayWrite,
+    BuiltInSignatures.notEquals,
+    BuiltInSignatures.equals,
 )
 
 
@@ -289,6 +303,18 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
             if (where != WhereToPutResult.A) {
                 TODO(where.toString())
             }
+        }
+
+        BuiltInSignatures.notEquals -> {
+            // Implicit just convert from int to bool
+            getValue(CallExpression(ByteSubtraction().signature, expr.parameters), where, context)
+        }
+
+        BuiltInSignatures.equals -> {
+            // Implicit just convert from int to bool
+            getValue(CallExpression(ByteSubtraction().signature, expr.parameters), WhereToPutResult.A, context)
+            // Invert it
+            context.addInstruction(emulate(DefaultEmulator.log_inv_a))
         }
 
         else -> {

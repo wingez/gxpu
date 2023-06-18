@@ -189,6 +189,15 @@ class DefaultEmulator : Emulator(instructionSet) {
             em.zeroFlag = value == 0
         }
 
+        val log_inv_a = instructionSet.createInstruction("LINV A", group = ARITHMETIC) { em, _ ->
+            // Logical inverse
+            if (em.a == 0) {
+                em.a = 1
+            } else {
+                em.a = 0
+            }
+        }
+
         val adda = instructionSet.createInstruction("ADDA #val", group = ARITHMETIC) { em, params ->
             val value = params.getValue("val")
             em.a = em.a + value
