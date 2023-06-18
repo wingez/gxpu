@@ -2,8 +2,13 @@ package se.wingez.compiler.features
 
 import compiler.features.CompilerBackend
 import compiler.features.runProgramCheckOutput
+import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
+import se.wingez.ast.parserFromFile
+import se.wingez.compiler.backends.astwalker.walk
+import kotlin.test.assertEquals
 
 class Call {
 
@@ -76,4 +81,20 @@ class Call {
     """
         runProgramCheckOutput(compiler, program, 6, 5)
     }
+
+    @ParameterizedTest
+    @EnumSource
+    fun testInstanceFunction(compiler: CompilerBackend) {
+        val program= """
+                def (a:int) add(b:int):int
+                  result = a+b
+                  
+                def main():
+                  print(5.add(6))
+                  print((5+6).add(7))
+            """.trimIndent()
+
+        runProgramCheckOutput(compiler, program, 11,18)
+    }
+
 }

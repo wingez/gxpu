@@ -1,14 +1,22 @@
 package compiler.features
 
+import org.junit.jupiter.api.Assumptions
+import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
+import se.wingez.ast.parserFromFile
+import se.wingez.compiler.backends.astwalker.WalkerException
+import se.wingez.compiler.backends.astwalker.walk
+import se.wingez.compiler.frontend.FrontendCompilerError
 
 
 class Array {
 
     @ParameterizedTest
     @EnumSource
-    fun testCreateArrayAndSize(compiler: CompilerBackend){
+    fun testCreateArrayAndSize(compiler: CompilerBackend) {
         val program = """
           val arr:*int[] = createArray(3)
           
@@ -20,7 +28,7 @@ class Array {
 
     @ParameterizedTest
     @EnumSource
-    fun testArrayRead(compiler: CompilerBackend){
+    fun testArrayRead(compiler: CompilerBackend) {
         val program = """
           val arr:*int[] = createArray(3)
           
@@ -31,7 +39,7 @@ class Array {
 
     @ParameterizedTest
     @EnumSource
-    fun testArrayWrite(compiler: CompilerBackend){
+    fun testArrayWrite(compiler: CompilerBackend) {
         val program = """
           val arr:*int[] = createArray(3)
           
@@ -43,11 +51,8 @@ class Array {
           
           
     """
-        runBodyCheckOutput(compiler, program, 0,0,10,0)
+        runBodyCheckOutput(compiler, program, 0, 0, 10, 0)
     }
-
-
-
 
 
     @ParameterizedTest
@@ -90,4 +95,34 @@ class Array {
     """
         runProgramCheckOutput(compiler, program, 100)
     }
+
+
+    @ParameterizedTest
+    @EnumSource
+    fun testArraySizeReadonly(compiler: CompilerBackend) {
+        val program = """
+          def main():
+            val a:*int[] = createArray(5)
+            a.size() = 10
+    """
+        assertThrows<FrontendCompilerError> { runProgramCheckOutput(compiler, program) }
+    }
+
+    @ParameterizedTest
+    @EnumSource
+    fun testArrayReadOutOfBounds(compiler: CompilerBackend) {
+
+        Assumptions.assumeTrue(compiler != CompilerBackend.Emulator)
+
+        val program = """
+          def main():
+            val a:int[] = createArray(10)
+            print(a.size())
+            print(a[10])
+            
+        """
+        assertThrows<WalkerException> { runProgramCheckOutput(compiler, program) }
+    }
+
+
 }

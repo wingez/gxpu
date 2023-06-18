@@ -9,6 +9,7 @@ import compiler.features.runBodyCheckOutput
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
 import se.wingez.compiler.backends.astwalker.WalkerException
+import se.wingez.compiler.frontend.FrontendCompilerError
 
 
 class ControlFlow {
@@ -82,14 +83,13 @@ class ControlFlow {
 
     @ParameterizedTest
     @EnumSource(CompilerBackend::class)
-    @Disabled
     fun testInvalidVariableName(compiler: CompilerBackend) {
         val code = """
-            var=5
+            val var=5
             var1 = var2
             print(var)
         """
-        assertThrows<CompileError> {
+        assertThrows<FrontendCompilerError> {
             runBodyCheckOutput(compiler, code, 5)
         }
     }

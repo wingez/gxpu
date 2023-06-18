@@ -127,56 +127,6 @@ internal class WalkerDatatypeTest {
     }
 
     @Test
-    fun testReadArraySize() {
-        val program = """
-          def main():
-            val a:int[] = createArray(5)
-            print(a.size())
-                  
-    """
-        val nodes = parserFromFile(program).parse()
-        assertEquals(listOf(5).map { it.toString() }, walk(nodes).result)
-    }
-
-    @Test
-    @Disabled
-    fun testArraySizeReadonly() {
-        val program = """
-          def main():
-            val a:int[] = createArray(5)
-            a.size() = 10
-    """
-        val nodes = parserFromFile(program).parse()
-        assertThrows<WalkerException> { walk(nodes) }
-    }
-
-    @Test
-    fun testArrayRead() {
-        val program = """
-          def main():
-            val a:int[] = createArray(10)
-            print(a.size())
-            print(a[0])
-            
-    """
-        val nodes = parserFromFile(program).parse()
-        assertEquals(listOf(10, 0).map { it.toString() }, walk(nodes).result)
-    }
-
-    @Test
-    fun testArrayReadOutOfBounds() {
-        val program = """
-          def main():
-            val a:int[] = createArray(10)
-            print(a.size())
-            print(a[10])
-            
-    """
-        val nodes = parserFromFile(program).parse()
-        assertThrows<WalkerException> { walk(nodes) }
-    }
-
-    @Test
     fun testArrayAssign() {
         val program = """
           def main():

@@ -394,68 +394,6 @@ class CompilerCompareWithAssembly {
         programShouldMatchAssembled(body, expected)
     }
 
-
-
-    @Test
-    @Disabled("Not implemented yet")
-    fun testPointerDeref() {
-        val expected = """
-        LDFP #255
-        LDSP #255
-        SUBSP #1
-        CALL #24
-        exit
-        # test1 
-        LDA FP #0
-        ADDA #2
-        LDA [A #0]
-        ADDA #0
-        PUSHA
-        LDA [[SP #0]]
-        ADDSP #1
-        out
-        RET
-        
-        # main
-        LDA FP #0
-        ADDA #2
-        ADDA #0
-        PUSHA
-        LDA #11
-        STA [[SP #0]]
-        
-        ADDSP #1
-        SUBSP #0
-        SUBSP #0
-
-        LDA FP #0
-        ADDA #2
-        PUSHA
-        
-        CALL #9
-        ADDSP #1
-        
-        ret
-         
-        """
-        val body = """
-          struct type:
-            val1:byte
-           
-          def toCall(param:type):
-            print(param->val1)
-          
-          def main():
-            a:new type
-            
-            a.val1=11
-            
-            toCall(a)
-        """
-
-        programShouldMatchAssembled(body, expected)
-    }
-
     @Test
     fun createArray(){
         val expected = """

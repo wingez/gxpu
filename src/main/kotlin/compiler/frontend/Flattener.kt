@@ -277,7 +277,7 @@ class FunctionCompiler(
                 DerefToAddress(parseValueExpression(node.child))
             }
 
-            else -> TODO(node.type.toString())
+            else -> throw FrontendCompilerError("Cannot get address of  ${node.type}")
         }
     }
 
