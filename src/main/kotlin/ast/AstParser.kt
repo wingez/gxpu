@@ -108,7 +108,7 @@ class AstParser(tokens: List<Token>) {
 
     private fun parsePrimitiveMemberDeclaration(): AstNode {
         /**
-        Parses 'val:type' or 'val' or 'val:new type'
+        Parses 'val:type' or 'val''
          */
 
         val memberName = tokens.consumeIdentifier()
