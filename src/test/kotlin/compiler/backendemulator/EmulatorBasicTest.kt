@@ -207,12 +207,12 @@ internal class EmulatorBasicTest {
         val program = """
     lda #1
     tstz a
-    jmpz #jumphere
+    jmpf #jumphere
     out
     :jumphere
     lda #0
     tstz a
-    jmpz #exit
+    jmpf #exit
     out
     :exit
     exit

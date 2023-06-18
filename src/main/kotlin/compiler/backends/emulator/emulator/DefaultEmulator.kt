@@ -161,9 +161,16 @@ class DefaultEmulator : Emulator(instructionSet) {
             em.pc = addr
         }
 
-        val jump_zero = instructionSet.createInstruction("JMPZ #addr", group = FLOW_CONTROL) { em, params ->
+        val jump_flag = instructionSet.createInstruction("JMPF #addr", group = FLOW_CONTROL) { em, params ->
             val addr = params.getValue("addr")
             if (em.flag) {
+                em.pc = addr
+            }
+        }
+
+        val jump_not_flag = instructionSet.createInstruction("JMPNF #addr", group = FLOW_CONTROL) { em, params ->
+            val addr = params.getValue("addr")
+            if (!em.flag) {
                 em.pc = addr
             }
         }

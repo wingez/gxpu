@@ -222,9 +222,9 @@ class CompilerCompareWithAssembly {
     fun testIfNoElse() {
         val expected = """
         LDA #5
-        TSTZ A
+        TSTNZ A
        
-        jmpz #end
+        jmpnf #end
         LDA #1
         OUT
         :end
@@ -241,8 +241,8 @@ class CompilerCompareWithAssembly {
     fun testIfElse() {
         val expected = """
         LDA #5
-        TSTZ A
-        JMPZ #else
+        TSTNZ A
+        JMPNF #else
         LDA #1
         OUT
         JMP #end
@@ -266,9 +266,9 @@ class CompilerCompareWithAssembly {
     fun testWhile() {
         val expected = """
         LDA #5
-        TSTZ A
+        TSTNZ A
         :loop
-        JMPZ #end
+        JMPNF #end
         LDA #1
         OUT
         JMP #loop

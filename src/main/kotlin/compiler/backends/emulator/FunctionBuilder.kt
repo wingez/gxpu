@@ -117,10 +117,9 @@ class FunctionBuilder(
     private fun jumpHelper(expr: ValueExpression, jumpOn: Boolean, label: Label) {
         assert(expr.type == Datatype.Boolean)
 
-        getValue(expr, WhereToPutResult.A, this)
-        addInstruction(emulate(DefaultEmulator.test_z_a))
+        getValue(expr, WhereToPutResult.Flag, this)
         if (!jumpOn) {
-            addInstruction(emulate(DefaultEmulator.jump_zero, "addr" to Reference(signature, label)))
+            addInstruction(emulate(DefaultEmulator.jump_not_flag, "addr" to Reference(signature, label)))
         } else {
             TODO()
         }
