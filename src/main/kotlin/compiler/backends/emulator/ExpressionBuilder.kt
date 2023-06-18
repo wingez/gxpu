@@ -222,45 +222,31 @@ private fun handleGenericCall(expr: CallExpression, where: WhereToPutResult, con
 
 fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionContext) {
 
-    when (expr.function) {
+    val whereWasValueActuallyPut: WhereToPutResult = when (expr.function) {
         BuiltInSignatures.print -> {
             getValue(expr.parameters[0], WhereToPutResult.A, context)
             context.addInstruction(emulate(DefaultEmulator.print))
+            WhereToPutResult.A
         }
 
         BuiltInSignatures.bool -> {
             // Do nothing in this case. Conversation is implicit
             getValue(expr.parameters.first(), where, context)
+            where
         }
 
 
         BuiltInSignatures.arraySize -> {
             getValue(expr.parameters.first(), WhereToPutResult.A, context)
             context.addInstruction(emulate(DefaultEmulator.lda_at_a_offset, "offset" to 0))
-
-            when (where) {
-                WhereToPutResult.A -> {} //Done
-                WhereToPutResult.TopStack -> {
-                    context.addInstruction(emulate(DefaultEmulator.pusha))
-                }
-
-                else -> TODO()
-            }
+            WhereToPutResult.A
         }
 
         BuiltInSignatures.createArray -> {
             getValue(expr.parameters.first(), WhereToPutResult.TopStack, context)
             context.addInstruction(emulate(DefaultEmulator.lda_sp_offset, "offset" to -1))
             context.addInstruction(emulate(DefaultEmulator.addsp_at_sp_offset, "offset" to -1))
-
-            when (where) {
-                WhereToPutResult.A -> {} //Done
-                WhereToPutResult.TopStack -> {
-                    context.addInstruction(emulate(DefaultEmulator.pusha))
-                }
-
-                else -> TODO()
-            }
+            WhereToPutResult.A
         }
 
         BuiltInSignatures.arrayRead -> {
@@ -276,14 +262,7 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
             // Deref
             context.addInstruction(emulate(DefaultEmulator.lda_at_a_offset, "offset" to 0))
 
-            when (where) {
-                WhereToPutResult.A -> {} //Done
-                WhereToPutResult.TopStack -> {
-                    context.addInstruction(emulate(DefaultEmulator.pusha))
-                }
-
-                else -> TODO()
-            }
+            WhereToPutResult.A
         }
 
         BuiltInSignatures.arrayWrite -> {
@@ -300,14 +279,13 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
             // add 1 to since array size is stored at index 1
             context.addInstruction(emulate(DefaultEmulator.pop_at_a_offset, "offset" to 1))
 
-            if (where != WhereToPutResult.A) {
-                TODO(where.toString())
-            }
+            WhereToPutResult.A
         }
 
         BuiltInSignatures.notEquals -> {
             // Implicit just convert from int to bool
             getValue(CallExpression(ByteSubtraction().signature, expr.parameters), where, context)
+            where
         }
 
         BuiltInSignatures.equals -> {
@@ -315,10 +293,24 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
             getValue(CallExpression(ByteSubtraction().signature, expr.parameters), WhereToPutResult.A, context)
             // Invert it
             context.addInstruction(emulate(DefaultEmulator.log_inv_a))
+            WhereToPutResult.A
         }
 
         else -> {
             handleGenericCall(expr, where, context)
+            where
+        }
+    }
+
+    // take case of cases where value was not put correctly already
+    if (where != whereWasValueActuallyPut) {
+
+        when (whereWasValueActuallyPut to where) {
+            WhereToPutResult.A to WhereToPutResult.TopStack -> {
+                context.addInstruction(emulate(DefaultEmulator.pusha))
+            }
+
+            else -> TODO((whereWasValueActuallyPut to where).toString())
         }
     }
 }
