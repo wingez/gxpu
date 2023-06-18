@@ -16,8 +16,8 @@ interface ReferenceIndexProvider {
 }
 
 private data class Frame(
-    val pc: UByte,
-    val fp: UByte,
+    val pc: Int,
+    val fp: Int,
 )
 
 open class Emulator(
@@ -28,31 +28,31 @@ open class Emulator(
         const val MEMORY_SIZE = 256
     }
 
-    val outputStream = mutableListOf<UByte>()
-    val memory = Array<UByte>(memorySize) { 0u }
+    val outputStream = mutableListOf<Int>()
+    val memory = Array<Int>(memorySize) { 0 }
 
     private val frameStack = mutableListOf<Frame>()
 
     lateinit var instructions: List<EmulatorInstruction>
 
-    var a: UByte = 0u
-    var pc: UByte = 0u
-    var fp: UByte = 0u
-    var sp: UByte = 0u
+    var a: Int = 0
+    var pc: Int = 0
+    var fp: Int = 0
+    var sp: Int = 0
     var zeroFlag: Boolean = false
     var shouldHalt: Boolean = false
     fun reset() {
-        a = 0u
-        pc = 0u
-        fp = 0u
-        sp = 0u
+        a = 0
+        pc = 0
+        fp = 0
+        sp = 0
         zeroFlag = false
         shouldHalt = false
     }
 
     fun clearMemory() {
         for (i in 0 until memorySize) {
-            memory[i] = 0u
+            memory[i] = 0
         }
     }
 
@@ -60,7 +60,7 @@ open class Emulator(
         this.instructions = program
     }
 
-    fun setAllMemory(content: Collection<UByte>) {
+    fun setAllMemory(content: Collection<Int>) {
         if (content.size > memorySize)
             throw EmulatorRuntimeError("Size of program greater than memory size")
 
@@ -68,49 +68,34 @@ open class Emulator(
         content.forEachIndexed { index, byte -> memory[index] = byte }
     }
 
-    fun setMemoryAt(position: Int, value: UByte) {
-        val wrapped = position% MEMORY_SIZE
-
-        if (wrapped !in 0 until memorySize)
-            throw EmulatorRuntimeError("Trying to access memory at $wrapped, which is outside memory range")
-        memory[wrapped] = value
+    fun setMemoryAt(position: Int, value: Int) {
+        if (position !in 0 until memorySize)
+            throw EmulatorRuntimeError("Trying to access memory at $position, which is outside memory range")
+        memory[position] = value
     }
 
-    fun setMemoryAt(position: UInt, value: UByte) {
-        setMemoryAt(position.toInt(), value)
+    fun getMemoryAt(position: Int): Int {
+        if (position !in 0 until memorySize)
+            throw EmulatorRuntimeError("Trying to access memory at $position, which is outside memory range")
+        return memory[position]
     }
 
-    fun getMemoryAt(position: Int): UByte {
-        val wrapped = position% MEMORY_SIZE
-        if (wrapped !in 0 until memorySize)
-            throw EmulatorRuntimeError("Trying to access memory at $wrapped, which is outside memory range")
-        return memory[wrapped]
+    private fun getIncPC(): Int {
+        return getMemoryAt((pc++))
     }
 
-    fun getMemoryAt(position: UInt): UByte {
-        return getMemoryAt(position.toInt())
-    }
-
-    fun getMemoryAt(position: UByte): UByte {
-        return getMemoryAt(position.toInt())
-    }
-
-    private fun getIncPC(): UByte {
-        return getMemoryAt((pc++).toInt())
-    }
-
-    fun print(value: UByte) {
+    fun print(value: Int) {
         outputStream.add(value)
     }
 
-    fun push(value: UByte) {
-        setMemoryAt(sp.toInt(), value)
+    fun push(value: Int) {
+        setMemoryAt(sp, value)
         sp++
     }
 
-    fun pop(): UByte {
+    fun pop(): Int {
         sp--
-        return getMemoryAt((sp).toInt())
+        return getMemoryAt((sp))
     }
 
     fun halt() {
@@ -122,7 +107,7 @@ open class Emulator(
         Runs a single instruction, return True if the instruction indicated the program should terminate, False otherwise
         :return:
          */
-        val ins = instructions[pc.toInt()]
+        val ins = instructions[pc]
         pc++
         ins.emulate(this, this)
     }

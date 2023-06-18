@@ -64,7 +64,7 @@ internal class TestAssembleFile {
     @Test
     fun testLabel() {
         val i = InstructionSet()
-        val testInstr = Instruction("test #ins", emulate = emptyEmulate, id = 0u)
+        val testInstr = Instruction("test #ins", emulate = emptyEmulate, id = 0)
         i.addInstruction(testInstr)
 
         assertIterableEquals(
@@ -148,7 +148,7 @@ internal class TestAssembleFile {
     @Test
     fun testLabelLookahead() {
         val i = InstructionSet()
-        val testInstr = Instruction("test #ins", emulate = emptyEmulate, id = 0u)
+        val testInstr = Instruction("test #ins", emulate = emptyEmulate, id = 0)
         i.addInstruction(testInstr)
 
 

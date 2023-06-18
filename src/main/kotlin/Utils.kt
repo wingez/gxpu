@@ -17,27 +17,6 @@ fun splitMany(toSplit: String, delimiters: Iterable<String>): List<String> {
     return current
 }
 
-fun bytes(vararg bytes: Int): List<UByte> {
-    val result = mutableListOf<UByte>()
-    for (byte in bytes) {
-
-        result.add(byte(byte))
-    }
-    return result
-}
-
-fun byte(value: Int): UByte {
-    val wrappedVal = value % 0x100
-//
-//    if (wrappedVal !in 0..255)
-//        throw AssertionError()
-    return wrappedVal.toUByte()
-}
-
-fun byte(value: UInt): UByte {
-    return byte(value.toInt())
-}
-
 interface SupportTypePeekIterator<T : Enum<T>> {
     val type: T
 }

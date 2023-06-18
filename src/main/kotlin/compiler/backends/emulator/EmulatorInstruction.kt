@@ -3,7 +3,6 @@ package se.wingez.compiler.backends.emulator
 import compiler.backends.emulator.emulator.Emulator
 import compiler.backends.emulator.emulator.ReferenceIndexProvider
 import compiler.backends.emulator.instructions.Instruction
-import se.wingez.byte
 import se.wingez.compiler.frontend.FunctionDefinition
 import se.wingez.compiler.frontend.Label
 
@@ -31,7 +30,11 @@ data class Value(
     }
 
     override fun toString(): String {
-        return if (isConstant) {constant.toString()} else {"${reference!!.function.name}.${reference.label.identifier}"}
+        return if (isConstant) {
+            constant.toString()
+        } else {
+            "${reference!!.function.name}.${reference.label.identifier}"
+        }
     }
 }
 
@@ -46,7 +49,7 @@ data class EmulatorInstruction(
     val references: List<Reference>
         get() = referenceList
 
-    fun addReference(reference: Reference):EmulatorInstruction {
+    fun addReference(reference: Reference): EmulatorInstruction {
         referenceList.add(reference)
         return this
     }
@@ -54,13 +57,11 @@ data class EmulatorInstruction(
     fun emulate(emulator: Emulator, indexProvider: ReferenceIndexProvider) {
 
         val parameters = values.entries.associate { (name, value) ->
-            name to byte(
-                if (value.isConstant) {
-                    value.constant
-                } else {
-                    indexProvider.getIndexOfReference(value.reference!!)
-                }
-            )
+            name to if (value.isConstant) {
+                value.constant
+            } else {
+                indexProvider.getIndexOfReference(value.reference!!)
+            }
         }
 
         instruction.emulate.invoke(emulator, parameters)

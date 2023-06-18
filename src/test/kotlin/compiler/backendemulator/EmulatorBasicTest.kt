@@ -6,8 +6,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertIterableEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import se.wingez.byte
-import se.wingez.bytes
 import se.wingez.compiler.backends.emulator.EmulatorInstruction
 import se.wingez.compiler.backends.emulator.emulate
 import java.io.StringReader
@@ -28,16 +26,16 @@ internal class EmulatorBasicTest {
     init {
         val i = InstructionSet()
 
-        i.createInstruction("invalid", 0u) { em, params ->
+        i.createInstruction("invalid", 0) { em, params ->
             throw EmulatorInvalidInstructionError("Invalid instruction 0")
         }
-        i.createInstruction("exit", 1u) { em, params ->
+        i.createInstruction("exit", 1) { em, params ->
             em.halt()
         }
-        i.createInstruction("print", 2u) { em, params ->
+        i.createInstruction("print", 2) { em, params ->
             em.print(em.a)
         }
-        i.createInstruction("LDA #val", 3u) { em, params ->
+        i.createInstruction("LDA #val", 3) { em, params ->
             em.a = params.getValue("val")
         }
         dummyInstructions = i
@@ -49,24 +47,9 @@ internal class EmulatorBasicTest {
         assertEquals(e.memory.size, 4)
 
         //check memory to large
-        assertThrows<EmulatorRuntimeError> { e.setAllMemory(Array<UByte>(5) { 0u }.toList()) }
+        assertThrows<EmulatorRuntimeError> { e.setAllMemory(Array(5) { 0 }.toList()) }
 
         assertThrows<EmulatorRuntimeError> { e.getMemoryAt(4) }
-    }
-
-
-    @Test
-    fun testALoopAround() {
-        val e = Emulator(dummyInstructions)
-
-        e.a = byte(255)
-        e.a = e.a.inc()
-        assertEquals(e.a, byte(0))
-
-        e.a = e.a.inc()
-        assertEquals(e.a, byte(1))
-
-
     }
 
     @Test
@@ -93,7 +76,7 @@ internal class EmulatorBasicTest {
     fun testExecutionGeneral() {
         val e = DefaultEmulator()
 
-        fun buildAndRun(vararg instructions: EmulatorInstruction): List<UByte> {
+        fun buildAndRun(vararg instructions: EmulatorInstruction): List<Int> {
 
             e.reset()
             e.clearMemory()
@@ -107,7 +90,7 @@ internal class EmulatorBasicTest {
             buildAndRun(
                 emulate(DefaultEmulator.print),
                 emulate(DefaultEmulator.exit)
-            ), bytes(0)
+            ), listOf(0)
         )
         assertIterableEquals(
             buildAndRun(
@@ -115,7 +98,7 @@ internal class EmulatorBasicTest {
                 emulate(DefaultEmulator.lda_constant, "val" to 10),
                 emulate(DefaultEmulator.print),
                 emulate(DefaultEmulator.exit)
-            ), bytes(0, 10)
+            ), listOf(0, 10)
         )
     }
 
@@ -134,8 +117,8 @@ internal class EmulatorBasicTest {
         val e = assembleLoadEmulator(program)
         e.run()
 
-        assertEquals(e.fp, byte(25))
-        assertEquals(e.sp, byte(25))
+        assertEquals(e.fp, 25)
+        assertEquals(e.sp, 25)
     }
 
     @Test
@@ -160,9 +143,9 @@ internal class EmulatorBasicTest {
     """
         val e = assembleLoadEmulator(program)
         e.run()
-        assertIterableEquals(e.outputStream, bytes(1, 2, 3))
-        assertEquals(e.fp, byte(25))
-        assertEquals(e.sp, byte(25))
+        assertIterableEquals(e.outputStream, listOf(1, 2, 3))
+        assertEquals(e.fp, 25)
+        assertEquals(e.sp, 25)
 
     }
 
@@ -182,7 +165,7 @@ internal class EmulatorBasicTest {
     """
         val e = assembleLoadEmulator(program)
         e.run()
-        assertIterableEquals(e.outputStream, bytes(5, 5))
+        assertIterableEquals(e.outputStream, listOf(5, 5))
     }
 
     @Test
@@ -236,7 +219,7 @@ internal class EmulatorBasicTest {
     """
         val e = assembleLoadEmulator(program)
         e.run()
-        assertIterableEquals(e.outputStream, bytes(1))
+        assertIterableEquals(e.outputStream, listOf(1))
     }
 
 

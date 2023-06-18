@@ -12,15 +12,15 @@ class InstructionBuilderError(message: String) : Exception(message)
 data class Instruction(
     val mnemonic: String,
 
-    val emulate: (Emulator, Map<String, UByte>) -> Unit,
-    var id: UByte = AUTO_INDEX_ASSIGMENT,
+    val emulate: (Emulator, Map<String, Int>) -> Unit,
+    var id: Int = AUTO_INDEX_ASSIGMENT,
     val group: String = "",
     var variableOrder: List<String> = emptyList(),
     var variableSizes: Map<String, Int> = emptyMap()
 ) {
     companion object {
-        const val AUTO_INDEX_ASSIGMENT: UByte = 255u
-        const val MAX_SIZE: UByte = 254u
+        const val AUTO_INDEX_ASSIGMENT: Int = -1
+        const val MAX_SIZE: Int = 254
         val MNEMONIC_DELIMITERS = listOf(" ", ",")
     }
 
@@ -53,7 +53,7 @@ data class Instruction(
         get() = 1 + variableOrder.sumOf { variableSizes.getValue(it) }
 
 
-    fun build(args: Map<String, Int> = emptyMap()): List<UByte> {
+    fun build(args: Map<String, Int> = emptyMap()): List<Int> {
         val mutableArgs = args.toMutableMap()
         val result = mutableListOf(id)
         for (variableName in variableOrder) {
@@ -70,7 +70,7 @@ data class Instruction(
             }
 
             for (i in 0 until size) {
-                result.add((value and 0xff).toUByte())
+                result.add((value and 0xff))
                 value = value shr 8
 
             }
@@ -90,15 +90,14 @@ data class Instruction(
     }
 }
 
-class InstructionSet(val maxSize: UByte = Instruction.MAX_SIZE) {
+class InstructionSet(val maxSize: Int = Instruction.MAX_SIZE) {
 
-    val instructionByIndex = mutableMapOf<UByte, Instruction>()
+    val instructionByIndex = mutableMapOf<Int, Instruction>()
 
-    fun nextVacantIndex(): UByte {
-        for (i in 0 until maxSize.toInt()) {
-            val byte = i.toUByte()
-            if (byte !in instructionByIndex)
-                return byte
+    fun nextVacantIndex(): Int {
+        for (i in 0 until maxSize) {
+            if (i !in instructionByIndex)
+                return i
         }
         throw RegisterInstructionError("Maximum number of instructions reached")
     }
@@ -118,9 +117,9 @@ class InstructionSet(val maxSize: UByte = Instruction.MAX_SIZE) {
 
     fun createInstruction(
         mnemonic: String,
-        index: UByte = Instruction.AUTO_INDEX_ASSIGMENT,
+        index: Int = Instruction.AUTO_INDEX_ASSIGMENT,
         group: String = "",
-        emulate: (Emulator, Map<String, UByte>) -> Unit
+        emulate: (Emulator, Map<String, Int>) -> Unit
     ): Instruction {
         val instr = Instruction(
             mnemonic,
@@ -136,7 +135,7 @@ class InstructionSet(val maxSize: UByte = Instruction.MAX_SIZE) {
         return instructionByIndex.values
     }
 
-    fun instructionFromID(id: UByte): Instruction {
+    fun instructionFromID(id: Int): Instruction {
         if (id !in instructionByIndex)
             throw InstructionBuilderError(id.toString())
         return instructionByIndex.getValue(id)
@@ -162,11 +161,11 @@ class InstructionSet(val maxSize: UByte = Instruction.MAX_SIZE) {
         return assembler.getResultingInstructions()
     }
 
-    fun disassemble(code: List<UByte>): List<String> {
+    fun disassemble(code: List<Int>): List<String> {
         return disassembleWithIndex(code).entries.sortedBy { it.key }.map { it.value }
     }
 
-    fun disassembleWithIndex(code: List<UByte>): Map<Int, String> {
+    fun disassembleWithIndex(code: List<Int>): Map<Int, String> {
         var index = 0
         val result = mutableMapOf<Int, String>()
 

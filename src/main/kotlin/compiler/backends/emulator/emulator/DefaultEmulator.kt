@@ -1,7 +1,6 @@
 package compiler.backends.emulator.emulator
 
 import compiler.backends.emulator.instructions.InstructionSet
-import se.wingez.byte
 import se.wingez.compiler.backends.emulator.EmulatorInstruction
 
 class DefaultEmulator : Emulator(instructionSet) {
@@ -40,51 +39,52 @@ class DefaultEmulator : Emulator(instructionSet) {
             em.a = em.getMemoryAt(em.fp.toInt() + offset.toByte().toInt())
         }
 
-        val lda_at_a_offset = instructionSet.createInstruction("LDA [A #offset]", group = LOAD_STORE) {em, params ->
+        val lda_at_a_offset = instructionSet.createInstruction("LDA [A #offset]", group = LOAD_STORE) { em, params ->
             val offset = params.getValue("offset")
             em.a = em.getMemoryAt(em.a + offset)
         }
-        val lda_fp_offset = instructionSet.createInstruction("LDA FP #offset", group = LOAD_STORE) {em, params ->
+        val lda_fp_offset = instructionSet.createInstruction("LDA FP #offset", group = LOAD_STORE) { em, params ->
             val offset = params.getValue("offset")
-            em.a = (em.fp + offset).toUByte()
+            em.a = (em.fp + offset)
         }
 
-        val lda_sp_offset = instructionSet.createInstruction("LDA SP #offset", group = LOAD_STORE) {em, params ->
+        val lda_sp_offset = instructionSet.createInstruction("LDA SP #offset", group = LOAD_STORE) { em, params ->
             val offset = params.getValue("offset")
-            em.a = (em.sp + offset).toUByte()
+            em.a = (em.sp + offset)
         }
 
-        val lda_at_sp_offset = instructionSet.createInstruction("LDA [SP #offset]", group = LOAD_STORE) {em, params ->
+        val lda_at_sp_offset = instructionSet.createInstruction("LDA [SP #offset]", group = LOAD_STORE) { em, params ->
             val offset = params.getValue("offset")
-            em.a = em.getMemoryAt((em.sp + offset).toInt())
+            em.a = em.getMemoryAt((em.sp + offset))
         }
 
-        val sta_fp_offset = instructionSet.createInstruction("STA [FP #offset]", group = LOAD_STORE) {em, params ->
+        val sta_fp_offset = instructionSet.createInstruction("STA [FP #offset]", group = LOAD_STORE) { em, params ->
             val offset = params.getValue("offset")
-            em.setMemoryAt(em.fp.toInt() + offset.toInt(), em.a)
+            em.setMemoryAt(em.fp + offset, em.a)
         }
-        val sta_sp_offset = instructionSet.createInstruction("STA [SP #offset]", group = LOAD_STORE) {em, params ->
+        val sta_sp_offset = instructionSet.createInstruction("STA [SP #offset]", group = LOAD_STORE) { em, params ->
             val offset = params.getValue("offset")
-            em.setMemoryAt(em.sp.toInt() + offset.toInt(), em.a)
+            em.setMemoryAt(em.sp + offset, em.a)
         }
-        val sta_at_sp_offset = instructionSet.createInstruction("STA [[SP #offset]]", group = LOAD_STORE) {em, params ->
-            val offset = params.getValue("offset")
-            val addr = em.getMemoryAt((em.sp + offset).toInt())
-            em.setMemoryAt(addr.toInt(), em.a)
-        }
+        val sta_at_sp_offset =
+            instructionSet.createInstruction("STA [[SP #offset]]", group = LOAD_STORE) { em, params ->
+                val offset = params.getValue("offset")
+                val addr = em.getMemoryAt((em.sp + offset))
+                em.setMemoryAt(addr, em.a)
+            }
 
 
-        val ldsp = instructionSet.createInstruction("LDSP #val", group = STACK) {em, params ->
+        val ldsp = instructionSet.createInstruction("LDSP #val", group = STACK) { em, params ->
             em.sp = params.getValue("val")
         }
-        val ldfp = instructionSet.createInstruction("LDFP #val", group = STACK) {em, params ->
+        val ldfp = instructionSet.createInstruction("LDFP #val", group = STACK) { em, params ->
             em.fp = params.getValue("val")
         }
         val ldfp_sp = instructionSet.createInstruction("LDFP SP", group = STACK) { em, _ ->
             em.fp = em.sp
         }
 
-        val push = instructionSet.createInstruction("PUSH #val", group = STACK) {em, params ->
+        val push = instructionSet.createInstruction("PUSH #val", group = STACK) { em, params ->
             val value = params.getValue("val")
             em.push(value)
         }
@@ -96,7 +96,7 @@ class DefaultEmulator : Emulator(instructionSet) {
             em.push(em.sp)
         }
 
-        val push_fp_offset = instructionSet.createInstruction("PUSH [FP #offset]", group = STACK) {em, params ->
+        val push_fp_offset = instructionSet.createInstruction("PUSH [FP #offset]", group = STACK) { em, params ->
             val offset = params.getValue("offset")
             em.push(em.getMemoryAt(em.fp + offset))
         }
@@ -106,106 +106,105 @@ class DefaultEmulator : Emulator(instructionSet) {
         }
 
         val pop_adda = instructionSet.createInstruction("POP ADDA", group = STACK) { em, _ ->
-            em.a = byte(em.a + em.pop())
+            em.a = em.a + em.pop()
         }
 
         val pop_suba = instructionSet.createInstruction("POP SUBA", group = STACK) { em, _ ->
-            em.a = byte(em.a - em.pop())
+            em.a = em.a - em.pop()
         }
 
-        val pop_fp_offset = instructionSet.createInstruction("POP [FP #offset]", group = STACK) {em, params ->
+        val pop_fp_offset = instructionSet.createInstruction("POP [FP #offset]", group = STACK) { em, params ->
             val offset = params.getValue("offset")
             val value = em.pop()
             em.setMemoryAt(em.fp + offset, value)
         }
 
-        val pop_at_a_offset = instructionSet.createInstruction("POP [A #offset]", group = STACK) {em, params ->
+        val pop_at_a_offset = instructionSet.createInstruction("POP [A #offset]", group = STACK) { em, params ->
             val offset = params.getValue("offset")
             val value = em.pop()
             em.setMemoryAt(em.a + offset, value)
         }
 
-        val sub_sp = instructionSet.createInstruction("SUBSP #val", group = STACK) {em, params ->
+        val sub_sp = instructionSet.createInstruction("SUBSP #val", group = STACK) { em, params ->
             val value = params.getValue("val")
-            em.sp = (em.sp - value).toUByte()
+            em.sp = em.sp - value
         }
 
         val sub_sp_a = instructionSet.createInstruction("SUBSP A", group = STACK) { em, _ ->
-            em.sp = (em.sp - em.a).toUByte()
+            em.sp = em.sp - em.a
         }
 
-        val add_sp = instructionSet.createInstruction("ADDSP #val", group = STACK) {em, params ->
+        val add_sp = instructionSet.createInstruction("ADDSP #val", group = STACK) { em, params ->
             val value = params.getValue("val")
-            em.sp = (em.sp + value).toUByte()
+            em.sp = em.sp + value
         }
-        val addsp_at_sp_offset = instructionSet.createInstruction("ADDSP [SP #offset]", group = STACK) {em, params ->
+        val addsp_at_sp_offset = instructionSet.createInstruction("ADDSP [SP #offset]", group = STACK) { em, params ->
             val offset = params.getValue("offset")
-            val toAdd = em.getMemoryAt(em.sp+offset)
-            em.sp = (em.sp + toAdd).toUByte()
+            val toAdd = em.getMemoryAt(em.sp + offset)
+            em.sp = em.sp + toAdd
         }
 
-        val call_addr = instructionSet.createInstruction("CALL #addr", group = FLOW_CONTROL) {em, params ->
+        val call_addr = instructionSet.createInstruction("CALL #addr", group = FLOW_CONTROL) { em, params ->
             val addr = params.getValue("addr")
             em.pushFrame()
             em.fp = em.sp
             em.pc = addr
         }
 
-        val ret = instructionSet.createInstruction("RET", group = FLOW_CONTROL) {em, params ->
+        val ret = instructionSet.createInstruction("RET", group = FLOW_CONTROL) { em, params ->
             em.sp = em.fp
             em.restoreFrame()
         }
 
-        val jump = instructionSet.createInstruction("JMP #addr", group = FLOW_CONTROL) {em, params ->
+        val jump = instructionSet.createInstruction("JMP #addr", group = FLOW_CONTROL) { em, params ->
             val addr = params.getValue("addr")
             em.pc = addr
         }
 
-        val jump_zero = instructionSet.createInstruction("JMPZ #addr", group = FLOW_CONTROL) {em, params ->
+        val jump_zero = instructionSet.createInstruction("JMPZ #addr", group = FLOW_CONTROL) { em, params ->
             val addr = params.getValue("addr")
             if (em.zeroFlag) {
                 em.pc = addr
             }
         }
 
-        val branch = instructionSet.createInstruction("bra #offset", group = FLOW_CONTROL) {em, params ->
+        val branch = instructionSet.createInstruction("bra #offset", group = FLOW_CONTROL) { em, params ->
             val offset = params.getValue("offset")
-            em.pc = byte(em.pc + offset)
+            em.pc = em.pc + offset
         }
 
-        val branch_zero = instructionSet.createInstruction("braz #offset", group = FLOW_CONTROL) {em, params ->
+        val branch_zero = instructionSet.createInstruction("braz #offset", group = FLOW_CONTROL) { em, params ->
             val offset = params.getValue("offset")
             if (em.zeroFlag) {
-                em.pc = byte(em.pc + offset)
+                em.pc = em.pc + offset
             }
         }
 
-
-        val testa = instructionSet.createInstruction("TSTA", group = FLOW_CONTROL) {em, params ->
-            em.zeroFlag = em.a == byte(0)
+        val testa = instructionSet.createInstruction("TSTA", group = FLOW_CONTROL) { em, params ->
+            em.zeroFlag = em.a == 0
         }
 
-        val test_pop = instructionSet.createInstruction("TST POP", group = FLOW_CONTROL) {em, params ->
+        val test_pop = instructionSet.createInstruction("TST POP", group = FLOW_CONTROL) { em, params ->
             val value = em.pop()
-            em.zeroFlag = value == byte(0)
+            em.zeroFlag = value == 0
         }
 
-        val adda = instructionSet.createInstruction("ADDA #val", group = ARITHMETIC) {em, params ->
+        val adda = instructionSet.createInstruction("ADDA #val", group = ARITHMETIC) { em, params ->
             val value = params.getValue("val")
-            em.a = (em.a + value).toUByte()
+            em.a = em.a + value
         }
 
-        val adda_sp = instructionSet.createInstruction("ADDA [SP #offset]", group = ARITHMETIC) {em, params ->
+        val adda_sp = instructionSet.createInstruction("ADDA [SP #offset]", group = ARITHMETIC) { em, params ->
             val offset = params.getValue("offset")
-            em.a = (em.a + em.getMemoryAt(em.sp + offset)).toUByte()
+            em.a = em.a + em.getMemoryAt(em.sp + offset)
         }
-        val suba_sp = instructionSet.createInstruction("SUBA SP #offset", group = ARITHMETIC) {em, params ->
+        val suba_sp = instructionSet.createInstruction("SUBA SP #offset", group = ARITHMETIC) { em, params ->
             val offset = params.getValue("offset")
-            em.a = (em.a - em.getMemoryAt(em.sp + offset)).toUByte()
+            em.a = em.a - em.getMemoryAt(em.sp + offset)
         }
 
         val memcpy_stack_to_frame =
-            instructionSet.createInstruction("CPY [SP #spoffset] [FP #fpoffset]", group = LOAD_STORE) {em, params ->
+            instructionSet.createInstruction("CPY [SP #spoffset] [FP #fpoffset]", group = LOAD_STORE) { em, params ->
                 val fromSPoffset = params.getValue("spoffset")
                 val toFPoffset = params.getValue("fpoffset")
 
