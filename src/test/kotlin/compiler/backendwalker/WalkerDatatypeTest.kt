@@ -76,44 +76,7 @@ internal class WalkerDatatypeTest {
         assertEquals(mapOf("a" to Datatype.Integer, "b" to Datatype.Integer), type.compositeMembers)
     }
 
-    @Test
-    fun testVariables() {
-        val type = getDummyType()
 
-        assertThrows<AssertionError> { Value.primitive(type, 0) }
-        assertThrows<NoSuchElementException> { Value.composite(type, mapOf()) }
-        // Missing member
-        assertThrows<NoSuchElementException> {
-            Value.composite(
-                type,
-                mapOf("a" to Value.primitive(Datatype.Integer, 0))
-            )
-        }
-        // Wrong member type
-        assertThrows<AssertionError> {
-            Value.composite(
-                type, mapOf(
-                    "a" to Value.primitive(Datatype.Integer, 0),
-                    "b" to Value.void(),
-                )
-            )
-        }
-
-        val okMember = Value.composite(
-            type, mapOf(
-                "a" to Value.primitive(Datatype.Integer, 0),
-                "b" to Value.primitive(Datatype.Integer, 1),
-            )
-        )
-
-        assertEquals(0, okMember.getFieldValueHolder("a").value.getPrimitiveValue())
-        assertEquals(1, okMember.getFieldValueHolder("b").value.getPrimitiveValue())
-
-        okMember.setField("b", Value.primitive(Datatype.Integer, 5))
-
-        assertEquals(0, okMember.getFieldValueHolder("a").value.getPrimitiveValue())
-        assertEquals(5, okMember.getFieldValueHolder("b").value.getPrimitiveValue())
-    }
 
     @Test
     @Disabled

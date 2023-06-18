@@ -11,13 +11,29 @@ class Value private constructor(
     val datatype: Datatype,
     private val primitiveValue: Int = 0,
     private val pointerTargetHolder: ValueHolder? = null,
+    private val arrayValueHolders: List<ValueHolder>? = null
 ) {
 
     fun isPrimitive() = datatype.isPrimitive()
+    fun isArray() = datatype.isArray()
 
     fun getPrimitiveValue(): Int {
         assert(isPrimitive())
         return primitiveValue
+    }
+
+    val arraySize: Int
+        get() {
+            check(isArray())
+            return arrayValueHolders!!.size
+        }
+
+    fun arrayHolderAt(index: Int): ValueHolder {
+        check(isArray())
+        if (index !in arrayValueHolders!!.indices) {
+            throw WalkerException("index outside of array")
+        }
+        return arrayValueHolders[index]
     }
 
     fun isPointer() = datatype.isPointer()
@@ -47,6 +63,11 @@ class Value private constructor(
         fun pointer(pointTo: ValueHolder): Value {
             return Value(Datatype.Pointer(pointTo.type), 0, pointTo)
         }
+
+        fun array(type: Datatype, holders: List<ValueHolder>): Value {
+            check(type.isArray())
+            return Value(type, arrayValueHolders = holders)
+        }
     }
 }
 
@@ -67,6 +88,9 @@ fun createDefaultValue(datatype: Datatype): Value {
         val holder = ValueHolder(datatype.pointerType)
         holder.value = createDefaultValue(datatype.pointerType)
         return Value.pointer(holder)
+    }
+    if (datatype.isArray()){
+        return Value.array(datatype, emptyList())
     }
 
     throw WalkerException("Cannot instanciate empty variable of type $datatype")
@@ -145,17 +169,22 @@ fun createTypeFromNode(
 
 fun createFromString(string: String): Value {
 
-    val arrayType = Datatype.Array(Datatype.Integer)
-    val stringLength = string.length
+    val arrayContentType = Datatype.Integer
 
-    val resultValue = Value.array(arrayType, stringLength)
+    val arrayType = Datatype.Array(arrayContentType)
 
-    string.forEachIndexed { index, char ->
-        val toAssign = Value.primitive(Datatype.Integer, char.code)
-        resultValue.arrayAccess(index).value = toAssign
+
+    val arrayValueHolders = string.map { char ->
+
+        ValueHolder(arrayContentType)
+            .apply {
+                value = Value.primitive(arrayContentType, char.code)
+            }
     }
 
-    val holder = ConstantValueHolder(resultValue)
+    val arrayHolder = ValueHolder(arrayType)
+    arrayHolder.value = Value.array(arrayType, arrayValueHolders)
 
-    return Value.pointer(holder)
+    return Value.pointer(arrayHolder)
+
 }

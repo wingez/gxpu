@@ -35,11 +35,11 @@ class BuiltInPrintString : Function(
 
         val array = values[0].derefPointer().value
 
-        val arraySize = array.getFieldValueHolder("size").value.getPrimitiveValue()
+        val arraySize = array.arraySize
 
         var result = ""
         for (i in 0 until arraySize) {
-            result += Char(array.arrayAccess(i).value.getPrimitiveValue())
+            result += Char(array.arrayHolderAt(i).value.getPrimitiveValue())
         }
         state.output.result.add(result)
         return Value.void()
@@ -52,7 +52,7 @@ class BuiltInArraySize : Function(
     override fun execute(values: List<Value>, state: WalkerState): Value {
         val array = values[0].derefPointer().value
 
-        val arraySize = array.getFieldValueHolder("size").value.getPrimitiveValue()
+        val arraySize = array.arraySize
         return Value.primitive(Datatype.Integer, arraySize)
     }
 }
@@ -68,7 +68,7 @@ class BuiltInArrayRead : Function(
 
         val index = values[1].getPrimitiveValue()
 
-        return array.arrayAccess(index).value
+        return array.arrayHolderAt(index).value
     }
 }
 
@@ -85,7 +85,7 @@ class BuiltInArrayWrite : Function(
 
         val value = values[2]
 
-        array.arrayAccess(index).value = value
+        array.arrayHolderAt(index).value = value
 
         return Value.void()
     }
@@ -132,7 +132,15 @@ class BuiltInCreateArray : Function(
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
         val size = values[0].getPrimitiveValue()
-        val array = Value.array(Datatype.Array(Datatype.Integer), size)
+
+        val holders = (0 until size).map {
+            ValueHolder(Datatype.Integer).apply {
+                value = Value.primitive(Datatype.Integer, 0)
+            }
+        }
+
+
+        val array = Value.array(Datatype.Array(Datatype.Integer), holders)
 
         val holder = ValueHolder(array.datatype)
         holder.value = array
