@@ -118,7 +118,7 @@ class FunctionBuilder(
         assert(expr.type == Datatype.Boolean)
 
         getValue(expr, WhereToPutResult.A, this)
-        addInstruction(emulate(DefaultEmulator.testa))
+        addInstruction(emulate(DefaultEmulator.test_z_a))
         if (!jumpOn) {
             addInstruction(emulate(DefaultEmulator.jump_zero, "addr" to Reference(signature, label)))
         } else {

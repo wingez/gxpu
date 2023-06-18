@@ -29,7 +29,7 @@ open class Emulator(
     }
 
     val outputStream = mutableListOf<Int>()
-    val memory = Array<Int>(memorySize) { 0 }
+    val memory = Array(memorySize) { 0 }
 
     private val frameStack = mutableListOf<Frame>()
 
@@ -39,14 +39,14 @@ open class Emulator(
     var pc: Int = 0
     var fp: Int = 0
     var sp: Int = 0
-    var zeroFlag: Boolean = false
+    var flag: Boolean = false
     var shouldHalt: Boolean = false
     fun reset() {
         a = 0
         pc = 0
         fp = 0
         sp = 0
-        zeroFlag = false
+        flag = false
         shouldHalt = false
     }
 

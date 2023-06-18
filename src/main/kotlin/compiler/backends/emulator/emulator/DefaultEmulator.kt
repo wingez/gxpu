@@ -163,7 +163,7 @@ class DefaultEmulator : Emulator(instructionSet) {
 
         val jump_zero = instructionSet.createInstruction("JMPZ #addr", group = FLOW_CONTROL) { em, params ->
             val addr = params.getValue("addr")
-            if (em.zeroFlag) {
+            if (em.flag) {
                 em.pc = addr
             }
         }
@@ -175,18 +175,28 @@ class DefaultEmulator : Emulator(instructionSet) {
 
         val branch_zero = instructionSet.createInstruction("braz #offset", group = FLOW_CONTROL) { em, params ->
             val offset = params.getValue("offset")
-            if (em.zeroFlag) {
+            if (em.flag) {
                 em.pc = em.pc + offset
             }
         }
 
-        val testa = instructionSet.createInstruction("TSTA", group = FLOW_CONTROL) { em, params ->
-            em.zeroFlag = em.a == 0
+        val test_z_a = instructionSet.createInstruction("TSTZ A", group = FLOW_CONTROL) { em, params ->
+            em.flag = em.a == 0
+        }
+        val test_nz_a = instructionSet.createInstruction("TSTNZ A", group = FLOW_CONTROL) { em, params ->
+            em.flag = em.a != 0
         }
 
-        val test_pop = instructionSet.createInstruction("TST POP", group = FLOW_CONTROL) { em, params ->
+        val test_neg_a = instructionSet.createInstruction("TSTN A", group = FLOW_CONTROL) { em, params ->
+            em.flag = em.a < 0
+        }
+        val test_nonneg_a = instructionSet.createInstruction("TSTNN A", group = FLOW_CONTROL) { em, params ->
+            em.flag = em.a >= 0
+        }
+
+        val test_z_pop = instructionSet.createInstruction("TSTZ POP", group = FLOW_CONTROL) { em, params ->
             val value = em.pop()
-            em.zeroFlag = value == 0
+            em.flag = value == 0
         }
 
         val log_inv_a = instructionSet.createInstruction("LINV A", group = ARITHMETIC) { em, _ ->

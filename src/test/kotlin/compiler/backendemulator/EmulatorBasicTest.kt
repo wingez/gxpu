@@ -184,34 +184,34 @@ internal class EmulatorBasicTest {
     fun testZeroFlag() {
         val program = """
     lda #1
-    tsta
+    tstz a
     exit
     """
         var e = assembleLoadEmulator(program)
         e.run()
-        assertEquals(e.zeroFlag, false)
+        assertEquals(e.flag, false)
 
         e = assembleLoadEmulator(
             """
     lda #0
-    tsta
+    tstz a
     exit
         """
         )
         e.run()
-        assertEquals(e.zeroFlag, true)
+        assertEquals(e.flag, true)
     }
 
     @Test
     fun testJumpIfZero() {
         val program = """
     lda #1
-    tsta
+    tstz a
     jmpz #jumphere
     out
     :jumphere
     lda #0
-    tsta
+    tstz a
     jmpz #exit
     out
     :exit
