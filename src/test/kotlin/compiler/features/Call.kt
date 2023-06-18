@@ -5,7 +5,7 @@ import compiler.features.runProgramCheckOutput
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
 
-class CompileRunCall {
+class Call {
 
 
     @ParameterizedTest

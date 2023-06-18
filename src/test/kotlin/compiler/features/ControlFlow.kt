@@ -11,7 +11,7 @@ import org.junit.jupiter.params.provider.EnumSource
 import se.wingez.compiler.backends.astwalker.WalkerException
 
 
-class CompileRunTest {
+class ControlFlow {
     @ParameterizedTest
     @EnumSource(CompilerBackend::class)
     fun testPrintConstant(compiler: CompilerBackend) {

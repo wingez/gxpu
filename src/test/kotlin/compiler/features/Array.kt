@@ -1,13 +1,11 @@
-package se.wingez.compiler.features.programs
+package compiler.features
 
-import compiler.features.CompilerBackend
-import compiler.features.runProgramCheckOutput
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
 
 
-class ArrayTests {
+class Array {
 
     @ParameterizedTest
     @EnumSource(CompilerBackend::class)
