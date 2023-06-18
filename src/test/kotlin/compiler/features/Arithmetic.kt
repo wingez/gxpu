@@ -5,7 +5,7 @@ import compiler.features.runBodyCheckOutput
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
 
-class Arithmetic {
+class CompileRunArithmetic {
 
 
     @ParameterizedTest

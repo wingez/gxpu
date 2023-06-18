@@ -9,20 +9,18 @@ class Array {
 
     @ParameterizedTest
     @EnumSource(CompilerBackend::class)
-    @Disabled
     fun testPrintArray(compiler: CompilerBackend) {
         val program = """
-          def printArray(arr:byte[]):
-            counter:byte=0
-            while (counter) != (arr -> size):
+          def printArray(arr:*int[]):
+            val counter=0
+            while (counter) != arr.size():
               print(arr[counter])
               counter = counter+1
             
             
             
           def main():
-            arr:byte[]
-            arr = createArray(3)
+            val arr:*byte[] = createArray(3)
             arr[0]=5
             arr[1]=10
             arr[2]=15
@@ -34,14 +32,13 @@ class Array {
 
     @ParameterizedTest
     @EnumSource(CompilerBackend::class)
-    @Disabled
     fun testEditArrayInFunction(compiler: CompilerBackend) {
         val program = """
-          def editArray(arr:byte[]):
+          def editArray(arr:*int[]):
             arr[0]=100
             
           def main():
-            arr:byte[]
+            val arr:*int[]
             arr = createArray(3)
             arr[0]=5
             
