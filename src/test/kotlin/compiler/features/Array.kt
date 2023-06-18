@@ -1,6 +1,5 @@
 package compiler.features
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
 
@@ -28,6 +27,23 @@ class Array {
           print(arr[0])
     """
         runBodyCheckOutput(compiler, program, 0)
+    }
+
+    @ParameterizedTest
+    @EnumSource
+    fun testArrayWrite(compiler: CompilerBackend){
+        val program = """
+          val arr:*int[] = createArray(3)
+          
+          print(arr[0])
+          print(arr[1])
+          arr[0] = 10
+          print(arr[0])
+          print(arr[1])
+          
+          
+    """
+        runBodyCheckOutput(compiler, program, 0,0,10,0)
     }
 
 

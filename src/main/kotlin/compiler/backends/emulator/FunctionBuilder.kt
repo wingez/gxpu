@@ -55,16 +55,16 @@ class FunctionBuilder(
     }
 
     private fun handleExecute(instr: Execute) {
-        //TODO: handle pop result
-
         val expr = instr.expression
 
         if (expr !is CallExpression) throw NotImplementedError()
 
-        handleCall(expr, WhereToPutResult.TopStack, this)
 
         if (expr.type != Datatype.Void) {
+            handleCall(expr, WhereToPutResult.TopStack, this)
             addInstruction(emulate(DefaultEmulator.sub_sp, "val" to datatypeLayoutProvider.sizeOf(expr.type)))
+        } else {
+            handleCall(expr, WhereToPutResult.A, this)
         }
     }
 

@@ -37,6 +37,13 @@ private val BuiltInSignatures = object {
         .addParameter(Datatype.ArrayPointer(Datatype.Integer))
         .addParameter(Datatype.Integer)
         .getSignature()
+    val arrayWrite = SignatureBuilder(OperatorBuiltIns.ArrayWrite)
+        .setFunctionType(FunctionType.Operator)
+        .setReturnType(Datatype.Void)
+        .addParameter(Datatype.ArrayPointer(Datatype.Integer))
+        .addParameter(Datatype.Integer)
+        .addParameter(Datatype.Integer)
+        .getSignature()
 }
 val builtinInlinedSignatures = listOf(
     BuiltInSignatures.print,
@@ -44,6 +51,7 @@ val builtinInlinedSignatures = listOf(
     BuiltInSignatures.arraySize,
     BuiltInSignatures.createArray,
     BuiltInSignatures.arrayRead,
+    BuiltInSignatures.arrayWrite,
 )
 
 
@@ -183,12 +191,18 @@ private fun handleGenericCall(expr: CallExpression, where: WhereToPutResult, con
     }
 
     // Pop value from stack if required
+
     if (where == WhereToPutResult.A) {
         val retType = expr.function.returnType
-        if (retType != Datatype.Integer && retType != Datatype.Boolean) {
-            throw AssertionError(expr.function.returnType.toString())
+
+        if (retType != Datatype.Void) {
+
+            if (retType != Datatype.Integer && retType != Datatype.Boolean) {
+                TODO(expr.function.returnType.toString())
+            }
+            context.addInstruction(emulate(DefaultEmulator.popa))
         }
-        context.addInstruction(emulate(DefaultEmulator.popa))
+
     }
 }
 
@@ -242,11 +256,11 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
             // TODO: mul type size
             getValue(expr.parameters[1], WhereToPutResult.A, context)
 
-            context.addInstruction(emulate(DefaultEmulator.popa))
+            context.addInstruction(emulate(DefaultEmulator.pop_adda))
             // Add one to get adapt to size location
             context.addInstruction(emulate(DefaultEmulator.adda, "val" to 1))
             // Deref
-            context.addInstruction(emulate(DefaultEmulator.lda_at_a_offset,"offset" to 0))
+            context.addInstruction(emulate(DefaultEmulator.lda_at_a_offset, "offset" to 0))
 
             when (where) {
                 WhereToPutResult.A -> {} //Done
@@ -255,6 +269,25 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
                 }
 
                 else -> TODO()
+            }
+        }
+
+        BuiltInSignatures.arrayWrite -> {
+            // Value
+            getValue(expr.parameters[2], WhereToPutResult.TopStack, context)
+            // Array pointer
+            getValue(expr.parameters[0], WhereToPutResult.TopStack, context)
+            // index
+            // TODO: type size
+            getValue(expr.parameters[1], WhereToPutResult.A, context)
+
+            context.addInstruction(emulate(DefaultEmulator.pop_adda))
+
+            // add 1 to since array size is stored at index 1
+            context.addInstruction(emulate(DefaultEmulator.pop_at_a_offset, "offset" to 1))
+
+            if (where != WhereToPutResult.A) {
+                TODO(where.toString())
             }
         }
 
