@@ -8,6 +8,33 @@ import org.junit.jupiter.params.provider.EnumSource
 class Array {
 
     @ParameterizedTest
+    @EnumSource
+    fun testCreateArrayAndSize(compiler: CompilerBackend){
+        val program = """
+          val arr:*int[] = createArray(3)
+          
+          print(arr.size())
+    """
+        runBodyCheckOutput(compiler, program, 3)
+    }
+
+
+    @ParameterizedTest
+    @EnumSource
+    fun testArrayRead(compiler: CompilerBackend){
+        val program = """
+          val arr:*int[] = createArray(3)
+          
+          print(arr[0])
+    """
+        runBodyCheckOutput(compiler, program, 0)
+    }
+
+
+
+
+
+    @ParameterizedTest
     @EnumSource(CompilerBackend::class)
     fun testPrintArray(compiler: CompilerBackend) {
         val program = """

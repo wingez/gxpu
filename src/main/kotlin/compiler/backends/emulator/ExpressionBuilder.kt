@@ -1,8 +1,10 @@
 package se.wingez.compiler.backends.emulator
 
+import ast.expression.OperatorBuiltIns
 import compiler.backends.emulator.*
 import compiler.backends.emulator.emulator.DefaultEmulator
 import compiler.frontend.Datatype
+import se.wingez.ast.FunctionType
 import se.wingez.compiler.frontend.*
 
 interface FunctionContext : CodeGenerator {
@@ -19,11 +21,29 @@ private val BuiltInSignatures = object {
         .addParameter(Datatype.Integer)
         .setReturnType(Datatype.Boolean)
         .getSignature()
-
+    val arraySize = SignatureBuilder("size")
+        .setFunctionType(FunctionType.Instance)
+        .setReturnType(Datatype.Integer)
+        .addParameter(Datatype.ArrayPointer(Datatype.Integer))
+        .getSignature()
+    val createArray = SignatureBuilder("createArray")
+        .setFunctionType(FunctionType.Normal)
+        .setReturnType(Datatype.ArrayPointer(Datatype.Integer))
+        .addParameter(Datatype.Integer)
+        .getSignature()
+    val arrayRead = SignatureBuilder(OperatorBuiltIns.ArrayRead)
+        .setFunctionType(FunctionType.Operator)
+        .setReturnType(Datatype.Integer)
+        .addParameter(Datatype.ArrayPointer(Datatype.Integer))
+        .addParameter(Datatype.Integer)
+        .getSignature()
 }
 val builtinInlinedSignatures = listOf(
     BuiltInSignatures.print,
     BuiltInSignatures.bool,
+    BuiltInSignatures.arraySize,
+    BuiltInSignatures.createArray,
+    BuiltInSignatures.arrayRead,
 )
 
 
@@ -183,6 +203,59 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
         BuiltInSignatures.bool -> {
             // Do nothing in this case. Conversation is implicit
             getValue(expr.parameters.first(), where, context)
+        }
+
+
+        BuiltInSignatures.arraySize -> {
+            getValue(expr.parameters.first(), WhereToPutResult.A, context)
+            context.addInstruction(emulate(DefaultEmulator.lda_at_a_offset, "offset" to 0))
+
+            when (where) {
+                WhereToPutResult.A -> {} //Done
+                WhereToPutResult.TopStack -> {
+                    context.addInstruction(emulate(DefaultEmulator.pusha))
+                }
+
+                else -> TODO()
+            }
+        }
+
+        BuiltInSignatures.createArray -> {
+            getValue(expr.parameters.first(), WhereToPutResult.TopStack, context)
+            context.addInstruction(emulate(DefaultEmulator.lda_sp_offset, "offset" to -1))
+            context.addInstruction(emulate(DefaultEmulator.addsp_at_sp_offset, "offset" to -1))
+
+            when (where) {
+                WhereToPutResult.A -> {} //Done
+                WhereToPutResult.TopStack -> {
+                    context.addInstruction(emulate(DefaultEmulator.pusha))
+                }
+
+                else -> TODO()
+            }
+        }
+
+        BuiltInSignatures.arrayRead -> {
+            // Array pointeraddress
+            getValue(expr.parameters[0], WhereToPutResult.TopStack, context)
+            // Array offset
+            // TODO: mul type size
+            getValue(expr.parameters[1], WhereToPutResult.A, context)
+
+            context.addInstruction(emulate(DefaultEmulator.popa))
+            // Add one to get adapt to size location
+            context.addInstruction(emulate(DefaultEmulator.adda, "val" to 1))
+            // Deref
+            context.addInstruction(emulate(DefaultEmulator.lda_at_a_offset,"offset" to 0))
+
+            when (where) {
+                WhereToPutResult.A -> {} //Done
+                WhereToPutResult.TopStack -> {
+                    context.addInstruction(emulate(DefaultEmulator.pusha))
+                }
+
+                else -> TODO()
+            }
         }
 
         else -> {

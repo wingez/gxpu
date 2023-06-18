@@ -73,7 +73,7 @@ class DummyBuiltInProvider(
             }
         }
 
-        throw AssertionError()
+        throw AssertionError("No function matching: $name$parameterTypes")
     }
 }
 
@@ -454,5 +454,43 @@ class CompilerCompareWithAssembly {
         """
 
         programShouldMatchAssembled(body, expected)
+    }
+
+    @Test
+    fun createArray(){
+        val expected = """
+          ADDSP #1
+          
+          PUSH #5
+          LDA SP #-1
+          ADDSP [SP #-1]
+          PUSHA 
+          POP [FP #0]
+          ret
+        """
+        val body = """
+          val i = createArray(5)
+        """
+
+        bodyShouldMatchAssembled(body, expected)
+    }
+
+    @Test
+    fun readArray(){
+        val expected = """
+          ADDSP #1
+          
+          PUSH #5
+          LDA SP #-1
+          ADDSP [SP #-1]
+          PUSHA 
+          POP [FP #0]
+          ret
+        """
+        val body = """
+          val i = createArray(5)
+        """
+
+        bodyShouldMatchAssembled(body, expected)
     }
 }

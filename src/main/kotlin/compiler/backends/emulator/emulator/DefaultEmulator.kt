@@ -48,7 +48,12 @@ class DefaultEmulator : Emulator(instructionSet) {
             val offset = params.getValue("offset")
             em.a = (em.fp + offset).toUByte()
         }
-        
+
+        val lda_sp_offset = instructionSet.createInstruction("LDA SP #offset", group = LOAD_STORE) {em, params ->
+            val offset = params.getValue("offset")
+            em.a = (em.sp + offset).toUByte()
+        }
+
         val lda_at_sp_offset = instructionSet.createInstruction("LDA [SP #offset]", group = LOAD_STORE) {em, params ->
             val offset = params.getValue("offset")
             em.a = em.getMemoryAt((em.sp + offset).toInt())
@@ -132,6 +137,11 @@ class DefaultEmulator : Emulator(instructionSet) {
         val add_sp = instructionSet.createInstruction("ADDSP #val", group = STACK) {em, params ->
             val value = params.getValue("val")
             em.sp = (em.sp + value).toUByte()
+        }
+        val addsp_at_sp_offset = instructionSet.createInstruction("ADDSP [SP #offset]", group = STACK) {em, params ->
+            val offset = params.getValue("offset")
+            val toAdd = em.getMemoryAt(em.sp+offset)
+            em.sp = (em.sp + toAdd).toUByte()
         }
 
         val call_addr = instructionSet.createInstruction("CALL #addr", group = FLOW_CONTROL) {em, params ->
