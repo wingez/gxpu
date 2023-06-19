@@ -3,6 +3,7 @@ package se.wingez.compiler.features.programs
 import compiler.features.CompilerBackend
 import compiler.features.runProgramCheckOutput
 import org.junit.jupiter.api.Assumptions
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
 
@@ -10,10 +11,9 @@ class Strings {
 
     @ParameterizedTest
     @EnumSource
-    fun testStringCopy(compiler:CompilerBackend) {
+    fun testStringCopy(compiler: CompilerBackend) {
 
-        Assumptions.assumeTrue(compiler!=CompilerBackend.Emulator)
-
+        Assumptions.assumeTrue(compiler != CompilerBackend.Emulator)
 
         val program = """
           def main():
@@ -63,7 +63,7 @@ class Strings {
             
             result = createArray(max_size)
             
-            while value>0:
+            while bool(value):
               result[max_size-1-result_size] = 48+ mod(value,10)
               value = idiv(value,10)
               result_size = result_size +1
@@ -84,6 +84,6 @@ class Strings {
             
     """.trimIndent()
 
-        runProgramCheckOutput(compiler,program,0,1,10,18,19,207)
+        runProgramCheckOutput(compiler, program, 0, 1, 10, 18, 19, 207)
     }
 }

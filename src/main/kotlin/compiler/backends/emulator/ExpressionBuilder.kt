@@ -50,7 +50,13 @@ private val BuiltInSignatures = object {
         .addParameter(Datatype.Integer)
         .addParameter(Datatype.Integer)
         .getSignature()
-    val equals = SignatureBuilder(OperatorBuiltIns.NotEqual)
+    val equals = SignatureBuilder(OperatorBuiltIns.Equal)
+        .setFunctionType(FunctionType.Operator)
+        .setReturnType(Datatype.Boolean)
+        .addParameter(Datatype.Integer)
+        .addParameter(Datatype.Integer)
+        .getSignature()
+    val lessThan = SignatureBuilder(OperatorBuiltIns.LessThan)
         .setFunctionType(FunctionType.Operator)
         .setReturnType(Datatype.Boolean)
         .addParameter(Datatype.Integer)
@@ -66,6 +72,7 @@ val builtinInlinedSignatures = listOf(
     BuiltInSignatures.arrayWrite,
     BuiltInSignatures.notEquals,
     BuiltInSignatures.equals,
+    BuiltInSignatures.lessThan,
 )
 
 
@@ -296,7 +303,7 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
         }
 
         BuiltInSignatures.notEquals -> {
-            when (where){
+            when (where) {
                 WhereToPutResult.Flag -> {
                     // Try to do the test directly here
 
@@ -328,6 +335,22 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
                 }
             }
         }
+
+        BuiltInSignatures.lessThan -> {
+            when (where) {
+                // try to inline the test
+                WhereToPutResult.Flag -> {
+                    getValue(CallExpression(ByteSubtraction().signature, expr.parameters), WhereToPutResult.A, context)
+                    context.addInstruction(emulate(DefaultEmulator.test_neg_a))
+                    WhereToPutResult.Flag
+                }
+
+                else -> {
+                    TODO()
+                }
+            }
+        }
+
 
         else -> {
             handleGenericCall(expr, where, context)
