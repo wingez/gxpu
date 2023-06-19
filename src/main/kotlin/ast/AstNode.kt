@@ -17,7 +17,6 @@ enum class NodeTypes {
     While,
     Return,
     Struct,
-    MemberDeref,
     MemberAccess,
     ArrayAccess,
     Array,
@@ -278,7 +277,11 @@ data class AstNode(
         }
 
         fun fromDeref(node: AstNode): AstNode {
-            return AstNode(NodeTypes.Deref, node, listOf(node))
+            return AstNode(NodeTypes.Deref, null, listOf(node))
+        }
+
+        fun fromMemberAccess(node: AstNode, member: String): AstNode {
+            return AstNode(NodeTypes.MemberAccess, member, listOf(node))
         }
     }
 }

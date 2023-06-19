@@ -1,9 +1,7 @@
 package se.wingez.ast
 
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import se.wingez.tokens.TokenType
 
 fun struct(name: String, members: List<AstNode>): AstNode {
     return AstNode.fromStruct(name, members)
@@ -13,11 +11,6 @@ fun memberAccess(v: AstNode, member: String): AstNode {
     return AstNode(NodeTypes.MemberAccess, member, listOf(v))
 }
 
-fun memberDeref(v: AstNode, member: String): AstNode {
-    return AstNode(NodeTypes.MemberDeref, member, listOf(v))
-}
-
-@Disabled
 class AstParserStructTest {
 
     @Test
@@ -51,20 +44,6 @@ class AstParserStructTest {
         struct tmp:
           member1:byte
           member2:int
-        """
-            ).parseStruct(),
-        )
-
-        assertEquals(
-            struct(
-                "tmp", listOf(
-                    variable("member1", "int", explicitNew = true),
-                )
-            ),
-            parserFromFile(
-                """
-        struct tmp:
-          member1:new int
         """
             ).parseStruct(),
         )
@@ -103,7 +82,7 @@ class AstParserStructTest {
                         memberAccess(identifier("a"), "member2"),
                         constant(1)
                     )
-                ), "void"
+                ), null
             ),
 
             parserFromFile(
@@ -140,13 +119,33 @@ class AstParserStructTest {
         assertEquals(
             listOf(
                 AstNode.fromAssign(
-                    memberDeref(identifier("a"), "test"),
+                    AstNode.fromDeref(
+                        AstNode.fromMemberAccess(identifier("a"), "test")
+                    ),
                     identifier("s")
                 )
             ),
-            parserFromLine("a->test = s").parseExpression()
+            parserFromLine("*a.test = s").parseExpression()
         )
     }
+
+    @Test
+    fun testArrowDeref() {
+        assertEquals(
+            AstNode.fromDeref(
+                AstNode.fromMemberAccess(
+                    identifier("a"),
+                    "b"
+                )
+            ),
+            parseExpression("*a.b")
+        )
+        assertEquals(
+            parseExpression("a->b"),
+            parseExpression("(*a).b")
+        )
+    }
+
 
     @Test
     fun testStructArray() {

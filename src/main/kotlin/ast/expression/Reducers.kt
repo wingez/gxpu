@@ -11,8 +11,9 @@ private val priorities = object {
 
     val functionCall = 48
 
-    val arrayAccess = 40
     val instanceFunction = 40
+    val memberAccess = 40
+    val arrayAccess = 35
 
     val addressOfAndDeref = 30
     val negate = 29
@@ -226,6 +227,35 @@ private class ArrayAccess : MatchingReducer(
     }
 }
 
+private class MemberAccessReducer : MatchingReducer(
+    listOf(
+        anyNodeMatcher, TokenMatcher(TokenType.Dot), NodeMatcher(NodeTypes.Identifier)
+    )
+) {
+    override val priority = priorities.memberAccess
+    override fun tryReduceMatched(values: List<Value>): Value {
+        return Value.node(AstNode.fromMemberAccess(values[0].node, values[2].node.asIdentifier()))
+    }
+
+}
+
+private class ArrowMemberAccessReducer : MatchingReducer(
+    listOf(
+        anyNodeMatcher, TokenMatcher(TokenType.Deref), NodeMatcher(NodeTypes.Identifier)
+    )
+) {
+    override val priority = priorities.memberAccess
+    override fun tryReduceMatched(values: List<Value>): Value {
+        return Value.node(
+            AstNode.fromMemberAccess(
+                AstNode.fromDeref(values[0].node),
+                values[2].node.asIdentifier()
+            )
+        )
+    }
+
+}
+
 
 private val reducers: List<Reducer> = listOf(
     ExtractSingleValueParenthesis(),
@@ -238,6 +268,9 @@ private val reducers: List<Reducer> = listOf(
 
     AddressOfReducer(),
     DerefReducer(),
+
+    MemberAccessReducer(),
+    ArrowMemberAccessReducer(),
 
     UnaryOperatorReducer(TokenType.MinusSign, priorities.negate),
 
