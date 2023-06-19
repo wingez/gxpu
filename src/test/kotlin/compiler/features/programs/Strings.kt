@@ -14,7 +14,6 @@ class Strings {
 
         Assumptions.assumeTrue(compiler!=CompilerBackend.Emulator)
 
-
         val program = """
           def main():
             val a = "abcd"
@@ -37,8 +36,6 @@ class Strings {
     @ParameterizedTest
     @EnumSource
     fun formatInt(compiler: CompilerBackend) {
-
-        Assumptions.assumeTrue(compiler!=CompilerBackend.Emulator)
 
         val program = """
           def array_slice(arr:*int[], from:int, to:int):*int[]
@@ -63,7 +60,7 @@ class Strings {
             
             result = createArray(max_size)
             
-            while value>0:
+            while bool(value):
               result[max_size-1-result_size] = 48+ mod(value,10)
               value = idiv(value,10)
               result_size = result_size +1

@@ -50,7 +50,13 @@ private val BuiltInSignatures = object {
         .addParameter(Datatype.Integer)
         .addParameter(Datatype.Integer)
         .getSignature()
-    val equals = SignatureBuilder(OperatorBuiltIns.NotEqual)
+    val equals = SignatureBuilder(OperatorBuiltIns.Equal)
+        .setFunctionType(FunctionType.Operator)
+        .setReturnType(Datatype.Boolean)
+        .addParameter(Datatype.Integer)
+        .addParameter(Datatype.Integer)
+        .getSignature()
+    val lessThan = SignatureBuilder(OperatorBuiltIns.LessThan)
         .setFunctionType(FunctionType.Operator)
         .setReturnType(Datatype.Boolean)
         .addParameter(Datatype.Integer)
@@ -66,6 +72,7 @@ val builtinInlinedSignatures = listOf(
     BuiltInSignatures.arrayWrite,
     BuiltInSignatures.notEquals,
     BuiltInSignatures.equals,
+    BuiltInSignatures.lessThan,
 )
 
 
@@ -89,20 +96,25 @@ fun getValue(expr: ValueExpression, where: WhereToPutResult, context: FunctionCo
         }
 
         is VariableExpression -> {
-            assert(expr.type == Datatype.Integer || expr.type.isPointer())
+            assert(expr.type == Datatype.Integer || expr.type == Datatype.Boolean || expr.type.isPointer())
 
             val field = context.getField(expr.variable.name)
 
-            context.addInstruction(
-                when (where) {
-                    WhereToPutResult.A -> emulate(DefaultEmulator.lda_at_fp_offset, "offset" to field.offset)
-                    WhereToPutResult.TopStack -> emulate(
-                        DefaultEmulator.push_fp_offset, "offset" to field.offset
-                    )
+            when (where) {
+                WhereToPutResult.A ->
+                    context.addInstruction(emulate(DefaultEmulator.lda_at_fp_offset, "offset" to field.offset))
 
-                    else -> TODO()
+                WhereToPutResult.TopStack ->
+                    context.addInstruction(emulate(DefaultEmulator.push_fp_offset, "offset" to field.offset))
+
+                WhereToPutResult.Flag -> {
+                    require(field.type == Datatype.Boolean)
+                    getValue(expr, WhereToPutResult.A, context)
+                    context.addInstruction(emulate(DefaultEmulator.test_nz_a))
                 }
-            )
+
+                else -> TODO()
+            }
         }
 
         is CallExpression -> {
@@ -241,6 +253,7 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
                     context.addInstruction(emulate(DefaultEmulator.test_nz_a))
                     WhereToPutResult.Flag
                 }
+
                 else -> {
                     getValue(expr.parameters.first(), where, context)
                     where
@@ -296,7 +309,7 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
         }
 
         BuiltInSignatures.notEquals -> {
-            when (where){
+            when (where) {
                 WhereToPutResult.Flag -> {
                     // Try to do the test directly here
 
@@ -304,6 +317,7 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
                     context.addInstruction(emulate(DefaultEmulator.test_nz_a))
                     WhereToPutResult.Flag
                 }
+
                 else -> {
                     // Otherwise just implicit convert from int to bool
                     getValue(CallExpression(ByteSubtraction().signature, expr.parameters), where, context)
@@ -313,13 +327,14 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
         }
 
         BuiltInSignatures.equals -> {
-            when(where){
+            when (where) {
                 // try to inline the test
                 WhereToPutResult.Flag -> {
                     getValue(CallExpression(ByteSubtraction().signature, expr.parameters), WhereToPutResult.A, context)
                     context.addInstruction(emulate(DefaultEmulator.test_z_a))
                     WhereToPutResult.Flag
                 }
+
                 else -> {
                     // We need to implicit convert from int to bool but invert the boolean value of the subtraction result
                     getValue(CallExpression(ByteSubtraction().signature, expr.parameters), WhereToPutResult.A, context)
@@ -328,6 +343,22 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
                 }
             }
         }
+
+        BuiltInSignatures.lessThan -> {
+            when (where) {
+                // try to inline the test
+                WhereToPutResult.Flag -> {
+                    getValue(CallExpression(ByteSubtraction().signature, expr.parameters), WhereToPutResult.A, context)
+                    context.addInstruction(emulate(DefaultEmulator.test_neg_a))
+                    WhereToPutResult.Flag
+                }
+
+                else -> {
+                    TODO()
+                }
+            }
+        }
+
 
         else -> {
             handleGenericCall(expr, where, context)

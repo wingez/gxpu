@@ -29,6 +29,7 @@ class DummyBuiltInProvider(
             "void" to Datatype.Void,
             "byte" to Datatype.Integer,
             "int" to Datatype.Integer,
+            "bool" to Datatype.Boolean,
         )
     }
 
