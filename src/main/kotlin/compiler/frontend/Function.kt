@@ -35,8 +35,7 @@ fun parameterTypes(functionNode: AstNode, typeProvider: TypeProvider): List<Pair
 
     return function.arguments.map {
         assert(it.type == NodeTypes.NewVariable)
-        val type = typeProvider.getType(it.asNewVariable().optionalTypeDefinition!!)
-
+        val type = typeProvider.requireType(it.asNewVariable().optionalTypeDefinition!!)
         it.asNewVariable().name to type
     }
 }
@@ -48,7 +47,7 @@ private fun definitionFromFunctionNode(functionNode: AstNode, typeProvider: Type
 
     val parameters = parameterTypes(functionNode, typeProvider).map { it.second }
 
-    val returnType = if (function.returnType != null) typeProvider.getType(function.returnType) else Datatype.Void
+    val returnType = if (function.returnType != null) typeProvider.requireType(function.returnType) else Datatype.Void
 
     return FunctionDefinition(
         name = function.name,

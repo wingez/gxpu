@@ -1,86 +1,19 @@
 package compiler.backendwalker
 
-import ast.FunctionType
 import ast.expression.OperatorBuiltIns
 import ast.parserFromFile
-import compiler.backends.astwalker.VariableProvider
-import compiler.backends.astwalker.createTypeFromNode
 import compiler.backends.astwalker.walk
 import compiler.frontend.Datatype
-import compiler.frontend.FunctionDefinition
-import compiler.frontend.FunctionDefinitionResolver
-import compiler.frontend.TypeProvider
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
-import org.junit.jupiter.api.assertThrows
 import kotlin.test.assertEquals
 
 
 internal class WalkerDatatypeTest {
 
-    @Test
-    fun testBasic() {
-
-        val compositeType = Datatype.Composite(
-            "test", mapOf(
-                "member1" to Datatype.Integer
-            )
-        )
-
-        assertEquals(true, Datatype.Integer.isPrimitive())
-        assertEquals(false, Datatype.Void.isPrimitive())
-        assertEquals(false, compositeType.isPrimitive())
-
-        assertThrows<AssertionError> { Datatype.Integer.compositeMembers }
-        assertThrows<AssertionError> { Datatype.Void.compositeMembers }
-    }
-
-    private fun getDummyType(): Datatype {
-        val node = parserFromFile(
-            """
-            struct test:
-              a:int
-              b:int
-        """.trimIndent()
-        ).parseStruct()
-        val types = mapOf(
-            "int" to Datatype.Integer
-        )
-        val typeProvider = object : TypeProvider {
-            override fun getType(name: String): Datatype {
-                return types.getValue(name)
-            }
-        }
-        val functionProvider = object : FunctionDefinitionResolver {
-            override fun getFunctionDefinitionMatching(
-                name: String,
-                functionType: FunctionType,
-                parameterTypes: List<Datatype>
-            ): FunctionDefinition {
-                TODO("Not yet implemented")
-            }
-        }
-        val variableProvider = object : VariableProvider {
-            override fun getTypeOfVariable(variableName: String): Datatype {
-                TODO("Not yet implemented")
-            }
-        }
-
-        return createTypeFromNode(node, variableProvider, functionProvider, typeProvider)
-    }
-
-    @Test
-    fun fromNode() {
-        val type = getDummyType()
-        assertEquals(true, type.isComposite())
-        assertEquals(mapOf("a" to Datatype.Integer, "b" to Datatype.Integer), type.compositeMembers)
-    }
-
 
 
     @Test
-    @Disabled
     fun testMemberAssign() {
         val code = """
             struct test:
@@ -88,7 +21,7 @@ internal class WalkerDatatypeTest {
               b:int
             
             def main():
-              val t:new test
+              val t:test
               
               t.a = 5
               t.b = 0

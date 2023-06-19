@@ -111,7 +111,7 @@ class WalkerState(
     fun walk(): WalkerOutput {
 
         nodes.filter { it.type == NodeTypes.Struct }
-            .map { createTypeFromNode(it, this, this, this) }
+            .map { buildStruct(it, this) }
             .forEach { addType(it) }
 
         builtInList.forEach {

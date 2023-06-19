@@ -94,7 +94,7 @@ fun getValue(expr: ValueExpression, where: WhereToPutResult, context: FunctionCo
         }
 
         is VariableExpression -> {
-            assert(expr.type == Datatype.Integer || expr.type.isPointer())
+            assert(expr.type == Datatype.Integer || expr.type.isPointer)
 
             val field = context.getField(expr.variable.name)
 

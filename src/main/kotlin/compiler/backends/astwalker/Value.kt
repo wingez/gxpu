@@ -14,8 +14,8 @@ class Value private constructor(
     private val arrayValueHolders: List<ValueHolder>? = null
 ) {
 
-    fun isPrimitive() = datatype.isPrimitive()
-    fun isArray() = datatype.isArray()
+    fun isPrimitive() = datatype.isPrimitive
+    fun isArray() = datatype.isArray
 
     fun getPrimitiveValue(): Int {
         assert(isPrimitive())
@@ -36,7 +36,7 @@ class Value private constructor(
         return arrayValueHolders[index]
     }
 
-    fun isPointer() = datatype.isPointer()
+    fun isPointer() = datatype.isPointer
 
     fun derefPointer(): ValueHolder {
         assert(isPointer())
@@ -56,7 +56,7 @@ class Value private constructor(
         }
 
         fun primitive(datatype: Datatype, primitiveValue: Int): Value {
-            assert(datatype.isPrimitive())
+            assert(datatype.isPrimitive)
             return Value(datatype, primitiveValue, null)
         }
 
@@ -65,7 +65,7 @@ class Value private constructor(
         }
 
         fun array(type: Datatype, holders: List<ValueHolder>): Value {
-            check(type.isArray())
+            check(type.isArray)
             return Value(type, arrayValueHolders = holders)
         }
     }
@@ -78,18 +78,18 @@ class ValueHolder(
 }
 
 fun createDefaultValue(datatype: Datatype): Value {
-    if (datatype.isPrimitive()) {
+    if (datatype.isPrimitive) {
         return Value.primitive(datatype, 0)
     }
-    if (datatype.isVoid()) {
+    if (datatype.isVoid) {
         return Value.void()
     }
-    if (datatype.isPointer()) {
+    if (datatype.isPointer) {
         val holder = ValueHolder(datatype.pointerType)
         holder.value = createDefaultValue(datatype.pointerType)
         return Value.pointer(holder)
     }
-    if (datatype.isArray()){
+    if (datatype.isArray){
         return Value.array(datatype, emptyList())
     }
 
@@ -119,9 +119,9 @@ fun findType(
 
             // datatype for the array
             val arrayPointerType = findType(arrayAccess.parent, variableProvider, functionProvider)
-            assert(arrayPointerType.isPointer())
+            assert(arrayPointerType.isPointer)
             val arrayType = arrayPointerType.pointerType
-            assert(arrayType.isArray())
+            assert(arrayType.isArray)
             // what this is an array of
             return arrayType.arrayType
         }
@@ -132,39 +132,6 @@ fun findType(
 
 interface VariableProvider {
     fun getTypeOfVariable(variableName: String): Datatype
-}
-
-fun createTypeFromNode(
-    node: AstNode,
-    variableProvider: VariableProvider,
-    functionProvider: FunctionDefinitionResolver,
-    typeProvider: TypeProvider
-): Datatype {
-    assert(node.type == NodeTypes.Struct)
-
-    val members = mutableMapOf<String, Datatype>()
-    val typeName = node.data as String
-
-    for (child in node.childNodes) {
-        val newValue = child.asNewVariable()
-
-        val type: Datatype
-        val optionalTypeDef = newValue.optionalTypeDefinition
-        if (optionalTypeDef != null) {
-            type = typeProvider.getType(optionalTypeDef)
-        } else {
-            type = findType(newValue.assignmentType, variableProvider, functionProvider)
-        }
-
-        val memberName = newValue.name
-        if (memberName in members) {
-            throw WalkerException("Member $memberName already exist")
-        }
-
-        members[memberName] = type
-    }
-
-    return Datatype.Composite(typeName, members)
 }
 
 fun createFromString(string: String): Value {

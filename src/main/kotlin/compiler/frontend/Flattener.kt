@@ -70,7 +70,7 @@ class MemberAccess(
     val value: ValueExpression,
 ) : ValueExpression {
     override val type: Datatype
-        get() = value.type.compositeMembers.getValue(name)
+        get() = value.type.fieldType(name)
 }
 
 class CallExpression(
@@ -305,7 +305,7 @@ class FunctionCompiler(
 
             NodeTypes.Deref -> {
                 val pointer = parseAddressExpression(node.child)
-                if (!pointer.type.isPointer()) {
+                if (!pointer.type.isPointer) {
                     throw ParserError("Must be a pointer")
                 }
                 DerefToValue(pointer)
@@ -319,7 +319,7 @@ class FunctionCompiler(
         val value = parseValueExpression(node.childNodes.first())
         val memberName = node.asIdentifier()
 
-        if (!value.type.isComposite() || value.type.compositeMembers.contains(memberName)) {
+        if (!value.type.isComposite || value.type.containsField(memberName)) {
             throw FrontendCompilerError("Type ${value.type} has no field $memberName")
         }
 
@@ -507,10 +507,10 @@ class FunctionCompiler(
                 if (newVariable.hasTypeFromAssignment) {
                     type = findTypeOfExpression(newVariable.assignmentType)
                 } else {
-                    if (newVariable.optionalTypeDefinition == null) {
-                        throw AssertionError()
-                    }
+                    checkNotNull(newVariable.optionalTypeDefinition)
+
                     type = typeProvider.getType(newVariable.optionalTypeDefinition)
+                        ?: throw FrontendCompilerError("No type of type ${newVariable.optionalTypeDefinition}")
                 }
 
                 variables.add(Variable(newVariable.name, type, VariableType.Local))

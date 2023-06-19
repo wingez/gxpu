@@ -182,7 +182,7 @@ class Compiler(
 val dummyDatatypeSizeProvider = object : DatatypeLayoutProvider {
     override fun sizeOf(dataType: Datatype): Int {
 
-        if (dataType.isPointer()){
+        if (dataType.isPointer){
             return 1
         }
 
