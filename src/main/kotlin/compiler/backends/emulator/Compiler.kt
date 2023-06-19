@@ -1,10 +1,9 @@
 package compiler.backends.emulator
 
-import compiler.backends.emulator.emulator.DefaultEmulator
-import compiler.frontend.*
 import ast.AstNode
 import ast.FunctionType
 import ast.NodeTypes
+import compiler.backends.emulator.emulator.DefaultEmulator
 import compiler.frontend.*
 
 interface CodeGenerator {

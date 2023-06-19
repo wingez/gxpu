@@ -36,7 +36,7 @@ class DefaultEmulator : Emulator(instructionSet) {
 
         val lda_at_fp_offset = instructionSet.createInstruction("LDA [FP #offset]", group = LOAD_STORE) { em, params ->
             val offset = params.getValue("offset")
-            em.a = em.getMemoryAt(em.fp.toInt() + offset.toByte().toInt())
+            em.a = em.getMemoryAt(em.fp + offset.toByte().toInt())
         }
 
         val lda_at_a_offset = instructionSet.createInstruction("LDA [A #offset]", group = LOAD_STORE) { em, params ->

@@ -1,8 +1,6 @@
 package compiler.backends.astwalker
 
 import ast.AstNode
-import compiler.backends.astwalker.*
-import compiler.frontend.*
 import ast.FunctionType
 import ast.NodeTypes
 import compiler.frontend.*
@@ -245,147 +243,10 @@ class WalkerState(
 
     }
 
-    /*private fun walkRecursive(node: AstNode): ControlFlow {
-
-
-        return when (node.type) {
-            NodeTypes.Call -> {
-                handleCallIgnoreResult(node)
-            }
-
-            NodeTypes.Assign -> {
-                handleAssign(node)
-            }
-
-            NodeTypes.If -> {
-                handleIf(node)
-            }
-
-            NodeTypes.While -> {
-                handleWhile(node)
-            }
-
-            NodeTypes.NewVariable -> {
-                handleNewVariable(node)
-            }
-
-            NodeTypes.Break -> {
-                ControlFlow.Break
-            }
-
-            NodeTypes.Return -> {
-                handleReturn(node)
-            }
-
-            else -> throw WalkerException("Cannot execute node of type ${node.type} (yet)")
-        }
-    }*/
-
-    private fun handleReturn(node: AstNode): ControlFlow {
-        assert(node.type == NodeTypes.Return)
-        val returnNode = node.asReturn()
-        assert(!returnNode.hasValue())
-        return ControlFlow.Return
-    }
-
     fun createNewVariable(name: String, type: Datatype) {
 
         assert(name !in currentFrame.valueHolders)
         currentFrame.valueHolders[name] = ValueHolder(type)
-    }
-
-    fun handleNewVariable(node: AstNode): ControlFlow {
-        val newValDef = node.asNewVariable()
-
-        val name = newValDef.name
-
-        val newVariableType: Datatype
-        if (newValDef.optionalTypeDefinition != null) {
-            newVariableType = getType(newValDef.optionalTypeDefinition)
-        } else {
-            newVariableType = findType(newValDef.assignmentType, this, this)
-        }
-        createNewVariable(name, newVariableType)
-
-        return ControlFlow.Normal
-    }
-
-    /*fun handleWhile(node: AstNode): ControlFlow {
-        assert(node.type == NodeTypes.While)
-        val whileNode = node.asWhile()
-
-        val variablesBeforeLoop = currentFrame.valueHolders.keys.toList()
-
-        for (iterationCounter in 0..config.maxLoopIterations) {
-
-            // Check max iterations
-            if (iterationCounter == config.maxLoopIterations) {
-                throw WalkerException("Max allowed iteration in a while loop exceeded")
-            }
-
-            val conditionResult = getValueOf(whileNode.condition)
-            if (conditionResult.datatype != Datatype.Boolean) {
-                throw WalkerException("Expect conditional to be of boolean type")
-            }
-
-            if (conditionResult.getPrimitiveValue() != 1) {
-                break
-            }
-
-            for (child in whileNode.body) {
-                val controlFlowResult = walkRecursive(child)
-                when (controlFlowResult) {
-                    ControlFlow.Normal -> {
-
-                    }
-
-                    ControlFlow.Break -> return ControlFlow.Normal
-                    else -> return controlFlowResult
-                }
-            }
-
-            // Clear variables
-            val toRemove = currentFrame.valueHolders.keys.filter { it !in variablesBeforeLoop }
-            toRemove.forEach { currentFrame.valueHolders.remove(it) }
-
-        }
-
-        return ControlFlow.Normal
-    }*/
-
-
-    /*private fun handleIf(node: AstNode): ControlFlow {
-        assert(node.type == NodeTypes.If)
-        val ifNode = node.asIf()
-
-        val conditionResult = getValueOf(ifNode.condition)
-
-        if (conditionResult.datatype != Datatype.Boolean) {
-            throw WalkerException("Expect conditional to be of bool type")
-        }
-
-        if (conditionResult.getPrimitiveValue() != 0) {
-            for (child in ifNode.ifBody) {
-                val controlFlowResult = walkRecursive(child)
-                if (controlFlowResult != ControlFlow.Normal) {
-                    return controlFlowResult
-                }
-            }
-        } else {
-            if (ifNode.hasElse) {
-                for (child in ifNode.elseBody) {
-                    val controlFlowResult = walkRecursive(child)
-                    if (controlFlowResult != ControlFlow.Normal) {
-                        return controlFlowResult
-                    }
-                }
-            }
-        }
-        return ControlFlow.Normal
-    }*/
-
-    fun modifyVariable(name: String, newValue: Value) {
-
     }
 
     private fun handleAssign(instr: Assign) {
@@ -398,13 +259,8 @@ class WalkerState(
         }
 
         holderToAssignTo.value = valueToAssign
-        //return ControlFlow.Normal
     }
 
-    /*fun handleCallIgnoreResult(node: AstNode): ControlFlow {
-        handleCall(node)
-        return ControlFlow.Normal
-    }*/
 
     fun handleCall(callExpression: CallExpression): Value {
 

@@ -9,8 +9,6 @@ import compiler.backends.emulator.Reference
 import compiler.backends.emulator.builtinInlinedSignatures
 import compiler.backends.emulator.emulate
 import compiler.frontend.*
-import compiler.dummyTypeContainer
-import compiler.frontend.*
 import tokens.parseFile
 import java.io.StringReader
 import kotlin.test.assertEquals
@@ -101,9 +99,8 @@ fun buildProgram(body: String): CompiledProgram {
     val nodes = parserFromFile(body).parse()
 
     val c = Compiler(DummyBuiltInProvider(), nodes)
-    val program = c.buildProgram()
 
-    return program
+    return c.buildProgram()
 }
 
 fun shouldMatch(code: List<EmulatorInstruction>, expected: List<EmulatorInstruction>) {

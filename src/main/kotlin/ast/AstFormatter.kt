@@ -1,6 +1,6 @@
 package ast
 
-private val indent = "  "
+private const val indent = "  "
 
 class AstFormatterError(msg: String) : Error(msg)
 

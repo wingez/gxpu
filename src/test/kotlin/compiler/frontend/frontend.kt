@@ -3,7 +3,7 @@ package compiler.frontend
 import org.junit.jupiter.api.Test
 import ast.FunctionType
 import ast.parserFromFile
-import compiler.dummyTypeContainer
+import compiler.backendemulator.dummyTypeContainer
 import kotlin.test.assertEquals
 
 val emptyFunctions = object : FunctionDefinitionResolver {

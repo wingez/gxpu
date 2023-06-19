@@ -3,8 +3,6 @@ package compiler.backends.emulator
 import compiler.backends.emulator.emulator.DefaultEmulator
 import compiler.frontend.*
 import ast.AstNode
-import compiler.backends.emulator.*
-import compiler.frontend.*
 
 data class BuiltFunction(
     val signature: FunctionDefinition,
@@ -13,10 +11,8 @@ data class BuiltFunction(
 ) {
 
     fun getDependents(): Set<FunctionDefinition> {
-        val result =
-            instructions.flatMap { it.values.values }.filter { it.isReference }.map { it.reference!!.function }
-                .toSet()
-        return result
+        return instructions.flatMap { it.values.values }.filter { it.isReference }.map { it.reference!!.function }
+            .toSet()
     }
 
 }

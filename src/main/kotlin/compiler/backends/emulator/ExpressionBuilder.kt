@@ -1,10 +1,8 @@
 package compiler.backends.emulator
 
-import ast.expression.OperatorBuiltIns
-import compiler.backends.emulator.*
-import compiler.backends.emulator.emulator.DefaultEmulator
-import compiler.frontend.*
 import ast.FunctionType
+import ast.expression.OperatorBuiltIns
+import compiler.backends.emulator.emulator.DefaultEmulator
 import compiler.frontend.*
 
 interface FunctionContext : CodeGenerator {
@@ -371,9 +369,7 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
     }
 }
 
-interface GetAddressResult {
-
-}
+interface GetAddressResult
 
 class FpField(
     val field: StructDataField,

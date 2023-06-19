@@ -1,6 +1,5 @@
 package ast.expression
 
-import ast.expression.*
 import ast.AstNode
 import ast.FunctionType
 import ast.NodeTypes

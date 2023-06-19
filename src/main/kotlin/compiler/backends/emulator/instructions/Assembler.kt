@@ -147,7 +147,7 @@ class Assembler(
 
         for ((variableName, variableValue) in parseResult.variableMap.entries) {
             val value = getVariableOrConstant(variableValue)
-            instructionValues.put(variableName, value)
+            instructionValues[variableName] = value
         }
 
         val instr = EmulatorInstruction(parseResult.instruction, instructionValues)

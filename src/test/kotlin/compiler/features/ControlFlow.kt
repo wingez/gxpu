@@ -1,4 +1,4 @@
-package se.wingez.compiler.features
+package compiler.features
 
 import org.junit.jupiter.api.assertThrows
 import compiler.backends.emulator.emulator.EmulatorCyclesExceeded

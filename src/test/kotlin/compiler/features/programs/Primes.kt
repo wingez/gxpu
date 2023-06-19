@@ -1,4 +1,4 @@
-package se.wingez.compiler.features.programs
+package compiler.features.programs
 
 import compiler.features.CompilerBackend
 import compiler.features.runProgramCheckOutput

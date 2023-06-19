@@ -6,7 +6,7 @@ import java.io.Reader
 
 class TokenError(message: String) : Exception(message)
 
-private val rowColNotSet = -1
+private const val rowColNotSet = -1
 
 enum class TokenType {
     EOL,

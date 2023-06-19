@@ -23,10 +23,9 @@ class InteractiveDebugger(
 
     val emulator = DefaultEmulator()
 
-    val buffer: Array<CharArray>
+    val buffer: Array<CharArray> = IntRange(0, HEIGHT - 1).map { CharArray(WIDTH) { ' ' } }.toTypedArray()
 
     init {
-        buffer = IntRange(0, HEIGHT - 1).map { CharArray(WIDTH) { ' ' } }.toTypedArray()
         reset()
     }
 
@@ -79,7 +78,7 @@ class InteractiveDebugger(
     }
 
     private fun getCurrentFunction(): String? {
-        val current = emulator.pc.toInt()
+        val current = emulator.pc
 
         for ((s, i) in getFunctionPositions()) {
             if (current >= i) {
@@ -91,7 +90,7 @@ class InteractiveDebugger(
 
     fun printProgram() {
 
-        val currentIndex = emulator.pc.toInt()
+        val currentIndex = emulator.pc
 
         val startPos = max(0, currentIndex - 10)
         val endPos = min(instructions.size, startPos + 25)
@@ -143,26 +142,15 @@ class InteractiveDebugger(
 
             val labels = mutableListOf<String>()
 
-            if (i == emulator.fp.toInt()) labels.add("fp")
-            if (i == emulator.sp.toInt()) labels.add("sp")
-
-            if (function != null) {
-//                for (field in function.layout.layout.values) {
-//                    if (i == emulator.fp.toInt() + field.offset) {
-//                        labels.add("$functionName.${field.name}")
-//                    }
-//                }
-            }
+            if (i == emulator.fp) labels.add("fp")
+            if (i == emulator.sp) labels.add("sp")
 
             val prefixes = labels.joinToString().padEnd(15)
 
             setText("$prefixes $i: ${emulator.getMemoryAt(i)}", memoryStartX, memoryStartY + rowPos)
-
         }
 
         printProgram()
-
-
     }
 
 

@@ -1,4 +1,4 @@
-package se.wingez.compiler.backendemulator
+package compiler.backendemulator
 
 import compiler.backends.emulator.emulator.*
 import compiler.backends.emulator.instructions.InstructionSet

@@ -1,7 +1,3 @@
-package se.wingez.compiler.backendwalker
+package compiler.backendwalker
 
-internal class LineNumber {
-
-
-    
-}
+internal class LineNumber

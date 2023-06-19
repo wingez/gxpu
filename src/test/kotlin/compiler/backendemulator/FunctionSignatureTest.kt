@@ -1,4 +1,4 @@
-package compiler
+package compiler.backendemulator
 
 import compiler.backends.emulator.*
 import compiler.frontend.Datatype
@@ -17,11 +17,11 @@ import tokens.parseFile
 import java.io.StringReader
 
 class TypeContainer(
-    private val types: List<Datatype>,
-    private val aliases: Map<String, Datatype>
+    types: List<Datatype>,
+    aliases: Map<String, Datatype>
 ) : TypeProvider {
 
-    private val allTypes = aliases + types.map { it.name to it }.toMap()
+    private val allTypes = aliases + types.associateBy { it.name }
     override fun getType(name: String): Datatype {
         if (name.isEmpty())
             return Datatype.Integer

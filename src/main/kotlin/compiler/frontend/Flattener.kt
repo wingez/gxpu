@@ -9,9 +9,7 @@ val functionEntryLabel = Label("function_entry")
 
 class FrontendCompilerError(message: String) : Error(message)
 
-interface Instruction {
-
-}
+interface Instruction
 
 enum class VariableType {
     Local,
@@ -112,9 +110,7 @@ class JumpOnFalse(
     val label: Label,
 ) : Instruction
 
-class Return(
-
-) : Instruction
+class Return : Instruction
 
 data class Label(
     val identifier: String

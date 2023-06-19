@@ -1,20 +1,19 @@
 package compiler.backendwalker
 
+import ast.FunctionType
+import ast.expression.OperatorBuiltIns
+import ast.parserFromFile
+import compiler.backends.astwalker.VariableProvider
+import compiler.backends.astwalker.createTypeFromNode
+import compiler.backends.astwalker.walk
 import compiler.frontend.Datatype
+import compiler.frontend.FunctionDefinition
+import compiler.frontend.FunctionDefinitionResolver
 import compiler.frontend.TypeProvider
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
-import ast.FunctionType
-import ast.expression.OperatorBuiltIns
-import compiler.backends.astwalker.VariableProvider
-import compiler.backends.astwalker.createTypeFromNode
-import compiler.backends.astwalker.walk
-import ast.parserFromFile
-import compiler.backends.astwalker.*
-import compiler.frontend.FunctionDefinition
-import compiler.frontend.FunctionDefinitionResolver
 import kotlin.test.assertEquals
 
 

@@ -1,7 +1,6 @@
 package compiler.backends.emulator
 
 import compiler.frontend.Datatype
-import ast.TypeDefinition
 
 
 interface DatatypeLayoutProvider {

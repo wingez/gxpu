@@ -82,9 +82,7 @@ class BuiltInFunctions : BuiltInProvider {
     override fun buildSignature(signature: FunctionDefinition): BuiltFunction {
 
         val result = available.find { it.signature == signature }
-        if (result == null) {
-            TODO(signature.toString())
-        }
+            ?: TODO(signature.toString())
 
         val instructions = result.compile()
 
