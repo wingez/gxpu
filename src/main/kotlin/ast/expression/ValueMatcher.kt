@@ -1,9 +1,9 @@
-package se.wingez.ast.expression
+package ast.expression
 
-import se.wingez.ast.AstNode
-import se.wingez.ast.NodeTypes
-import se.wingez.tokens.Token
-import se.wingez.tokens.TokenType
+import ast.AstNode
+import ast.NodeTypes
+import tokens.Token
+import tokens.TokenType
 
 enum class ValueType {
     Token,

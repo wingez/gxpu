@@ -2,14 +2,9 @@ package se.wingez.compiler.features.programs
 
 import compiler.features.CompilerBackend
 import compiler.features.runProgramCheckOutput
-import org.assertj.core.api.Assumptions.assumeThat
 import org.junit.jupiter.api.Assumptions
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
-import se.wingez.ast.parserFromFile
-import se.wingez.compiler.backends.astwalker.walk
-import kotlin.test.assertEquals
 
 class Primes {
     @ParameterizedTest

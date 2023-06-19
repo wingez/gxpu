@@ -1,4 +1,4 @@
-package se.wingez.instructions
+package instructions
 
 import compiler.backends.emulator.SignatureBuilder
 import compiler.backends.emulator.instructions.Instruction
@@ -8,11 +8,11 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
-import se.wingez.compiler.backends.emulator.EmulatorInstruction
-import se.wingez.compiler.backends.emulator.Reference
-import se.wingez.compiler.backends.emulator.Value
-import se.wingez.compiler.backends.emulator.instructions.AssembleError
-import se.wingez.compiler.frontend.Label
+import compiler.backends.emulator.EmulatorInstruction
+import compiler.backends.emulator.Reference
+import compiler.backends.emulator.Value
+import compiler.backends.emulator.instructions.AssembleError
+import compiler.frontend.Label
 
 internal class TestAssembleFile {
     @Test

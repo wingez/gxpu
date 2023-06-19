@@ -1,14 +1,13 @@
 package compiler.backends.emulator.emulator
 
 
-import se.wingez.ast.AstParser
-import compiler.backends.emulator.BuiltFunction
+import ast.AstParser
 import compiler.backends.emulator.BuiltInFunctions
 import compiler.backends.emulator.Compiler
 import compiler.backends.emulator.STACK_START
-import se.wingez.compiler.backends.emulator.EmulatorInstruction
-import se.wingez.compiler.frontend.functionEntryLabel
-import se.wingez.tokens.parseFile
+import compiler.backends.emulator.EmulatorInstruction
+import compiler.frontend.functionEntryLabel
+import tokens.parseFile
 import java.io.File
 import kotlin.math.max
 import kotlin.math.min

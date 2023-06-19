@@ -1,11 +1,11 @@
-package se.wingez.ast.expression
+package ast.expression
 
 import ast.expression.*
-import se.wingez.ast.AstNode
-import se.wingez.ast.FunctionType
-import se.wingez.ast.NodeTypes
-import se.wingez.ast.ParserError
-import se.wingez.tokens.TokenType
+import ast.AstNode
+import ast.FunctionType
+import ast.NodeTypes
+import ast.ParserError
+import tokens.TokenType
 
 private val priorities = object {
 

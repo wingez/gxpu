@@ -1,12 +1,11 @@
-package se.wingez.compiler.backends.astwalker
+package compiler.backends.astwalker
 
-import se.wingez.ast.AstNode
-import se.wingez.ast.FunctionType
-import se.wingez.ast.NodeTypes
-import compiler.frontend.Datatype
-import compiler.frontend.TypeProvider
-import se.wingez.compiler.backends.emulator.getAddressOf
-import se.wingez.compiler.frontend.*
+import ast.AstNode
+import compiler.backends.astwalker.*
+import compiler.frontend.*
+import ast.FunctionType
+import ast.NodeTypes
+import compiler.frontend.*
 
 class WalkerException(msg: String = "") : Exception(msg)
 

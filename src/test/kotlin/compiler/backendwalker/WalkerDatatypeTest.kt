@@ -1,4 +1,4 @@
-package se.wingez.compiler.backendwalker
+package compiler.backendwalker
 
 import compiler.frontend.Datatype
 import compiler.frontend.TypeProvider
@@ -6,13 +6,15 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
-import se.wingez.ast.FunctionType
+import ast.FunctionType
 import ast.expression.OperatorBuiltIns
-import se.wingez.ast.parserFromFile
-import se.wingez.compiler.backends.astwalker.*
-import se.wingez.compiler.frontend.FunctionDefinition
-import se.wingez.compiler.frontend.FunctionDefinitionResolver
-import java.util.NoSuchElementException
+import compiler.backends.astwalker.VariableProvider
+import compiler.backends.astwalker.createTypeFromNode
+import compiler.backends.astwalker.walk
+import ast.parserFromFile
+import compiler.backends.astwalker.*
+import compiler.frontend.FunctionDefinition
+import compiler.frontend.FunctionDefinitionResolver
 import kotlin.test.assertEquals
 
 

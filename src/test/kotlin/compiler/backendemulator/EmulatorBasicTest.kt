@@ -6,8 +6,8 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertIterableEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import se.wingez.compiler.backends.emulator.EmulatorInstruction
-import se.wingez.compiler.backends.emulator.emulate
+import compiler.backends.emulator.EmulatorInstruction
+import compiler.backends.emulator.emulate
 import java.io.StringReader
 
 internal class EmulatorBasicTest {

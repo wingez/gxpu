@@ -1,15 +1,13 @@
 package se.wingez.compiler.features
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.assertThrows
-import compiler.backends.emulator.CompileError
 import compiler.backends.emulator.emulator.EmulatorCyclesExceeded
 import compiler.features.CompilerBackend
 import compiler.features.runBodyCheckOutput
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
-import se.wingez.compiler.backends.astwalker.WalkerException
-import se.wingez.compiler.frontend.FrontendCompilerError
+import compiler.backends.astwalker.WalkerException
+import compiler.frontend.FrontendCompilerError
 
 
 class ControlFlow {

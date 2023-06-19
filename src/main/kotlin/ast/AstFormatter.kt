@@ -1,4 +1,4 @@
-package se.wingez.ast
+package ast
 
 private val indent = "  "
 

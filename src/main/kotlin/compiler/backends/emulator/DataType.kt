@@ -1,7 +1,7 @@
 package compiler.backends.emulator
 
 import compiler.frontend.Datatype
-import se.wingez.ast.TypeDefinition
+import ast.TypeDefinition
 
 
 interface DatatypeLayoutProvider {

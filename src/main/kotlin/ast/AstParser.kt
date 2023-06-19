@@ -1,8 +1,8 @@
-package se.wingez.ast
+package ast
 
 import ast.expression.parseExpressionUntil
-import se.wingez.TypePeekIterator
-import se.wingez.tokens.*
+import TypePeekIterator
+import tokens.*
 
 class ParserError(message: String) : Exception(message)
 

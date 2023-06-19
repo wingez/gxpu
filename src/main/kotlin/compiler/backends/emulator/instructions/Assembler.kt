@@ -1,14 +1,11 @@
-package se.wingez.compiler.backends.emulator.instructions
+package compiler.backends.emulator.instructions
 
 import compiler.backends.emulator.SignatureBuilder
-import compiler.backends.emulator.instructions.Instruction
-import compiler.backends.emulator.instructions.InstructionBuilderError
-import compiler.backends.emulator.instructions.InstructionSet
-import se.wingez.compiler.backends.emulator.EmulatorInstruction
-import se.wingez.compiler.backends.emulator.Reference
-import se.wingez.compiler.backends.emulator.Value
-import se.wingez.compiler.frontend.Label
-import se.wingez.splitMany
+import compiler.backends.emulator.EmulatorInstruction
+import compiler.backends.emulator.Reference
+import compiler.backends.emulator.Value
+import compiler.frontend.Label
+import splitMany
 
 class AssembleError(message: String) : Exception(message)
 

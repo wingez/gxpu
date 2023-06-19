@@ -1,9 +1,8 @@
 package compiler.backends.emulator.instructions
 
 import compiler.backends.emulator.emulator.Emulator
-import se.wingez.compiler.backends.emulator.EmulatorInstruction
-import se.wingez.compiler.backends.emulator.instructions.Assembler
-import se.wingez.splitMany
+import compiler.backends.emulator.EmulatorInstruction
+import splitMany
 import java.io.StringReader
 
 class RegisterInstructionError(message: String) : Exception(message)

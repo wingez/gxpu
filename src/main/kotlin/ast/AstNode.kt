@@ -1,7 +1,7 @@
-package se.wingez.ast
+package ast
 
-import se.wingez.ast.expression.binaryOperatorToNodesType
-import se.wingez.tokens.TokenType
+import ast.expression.binaryOperatorToNodesType
+import tokens.TokenType
 
 enum class NodeTypes {
     Body,

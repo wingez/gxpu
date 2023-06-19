@@ -1,16 +1,15 @@
-package se.wingez.compiler.backendwalker
+package compiler.backendwalker
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
-import se.wingez.ast.function
-import se.wingez.ast.parserFromFile
-import se.wingez.ast.parserFromLine
-import se.wingez.compiler.backends.astwalker.WalkConfig
-import se.wingez.compiler.backends.astwalker.WalkerException
-import se.wingez.compiler.backends.astwalker.walk
-import se.wingez.compiler.frontend.FrontendCompilerError
+import ast.function
+import ast.parserFromFile
+import ast.parserFromLine
+import compiler.backends.astwalker.WalkConfig
+import compiler.backends.astwalker.WalkerException
+import compiler.backends.astwalker.walk
+import compiler.frontend.FrontendCompilerError
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 

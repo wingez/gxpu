@@ -1,4 +1,4 @@
-package se.wingez.ast
+package ast
 
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals

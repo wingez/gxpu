@@ -1,11 +1,20 @@
-package se.wingez.ast
+package ast
 
-import ast.expression.parseExpressionUntil
+import TokenAssign
+import TokenBeginBlock
+import TokenColon
+import TokenComma
+import TokenEOL
+import TokenEndBlock
+import TokenKeywordDef
+import TokenLeftParenthesis
+import TokenRightParenthesis
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
-import se.wingez.*
-import se.wingez.tokens.*
+import tconstant
+import tidentifier
+import tokens.*
 import java.io.StringReader
 
 internal class AstParserTest {

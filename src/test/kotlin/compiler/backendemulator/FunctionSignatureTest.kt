@@ -1,4 +1,4 @@
-package se.wingez.compiler
+package compiler
 
 import compiler.backends.emulator.*
 import compiler.frontend.Datatype
@@ -6,14 +6,14 @@ import compiler.frontend.TypeProvider
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import se.wingez.ast.AstParser
-import se.wingez.ast.FunctionType
+import ast.AstParser
+import ast.FunctionType
 import ast.expression.OperatorBuiltIns
-import se.wingez.compiler.frontend.FunctionDefinition
-import se.wingez.compiler.frontend.FunctionDefinitionResolver
-import se.wingez.compiler.frontend.Variable
-import se.wingez.compiler.frontend.VariableType
-import se.wingez.tokens.parseFile
+import compiler.frontend.FunctionDefinition
+import compiler.frontend.FunctionDefinitionResolver
+import compiler.frontend.Variable
+import compiler.frontend.VariableType
+import tokens.parseFile
 import java.io.StringReader
 
 class TypeContainer(

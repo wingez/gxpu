@@ -1,15 +1,11 @@
 package compiler.features
 
 import org.junit.jupiter.api.Assumptions
-import org.junit.jupiter.api.Disabled
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
-import se.wingez.ast.parserFromFile
-import se.wingez.compiler.backends.astwalker.WalkerException
-import se.wingez.compiler.backends.astwalker.walk
-import se.wingez.compiler.frontend.FrontendCompilerError
+import compiler.backends.astwalker.WalkerException
+import compiler.frontend.FrontendCompilerError
 
 
 class Array {

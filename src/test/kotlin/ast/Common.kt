@@ -1,11 +1,11 @@
-package se.wingez.ast
+package ast
 
 import ast.expression.parseExpressionUntil
-import se.wingez.TokenEndBlock
-import se.wingez.tokens.Token
-import se.wingez.tokens.TokenType
-import se.wingez.tokens.parseFile
-import se.wingez.tokens.parseLine
+import TokenEndBlock
+import tokens.Token
+import tokens.TokenType
+import tokens.parseFile
+import tokens.parseLine
 import java.io.StringReader
 
 fun parse(tokens: List<Token>): List<AstNode> {

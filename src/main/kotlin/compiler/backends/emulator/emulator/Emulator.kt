@@ -1,8 +1,8 @@
 package compiler.backends.emulator.emulator
 
 import compiler.backends.emulator.instructions.InstructionSet
-import se.wingez.compiler.backends.emulator.EmulatorInstruction
-import se.wingez.compiler.backends.emulator.Reference
+import compiler.backends.emulator.EmulatorInstruction
+import compiler.backends.emulator.Reference
 
 
 open class EmulatorRuntimeError(message: String) : Exception(message)

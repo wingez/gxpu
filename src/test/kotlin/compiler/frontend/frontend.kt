@@ -1,13 +1,9 @@
 package compiler.frontend
 
-import compiler.frontend.Datatype
 import org.junit.jupiter.api.Test
-import se.wingez.ast.FunctionType
-import se.wingez.ast.parserFromFile
-import se.wingez.compiler.dummyTypeContainer
-import se.wingez.compiler.frontend.FunctionDefinition
-import se.wingez.compiler.frontend.FunctionDefinitionResolver
-import se.wingez.compiler.frontend.compileFunction
+import ast.FunctionType
+import ast.parserFromFile
+import compiler.dummyTypeContainer
 import kotlin.test.assertEquals
 
 val emptyFunctions = object : FunctionDefinitionResolver {

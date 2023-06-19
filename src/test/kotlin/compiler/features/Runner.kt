@@ -5,12 +5,12 @@ import compiler.backendemulator.buildSingleMainFunction
 import compiler.backends.emulator.Compiler
 import compiler.backends.emulator.emulator.DefaultEmulator
 import org.junit.jupiter.api.Assertions
-import se.wingez.TokenEndBlock
-import se.wingez.ast.AstParser
-import se.wingez.ast.parserFromFile
-import se.wingez.compiler.backends.astwalker.walk
-import se.wingez.compiler.backends.emulator.EmulatorInstruction
-import se.wingez.tokens.parseFile
+import ast.AstParser
+import ast.parserFromFile
+import compiler.backends.astwalker.walk
+import compiler.backends.emulator.EmulatorInstruction
+import TokenEndBlock
+import tokens.parseFile
 import java.io.StringReader
 
 

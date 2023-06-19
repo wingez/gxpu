@@ -1,11 +1,10 @@
 package compiler.backends.emulator
 
 import compiler.backends.emulator.emulator.DefaultEmulator
-import compiler.frontend.Datatype
-import compiler.frontend.TypeProvider
-import se.wingez.ast.AstNode
-import se.wingez.compiler.backends.emulator.*
-import se.wingez.compiler.frontend.*
+import compiler.frontend.*
+import ast.AstNode
+import compiler.backends.emulator.*
+import compiler.frontend.*
 
 data class BuiltFunction(
     val signature: FunctionDefinition,

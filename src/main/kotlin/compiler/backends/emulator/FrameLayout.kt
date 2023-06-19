@@ -1,10 +1,8 @@
 package compiler.backends.emulator
 
 import compiler.frontend.Datatype
-import se.wingez.ast.AstNode
-import se.wingez.ast.FunctionType
-import se.wingez.ast.NodeTypes
-import se.wingez.compiler.frontend.FunctionDefinition
+import ast.FunctionType
+import compiler.frontend.FunctionDefinition
 
 const val STACK_START = 100
 

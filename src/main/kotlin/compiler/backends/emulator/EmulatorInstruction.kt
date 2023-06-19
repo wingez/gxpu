@@ -1,10 +1,10 @@
-package se.wingez.compiler.backends.emulator
+package compiler.backends.emulator
 
 import compiler.backends.emulator.emulator.Emulator
 import compiler.backends.emulator.emulator.ReferenceIndexProvider
 import compiler.backends.emulator.instructions.Instruction
-import se.wingez.compiler.frontend.FunctionDefinition
-import se.wingez.compiler.frontend.Label
+import compiler.frontend.FunctionDefinition
+import compiler.frontend.Label
 
 
 data class Reference(

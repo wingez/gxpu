@@ -1,9 +1,9 @@
-package se.wingez.compiler.backends.astwalker
+package compiler.backends.astwalker
 
-import se.wingez.ast.FunctionType
+import ast.FunctionType
 import ast.expression.OperatorBuiltIns
 import compiler.frontend.Datatype
-import se.wingez.compiler.frontend.FunctionDefinition
+import compiler.frontend.FunctionDefinition
 
 abstract class Function(
     name: String,

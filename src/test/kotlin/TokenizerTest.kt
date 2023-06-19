@@ -1,8 +1,6 @@
-package se.wingez
-
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import se.wingez.tokens.*
+import tokens.*
 import java.io.StringReader
 
 fun tidentifier(name: String): Token {

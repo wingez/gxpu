@@ -1,10 +1,8 @@
-package se.wingez.compiler.frontend
+package compiler.frontend
 
-import se.wingez.ast.AstNode
-import se.wingez.ast.FunctionType
-import compiler.frontend.Datatype
-import compiler.frontend.TypeProvider
-import se.wingez.ast.NodeTypes
+import ast.AstNode
+import ast.FunctionType
+import ast.NodeTypes
 
 
 data class FunctionDefinition(

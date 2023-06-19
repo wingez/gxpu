@@ -1,5 +1,3 @@
-package se.wingez
-
 fun splitMany(toSplit: String, delimiters: Iterable<String>): List<String> {
     val delimitersCopy = delimiters.toMutableList()
 

@@ -1,4 +1,4 @@
-package se.wingez.ast
+package ast
 
 import ast.expression.OperatorBuiltIns
 import org.assertj.core.api.Assertions.assertThat
@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
-import se.wingez.tokens.TokenType
+import tokens.TokenType
 import kotlin.test.assertNotEquals
 
 class AstParserExpressions {

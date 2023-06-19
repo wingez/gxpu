@@ -1,11 +1,11 @@
-package se.wingez.compiler.backends.astwalker
+package compiler.backends.astwalker
 
-import se.wingez.ast.AstNode
+import ast.AstNode
 import compiler.frontend.TypeProvider
-import se.wingez.compiler.frontend.FunctionContent
-import se.wingez.compiler.frontend.FunctionDefinition
-import se.wingez.compiler.frontend.FunctionDefinitionResolver
-import se.wingez.compiler.frontend.compileFunction
+import compiler.frontend.FunctionContent
+import compiler.frontend.FunctionDefinition
+import compiler.frontend.FunctionDefinitionResolver
+import compiler.frontend.compileFunction
 
 interface IWalkerFunction {
     val definition: FunctionDefinition

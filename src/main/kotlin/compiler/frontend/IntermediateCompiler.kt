@@ -1,7 +1,6 @@
-package se.wingez.compiler.frontend
+package compiler.frontend
 
-import compiler.frontend.TypeProvider
-import se.wingez.ast.AstNode
+import ast.AstNode
 
 fun compileFunction(
     functionNode: AstNode,

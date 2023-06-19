@@ -1,6 +1,6 @@
 package compiler.frontend
 
-import se.wingez.ast.TypeDefinition
+import ast.TypeDefinition
 
 class Datatype private constructor(
     val name: String,

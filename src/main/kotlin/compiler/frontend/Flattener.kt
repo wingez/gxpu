@@ -1,10 +1,7 @@
-package se.wingez.compiler.frontend
+package compiler.frontend
 
 import ast.expression.OperatorBuiltIns
-import compiler.frontend.Datatype
-import compiler.frontend.TypeProvider
-import se.wingez.ast.*
-import se.wingez.compiler.backends.emulator.getAddressOf
+import ast.*
 
 const val RETURN_VALUE_NAME = "result"
 

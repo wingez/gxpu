@@ -1,16 +1,11 @@
 package compiler.backends.emulator
 
 import compiler.backends.emulator.emulator.DefaultEmulator
-import compiler.frontend.Datatype
-import compiler.frontend.TypeProvider
-import se.wingez.ast.AstNode
-import se.wingez.ast.FunctionType
-import se.wingez.ast.NodeTypes
-import se.wingez.compiler.backends.emulator.EmulatorInstruction
-import se.wingez.compiler.backends.emulator.Reference
-import se.wingez.compiler.backends.emulator.builtinInlinedSignatures
-import se.wingez.compiler.backends.emulator.emulate
-import se.wingez.compiler.frontend.*
+import compiler.frontend.*
+import ast.AstNode
+import ast.FunctionType
+import ast.NodeTypes
+import compiler.frontend.*
 
 interface CodeGenerator {
     fun addInstruction(emulatorInstruction: EmulatorInstruction)

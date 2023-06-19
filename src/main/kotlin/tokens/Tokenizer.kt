@@ -1,7 +1,7 @@
-package se.wingez.tokens
+package tokens
 
-import se.wingez.PeekIterator
-import se.wingez.SupportTypePeekIterator
+import PeekIterator
+import SupportTypePeekIterator
 import java.io.Reader
 
 class TokenError(message: String) : Exception(message)

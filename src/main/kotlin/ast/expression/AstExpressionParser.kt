@@ -1,9 +1,10 @@
 package ast.expression
 
-import se.wingez.ast.*
-import se.wingez.ast.expression.*
-import se.wingez.tokens.Token
-import se.wingez.tokens.TokenType
+import ast.AstNode
+import ast.ParserError
+import ast.TokenIterator
+import tokens.Token
+import tokens.TokenType
 
 
 class OperatorBuiltIns {

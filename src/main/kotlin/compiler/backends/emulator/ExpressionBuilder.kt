@@ -1,11 +1,11 @@
-package se.wingez.compiler.backends.emulator
+package compiler.backends.emulator
 
 import ast.expression.OperatorBuiltIns
 import compiler.backends.emulator.*
 import compiler.backends.emulator.emulator.DefaultEmulator
-import compiler.frontend.Datatype
-import se.wingez.ast.FunctionType
-import se.wingez.compiler.frontend.*
+import compiler.frontend.*
+import ast.FunctionType
+import compiler.frontend.*
 
 interface FunctionContext : CodeGenerator {
     fun getField(name: String): StructDataField

@@ -2,16 +2,12 @@ package compiler.backends.emulator
 
 import compiler.backends.emulator.emulator.DefaultEmulator
 import compiler.frontend.Datatype
-import se.wingez.ast.FunctionType
+import ast.FunctionType
 import ast.expression.OperatorBuiltIns
-import se.wingez.compiler.backends.emulator.EmulatorInstruction
-import se.wingez.compiler.backends.emulator.Reference
-import se.wingez.compiler.backends.emulator.builtinInlinedSignatures
-import se.wingez.compiler.backends.emulator.emulate
-import se.wingez.compiler.frontend.FunctionDefinition
-import se.wingez.compiler.frontend.Variable
-import se.wingez.compiler.frontend.VariableType
-import se.wingez.compiler.frontend.functionEntryLabel
+import compiler.frontend.FunctionDefinition
+import compiler.frontend.Variable
+import compiler.frontend.VariableType
+import compiler.frontend.functionEntryLabel
 
 interface BuiltIn {
 
