@@ -1,12 +1,11 @@
 package tokens
 
 import PeekIterator
+import SourceInfo
 import SupportTypePeekIterator
 import java.io.Reader
 
 class TokenError(message: String) : Exception(message)
-
-private const val rowColNotSet = -1
 
 enum class TokenType {
     EOL,
@@ -45,8 +44,7 @@ enum class TokenType {
 data class Token(
     override val type: TokenType,
     val additionalData: String,
-    val lineRow: Int,
-    val lineCol: Int,
+    val sourceInfo: SourceInfo,
 ) : SupportTypePeekIterator<TokenType> {
 
     fun asConstant(): Int {
@@ -110,7 +108,7 @@ fun getIndentation(line: String): IndentationResult {
     }
 }
 
-fun parseFile(input: Reader): List<Token> {
+fun parseFile(input: Reader, filename: String): List<Token> {
 
     val result = mutableListOf<Token>()
     var currentIndentation = -1
@@ -136,30 +134,30 @@ fun parseFile(input: Reader): List<Token> {
             if (indentation > currentIndentation) {
                 if (indentation != currentIndentation + 1)
                     throw TokenError("Cannot increment indentation by more than one step")
-                result.add(Token(TokenType.BeginBlock, "", rowColNotSet, 0))
+                result.add(Token(TokenType.BeginBlock, "", SourceInfo(filename, lineIndex)))
             } else if (indentation < currentIndentation) {
                 for (i in indentation until currentIndentation) {
-                    result.add(Token(TokenType.EndBlock, "", rowColNotSet, 0))
+                    result.add(Token(TokenType.EndBlock, "", SourceInfo(filename, lineIndex)))
                 }
             }
         }
         currentIndentation = indentation
 
         // Add line + indentation offsets
-        result.addAll(parseLine(line)
-            .map { Token(it.type, it.additionalData, lineIndex, it.lineCol + lineStartAt) })
+        result.addAll(parseLine(line, SourceInfo(filename, lineIndex)))
+
     }
 
     if (currentIndentation != -1) {
         for (i in 0 until (currentIndentation - baseIndentation)) {
-            result.add(Token(TokenType.EndBlock, "", lines.size - 1, (lines.last()).length - 1))
+            result.add(Token(TokenType.EndBlock, "", SourceInfo(filename, lines.size)))
         }
     }
 
     return result
 }
 
-fun parseLine(line: String): List<Token> {
+fun parseLine(line: String, source: SourceInfo): List<Token> {
     val feeder = PeekIterator(line.toList())
 
     val result = mutableListOf<Token>()
@@ -180,30 +178,25 @@ fun parseLine(line: String): List<Token> {
 
         val isLetter = isAlNumeric(symbolPeek.toString())
         if (isLetter) {
-            result.add(consumeConstant(feeder))
+            result.add(consumeConstant(feeder, source))
             continue
         }
 
         val isString = symbolPeek == '"'
         if (isString) {
-            result.add(consumeString(feeder))
+            result.add(consumeString(feeder, source))
             continue
         }
-        result.addAll(consumeOperator(feeder))
+        result.addAll(consumeOperator(feeder, source))
 
     }
-    if (result.isNotEmpty() && result.any { it.lineCol == rowColNotSet }) {
-        throw TokenError("")
-    }
 
-    result.add(Token(TokenType.EOL, "", rowColNotSet, feeder.getCurrentIndex()))
+    result.add(Token(TokenType.EOL, "", source))
     return result
 }
 
 
-private fun consumeString(feeder: PeekIterator<Char>): Token {
-
-    val startIndex = feeder.getCurrentIndex()
+private fun consumeString(feeder: PeekIterator<Char>, source: SourceInfo): Token {
 
     assert(feeder.consume() == '"')
 
@@ -211,17 +204,16 @@ private fun consumeString(feeder: PeekIterator<Char>): Token {
     while (feeder.hasMore()) {
         val symbol = feeder.consume()
         if (symbol == '"') {
-            return Token(TokenType.String, current, rowColNotSet, startIndex)
+            return Token(TokenType.String, current, source)
         }
         current += symbol
     }
     throw TokenError("Got end of line while parsing string")
 }
 
-private fun consumeConstant(feeder: PeekIterator<Char>): Token {
+private fun consumeConstant(feeder: PeekIterator<Char>, source: SourceInfo): Token {
 
     var current = ""
-    val startIndex = feeder.getCurrentIndex()
     while (feeder.hasMore()) {
         val symbolPeek = feeder.peek()
         if (isAlNumeric(symbolPeek.toString())) {
@@ -232,14 +224,12 @@ private fun consumeConstant(feeder: PeekIterator<Char>): Token {
         }
     }
 
-    val token = toToken(current)
+    return toToken(current, source)
         ?: throw TokenError("Something")
-    return token.copy(lineCol = startIndex)
 }
 
-private fun consumeOperator(feeder: PeekIterator<Char>): Iterable<Token> {
+private fun consumeOperator(feeder: PeekIterator<Char>, source: SourceInfo): Iterable<Token> {
 
-    val startIndex = feeder.getCurrentIndex()
     var current = feeder.consume().toString()
 
     while (feeder.hasMore()) {
@@ -261,23 +251,21 @@ private fun consumeOperator(feeder: PeekIterator<Char>): Iterable<Token> {
         feeder.consume()
     }
 
-    return parseOperator(current, startIndex)
+    return parseOperator(current, source)
 }
 
-fun parseOperator(line: String, lineIndex: Int): Iterable<Token> {
+fun parseOperator(line: String, source: SourceInfo): Iterable<Token> {
 
     for (length in line.length downTo 1) {
         val toParse = line.substring(0, length)
-        val maybeValidToken = toToken(toParse)
+        val validToken = toToken(toParse, source)
             ?: continue
-
-        val validToken = maybeValidToken.copy(lineCol = lineIndex)
 
         val rest = line.substring(length, line.length)
         if (rest.isEmpty()) {
             return listOf(validToken)
         }
-        return listOf(validToken) + parseOperator(rest, lineIndex + length)
+        return listOf(validToken) + parseOperator(rest, source)
     }
     throw TokenError("Cannot parse $line to operator")
 }
@@ -313,7 +301,7 @@ val keywords = mapOf(
     "val" to TokenType.KeywordVal,
 )
 
-fun toToken(text: String): Token? {
+fun toToken(text: String, source: SourceInfo): Token? {
     // sanity check
     if (' ' in text)
         throw TokenError("text contains spaces")
@@ -323,10 +311,10 @@ fun toToken(text: String): Token? {
     }
 
     if (isNumeric(text))
-        return Token(TokenType.NumericConstant, text, rowColNotSet, rowColNotSet)
+        return Token(TokenType.NumericConstant, text, source)
 
     if (text in operatorsToType) {
-        return Token(operatorsToType.getValue(text), "", rowColNotSet, rowColNotSet)
+        return Token(operatorsToType.getValue(text), "", source)
     }
 
     //We should now only have identifiers and keywords left
@@ -334,8 +322,8 @@ fun toToken(text: String): Token? {
         return null
 
     if (text in keywords) {
-        return Token(keywords.getValue(text), "", rowColNotSet, rowColNotSet)
+        return Token(keywords.getValue(text), "", source)
     }
 
-    return Token(TokenType.Identifier, text, rowColNotSet, rowColNotSet)
+    return Token(TokenType.Identifier, text, source)
 }

@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import tconstant
 import tidentifier
+import tokenizeLines
 import tokens.*
 import java.io.StringReader
 
@@ -93,13 +94,11 @@ internal class AstParserTest {
 
     @Test
     fun testParseFunctionParameterType() {
-        val tokens = parseFile(
-            StringReader(
-                """
+        val tokens = tokenizeLines(
+            """
             def test(param:type):
               print(5)
         """
-            )
         )
         assertEquals(
             function(
@@ -112,13 +111,11 @@ internal class AstParserTest {
 
     @Test
     fun testFunctionReturnType() {
-        val tokens = parseFile(
-            StringReader(
-                """
+        val tokens = tokenizeLines(
+            """
     def test():byte
       print(5)
     """
-            )
         )
         assertEquals(
             function("test", emptyList(), printBody, "byte"),

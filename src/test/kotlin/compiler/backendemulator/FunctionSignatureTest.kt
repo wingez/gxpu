@@ -13,6 +13,7 @@ import compiler.frontend.FunctionDefinition
 import compiler.frontend.FunctionDefinitionResolver
 import compiler.frontend.Variable
 import compiler.frontend.VariableType
+import tokenizeLines
 import tokens.parseFile
 import java.io.StringReader
 
@@ -42,7 +43,7 @@ internal class FunctionSignatureTest {
 
 
     fun getSignature(program: String): BuiltFunction {
-        val node = AstParser(parseFile(StringReader(program))).parseFunctionDefinition()
+        val node = AstParser(tokenizeLines(program)).parseFunctionDefinition()
 
 
         val functionProvider = object : FunctionDefinitionResolver {

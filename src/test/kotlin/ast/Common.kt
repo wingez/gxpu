@@ -2,6 +2,8 @@ package ast
 
 import ast.expression.parseExpressionUntil
 import TokenEndBlock
+import tokenizeLine
+import tokenizeLines
 import tokens.Token
 import tokens.TokenType
 import tokens.parseFile
@@ -13,11 +15,11 @@ fun parse(tokens: List<Token>): List<AstNode> {
 }
 
 fun parserFromLine(line: String): AstParser {
-    return AstParser(parseLine(line))
+    return AstParser(tokenizeLine(line))
 }
 
 fun parserFromFile(file: String): AstParser {
-    return AstParser(parseFile(StringReader(file)))
+    return AstParser(tokenizeLines(file))
 }
 
 fun parseExpressions(tokens: List<Token>): List<AstNode> {
@@ -25,7 +27,7 @@ fun parseExpressions(tokens: List<Token>): List<AstNode> {
 }
 
 fun parseExpression(expression: String): AstNode {
-    val tokensIterator = TokenIterator(parseLine(expression))
+    val tokensIterator = TokenIterator(tokenizeLine(expression))
     return parseExpressionUntil(tokensIterator, TokenType.EOL)
 }
 

@@ -9,6 +9,7 @@ import compiler.backends.emulator.Reference
 import compiler.backends.emulator.builtinInlinedSignatures
 import compiler.backends.emulator.emulate
 import compiler.frontend.*
+import tokenizeLines
 import tokens.parseFile
 import java.io.StringReader
 import kotlin.test.assertEquals
@@ -81,7 +82,7 @@ fun buildSingleMainFunction(nodes: List<AstNode>): CompiledProgram {
 }
 
 fun buildBody(body: String): List<EmulatorInstruction> {
-    val tokens = parseFile(StringReader(body))
+    val tokens = tokenizeLines(body)
     val nodes = parseExpressions(tokens)
 
 

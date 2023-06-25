@@ -180,7 +180,7 @@ fun main(array: Array<String>) {
 
     val fileName = array[0]
 
-    val tokens = parseFile(File(fileName).inputStream().reader())
+    val tokens = parseFile(File(fileName).inputStream().reader(), fileName)
     val nodes = AstParser(tokens).parse()
 
     val compiler = Compiler(BuiltInFunctions(), nodes)

@@ -10,6 +10,7 @@ import ast.parserFromFile
 import compiler.backends.astwalker.walk
 import compiler.backends.emulator.EmulatorInstruction
 import TokenEndBlock
+import tokenizeLines
 import tokens.parseFile
 import java.io.StringReader
 
@@ -28,7 +29,7 @@ private interface Runner {
 
 private class EmulatorRunner : Runner {
     override fun runBody(body: String): List<String> {
-        val tokens = parseFile(StringReader(body))
+        val tokens = tokenizeLines(body)
         val nodes = AstParser(tokens + listOf(TokenEndBlock)).parseStatementsUntilEndblock()
 
         val code = buildSingleMainFunction(nodes)
@@ -36,7 +37,7 @@ private class EmulatorRunner : Runner {
     }
 
     override fun runProgram(program: String): List<String> {
-        val tokens = parseFile(StringReader(program))
+        val tokens = tokenizeLines(program)
         val nodes = AstParser(tokens).parse()
 
         val c = Compiler(DummyBuiltInProvider(), nodes)
