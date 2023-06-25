@@ -97,10 +97,10 @@ data class AstNode(
             get() = node.childNodes[0]
 
         val ifBody
-            get() = node.childNodes[1].childNodes
+            get() = node.childNodes[1]
 
         val elseBody
-            get() = node.childNodes[2].childNodes
+            get() = node.childNodes[2]
 
         val hasElse
             get() = node.childNodes[2].hasChildren()
@@ -116,7 +116,7 @@ data class AstNode(
         val condition
             get() = node.childNodes[0]
         val body
-            get() = node.childNodes[1].childNodes
+            get() = node.childNodes[1]
     }
 
     fun asWhile(): WhileNode {
@@ -224,7 +224,7 @@ data class AstNode(
             return AstNode(
                 NodeTypes.Function,
                 FunctionData(name, type, arguments, returnType),
-                body
+                listOf(fromBody(body))
             )
         }
 

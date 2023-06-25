@@ -210,7 +210,7 @@ class FunctionCompiler(
 
         val mainCodeBlock = CodeBlock(functionEntryLabel)
 
-        flattenStatements(functionNode.childNodes, mainCodeBlock, loopContext = null)
+        flattenStatements(functionNode.childNodes.first(), mainCodeBlock, loopContext = null)
 
         addReturn(mainCodeBlock) //TODO: only add return if needed
 
@@ -218,12 +218,14 @@ class FunctionCompiler(
     }
 
     private fun flattenStatements(
-        nodes: List<AstNode>,
+        node: AstNode,
         codeBlock: CodeBlock,
         loopContext: LoopContext?
     ) {
-        for (node in nodes) {
-            flattenStatement(node, codeBlock, loopContext)
+        require(node.type==NodeTypes.Body)
+
+        for (statementNode in node.childNodes) {
+            flattenStatement(statementNode, codeBlock, loopContext)
         }
     }
 
