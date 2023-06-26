@@ -58,10 +58,10 @@ class AstParser(tokens: List<Token>) {
     fun parseNewValDeclaration(): List<AstNode> {
         tokens.consumeType(TokenType.KeywordVal)
 
-        val memberName = tokens.consumeIdentifier()
+        val memberNameToken = tokens.consumeType(TokenType.Identifier)
         val optionalTypeDefinition: TypeDefinition?
 
-        if (tokens.peekIs(TokenType.Colon,consumeMatch = true)) {
+        if (tokens.peekIs(TokenType.Colon, consumeMatch = true)) {
             optionalTypeDefinition = parseTypeDefinition()
         } else {
             optionalTypeDefinition = null
@@ -78,14 +78,19 @@ class AstParser(tokens: List<Token>) {
             throw ParserError("Either typeDefinition or something to assign must be provided")
         }
 
-        val newVariableNode = AstNode.fromNewVariable(memberName, optionalTypeDefinition, optionalTypeHint)
+        val memberName = memberNameToken.additionalData
+        val newVariableNode =
+            AstNode.fromNewVariable(memberName, optionalTypeDefinition, optionalTypeHint, memberNameToken.sourceInfo)
 
         if (optionalTypeHint == null) {
             // Only new variable
             return listOf(newVariableNode)
         }
         // Also assign default value
-        return listOf(newVariableNode, AstNode.fromAssign(AstNode.fromIdentifier(memberName), optionalTypeHint))
+        return listOf(
+            newVariableNode,
+            AstNode.fromAssign(AstNode.fromIdentifier(memberNameToken), optionalTypeHint, memberNameToken.sourceInfo)
+        )
     }
 
     fun parseExpression(): List<AstNode> {
@@ -95,11 +100,12 @@ class AstParser(tokens: List<Token>) {
             return listOf(first)
         }
 
-        if (tokens.peekIs(TokenType.Equals, consumeMatch = true)) {
+        if (tokens.peekIs(TokenType.Equals)) {
+            val assignmentSourceInfo = tokens.consume().sourceInfo
             val right = parseExpressionUntil(tokens, TokenType.EOL)
 
             first = AstNode.fromAssign(
-                first, right
+                first, right, assignmentSourceInfo
             )
         }
 
@@ -111,15 +117,15 @@ class AstParser(tokens: List<Token>) {
         Parses 'val:type' or 'val''
          */
 
-        val memberName = tokens.consumeIdentifier()
+        val memberName = tokens.consumeType(TokenType.Identifier)
         tokens.consumeType(TokenType.Colon)
         val typeDefinition = parseTypeDefinition()
 
-        return AstNode.fromNewVariable(memberName, typeDefinition, null)
+        return AstNode.fromNewVariable(memberName.additionalData, typeDefinition, null, memberName.sourceInfo)
     }
 
     fun parseFunctionDefinition(): AstNode {
-        tokens.consumeType(TokenType.KeywordDef)
+        val sourceInfo = tokens.consumeType(TokenType.KeywordDef).sourceInfo
 
         val parameters = mutableListOf<AstNode>()
 
@@ -155,7 +161,7 @@ class AstParser(tokens: List<Token>) {
 
         val statements = parseStatementsUntilEndblock()
 
-        return AstNode.fromFunction(name, type, parameters, statements, optionalReturnTypeDef)
+        return AstNode.fromFunction(name, type, parameters, statements, optionalReturnTypeDef, sourceInfo)
     }
 
     fun parseStatementsUntilEndblock(): List<AstNode> {
@@ -174,7 +180,7 @@ class AstParser(tokens: List<Token>) {
     }
 
     fun parseIfStatement(): AstNode {
-        tokens.consumeType(TokenType.KeywordIf)
+        val sourceInfo = tokens.consumeType(TokenType.KeywordIf).sourceInfo
         val condition = parseExpressionUntil(tokens, TokenType.Colon)
 
         tokens.consumeType(TokenType.Colon)
@@ -194,11 +200,11 @@ class AstParser(tokens: List<Token>) {
             emptyList()
         }
 
-        return AstNode.fromIf(condition, statements, elseStatements)
+        return AstNode.fromIf(condition, statements, elseStatements, sourceInfo)
     }
 
     fun parseWhileStatement(): AstNode {
-        tokens.consumeType(TokenType.KeywordWhile)
+        val sourceInfo = tokens.consumeType(TokenType.KeywordWhile).sourceInfo
         val condition = parseExpressionUntil(tokens, TokenType.Colon)
 
         tokens.consumeType(TokenType.Colon)
@@ -207,20 +213,19 @@ class AstParser(tokens: List<Token>) {
 
         val statements = parseStatementsUntilEndblock()
 
-        return AstNode.fromWhile(condition, statements)
+        return AstNode.fromWhile(condition, statements, sourceInfo)
     }
 
     fun parseReturnStatement(): AstNode {
-        tokens.consumeType(TokenType.KeywordReturn)
+        val sourceInfo = tokens.consumeType(TokenType.KeywordReturn).sourceInfo
 
         val value = if (!tokens.peekIs(TokenType.EOL)) parseExpressionUntil(tokens, TokenType.EOL) else null
         tokens.consumeType(TokenType.EOL)
-        return AstNode.fromReturn(value)
+        return AstNode.fromReturn(value, sourceInfo)
     }
 
     fun parseBreakStatement(): AstNode {
-        tokens.consumeType(TokenType.KeywordBreak)
-        return AstNode.fromBreak()
+        return AstNode.fromBreak(tokens.consumeType(TokenType.KeywordBreak).sourceInfo)
     }
 
     fun parseTypeDefinition(): TypeDefinition {
@@ -238,7 +243,7 @@ class AstParser(tokens: List<Token>) {
 
 
     fun parseStruct(): AstNode {
-        tokens.consumeType(TokenType.KeywordStruct)
+        val sourceInfo = tokens.consumeType(TokenType.KeywordStruct).sourceInfo
         val name = tokens.consumeIdentifier()
         tokens.consumeType(TokenType.Colon)
         tokens.consumeType(TokenType.EOL)
@@ -252,7 +257,7 @@ class AstParser(tokens: List<Token>) {
 
             members.add(parsePrimitiveMemberDeclaration())
         }
-        return AstNode.fromStruct(name, members)
+        return AstNode.fromStruct(name, members, sourceInfo)
     }
 
 }

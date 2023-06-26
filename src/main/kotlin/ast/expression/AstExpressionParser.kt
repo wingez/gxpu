@@ -90,8 +90,8 @@ private fun parseBlocksUntil(valueList: List<Value>, matcher: ValueMatcher): Pai
             }
 
             val block = when (blockType) {
-                BlockType.Parenthesis -> Value.parenthesisBlock(blockContent)
-                BlockType.Bracket -> Value.bracketBlock(blockContent)
+                BlockType.Parenthesis -> Value.parenthesisBlock(blockContent, currentValue.sourceInfo)
+                BlockType.Bracket -> Value.bracketBlock(blockContent, currentValue.sourceInfo)
             }
 
             result.add(block)
@@ -123,9 +123,9 @@ private fun newParse(tokens: List<Token>): AstNode {
     // Do initial reduction
     val valueList = tokens.map { token ->
         when (token.type) {
-            TokenType.NumericConstant -> Value.node(AstNode.fromConstant(token.asConstant()))
-            TokenType.Identifier -> Value.node(AstNode.fromIdentifier(token.additionalData))
-            TokenType.String -> Value.node(AstNode.fromString(token.additionalData))
+            TokenType.NumericConstant -> Value.node(AstNode.fromConstant(token.asConstant(), token.sourceInfo))
+            TokenType.Identifier -> Value.node(AstNode.fromIdentifier(token))
+            TokenType.String -> Value.node(AstNode.fromString(token.additionalData, token.sourceInfo))
             else -> Value.token(token)
         }
     }

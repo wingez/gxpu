@@ -1,6 +1,8 @@
 package ast
 
+import SourceInfo
 import ast.expression.binaryOperatorToNodesType
+import tokens.Token
 import tokens.TokenType
 
 enum class NodeTypes {
@@ -34,6 +36,7 @@ data class AstNode(
     val type: NodeTypes,
     val data: Any?,
     val childNodes: List<AstNode> = emptyList(),
+    val sourceInfo: SourceInfo,
 ) : Iterable<AstNode> {
 
     val child
@@ -86,8 +89,21 @@ data class AstNode(
         return CallNode(this)
     }
 
-    fun asFunction(): FunctionData {
-        return this.data as FunctionData
+    class FunctionNode(private val node: AstNode) {
+
+        private val extraData = node.data as FunctionData
+
+        val name = extraData.name
+        val type = extraData.type
+        val returnType = extraData.returnType
+
+        val arguments = node.childNodes[0]
+        val body = node.childNodes[1]
+
+    }
+
+    fun asFunction(): FunctionNode {
+        return FunctionNode(this)
     }
 
     class IfNode(
@@ -169,48 +185,65 @@ data class AstNode(
         return NewVariable(this)
     }
 
+    fun iterateBody(): Iterable<AstNode> {
+        require(type == NodeTypes.Body)
+        return childNodes
+    }
+
     companion object {
 
 
-        fun fromBinaryOperation(type: TokenType, left: AstNode, right: AstNode): AstNode {
+        fun fromBinaryOperation(type: TokenType, left: AstNode, right: AstNode, sourceInfo: SourceInfo): AstNode {
 
             val name = binaryOperatorToNodesType.getValue(type)
-            return fromCall(name, FunctionType.Operator, listOf(left, right))
+            return fromCall(name, FunctionType.Operator, listOf(left, right), sourceInfo)
         }
 
         fun fromBody(body: List<AstNode>): AstNode {
-            return AstNode(NodeTypes.Body, null, body)
+            return AstNode(NodeTypes.Body, null, body, SourceInfo.notApplicable)
         }
 
-        fun fromIdentifier(name: String): AstNode {
-            return AstNode(NodeTypes.Identifier, name)
+        fun fromIdentifier(name: String, sourceInfo: SourceInfo): AstNode {
+            return AstNode(NodeTypes.Identifier, name, sourceInfo = sourceInfo)
         }
 
-        fun fromConstant(value: Int): AstNode {
-            return AstNode(NodeTypes.Constant, value, emptyList())
+        fun fromIdentifier(identifierToken: Token): AstNode {
+            require(identifierToken.type == TokenType.Identifier)
+            return fromIdentifier(identifierToken.additionalData, identifierToken.sourceInfo)
+        }
+
+        fun fromConstant(value: Int, sourceInfo: SourceInfo): AstNode {
+            return AstNode(NodeTypes.Constant, value, emptyList(), sourceInfo)
         }
 
         fun fromNewVariable(
             memberName: String,
             optionalTypeDefinition: TypeDefinition?,
-            optionalTypeHint: AstNode?
+            optionalTypeHint: AstNode?,
+            sourceInfo: SourceInfo,
         ): AstNode {
             val childNodes = if (optionalTypeHint == null) emptyList() else listOf(optionalTypeHint)
 
             return AstNode(
-                NodeTypes.NewVariable, NewVariableData(memberName, optionalTypeDefinition), childNodes
+                NodeTypes.NewVariable, NewVariableData(memberName, optionalTypeDefinition), childNodes, sourceInfo
             )
         }
 
         fun fromAssign(
             target: AstNode,
             value: AstNode,
+            sourceInfo: SourceInfo,
         ): AstNode {
-            return AstNode(NodeTypes.Assign, null, listOf(target, value))
+            return AstNode(NodeTypes.Assign, null, listOf(target, value), sourceInfo)
         }
 
-        fun fromCall(targetName: String, functionType: FunctionType, parameters: List<AstNode>): AstNode {
-            return AstNode(NodeTypes.Call, CallInfo(targetName, functionType), parameters)
+        fun fromCall(
+            targetName: String,
+            functionType: FunctionType,
+            parameters: List<AstNode>,
+            sourceInfo: SourceInfo,
+        ): AstNode {
+            return AstNode(NodeTypes.Call, CallInfo(targetName, functionType), parameters, sourceInfo)
         }
 
 
@@ -220,11 +253,16 @@ data class AstNode(
             arguments: List<AstNode>,
             body: List<AstNode>,
             returnType: TypeDefinition?,
+            sourceInfo: SourceInfo,
         ): AstNode {
             return AstNode(
                 NodeTypes.Function,
-                FunctionData(name, type, arguments, returnType),
-                listOf(fromBody(body))
+                FunctionData(name, type, returnType),
+                listOf(
+                    fromBody(arguments),
+                    fromBody(body)
+                ),
+                sourceInfo,
             )
         }
 
@@ -232,56 +270,60 @@ data class AstNode(
             condition: AstNode,
             body: List<AstNode>,
             elseBody: List<AstNode>,
+            sourceInfo: SourceInfo,
         ): AstNode {
-            return AstNode(NodeTypes.If, null, listOf(condition, fromBody(body), fromBody(elseBody)))
+            return AstNode(NodeTypes.If, null, listOf(condition, fromBody(body), fromBody(elseBody)), sourceInfo)
         }
 
         fun fromWhile(
             condition: AstNode,
             body: List<AstNode>,
+            sourceInfo: SourceInfo,
         ): AstNode {
-            return AstNode(NodeTypes.While, null, listOf(condition, fromBody(body)))
+            return AstNode(NodeTypes.While, null, listOf(condition, fromBody(body)), sourceInfo)
         }
 
         fun fromReturn(
             value: AstNode? = null,
+            sourceInfo: SourceInfo,
         ): AstNode {
-            return AstNode(NodeTypes.Return, null, if (value != null) listOf(value) else emptyList())
+            return AstNode(NodeTypes.Return, null, if (value != null) listOf(value) else emptyList(), sourceInfo)
         }
 
-        fun fromStruct(name: String, arguments: List<AstNode>): AstNode {
-            return AstNode(NodeTypes.Struct, name, arguments)
+        fun fromStruct(name: String, arguments: List<AstNode>, sourceInfo: SourceInfo): AstNode {
+            return AstNode(NodeTypes.Struct, name, arguments, sourceInfo)
         }
 
         fun fromArrayAccess(
             parent: AstNode,
-            index: AstNode
+            index: AstNode,
+            sourceInfo: SourceInfo,
         ): AstNode {
-            return AstNode(NodeTypes.ArrayAccess, null, listOf(parent, index))
+            return AstNode(NodeTypes.ArrayAccess, null, listOf(parent, index), sourceInfo)
         }
 
-        fun fromString(string: String): AstNode {
-            return AstNode(NodeTypes.String, string)
+        fun fromString(string: String, sourceInfo: SourceInfo): AstNode {
+            return AstNode(NodeTypes.String, string, sourceInfo = sourceInfo)
         }
 
-        fun fromBreak(): AstNode {
-            return AstNode(NodeTypes.Break, null, emptyList())
+        fun fromBreak(sourceInfo: SourceInfo): AstNode {
+            return AstNode(NodeTypes.Break, null, emptyList(), sourceInfo)
         }
 
-        fun newArray(content: List<AstNode>): AstNode {
-            return AstNode(NodeTypes.Array, null, content)
+        fun newArray(content: List<AstNode>, sourceInfo: SourceInfo): AstNode {
+            return AstNode(NodeTypes.Array, null, content, sourceInfo)
         }
 
-        fun fromAddressOf(node: AstNode): AstNode {
-            return AstNode(NodeTypes.AddressOf, null, listOf(node))
+        fun fromAddressOf(node: AstNode, sourceInfo: SourceInfo): AstNode {
+            return AstNode(NodeTypes.AddressOf, null, listOf(node), sourceInfo)
         }
 
-        fun fromDeref(node: AstNode): AstNode {
-            return AstNode(NodeTypes.Deref, null, listOf(node))
+        fun fromDeref(node: AstNode, sourceInfo: SourceInfo): AstNode {
+            return AstNode(NodeTypes.Deref, null, listOf(node), sourceInfo)
         }
 
-        fun fromMemberAccess(node: AstNode, member: String): AstNode {
-            return AstNode(NodeTypes.MemberAccess, member, listOf(node))
+        fun fromMemberAccess(node: AstNode, member: String, sourceInfo: SourceInfo): AstNode {
+            return AstNode(NodeTypes.MemberAccess, member, listOf(node), sourceInfo)
         }
     }
 }
@@ -294,7 +336,6 @@ private data class NewVariableData(
 data class FunctionData(
     val name: String,
     val type: FunctionType,
-    val arguments: List<AstNode>,
     val returnType: TypeDefinition?,
 )
 
@@ -304,16 +345,15 @@ data class TypeDefinition(
     val isPointer: Boolean = false,
 )
 
-fun iterateAstNode(node: AstNode): Iterable<AstNode> {
-
-    fun iterateRecursive(node: AstNode, list: MutableList<AstNode>) {
-        list.add(node)
-        for (child in node.childNodes) {
-            iterateRecursive(child, list)
-        }
-    }
-
+fun iterateNodeRecursively(node: AstNode): Iterable<AstNode> {
     val result = mutableListOf<AstNode>()
-    iterateRecursive(node, result)
+    iterateNodeRecursivelyImpl(node, result)
     return result
+}
+
+private fun iterateNodeRecursivelyImpl(node: AstNode, list: MutableList<AstNode>) {
+    list.add(node)
+    for (child in node.childNodes) {
+        iterateNodeRecursivelyImpl(child,list)
+    }
 }

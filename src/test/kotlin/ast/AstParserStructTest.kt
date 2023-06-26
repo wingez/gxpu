@@ -4,11 +4,11 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
 fun struct(name: String, members: List<AstNode>): AstNode {
-    return AstNode.fromStruct(name, members)
+    return AstNode.fromStruct(name, members, na)
 }
 
 fun memberAccess(v: AstNode, member: String): AstNode {
-    return AstNode(NodeTypes.MemberAccess, member, listOf(v))
+    return AstNode(NodeTypes.MemberAccess, member, listOf(v), na)
 }
 
 class AstParserStructTest {
@@ -16,7 +16,7 @@ class AstParserStructTest {
     @Test
     fun testStructBasic() {
 
-        assertEquals(
+        assertEqualsIgnoreSource(
             struct(
                 "tmp", listOf(
                     variable("member1"),
@@ -32,7 +32,7 @@ class AstParserStructTest {
             ).parseStruct(),
         )
 
-        assertEquals(
+        assertEqualsIgnoreSource(
             struct(
                 "tmp", listOf(
                     variable("member1", "byte"),
@@ -56,31 +56,34 @@ class AstParserStructTest {
             listOf(
                 AstNode.fromAssign(
                     memberAccess(identifier("member"), "i"),
-                    constant(5)
+                    constant(5),
+                    na
                 )
             ),
             parserFromFile(
                 """
         member.i=5
         """
-            ).parseExpression(),
+            ).parseExpression().ignoreSource(),
         )
     }
 
     @Test
     fun testStructAssignInFunction() {
-        assertEquals(
+        assertEqualsIgnoreSource(
             function(
                 "main", emptyList(),
                 listOf(
                     variable("a", "type1"),
                     AstNode.fromAssign(
                         memberAccess(identifier("a"), "member1"),
-                        constant(2)
+                        constant(2),
+                        na,
                     ),
                     AstNode.fromAssign(
                         memberAccess(identifier("a"), "member2"),
-                        constant(1)
+                        constant(1),
+                        na,
                     )
                 ), null
             ),
@@ -103,14 +106,15 @@ class AstParserStructTest {
             listOf(
                 AstNode.fromAssign(
                     identifier("a"),
-                    memberAccess(identifier("s"), "member")
+                    memberAccess(identifier("s"), "member"),
+                    na,
                 )
             ),
             parserFromFile(
                 """
         a=s.member
         """
-            ).parseExpression(),
+            ).parseExpression().ignoreSource(),
         )
     }
 
@@ -120,9 +124,10 @@ class AstParserStructTest {
             listOf(
                 AstNode.fromAssign(
                     AstNode.fromDeref(
-                        AstNode.fromMemberAccess(identifier("a"), "test")
+                        AstNode.fromMemberAccess(identifier("a"), "test", na), na
                     ),
-                    identifier("s")
+                    identifier("s"),
+                    na,
                 )
             ),
             parserFromLine("*a.test = s").parseExpression()
@@ -135,8 +140,8 @@ class AstParserStructTest {
             AstNode.fromDeref(
                 AstNode.fromMemberAccess(
                     identifier("a"),
-                    "b"
-                )
+                    "b", na
+                ), na
             ),
             parseExpression("*a.b")
         )
@@ -150,7 +155,7 @@ class AstParserStructTest {
     @Test
     fun testStructArray() {
 
-        assertEquals(
+        assertEqualsIgnoreSource(
             struct(
                 "tmp", listOf(
                     variable("member1", "byte", isArray = true),

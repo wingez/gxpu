@@ -1,5 +1,6 @@
 package ast.expression
 
+import SourceInfo
 import ast.AstNode
 import ast.NodeTypes
 import tokens.Token
@@ -16,7 +17,8 @@ class Value private constructor(
     val type: ValueType,
     private val _token: Token? = null,
     private val _node: AstNode? = null,
-    private val _nodeList: List<AstNode>? = null
+    private val _nodeList: List<AstNode>? = null,
+    private val _blockSourceInfo: SourceInfo? = null
 ) {
     val token get() = _token!!
     val node get() = _node!!
@@ -32,11 +34,21 @@ class Value private constructor(
         }
     }
 
+    val sourceInfo
+        get() = when (type) {
+            ValueType.Token -> token.sourceInfo
+            ValueType.Node -> node.sourceInfo
+            ValueType.BracketsBlock,ValueType.ParenthesisBlock -> _blockSourceInfo!!
+        }
+
     companion object {
         fun node(node: AstNode): Value = Value(ValueType.Node, _node = node)
         fun token(token: Token): Value = Value(ValueType.Token, _token = token)
-        fun parenthesisBlock(content: List<AstNode>): Value = Value(ValueType.ParenthesisBlock, _nodeList = content)
-        fun bracketBlock(content: List<AstNode>): Value = Value(ValueType.BracketsBlock, _nodeList = content)
+        fun parenthesisBlock(content: List<AstNode>, sourceInfo: SourceInfo): Value =
+            Value(ValueType.ParenthesisBlock, _nodeList = content, _blockSourceInfo = sourceInfo)
+
+        fun bracketBlock(content: List<AstNode>, sourceInfo: SourceInfo): Value =
+            Value(ValueType.BracketsBlock, _nodeList = content, _blockSourceInfo = sourceInfo)
 
     }
 }

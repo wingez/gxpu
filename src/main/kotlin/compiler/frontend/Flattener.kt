@@ -150,7 +150,7 @@ private class CodeBlock(
     }
 }
 
-private fun assertFunctionNode(node: AstNode): FunctionData {
+private fun assertFunctionNode(node: AstNode): AstNode.FunctionNode {
     assert(node.type == NodeTypes.Function)
     return node.asFunction()
 }
@@ -210,7 +210,7 @@ class FunctionCompiler(
 
         val mainCodeBlock = CodeBlock(functionEntryLabel)
 
-        flattenStatements(functionNode.childNodes.first(), mainCodeBlock, loopContext = null)
+        flattenStatements(function.body, mainCodeBlock, loopContext = null)
 
         addReturn(mainCodeBlock) //TODO: only add return if needed
 
@@ -500,7 +500,7 @@ class FunctionCompiler(
         }
 
 
-        for (node in iterateAstNode(functionNode)) {
+        for (node in iterateNodeRecursively(functionNode.asFunction().body)) {
             if (node.type == NodeTypes.NewVariable) {
                 val newVariable = node.asNewVariable()
 

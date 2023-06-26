@@ -1,5 +1,6 @@
 package ast.expression
 
+import SourceInfo
 import ast.AstNode
 import ast.FunctionType
 import ast.NodeTypes
@@ -82,7 +83,7 @@ private class BinaryOperatorReducer(
 
     override fun tryReduceMatched(values: List<Value>): Value {
         return Value.node(
-            AstNode.fromBinaryOperation(tokenType, values[0].node, values[2].node)
+            AstNode.fromBinaryOperation(tokenType, values[0].node, values[2].node, sourceInfo = values[1].sourceInfo)
         )
     }
 }
@@ -93,9 +94,9 @@ private abstract class UnaryReducer(
 ) : MatchingReducer(
     listOf(TokenMatcher(tokenType), anyNodeMatcher)
 ) {
-    abstract fun reduce(node: AstNode): AstNode
+    abstract fun reduce(node: AstNode, operatorSourceInfo: SourceInfo): AstNode
     override fun tryReduceMatched(values: List<Value>): Value? {
-        return Value.node(reduce(values[1].node))
+        return Value.node(reduce(values[1].node, values[0].sourceInfo))
     }
 }
 
@@ -103,8 +104,8 @@ private class UnaryOperatorReducer(
     tokenType: TokenType,
     priority: Int,
 ) : UnaryReducer(tokenType, priority) {
-    override fun reduce(node: AstNode): AstNode {
-        return AstNode.fromCall(OperatorBuiltIns.Negate, FunctionType.Operator, listOf(node))
+    override fun reduce(node: AstNode, operatorSourceInfo: SourceInfo): AstNode {
+        return AstNode.fromCall(OperatorBuiltIns.Negate, FunctionType.Operator, listOf(node), operatorSourceInfo)
     }
 }
 
@@ -112,8 +113,8 @@ private class AddressOfReducer : UnaryReducer(
     TokenType.Ampersand,
     priorities.addressOfAndDeref,
 ) {
-    override fun reduce(node: AstNode): AstNode {
-        return AstNode.fromAddressOf(node)
+    override fun reduce(node: AstNode, operatorSourceInfo: SourceInfo): AstNode {
+        return AstNode.fromAddressOf(node, operatorSourceInfo)
     }
 }
 
@@ -121,8 +122,8 @@ private class DerefReducer : UnaryReducer(
     TokenType.Star,
     priorities.addressOfAndDeref,
 ) {
-    override fun reduce(node: AstNode): AstNode {
-        return AstNode.fromDeref(node)
+    override fun reduce(node: AstNode, operatorSourceInfo: SourceInfo): AstNode {
+        return AstNode.fromDeref(node, operatorSourceInfo)
     }
 }
 
@@ -154,7 +155,14 @@ private class FunctionCallReduce : MatchingReducer(
         if (identifierNode.type != NodeTypes.Identifier) {
             return null
         }
-        return Value.node(AstNode.fromCall(identifierNode.asIdentifier(), FunctionType.Normal, values[1].nodeList))
+        return Value.node(
+            AstNode.fromCall(
+                identifierNode.asIdentifier(),
+                FunctionType.Normal,
+                values[1].nodeList,
+                identifierNode.sourceInfo
+            )
+        )
     }
 }
 
@@ -164,7 +172,7 @@ private class BracketBlockToArray : MatchingReducer(
     override val priority: Int = priorities.bracketsBlockToArray
 
     override fun tryReduceMatched(values: List<Value>): Value {
-        return Value.node(AstNode.newArray(values[0].nodeList))
+        return Value.node(AstNode.newArray(values[0].nodeList, SourceInfo.notApplicable))
     }
 }
 
@@ -182,7 +190,8 @@ private class InstanceFunction : MatchingReducer(
 
         return Value.node(
             AstNode.fromCall(
-                callInfo.targetName, FunctionType.Instance, listOf(values[0].node) + callInfo.parameters
+                callInfo.targetName, FunctionType.Instance, listOf(values[0].node) + callInfo.parameters,
+                values[1].sourceInfo,
             )
         )
     }
@@ -207,7 +216,8 @@ private class SubtractionReducer : MatchingReducer(
             AstNode.fromCall(
                 OperatorBuiltIns.Subtraction,
                 FunctionType.Operator,
-                listOf(values[0].node, mustBeNegate.parameters.first())
+                listOf(values[0].node, mustBeNegate.parameters.first()),
+                values[1].sourceInfo,
             )
         )
     }
@@ -222,7 +232,7 @@ private class ArrayAccess : MatchingReducer(
         if (values[1].nodeList.size != 1) {
             return null
         }
-        return Value.node(AstNode.fromArrayAccess(values[0].node, values[1].nodeList.first()))
+        return Value.node(AstNode.fromArrayAccess(values[0].node, values[1].nodeList.first(), values[1].sourceInfo))
     }
 }
 
@@ -233,7 +243,7 @@ private class MemberAccessReducer : MatchingReducer(
 ) {
     override val priority = priorities.memberAccess
     override fun tryReduceMatched(values: List<Value>): Value {
-        return Value.node(AstNode.fromMemberAccess(values[0].node, values[2].node.asIdentifier()))
+        return Value.node(AstNode.fromMemberAccess(values[0].node, values[2].node.asIdentifier(), values[1].sourceInfo))
     }
 
 }
@@ -247,8 +257,9 @@ private class ArrowMemberAccessReducer : MatchingReducer(
     override fun tryReduceMatched(values: List<Value>): Value {
         return Value.node(
             AstNode.fromMemberAccess(
-                AstNode.fromDeref(values[0].node),
-                values[2].node.asIdentifier()
+                AstNode.fromDeref(values[0].node, values[1].sourceInfo),
+                values[2].node.asIdentifier(),
+                values[1].sourceInfo
             )
         )
     }
