@@ -21,14 +21,9 @@ class TokenIterator(
         }
         return result
     }
-
     fun consumeType(type: TokenType): Token {
-        return consumeType(type, "Expected token to be of type $type")
-    }
-
-    fun consumeType(type: TokenType, errorMessage: String): Token {
         if (!peekIs(type))
-            throw Error(errorMessage)
+            throwSyntaxError("Expected token to be of type $type, but was ${peek().type}", peek().sourceInfo)
         return consume()
     }
 
