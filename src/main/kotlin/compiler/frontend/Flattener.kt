@@ -43,12 +43,22 @@ class VariableExpression(
     override val type = variable.datatype
 }
 
+
+class AddressMemberAccess(
+    val of: AddressExpression,
+    val memberName: String,
+) : AddressExpression {
+    override val type: Datatype
+        get() = of.type.fieldType(memberName)
+}
+
 class AddressOf(
     val value: AddressExpression
 ) : ValueExpression {
     override val type: Datatype
         get() = Datatype.Pointer(value.type)
 }
+
 
 class DerefToAddress(
     val value: ValueExpression
@@ -57,20 +67,16 @@ class DerefToAddress(
         get() = value.type.pointerType
 }
 
+class ValueMemberAccess(val of: ValueExpression, val memberName: String) : ValueExpression {
+    override val type: Datatype
+        get() = of.type.fieldType(memberName)
+}
+
 class DerefToValue(
     val value: AddressExpression
 ) : ValueExpression {
     override val type: Datatype
         get() = value.type.pointerType
-}
-
-
-class MemberAccess(
-    val name: String,
-    val value: ValueExpression,
-) : ValueExpression {
-    override val type: Datatype
-        get() = value.type.fieldType(name)
 }
 
 class CallExpression(
@@ -222,7 +228,7 @@ class FunctionCompiler(
         codeBlock: CodeBlock,
         loopContext: LoopContext?
     ) {
-        require(node.type==NodeTypes.Body)
+        require(node.type == NodeTypes.Body)
 
         for (statementNode in node.childNodes) {
             flattenStatement(statementNode, codeBlock, loopContext)
@@ -270,6 +276,16 @@ class FunctionCompiler(
 
             NodeTypes.Deref -> {
                 DerefToAddress(parseValueExpression(node.child))
+            }
+
+            NodeTypes.MemberAccess -> {
+                val structAddress = parseAddressExpression(node.child)
+                val name = node.data as String
+                if (!structAddress.type.isComposite || !structAddress.type.containsField(name)) {
+                    throw FrontendCompilerError("Type ${structAddress.type} contains no field \"$name\"")
+                }
+
+                AddressMemberAccess(structAddress, name)
             }
 
             else -> throw FrontendCompilerError("Cannot get address of  ${node.type}")
@@ -321,11 +337,11 @@ class FunctionCompiler(
         val value = parseValueExpression(node.childNodes.first())
         val memberName = node.asIdentifier()
 
-        if (!value.type.isComposite || value.type.containsField(memberName)) {
+        if (!value.type.isComposite || !value.type.containsField(memberName)) {
             throw FrontendCompilerError("Type ${value.type} has no field $memberName")
         }
 
-        return MemberAccess(memberName, value)
+        return ValueMemberAccess(value, memberName)
     }
 
     private fun findTypeOfExpression(
