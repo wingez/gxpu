@@ -22,8 +22,56 @@ class WalkerOutput {
     val result = mutableListOf<String>()
 }
 
-class WalkFrame {
-    val valueHolders = mutableMapOf<String, ValueHolder>()
+class CompositeValueHolder(
+    val type: Datatype,
+    val valueHolders: Map<VariableHandle, PrimitiveValueHolder>,
+    val singleValueHolder: PrimitiveValueHolder?,
+) {
+
+    fun getCompositeValueHolder(variableName: String): CompositeValueHolder {
+        require(type.isComposite)
+        require(type.containsField(variableName))
+        val fieldType = type.fieldType(variableName)
+        if (!fieldType.isComposite) {
+            return CompositeValueHolder(
+                fieldType, emptyMap(), valueHolders.getValue(
+                    VariableHandle(
+                        listOf(variableName), fieldType
+                    )
+                )
+            )
+        } else {
+            return CompositeValueHolder(
+                fieldType,
+                valueHolders.keys.filter { it.accessors.first() == variableName }.associate {
+                    VariableHandle(it.accessors.subList(1, it.accessors.size), it.type) to valueHolders.getValue(it)
+                },
+                null,
+            )
+        }
+    }
+
+    fun setValue(value: Value) {
+        if (value.datatype.isComposite) TODO()
+
+        require(singleValueHolder!!.type == value.datatype)
+        singleValueHolder.value = value
+    }
+
+    fun asValue(): Value {
+        if (singleValueHolder != null) {
+            return singleValueHolder.value
+        }
+        return Value.composite(type, valueHolders.keys.associateWith { valueHolders.getValue(it).value })
+    }
+
+
+}
+
+class WalkFrame(
+    val localVariablesTypes: Map<String, Datatype>,
+    val holder: CompositeValueHolder,
+) {
 }
 
 fun walk(node: AstNode, config: WalkConfig = WalkConfig.default): WalkerOutput {
@@ -35,7 +83,6 @@ fun walk(nodes: List<AstNode>, config: WalkConfig = WalkConfig.default): WalkerO
     val walker = WalkerState(nodes, config)
     walker.walk()
     return walker.output
-
 }
 
 enum class ControlFlow {
@@ -111,8 +158,9 @@ class WalkerState(
     fun walk(): WalkerOutput {
 
         nodes.filter { it.type == NodeTypes.Struct }
-            .map { buildStruct(it, this) }
-            .forEach { addType(it) }
+            .forEach{
+                addType(buildStruct(it,this))
+            }
 
         builtInList.forEach {
             addFunction(it)
@@ -134,21 +182,54 @@ class WalkerState(
         return function.execute(parameters, this)
     }
 
+    fun setVariable(variableName: String, value: Value) {
+
+        if (!value.datatype.isComposite) {
+            getVariableHolder(variableName).singleValueHolder!!.value = value
+        } else {
+            TODO()
+        }
+    }
+
+
+    fun getVariableHolder(variableName: String): CompositeValueHolder {
+        return currentFrame.holder.getCompositeValueHolder(variableName)
+    }
+
+    fun getVariable(variableName: String): Value {
+        return getVariableHolder(variableName).asValue()
+    }
+
     fun walkUserFunction(userFunction: UserFunction, parameters: List<Value>): Value {
 
-        // Push new frame
-        frameStack.add(WalkFrame())
 
-        // Create variables for parameters & local variables
-        userFunction.functionContent.localVariables.forEach {
-            createNewVariable(it.name, it.datatype)
-        }
+        val fields = Datatype.Composite(
+            "functionfields",
+            userFunction.functionContent.localVariables.map {
+                CompositeDataTypeField(
+                    it.name,
+                    it.datatype
+                )
+            })
+
+
+        // Push new frame
+        frameStack.add(
+            WalkFrame(
+                userFunction.functionContent.localVariables.associate { it.name to it.datatype },
+                CompositeValueHolder(
+                    fields,
+                    getVariableHandlesForDatatype(fields).associate { it to PrimitiveValueHolder(it.type) },
+                    null,
+                )
+            )
+        )
 
         // Add arguments as local variables
         userFunction.functionContent.localVariables.filter { it.type == VariableType.Parameter }.zip(parameters)
             .forEach { (variable, value) ->
                 assert(variable.datatype == value.datatype)
-                currentFrame.valueHolders.getValue(variable.name).value = value
+                setVariable(variable.name, value)
             }
 
         // Walk the function
@@ -184,7 +265,7 @@ class WalkerState(
         val result = if (userFunction.definition.returnType == Datatype.Void) {
             Value.void()
         } else {
-            currentFrame.valueHolders.getValue("result").value
+            getVariable("result")
         }
 
         // Pop frame
@@ -239,14 +320,6 @@ class WalkerState(
         } else {
             return ControlFlow.Normal to null
         }
-
-
-    }
-
-    fun createNewVariable(name: String, type: Datatype) {
-
-        assert(name !in currentFrame.valueHolders)
-        currentFrame.valueHolders[name] = ValueHolder(type)
     }
 
     private fun handleAssign(instr: Assign) {
@@ -258,7 +331,7 @@ class WalkerState(
             throw WalkerException("Type mismatch. Expected ${holderToAssignTo.type}, got ${valueToAssign.datatype}")
         }
 
-        holderToAssignTo.value = valueToAssign
+        holderToAssignTo.setValue(valueToAssign)
     }
 
 
@@ -302,18 +375,8 @@ class WalkerState(
         return getVariable(variableName).datatype
     }
 
-    fun getVariableHolder(variableName: String): ValueHolder {
-        if (variableName !in currentFrame.valueHolders) {
-            throw WalkerException("No variable named $variableName")
-        }
-        return currentFrame.valueHolders.getValue(variableName)
-    }
 
-    fun getVariable(variableName: String): Value {
-        return getVariableHolder(variableName).value
-    }
-
-    fun getValueHolderOf(addressExpression: AddressExpression): ValueHolder {
+    fun getValueHolderOf(addressExpression: AddressExpression): CompositeValueHolder {
 
         return when (addressExpression) {
             is VariableExpression -> {
@@ -323,6 +386,11 @@ class WalkerState(
             is DerefToAddress -> {
                 val pointer = getValueOf(addressExpression.value)
                 pointer.derefPointer()
+            }
+
+            is AddressMemberAccess -> {
+                val existing = getValueHolderOf(addressExpression.of)
+                return existing.getCompositeValueHolder(addressExpression.memberName)
             }
 
             else -> TODO(addressExpression.toString())
@@ -345,11 +413,17 @@ class WalkerState(
             is StringExpression -> createFromString(valueExpression.string)
 
             is AddressOf -> {
-                Value.pointer(getValueHolderOf(valueExpression.value))
+                val compositeHolder =getValueHolderOf(valueExpression.value)
+                Value.pointer(compositeHolder.type, compositeHolder)
             }
 
             is DerefToValue -> {
-                getValueHolderOf(valueExpression.value).value.derefPointer().value
+                getValueHolderOf(valueExpression.value).singleValueHolder!!.value.derefPointer().asValue()
+            }
+
+            is ValueMemberAccess -> {
+                val existing = getValueOf(valueExpression.of)
+                existing.getField(valueExpression.memberName)
             }
 
             else -> TODO(valueExpression.toString())
@@ -373,3 +447,23 @@ class WalkerState(
     }
 }
 
+private fun getVariableHandlesForDatatype(type: Datatype): List<VariableHandle> {
+    val result = mutableListOf<VariableHandle>()
+    getVariableHandlesForDatatypeImpl(type, emptyList(), result)
+    return result
+}
+
+
+private fun getVariableHandlesForDatatypeImpl(
+    type: Datatype,
+    accesorsSoFar: List<String>,
+    result: MutableList<VariableHandle>
+) {
+    if (!type.isComposite) {
+        result.add(VariableHandle(accesorsSoFar, type))
+    } else {
+        for (field in type.compositeFields) {
+            getVariableHandlesForDatatypeImpl(field.type, accesorsSoFar + listOf(field.name), result)
+        }
+    }
+}

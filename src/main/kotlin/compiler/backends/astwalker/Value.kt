@@ -3,19 +3,26 @@ package compiler.backends.astwalker
 import ast.AstNode
 import ast.NodeTypes
 import compiler.frontend.Datatype
-import compiler.frontend.TypeProvider
 import compiler.frontend.FunctionDefinitionResolver
 
+
+data class VariableHandle(
+    val accessors: List<String>,
+    val type: Datatype,
+)
 
 class Value private constructor(
     val datatype: Datatype,
     private val primitiveValue: Int = 0,
-    private val pointerTargetHolder: ValueHolder? = null,
-    private val arrayValueHolders: List<ValueHolder>? = null
+    private val pointerTargetHolder: CompositeValueHolder? = null,
+    private val arrayValueHolders: List<PrimitiveValueHolder>? = null,
+    private val compositeValues: Map<VariableHandle, Value>? = null
 ) {
 
     fun isPrimitive() = datatype.isPrimitive
     fun isArray() = datatype.isArray
+    fun isPointer() = datatype.isPointer
+    fun isComposite() = datatype.isComposite
 
     fun getPrimitiveValue(): Int {
         assert(isPrimitive())
@@ -28,7 +35,7 @@ class Value private constructor(
             return arrayValueHolders!!.size
         }
 
-    fun arrayHolderAt(index: Int): ValueHolder {
+    fun arrayHolderAt(index: Int): PrimitiveValueHolder {
         check(isArray())
         if (index !in arrayValueHolders!!.indices) {
             throw WalkerException("index outside of array")
@@ -36,11 +43,25 @@ class Value private constructor(
         return arrayValueHolders[index]
     }
 
-    fun isPointer() = datatype.isPointer
-
-    fun derefPointer(): ValueHolder {
+    fun derefPointer(): CompositeValueHolder {
         assert(isPointer())
         return pointerTargetHolder!!
+    }
+
+    fun getField(fieldName: String): Value {
+        require(isComposite())
+        require(datatype.containsField(fieldName))
+
+        val fieldType = datatype.fieldType(fieldName)
+        if (!fieldType.isComposite) {
+            return compositeValues!!.getValue(VariableHandle(listOf(fieldName), fieldType))
+        } else {
+            return composite(
+                fieldType,
+                compositeValues!!.keys.filter { it.accessors.first() == fieldName }.associate {
+                    VariableHandle(it.accessors.subList(1, it.accessors.size), it.type) to compositeValues.getValue(it)
+                })
+        }
     }
 
     override fun toString(): String {
@@ -60,18 +81,27 @@ class Value private constructor(
             return Value(datatype, primitiveValue, null)
         }
 
-        fun pointer(pointTo: ValueHolder): Value {
-            return Value(Datatype.Pointer(pointTo.type), 0, pointTo)
+        fun pointer(datatype: Datatype, pointTo: CompositeValueHolder?): Value {
+            if (pointTo != null) {
+                require(datatype == pointTo.type)
+            }
+            return Value(Datatype.Pointer(datatype), 0, pointTo)
         }
 
-        fun array(type: Datatype, holders: List<ValueHolder>): Value {
+        fun array(type: Datatype, holders: List<PrimitiveValueHolder>): Value {
             check(type.isArray)
             return Value(type, arrayValueHolders = holders)
+        }
+
+        fun composite(type: Datatype, fields: Map<VariableHandle, Value>): Value {
+            require(type.isComposite)
+            require(fields.values.all { !it.isComposite() })
+            return Value(type, compositeValues = fields)
         }
     }
 }
 
-class ValueHolder(
+class PrimitiveValueHolder(
     val type: Datatype,
 ) {
     var value = createDefaultValue(type)
@@ -85,11 +115,9 @@ fun createDefaultValue(datatype: Datatype): Value {
         return Value.void()
     }
     if (datatype.isPointer) {
-        val holder = ValueHolder(datatype.pointerType)
-        holder.value = createDefaultValue(datatype.pointerType)
-        return Value.pointer(holder)
+        return Value.pointer(datatype.pointerType, null)
     }
-    if (datatype.isArray){
+    if (datatype.isArray) {
         return Value.array(datatype, emptyList())
     }
 
@@ -143,15 +171,15 @@ fun createFromString(string: String): Value {
 
     val arrayValueHolders = string.map { char ->
 
-        ValueHolder(arrayContentType)
+        PrimitiveValueHolder(arrayContentType)
             .apply {
                 value = Value.primitive(arrayContentType, char.code)
             }
     }
 
-    val arrayHolder = ValueHolder(arrayType)
+    val arrayHolder = PrimitiveValueHolder(arrayType)
     arrayHolder.value = Value.array(arrayType, arrayValueHolders)
 
-    return Value.pointer(arrayHolder)
+    return Value.pointer(arrayType, CompositeValueHolder(arrayType, emptyMap(), arrayHolder))
 
 }

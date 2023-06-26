@@ -33,7 +33,7 @@ class BuiltInPrintString : Function(
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
 
-        val array = values[0].derefPointer().value
+        val array = values[0].derefPointer().asValue()
 
         val arraySize = array.arraySize
 
@@ -50,7 +50,7 @@ class BuiltInArraySize : Function(
     "size", FunctionType.Instance, listOf(Datatype.ArrayPointer(Datatype.Integer)), Datatype.Integer
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
-        val array = values[0].derefPointer().value
+        val array = values[0].derefPointer().asValue()
 
         val arraySize = array.arraySize
         return Value.primitive(Datatype.Integer, arraySize)
@@ -64,7 +64,7 @@ class BuiltInArrayRead : Function(
     Datatype.Integer
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
-        val array = values[0].derefPointer().value
+        val array = values[0].derefPointer().asValue()
 
         val index = values[1].getPrimitiveValue()
 
@@ -79,7 +79,7 @@ class BuiltInArrayWrite : Function(
     Datatype.Void
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
-        val array = values[0].derefPointer().value
+        val array = values[0].derefPointer().asValue()
 
         val index = values[1].getPrimitiveValue()
 
@@ -134,7 +134,7 @@ class BuiltInCreateArray : Function(
         val size = values[0].getPrimitiveValue()
 
         val holders = (0 until size).map {
-            ValueHolder(Datatype.Integer).apply {
+            PrimitiveValueHolder(Datatype.Integer).apply {
                 value = Value.primitive(Datatype.Integer, 0)
             }
         }
@@ -142,10 +142,10 @@ class BuiltInCreateArray : Function(
 
         val array = Value.array(Datatype.Array(Datatype.Integer), holders)
 
-        val holder = ValueHolder(array.datatype)
+        val holder = PrimitiveValueHolder(array.datatype)
         holder.value = array
 
-        return Value.pointer(holder)
+        return Value.pointer(array.datatype, CompositeValueHolder(array.datatype, emptyMap(), holder))
     }
 }
 

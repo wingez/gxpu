@@ -3,8 +3,6 @@ package compiler.backendwalker
 import ast.expression.OperatorBuiltIns
 import ast.parserFromFile
 import compiler.backends.astwalker.walk
-import compiler.frontend.Datatype
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import kotlin.test.assertEquals
@@ -15,7 +13,6 @@ internal class WalkerDatatypeTest {
 
 
     @Test
-    @Disabled
     fun testMemberAssign() {
         val code = """
             struct test:
