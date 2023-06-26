@@ -15,11 +15,6 @@ fun splitMany(toSplit: String, delimiters: Iterable<String>): List<String> {
     return current
 }
 
-interface SupportTypePeekIterator<T : Enum<T>> {
-    val type: T
-}
-
-
 open class PeekIterator<T>(
     private val values: List<T>
 ) {
@@ -43,29 +38,3 @@ open class PeekIterator<T>(
         return values[index++]
     }
 }
-
-
-open class TypePeekIterator<T : SupportTypePeekIterator<S>, S : Enum<S>>(values: List<T>) :
-    PeekIterator<T>(values) {
-
-    private var index = 0
-
-    fun peekIs(type: S, consumeMatch: Boolean = false): Boolean {
-        val result = peek().type == type
-        if (result && consumeMatch) {
-            consume()
-        }
-        return result
-    }
-
-    fun consumeType(type: S): T {
-        return consumeType(type, "Expected token to be of type $type")
-    }
-
-    fun consumeType(type: S, errorMessage: String): T {
-        if (!peekIs(type))
-            throw Error(errorMessage)
-        return consume()
-    }
-}
-

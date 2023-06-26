@@ -308,7 +308,7 @@ class FunctionCompiler(
             NodeTypes.Deref -> {
                 val pointer = parseAddressExpression(node.child)
                 if (!pointer.type.isPointer) {
-                    throw ParserError("Must be a pointer")
+                    throw FrontendCompilerError("Must be a pointer")
                 }
                 DerefToValue(pointer)
             }

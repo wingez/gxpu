@@ -1,8 +1,8 @@
 package ast.expression
 
 import ast.AstNode
-import ast.ParserError
 import ast.TokenIterator
+import ast.syntaxerror.throwSyntaxError
 import tokens.Token
 import tokens.TokenType
 
@@ -73,7 +73,7 @@ private fun parseBlocksUntil(valueList: List<Value>, matcher: ValueMatcher): Pai
 
                 nextToParse += amountConsumed
                 if (nextToParse >= valueList.size) {
-                    throw ParserError("Block not closed")
+                    throwSyntaxError("Block not closed", currentValue.sourceInfo)
                 }
                 val commaOrClosingParenthesis = valueList[nextToParse]
                 nextToParse++
@@ -83,9 +83,11 @@ private fun parseBlocksUntil(valueList: List<Value>, matcher: ValueMatcher): Pai
                     }
                     break
                 } else if (TokenMatcher(TokenType.Comma).match(commaOrClosingParenthesis)) {
+                    if (valuesInBlock.isEmpty())
+                        throwSyntaxError("Missing item before comma", commaOrClosingParenthesis.sourceInfo)
                     blockContent.add(applyReductions(valuesInBlock))
                 } else {
-                    throw ParserError("somehting messed up")
+                    throw NotImplementedError("somehting messed up")
                 }
             }
 
@@ -114,11 +116,6 @@ private fun parseValuesToExpression(valueList: List<Value>): AstNode {
 }
 
 private fun newParse(tokens: List<Token>): AstNode {
-
-    // Do some sanity checks
-    if (tokens.count { it.type == TokenType.LeftParenthesis } != tokens.count { it.type == TokenType.RightParenthesis }) {
-        throw ParserError("Mismatched parenthesis")
-    }
 
     // Do initial reduction
     val valueList = tokens.map { token ->

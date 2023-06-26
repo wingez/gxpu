@@ -1,6 +1,7 @@
 package ast
 
 import ast.expression.OperatorBuiltIns
+import ast.syntaxerror.ParserSyntaxError
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -60,8 +61,8 @@ class AstParserExpressions {
         )
 
         assertThat(
-            assertThrows<ParserError> { parseExpression("(5+10") })
-            .hasMessageContaining("Mismatched parenthesis")
+            assertThrows<ParserSyntaxError> { parseExpression("(5+10") })
+            .hasMessageContaining("Block not closed")
 
         assertDoesNotThrow { parseExpression("(5+10)+(3+3)") }
 
@@ -141,8 +142,8 @@ class AstParserExpressions {
         assertDoesNotThrow { parseExpression("call()") }
         assertDoesNotThrow { parseExpression("call(5)") }
         assertDoesNotThrow { parseExpression("call(5,6)") }
-        assertThrows<ParserError> { parseExpression("call(,)") }
-        assertThrows<ParserError> { parseExpression("call(5,,6)") }
+        assertThrows<ParserSyntaxError> { parseExpression("call(,)") }
+        assertThrows<ParserSyntaxError> { parseExpression("call(5,,6)") }
     }
 
     @Test
@@ -165,11 +166,11 @@ class AstParserExpressions {
 
     @Test
     fun testMixedParenthesisBrackets() {
-        assertThrows<ParserError> { parseExpression("(") }
-        assertThrows<ParserError> { parseExpression("((") }
-        assertThrows<ParserError> { parseExpression("([)") }
-        assertThrows<ParserError> { parseExpression("[4,(]") }
-        assertThrows<ParserError> { parseExpression(",") }
+        assertThrows<ParserSyntaxError> { parseExpression("(") }
+        assertThrows<ParserSyntaxError> { parseExpression("((") }
+        assertThrows<ParserSyntaxError> { parseExpression("([)") }
+        assertThrows<ParserSyntaxError> { parseExpression("[4,(]") }
+        assertThrows<ParserSyntaxError> { parseExpression(",") }
     }
 
     @Test
@@ -200,8 +201,8 @@ class AstParserExpressions {
             ),
             parseExpression("test[5+5]")
         )
-        assertThrows<ParserError> { parseExpression("a[b,c]") }
-        assertThrows<ParserError> { parseExpression("a[]") }
+        assertThrows<ParserSyntaxError> { parseExpression("a[b,c]") }
+        assertThrows<ParserSyntaxError> { parseExpression("a[]") }
     }
 
     @Test

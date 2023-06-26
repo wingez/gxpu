@@ -2,7 +2,6 @@ package tokens
 
 import PeekIterator
 import SourceInfo
-import SupportTypePeekIterator
 import java.io.Reader
 
 class TokenError(message: String) : Exception(message)
@@ -42,10 +41,10 @@ enum class TokenType {
 }
 
 data class Token(
-    override val type: TokenType,
+    val type: TokenType,
     val additionalData: String,
     val sourceInfo: SourceInfo,
-) : SupportTypePeekIterator<TokenType> {
+) {
 
     fun asConstant(): Int {
         assert(type == TokenType.NumericConstant)

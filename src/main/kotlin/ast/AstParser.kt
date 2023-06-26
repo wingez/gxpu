@@ -1,15 +1,37 @@
 package ast
 
+import PeekIterator
 import ast.expression.parseExpressionUntil
-import TypePeekIterator
+import ast.syntaxerror.throwSyntaxError
 import tokens.*
 
-class ParserError(message: String) : Exception(message)
 
-class TokenIterator(tokens: List<Token>) : TypePeekIterator<Token, TokenType>(tokens) {
+class TokenIterator(
+     tokens: List<Token>
+) :PeekIterator<Token>(tokens) {
+
     fun consumeIdentifier(): String {
         return consumeType(TokenType.Identifier).additionalData
     }
+
+    fun peekIs(type: TokenType, consumeMatch: Boolean = false): Boolean {
+        val result = peek().type == type
+        if (result && consumeMatch) {
+            consume()
+        }
+        return result
+    }
+
+    fun consumeType(type: TokenType): Token {
+        return consumeType(type, "Expected token to be of type $type")
+    }
+
+    fun consumeType(type: TokenType, errorMessage: String): Token {
+        if (!peekIs(type))
+            throw Error(errorMessage)
+        return consume()
+    }
+
 }
 
 class AstParser(tokens: List<Token>) {
@@ -56,7 +78,7 @@ class AstParser(tokens: List<Token>) {
     }
 
     fun parseNewValDeclaration(): List<AstNode> {
-        tokens.consumeType(TokenType.KeywordVal)
+        val assignSource = tokens.consumeType(TokenType.KeywordVal).sourceInfo
 
         val memberNameToken = tokens.consumeType(TokenType.Identifier)
         val optionalTypeDefinition: TypeDefinition?
@@ -75,7 +97,7 @@ class AstParser(tokens: List<Token>) {
         }
 
         if (optionalTypeDefinition == null && optionalTypeHint == null) {
-            throw ParserError("Either typeDefinition or something to assign must be provided")
+            throwSyntaxError("Either typeDefinition or something to assign must be provided", assignSource)
         }
 
         val memberName = memberNameToken.additionalData

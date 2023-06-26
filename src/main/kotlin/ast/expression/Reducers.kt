@@ -4,7 +4,7 @@ import SourceInfo
 import ast.AstNode
 import ast.FunctionType
 import ast.NodeTypes
-import ast.ParserError
+import ast.syntaxerror.throwSyntaxError
 import tokens.TokenType
 
 private val priorities = object {
@@ -288,9 +288,12 @@ private val reducers: List<Reducer> = listOf(
 private val reducersOrdered = reducers.sortedBy { -it.priority }
 fun applyReductions(values: List<Value>): AstNode {
 
+    require(values.isNotEmpty())
+
     val valuesMutable = values.toMutableList()
 
     val maxIterations = valuesMutable.size
+
 
     for (i in 0..maxIterations) {
 
@@ -327,7 +330,7 @@ fun applyReductions(values: List<Value>): AstNode {
             }
         }
         if (!didReduce) {
-            throw ParserError("could not parse expression. Got to $valuesMutable")
+            throwSyntaxError("could not parse expression. Got to $valuesMutable", valuesMutable.first().sourceInfo)
         }
     }
 
