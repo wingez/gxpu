@@ -13,15 +13,15 @@ interface Instruction
 
 enum class VariableType {
     Local,
-    Parameter,
-    Result,
 }
 
 data class Variable(
-    val name: String,
-    val datatype: Datatype,
+    private val field: CompositeDataTypeField,
     val type: VariableType,
-)
+) {
+    val name get() = field.name
+    val datatype get() = field.type
+}
 
 interface ValueExpression {
     val type: Datatype
@@ -129,8 +129,8 @@ data class IntermediateCode(
 
 data class FunctionContent(
     val definition: FunctionDefinition,
-    val localVariables: List<Variable>,
     val code: IntermediateCode,
+    val fields: Datatype,
 )
 
 
@@ -169,10 +169,8 @@ class FunctionCompiler(
     val functionProvider: FunctionDefinitionResolver,
     val typeProvider: TypeProvider,
 ) {
-    val variables = mutableListOf<Variable>()
-
     lateinit var definition: FunctionDefinition
-
+    lateinit var fields: Datatype
 
     var controlStatementCounter = 0
 
@@ -185,7 +183,7 @@ class FunctionCompiler(
 
         // Step 2
         // Extract all variables
-        addVariables(functionNode)
+        fields = addVariables(functionNode)
 
         //TODO: Perhaps handle inlining here?
 
@@ -203,7 +201,7 @@ class FunctionCompiler(
         // Return
         return FunctionContent(
             definition = definition,
-            localVariables = variables,
+            fields = fields,
             code = codeContent,
         )
     }
@@ -272,7 +270,7 @@ class FunctionCompiler(
         node: AstNode,
     ): AddressExpression {
         return when (node.type) {
-            NodeTypes.Identifier -> VariableExpression(lookupVariable(node.asIdentifier(), variables))
+            NodeTypes.Identifier -> VariableExpression(lookupVariable(node.asIdentifier()))
 
             NodeTypes.Deref -> {
                 DerefToAddress(parseValueExpression(node.child))
@@ -301,7 +299,7 @@ class FunctionCompiler(
             }
 
             NodeTypes.Constant -> ConstantExpression(node.asConstant())
-            NodeTypes.Identifier -> VariableExpression(lookupVariable(node.asIdentifier(), variables))
+            NodeTypes.Identifier -> VariableExpression(lookupVariable(node.asIdentifier()))
             NodeTypes.String -> StringExpression(node.asString())
             NodeTypes.MemberAccess -> parseMemberAccess(node)
             NodeTypes.ArrayAccess -> {
@@ -504,15 +502,17 @@ class FunctionCompiler(
 
     private fun addVariables(
         functionNode: AstNode,
-    ) {
+    ): Datatype {
+
+        val fields = mutableListOf<CompositeDataTypeField>()
 
         if (definition.returnType != Datatype.Void) {
-            variables.add(Variable(RETURN_VALUE_NAME, definition.returnType, VariableType.Result))
+            fields.add(CompositeDataTypeField(RETURN_VALUE_NAME, definition.returnType, FieldAnnotation.Result))
         }
 
 
         for ((parameterName, type) in parameterTypes(functionNode, typeProvider)) {
-            variables.add(Variable(parameterName, type, VariableType.Parameter))
+            fields.add(CompositeDataTypeField(parameterName, type, FieldAnnotation.Parameter))
         }
 
 
@@ -531,15 +531,18 @@ class FunctionCompiler(
                         ?: throw FrontendCompilerError("No type of type ${newVariable.optionalTypeDefinition}")
                 }
 
-                variables.add(Variable(newVariable.name, type, VariableType.Local))
+                fields.add(CompositeDataTypeField(newVariable.name, type, FieldAnnotation.LocalVariable))
 
             }
         }
+        return Datatype.Composite(definition.name, fields)
     }
 
-    private fun lookupVariable(name: String, variables: List<Variable>): Variable {
-        return variables.find { it.name == name }
+    private fun lookupVariable(name: String): Variable {
+        val field = fields.compositeFields.find { it.name == name }
             ?: throw FrontendCompilerError("variable $name not found")
+
+        return Variable(field, VariableType.Local)
     }
 }
 

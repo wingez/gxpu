@@ -2,9 +2,17 @@ package compiler.frontend
 
 import ast.TypeDefinition
 
+enum class FieldAnnotation {
+    None,
+    LocalVariable,
+    Parameter,
+    Result,
+}
+
 data class CompositeDataTypeField(
     val name: String,
     val type: Datatype,
+    val annotation: FieldAnnotation,
 )
 
 class Datatype private constructor(

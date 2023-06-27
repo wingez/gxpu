@@ -142,7 +142,7 @@ class FunctionBuilder(
 
             if (index == 0) {
                 // Make space for local variables if necessary
-                val sizeOfLocalVariables = layout.sizeOfType(VariableType.Local)
+                val sizeOfLocalVariables = layout.sizeOfType(FieldAnnotation.LocalVariable)
                 if (sizeOfLocalVariables > 0) {
                     addInstruction(emulate(DefaultEmulator.add_sp, "val" to sizeOfLocalVariables))
                 }
@@ -166,7 +166,7 @@ class FunctionBuilder(
 
         val functionContent = compileFunction(node, functionProvider, typeProvider)
 
-        layout = calculateLayout(functionContent.localVariables, datatypeLayoutProvider)
+        layout = calculateLayout(functionContent.fields, datatypeLayoutProvider)
 
         buildCodeBody(functionContent.code)
 
@@ -178,11 +178,12 @@ class FunctionBuilder(
 
 
 data class FunctionFrameLayout(
-    val layout: Map<Variable, StructDataField>,
+    val type: Datatype,
+    val layout: Map<CompositeDataTypeField, StructDataField>,
     val size: Int,
 ) {
-    fun sizeOfType(variableType: VariableType): Int {
-        return layout.keys.filter { it.type == variableType }.sumOf { layout.getValue(it).size }
+    fun sizeOfType(variableType: FieldAnnotation): Int {
+        return layout.keys.filter { it.annotation == variableType }.sumOf { layout.getValue(it).size }
     }
 
     fun getDescription(): List<String> {
@@ -199,20 +200,20 @@ private fun assertFrameMatchesDefinition(layout: FunctionFrameLayout, definition
 }
 
 fun calculateLayout(
-    localVariables: List<Variable>,
+    localVariables: Datatype,
     datatypeLayoutProvider: DatatypeLayoutProvider
 ): FunctionFrameLayout {
 
-    val variablesInOrder = mutableListOf<Pair<Variable, StructDataField>>()
+    val variablesInOrder = mutableListOf<Pair<CompositeDataTypeField, StructDataField>>()
     var totalSizeSoFar = 0
 
     // Add in this order
-    for (variableType in listOf(VariableType.Result, VariableType.Parameter, VariableType.Local)) {
-        for (variable in localVariables.filter { it.type == variableType }) {
+    for (variableType in listOf(FieldAnnotation.Result, FieldAnnotation.Parameter, FieldAnnotation.LocalVariable)) {
+        for (variable in localVariables.compositeFields.filter { it.annotation == variableType }) {
 
-            val size = datatypeLayoutProvider.sizeOf(variable.datatype)
+            val size = datatypeLayoutProvider.sizeOf(variable.type)
 
-            variablesInOrder.add(variable to StructDataField(variable.name, variable.datatype, totalSizeSoFar, size))
+            variablesInOrder.add(variable to StructDataField(variable.name, variable.type, totalSizeSoFar, size))
             totalSizeSoFar += size
         }
     }
@@ -220,11 +221,11 @@ fun calculateLayout(
     //first local variable should be at index 0.
     //subtract the size of Result & parameters
     val offset =
-        variablesInOrder.filter { it.first.type == VariableType.Result || it.first.type == VariableType.Parameter }
-            .sumOf { datatypeLayoutProvider.sizeOf(it.first.datatype) }
+        variablesInOrder.filter { it.first.annotation == FieldAnnotation.Result || it.first.annotation == FieldAnnotation.Parameter }
+            .sumOf { datatypeLayoutProvider.sizeOf(it.first.type) }
 
 
     return variablesInOrder.map { (variable, field) ->
         variable to field.copy(offset = field.offset - offset)
-    }.let { FunctionFrameLayout(it.toMap(), totalSizeSoFar) }
+    }.let { FunctionFrameLayout(localVariables, it.toMap(), totalSizeSoFar) }
 }
