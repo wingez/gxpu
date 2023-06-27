@@ -101,7 +101,6 @@ internal class FunctionSignatureTest {
 
         assertEquals(layout.size, 0)
         assertEquals(layout.sizeOfType(FieldAnnotation.LocalVariable), 0)
-        assertThat(layout.layout).hasSize(0)
     }
 
     @Test
@@ -115,15 +114,6 @@ internal class FunctionSignatureTest {
         val layout = built.layout
         assertEquals(layout.size, 1)
         assertEquals(layout.sizeOfType(FieldAnnotation.LocalVariable), 0)
-        assertEquals(
-            layout.layout, mapOf(
-                CompositeDataTypeField("test", Datatype.Integer, FieldAnnotation.Parameter) to StructDataField(
-                    "test",
-                    Datatype.Integer,
-                    -1, 1
-                )
-            )
-        )
     }
 
     @Test
@@ -135,41 +125,30 @@ internal class FunctionSignatureTest {
     """
         )
         val layout = built.layout
-        assertEquals(layout.size, 1)
-        assertEquals(layout.sizeOfType(FieldAnnotation.LocalVariable), 1)
-        assertThat(layout.layout).containsEntry(
-            CompositeDataTypeField("var", Datatype.Integer, FieldAnnotation.LocalVariable),
-            StructDataField("var", Datatype.Integer, 0, 1)
-        )
+        assertEquals(1, layout.size)
+        assertEquals(1, layout.sizeOfType(FieldAnnotation.LocalVariable))
+        assertEquals(StructDataField("var", Datatype.Integer, 0), layout.getField("var"))
     }
 
     @Test
     fun testVarParamReturn() {
-        val built = getSignature(
+        val layout = getSignature(
             """
             def test1(param:byte): byte
               val var:byte=5
     """
-        )
-        assertEquals(built.layout.size, 3)
-        assertEquals(built.layout.sizeOfType(FieldAnnotation.LocalVariable), 1)
+        ).layout
+        assertEquals(layout.size, 3)
+        assertEquals(layout.sizeOfType(FieldAnnotation.LocalVariable), 1)
 
-        assertEquals(
-            mapOf(
-                CompositeDataTypeField("result", Datatype.Integer, FieldAnnotation.Result) to
-                        StructDataField("result", Datatype.Integer, -2, 1),
-                CompositeDataTypeField("param", Datatype.Integer, FieldAnnotation.Parameter) to
-                        StructDataField("param", Datatype.Integer, -1, 1),
-                CompositeDataTypeField("var", Datatype.Integer, FieldAnnotation.LocalVariable) to
-                        StructDataField("var", Datatype.Integer, 0, 1)
-            ), built.layout.layout
-        )
-
+        assertEquals(StructDataField("result", Datatype.Integer, -2), layout.getField("result"))
+        assertEquals(StructDataField("param", Datatype.Integer, -1), layout.getField("param"))
+        assertEquals(StructDataField("var", Datatype.Integer, 0), layout.getField("var"))
     }
 
     @Test
     fun testIf() {
-        val built = getSignature(
+        val layout = getSignature(
             """
             def test1():
               if 5==0:
@@ -177,52 +156,28 @@ internal class FunctionSignatureTest {
               else:
                 val var1:byte=3
     """
-        )
-        assertEquals(built.layout.size, 2)
-        assertEquals(built.layout.sizeOfType(FieldAnnotation.LocalVariable), 2)
-        assertEquals(
-            mapOf(
-                CompositeDataTypeField("var1", Datatype.Integer, FieldAnnotation.LocalVariable) to
-                        StructDataField("var1", Datatype.Integer, 1, 1),
-                CompositeDataTypeField("var", Datatype.Integer, FieldAnnotation.LocalVariable) to
-                        StructDataField("var", Datatype.Integer, 0, 1),
-            ), built.layout.layout
-        )
+        ).layout
+        assertEquals(layout.size, 2)
+        assertEquals(layout.sizeOfType(FieldAnnotation.LocalVariable), 2)
+
+        assertEquals(StructDataField("var1", Datatype.Integer, 1), layout.getField("var1"))
+        assertEquals(StructDataField("var", Datatype.Integer, 0), layout.getField("var"))
     }
 
     @Test
     fun testDescription() {
-        val built = getSignature(
+        val layout = getSignature(
             """
             def test1(var2:byte):byte
               val var:byte=1
             """
-        )
-        assertEquals(built.layout.size, 3)
-        assertEquals(built.layout.sizeOfType(FieldAnnotation.LocalVariable), 1)
-        assertEquals(
-            built.layout.layout, mapOf(
-                CompositeDataTypeField("result", Datatype.Integer, FieldAnnotation.Result) to StructDataField(
-                    "result",
-                    Datatype.Integer,
-                    -2,
-                    1
-                ),
+        ).layout
+        assertEquals(layout.size, 3)
+        assertEquals(layout.sizeOfType(FieldAnnotation.LocalVariable), 1)
 
-                CompositeDataTypeField("var2", Datatype.Integer, FieldAnnotation.Parameter) to StructDataField(
-                    "var2",
-                    Datatype.Integer,
-                    -1,
-                    1
-                ),
-                CompositeDataTypeField("var", Datatype.Integer, FieldAnnotation.LocalVariable) to StructDataField(
-                    "var",
-                    Datatype.Integer,
-                    0,
-                    1
-                ),
-            )
-        )
+        assertEquals(StructDataField("result", Datatype.Integer, -2), layout.getField("result"))
+        assertEquals(StructDataField("var2", Datatype.Integer, -1), layout.getField("var2"))
+        assertEquals(StructDataField("var", Datatype.Integer, 0), layout.getField("var"))
 
         assertEquals(
             listOf(
@@ -230,7 +185,7 @@ internal class FunctionSignatureTest {
                 "-1: var2: integer",
                 "0: var: integer",
             ),
-            built.layout.getDescription(),
+            layout.getDescription(),
         )
     }
 
@@ -270,10 +225,7 @@ internal class FunctionSignatureTest {
         val layout = built.layout
         assertEquals(layout.size, 2)
         assertEquals(layout.sizeOfType(FieldAnnotation.LocalVariable), 2)
-        assertThat(layout.layout).containsEntry(
-            CompositeDataTypeField("var", dummyTypeContainer.getType("intpair"), FieldAnnotation.LocalVariable),
-            StructDataField("var", dummyTypeContainer.getType("intpair"), 0, 2)
-        )
+        assertEquals(StructDataField("var", dummyTypeContainer.getType("intpair"), 0), layout.getField("var"))
     }
 
 }

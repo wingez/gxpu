@@ -38,26 +38,22 @@ class FunctionBuilder(
     val resultingCode = mutableListOf<EmulatorInstruction>()
 
     private lateinit var layout: FunctionFrameLayout
+    override val fieldLayout: LayedOutDatatype
+        get() = layout
 
     override fun addInstruction(emulatorInstruction: EmulatorInstruction) {
         resultingCode.add(emulatorInstruction)
     }
 
-    override fun getField(name: String): StructDataField {
-        return layout.layout.values.find { it.name == name } ?: throw AssertionError()
-    }
 
     private fun handleExecute(instr: Execute) {
         val expr = instr.expression
 
-        if (expr !is CallExpression) throw NotImplementedError()
-
-
         if (expr.type != Datatype.Void) {
-            handleCall(expr, WhereToPutResult.TopStack, this)
+            requireGetValueIn(expr, WhereToPutResult.TopStack, this)
             addInstruction(emulate(DefaultEmulator.sub_sp, "val" to sizeOf(expr.type)))
         } else {
-            handleCall(expr, WhereToPutResult.A, this)
+            requireGetValueIn(expr, WhereToPutResult.A, this)
         }
     }
 
@@ -75,13 +71,13 @@ class FunctionBuilder(
                 val field = targetAddress.field
                 assert(field.type == Datatype.Integer || field.type.isPointer)
 
-                getValue(instr.value, WhereToPutResult.TopStack, this)
+                requireGetValueIn(instr.value, WhereToPutResult.TopStack, this)
 
                 addInstruction(emulate(DefaultEmulator.pop_fp_offset, "offset" to field.offset))
             }
 
             is DynamicAddress -> {
-                getValue(instr.value, WhereToPutResult.TopStack, this)
+                requireGetValueIn(instr.value, WhereToPutResult.TopStack, this)
 
                 targetAddress.instructions.forEach { addInstruction(it) }
                 addInstruction(emulate(DefaultEmulator.pop_at_a_offset, "offset" to 0))
@@ -110,7 +106,7 @@ class FunctionBuilder(
     private fun jumpHelper(expr: ValueExpression, jumpOn: Boolean, label: Label) {
         assert(expr.type == Datatype.Boolean)
 
-        getValue(expr, WhereToPutResult.Flag, this)
+        requireGetValueIn(expr, WhereToPutResult.Flag, this)
         if (!jumpOn) {
             addInstruction(emulate(DefaultEmulator.jump_not_flag, "addr" to Reference(signature, label)))
         } else {
@@ -175,23 +171,6 @@ class FunctionBuilder(
 }
 
 
-data class FunctionFrameLayout(
-    val type: Datatype,
-    val layout: Map<CompositeDataTypeField, StructDataField>,
-    val size: Int,
-) {
-    fun sizeOfType(variableType: FieldAnnotation): Int {
-        return layout.keys.filter { it.annotation == variableType }.sumOf { layout.getValue(it).size }
-    }
-
-    fun getDescription(): List<String> {
-
-        return layout.values.sortedBy { it.offset }.map {
-            "${it.offset}: ${it.name}: ${it.type}"
-        }
-    }
-}
-
 private fun assertFrameMatchesDefinition(layout: FunctionFrameLayout, definition: FunctionDefinition) {
 
 
@@ -201,28 +180,55 @@ fun calculateLayout(
     localVariables: Datatype,
 ): FunctionFrameLayout {
 
-    val variablesInOrder = mutableListOf<Pair<CompositeDataTypeField, StructDataField>>()
-    var totalSizeSoFar = 0
+    val variablesInOrder = mutableListOf<CompositeDataTypeField>()
 
     // Add in this order
     for (variableType in listOf(FieldAnnotation.Result, FieldAnnotation.Parameter, FieldAnnotation.LocalVariable)) {
         for (variable in localVariables.compositeFields.filter { it.annotation == variableType }) {
-
-            val size = sizeOf(variable.type)
-
-            variablesInOrder.add(variable to StructDataField(variable.name, variable.type, totalSizeSoFar, size))
-            totalSizeSoFar += size
+            variablesInOrder.add(variable)
         }
     }
 
     //first local variable should be at index 0.
     //subtract the size of Result & parameters
     val offset =
-        variablesInOrder.filter { it.first.annotation == FieldAnnotation.Result || it.first.annotation == FieldAnnotation.Parameter }
-            .sumOf { sizeOf(it.first.type) }
+        variablesInOrder.filter { it.annotation == FieldAnnotation.Result || it.annotation == FieldAnnotation.Parameter }
+            .sumOf { sizeOf(it.type) }
 
 
-    return variablesInOrder.map { (variable, field) ->
-        variable to field.copy(offset = field.offset - offset)
-    }.let { FunctionFrameLayout(localVariables, it.toMap(), totalSizeSoFar) }
+    val fieldType = Datatype.Composite("functionLayout", variablesInOrder)
+
+    return FunctionFrameLayout(
+        fieldType,
+        offset,
+    )
+}
+
+class FunctionFrameLayout(
+    private val fieldType: Datatype,
+    private val offset: Int,
+) : LayedOutDatatype {
+
+    private val base = LayedOutStruct(fieldType)
+
+    override val size: Int
+        get() = base.size
+
+    override fun getField(fieldName: String): StructDataField {
+        val baseField = base.getField(fieldName)
+        return baseField.copy(offset = baseField.offset - offset)
+    }
+
+    fun sizeOfType(variableType: FieldAnnotation): Int {
+        return fieldType.compositeFields.filter { it.annotation == variableType }.sumOf { sizeOf(it.type) }
+    }
+
+    fun getDescription(): List<String> {
+
+        return fieldType.compositeFields.map {
+            "${getField(it.name).offset}: ${it.name}: ${it.type}"
+        }
+    }
+
+
 }

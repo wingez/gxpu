@@ -12,7 +12,7 @@ enum class FieldAnnotation {
 data class CompositeDataTypeField(
     val name: String,
     val type: Datatype,
-    val annotation: FieldAnnotation=FieldAnnotation.None,
+    val annotation: FieldAnnotation = FieldAnnotation.None,
 )
 
 class Datatype private constructor(
@@ -33,7 +33,7 @@ class Datatype private constructor(
 
     val isComposite = type == DatatypeClass.Composite
 
-    val isPrimitive = type == DatatypeClass.Integer || type == DatatypeClass.Bool
+    val isPrimitive = type == DatatypeClass.Integer || type == DatatypeClass.Bool || type == DatatypeClass.Pointer
 
     val isPointer = type == DatatypeClass.Pointer
 

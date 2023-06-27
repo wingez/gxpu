@@ -6,7 +6,7 @@ import compiler.backends.emulator.emulator.DefaultEmulator
 import compiler.frontend.*
 
 interface FunctionContext : CodeGenerator {
-    fun getField(name: String): StructDataField
+    val fieldLayout: LayedOutDatatype
 }
 
 
@@ -79,9 +79,9 @@ enum class WhereToPutResult {
     Flag,
 }
 
-fun getValue(expr: ValueExpression, where: WhereToPutResult, context: FunctionContext) {
+fun tryGetValueWhere(expr: ValueExpression, where: WhereToPutResult, context: FunctionContext): GetValueResult {
 
-    when (expr) {
+    return when (expr) {
         is ConstantExpression -> {
             context.addInstruction(
                 when (where) {
@@ -90,27 +90,18 @@ fun getValue(expr: ValueExpression, where: WhereToPutResult, context: FunctionCo
                     else -> TODO()
                 }
             )
+            DynamicValue(where)
         }
 
         is VariableExpression -> {
-            assert(expr.type == Datatype.Integer || expr.type.isPointer)
 
-            val field = context.getField(expr.variable.name)
-
-            context.addInstruction(
-                when (where) {
-                    WhereToPutResult.A -> emulate(DefaultEmulator.lda_at_fp_offset, "offset" to field.offset)
-                    WhereToPutResult.TopStack -> emulate(
-                        DefaultEmulator.push_fp_offset, "offset" to field.offset
-                    )
-
-                    else -> TODO()
-                }
-            )
+            val field = context.fieldLayout.getField(expr.variable.name)
+            FpField(field)
         }
 
         is CallExpression -> {
             handleCall(expr, where, context)
+            DynamicValue(where)
         }
 
         is AddressOf -> {
@@ -141,8 +132,7 @@ fun getValue(expr: ValueExpression, where: WhereToPutResult, context: FunctionCo
 
                 else -> TODO()
             }
-
-
+            DynamicValue(where)
         }
 
         is DerefToValue -> {
@@ -182,10 +172,54 @@ fun getValue(expr: ValueExpression, where: WhereToPutResult, context: FunctionCo
 
                 else -> TODO()
             }
+            DynamicValue(where)
+        }
+
+        is ValueMemberAccess -> {
+            val valueResult = tryGetValueWhere(expr.of, WhereToPutResult.TopStack, context)
+            when (valueResult) {
+                is FpField -> {
+                    val existingField = LayedOutStruct(valueResult.field.type).getField(expr.memberName)
+                    FpField(existingField.copy(offset = existingField.offset + valueResult.field.offset))
+                }
+
+                else -> TODO()
+            }
+
         }
 
         else -> TODO(expr.toString())
     }
+}
+
+fun requireGetValueIn(expr: ValueExpression, where: WhereToPutResult, context: FunctionContext) {
+    val resultPlace = tryGetValueWhere(expr, where, context)
+
+    when (resultPlace) {
+        is DynamicValue -> {
+            require(resultPlace.where == where)
+        }
+
+        is FpField -> {
+            context.addInstruction(
+                when (where) {
+                    WhereToPutResult.A -> emulate(
+                        DefaultEmulator.lda_at_fp_offset,
+                        "offset" to resultPlace.field.offset
+                    )
+
+                    WhereToPutResult.TopStack -> emulate(
+                        DefaultEmulator.push_fp_offset, "offset" to resultPlace.field.offset
+                    )
+
+                    else -> TODO()
+                }
+            )
+        }
+
+        else -> TODO()
+    }
+
 }
 
 private fun handleGenericCall(expr: CallExpression, where: WhereToPutResult, context: FunctionContext) {
@@ -201,7 +235,7 @@ private fun handleGenericCall(expr: CallExpression, where: WhereToPutResult, con
     }
 
     for (parameterExpr in expr.parameters) {
-        getValue(parameterExpr, WhereToPutResult.TopStack, context)
+        requireGetValueIn(parameterExpr, WhereToPutResult.TopStack, context)
     }
 
     context.addInstruction(emulate(DefaultEmulator.call_addr, "addr" to Reference(expr.function, functionEntryLabel)))
@@ -232,7 +266,7 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
 
     val whereWasValueActuallyPut: WhereToPutResult = when (expr.function) {
         BuiltInSignatures.print -> {
-            getValue(expr.parameters[0], WhereToPutResult.A, context)
+            requireGetValueIn(expr.parameters[0], WhereToPutResult.A, context)
             context.addInstruction(emulate(DefaultEmulator.print))
             WhereToPutResult.A
         }
@@ -241,12 +275,13 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
             // Do nothing in this case. Conversation is implicit
             when (where) {
                 WhereToPutResult.Flag -> {
-                    getValue(expr.parameters.first(), WhereToPutResult.A, context)
+                    requireGetValueIn(expr.parameters.first(), WhereToPutResult.A, context)
                     context.addInstruction(emulate(DefaultEmulator.test_nz_a))
                     WhereToPutResult.Flag
                 }
+
                 else -> {
-                    getValue(expr.parameters.first(), where, context)
+                    requireGetValueIn(expr.parameters.first(), where, context)
                     where
                 }
             }
@@ -254,13 +289,13 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
 
 
         BuiltInSignatures.arraySize -> {
-            getValue(expr.parameters.first(), WhereToPutResult.A, context)
+            requireGetValueIn(expr.parameters.first(), WhereToPutResult.A, context)
             context.addInstruction(emulate(DefaultEmulator.lda_at_a_offset, "offset" to 0))
             WhereToPutResult.A
         }
 
         BuiltInSignatures.createArray -> {
-            getValue(expr.parameters.first(), WhereToPutResult.TopStack, context)
+            requireGetValueIn(expr.parameters.first(), WhereToPutResult.TopStack, context)
             context.addInstruction(emulate(DefaultEmulator.lda_sp_offset, "offset" to -1))
             context.addInstruction(emulate(DefaultEmulator.addsp_at_sp_offset, "offset" to -1))
             WhereToPutResult.A
@@ -268,10 +303,10 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
 
         BuiltInSignatures.arrayRead -> {
             // Array pointeraddress
-            getValue(expr.parameters[0], WhereToPutResult.TopStack, context)
+            requireGetValueIn(expr.parameters[0], WhereToPutResult.TopStack, context)
             // Array offset
             // TODO: mul type size
-            getValue(expr.parameters[1], WhereToPutResult.A, context)
+            requireGetValueIn(expr.parameters[1], WhereToPutResult.A, context)
 
             context.addInstruction(emulate(DefaultEmulator.pop_adda))
             // Add one to get adapt to size location
@@ -284,12 +319,12 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
 
         BuiltInSignatures.arrayWrite -> {
             // Value
-            getValue(expr.parameters[2], WhereToPutResult.TopStack, context)
+            requireGetValueIn(expr.parameters[2], WhereToPutResult.TopStack, context)
             // Array pointer
-            getValue(expr.parameters[0], WhereToPutResult.TopStack, context)
+            requireGetValueIn(expr.parameters[0], WhereToPutResult.TopStack, context)
             // index
             // TODO: type size
-            getValue(expr.parameters[1], WhereToPutResult.A, context)
+            requireGetValueIn(expr.parameters[1], WhereToPutResult.A, context)
 
             context.addInstruction(emulate(DefaultEmulator.pop_adda))
 
@@ -304,29 +339,43 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
                 WhereToPutResult.Flag -> {
                     // Try to do the test directly here
 
-                    getValue(CallExpression(ByteSubtraction().signature, expr.parameters), WhereToPutResult.A, context)
+                    requireGetValueIn(
+                        CallExpression(ByteSubtraction().signature, expr.parameters),
+                        WhereToPutResult.A,
+                        context
+                    )
                     context.addInstruction(emulate(DefaultEmulator.test_nz_a))
                     WhereToPutResult.Flag
                 }
+
                 else -> {
                     // Otherwise just implicit convert from int to bool
-                    getValue(CallExpression(ByteSubtraction().signature, expr.parameters), where, context)
+                    requireGetValueIn(CallExpression(ByteSubtraction().signature, expr.parameters), where, context)
                     where
                 }
             }
         }
 
         BuiltInSignatures.equals -> {
-            when(where){
+            when (where) {
                 // try to inline the test
                 WhereToPutResult.Flag -> {
-                    getValue(CallExpression(ByteSubtraction().signature, expr.parameters), WhereToPutResult.A, context)
+                    requireGetValueIn(
+                        CallExpression(ByteSubtraction().signature, expr.parameters),
+                        WhereToPutResult.A,
+                        context
+                    )
                     context.addInstruction(emulate(DefaultEmulator.test_z_a))
                     WhereToPutResult.Flag
                 }
+
                 else -> {
                     // We need to implicit convert from int to bool but invert the boolean value of the subtraction result
-                    getValue(CallExpression(ByteSubtraction().signature, expr.parameters), WhereToPutResult.A, context)
+                    requireGetValueIn(
+                        CallExpression(ByteSubtraction().signature, expr.parameters),
+                        WhereToPutResult.A,
+                        context
+                    )
                     context.addInstruction(emulate(DefaultEmulator.log_inv_a))
                     WhereToPutResult.A
                 }
@@ -337,7 +386,11 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
             when (where) {
                 // try to inline the test
                 WhereToPutResult.Flag -> {
-                    getValue(CallExpression(ByteSubtraction().signature, expr.parameters), WhereToPutResult.A, context)
+                    requireGetValueIn(
+                        CallExpression(ByteSubtraction().signature, expr.parameters),
+                        WhereToPutResult.A,
+                        context
+                    )
                     context.addInstruction(emulate(DefaultEmulator.test_neg_a))
                     WhereToPutResult.Flag
                 }
@@ -368,11 +421,18 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
     }
 }
 
+interface GetValueResult
+
+class DynamicValue(
+    val where: WhereToPutResult
+) : GetValueResult
+
+
 interface GetAddressResult
 
 class FpField(
     val field: StructDataField,
-) : GetAddressResult
+) : GetAddressResult, GetValueResult
 
 class DynamicAddress(
     val instructions: List<EmulatorInstruction>,
@@ -385,7 +445,7 @@ fun getAddressOf(expr: AddressExpression, context: FunctionContext): GetAddressR
 
     return when (expr) {
         is VariableExpression -> {
-            val field = context.getField(expr.variable.name)
+            val field = context.fieldLayout.getField(expr.variable.name)
             FpField(field)
         }
 
@@ -393,7 +453,7 @@ fun getAddressOf(expr: AddressExpression, context: FunctionContext): GetAddressR
             if (expr.value !is VariableExpression) {
                 TODO()
             }
-            val field = context.getField(expr.value.variable.name)
+            val field = context.fieldLayout.getField(expr.value.variable.name)
 
             val instructions = listOf(
                 emulate(DefaultEmulator.lda_at_fp_offset, "offset" to field.offset)
