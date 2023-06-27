@@ -88,8 +88,6 @@ class Structs {
     @ParameterizedTest
     @EnumSource()
     fun testStructPointer(compiler: CompilerBackend) {
-        Assumptions.assumeTrue(compiler != CompilerBackend.Emulator)
-
         val program = """
           struct s:
             a:int

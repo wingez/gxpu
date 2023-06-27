@@ -151,28 +151,7 @@ fun tryGetValueWhere(expr: ValueExpression, where: WhereToPutResult, context: Fu
                 else -> TODO(address.toString())
             }
 
-            // Address is now in a
-            // Now dereference it
-
-
-            context.addInstruction(
-                //TODO instruction without offset??
-                emulate(DefaultEmulator.lda_at_a_offset, "offset" to 0)
-            )
-            when (where) {
-                WhereToPutResult.A -> {
-                    // OK!
-                }
-
-                WhereToPutResult.TopStack -> {
-                    context.addInstruction(
-                        emulate(DefaultEmulator.pusha)
-                    )
-                }
-
-                else -> TODO()
-            }
-            DynamicValue(where)
+            DynamicPointerValue(WhereToPutResult.A)
         }
 
         is ValueMemberAccess -> {
@@ -182,8 +161,12 @@ fun tryGetValueWhere(expr: ValueExpression, where: WhereToPutResult, context: Fu
                     val existingField = LayedOutStruct(valueResult.field.type).getField(expr.memberName)
                     FpField(existingField.copy(offset = existingField.offset + valueResult.field.offset))
                 }
-
-                else -> TODO()
+                is DynamicPointerValue -> {
+                    val offset = LayedOutStruct(expr.of.type).getField(expr.memberName).offset
+                    context.addInstruction(emulate(DefaultEmulator.adda, "val" to offset))
+                    DynamicPointerValue(WhereToPutResult.A)
+                }
+                else -> TODO(valueResult.toString())
             }
 
         }
@@ -215,6 +198,29 @@ fun requireGetValueIn(expr: ValueExpression, where: WhereToPutResult, context: F
                     else -> TODO()
                 }
             )
+        }
+
+        is DynamicPointerValue -> {
+            require(resultPlace.where==WhereToPutResult.A)
+
+            context.addInstruction(
+                //TODO instruction without offset??
+                emulate(DefaultEmulator.lda_at_a_offset, "offset" to 0)
+            )
+            when (where) {
+                WhereToPutResult.A -> {
+                    // OK!
+                }
+
+                WhereToPutResult.TopStack -> {
+                    context.addInstruction(
+                        emulate(DefaultEmulator.pusha)
+                    )
+                }
+
+                else -> TODO()
+            }
+            DynamicValue(where)
         }
 
         else -> TODO()
@@ -427,6 +433,9 @@ class DynamicValue(
     val where: WhereToPutResult
 ) : GetValueResult
 
+class DynamicPointerValue(
+    val where: WhereToPutResult
+): GetValueResult
 
 interface GetAddressResult
 
@@ -468,8 +477,19 @@ fun getAddressOf(expr: AddressExpression, context: FunctionContext): GetAddressR
                     val existingField = LayedOutStruct(valueResult.field.type).getField(expr.memberName)
                     FpField(existingField.copy(offset = existingField.offset + valueResult.field.offset))
                 }
+                is DynamicAddress -> {
+                    require(valueResult.where==WhereToPutResult.A)
 
-                else -> TODO()
+                    val offset = LayedOutStruct(expr.of.type).getField(expr.memberName).offset
+
+                    val instructions = valueResult.instructions + listOf(
+                        emulate(DefaultEmulator.adda, "val" to offset)
+                    )
+
+                    DynamicAddress(instructions)
+                }
+
+                else -> TODO(valueResult.toString())
             }
         }
 

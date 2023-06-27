@@ -496,4 +496,40 @@ class CompilerCompareWithAssembly {
 
         bodyShouldMatchAssembled(body, expected)
     }
+
+    @Test
+    fun pointerMemberAccess() {
+        val expected = """
+          ADDSP #3
+          
+          //val p =&x
+          LDA FP #0
+          PUSHA
+          POP [FP #2]
+          
+          //print(p->first)
+          LDA [FP #2]
+          ADDA #0
+          LDA [A #0]
+          out
+
+          //print(p->first)
+          LDA [FP #2]
+          ADDA #1
+          LDA [A #0]
+          out
+
+          ret
+        """
+        val body = """
+            val x:intpair
+            
+            val p =&x
+            
+            print(p->first)
+            print(p->second)
+        """
+
+        bodyShouldMatchAssembled(body, expected)
+    }
 }
