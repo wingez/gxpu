@@ -43,7 +43,7 @@ internal class FrontendTest {
                 parserFromFile(shouldHave).parse().first(),
                 emptyFunctions,
                 dummyTypeContainer
-            ).localVariables.size
+            ).fields.compositeFields.size
         )
         assertEquals(
             0,
@@ -51,7 +51,7 @@ internal class FrontendTest {
                 parserFromFile(shouldNotHave).parse().first(),
                 emptyFunctions,
                 dummyTypeContainer
-            ).localVariables.size
+            ).fields.compositeFields.size
         )
     }
 }

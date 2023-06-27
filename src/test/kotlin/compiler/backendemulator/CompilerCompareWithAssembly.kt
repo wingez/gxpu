@@ -37,15 +37,21 @@ class DummyBuiltInProvider(
                 val instructions = builtIn.compile()
                 instructions.first().addReference(Reference(signature, functionEntryLabel))
 
-                val variables = mutableListOf<Variable>()
+                val variables = mutableListOf<CompositeDataTypeField>()
                 if (builtIn.signature.returnType != Datatype.Void) {
-                    variables.add(Variable("result", builtIn.signature.returnType, VariableType.Result))
+                    variables.add(
+                        CompositeDataTypeField(
+                            "result",
+                            builtIn.signature.returnType,
+                            FieldAnnotation.Result
+                        )
+                    )
                 }
                 for ((index, parameterType) in builtIn.signature.parameterTypes.withIndex()) {
-                    variables.add(Variable("param$index", parameterType, VariableType.Parameter))
+                    variables.add(CompositeDataTypeField("param$index", parameterType, FieldAnnotation.Parameter))
                 }
 
-                val layout = calculateLayout(variables, dummyDatatypeSizeProvider)
+                val layout = calculateLayout(Datatype.Composite(signature.name, variables), dummyDatatypeSizeProvider)
 
                 return BuiltFunction(builtIn.signature, layout, instructions)
             }
@@ -392,7 +398,7 @@ class CompilerCompareWithAssembly {
     }
 
     @Test
-    fun createArray(){
+    fun createArray() {
         val expected = """
           ADDSP #1
           
@@ -411,7 +417,7 @@ class CompilerCompareWithAssembly {
     }
 
     @Test
-    fun readArray(){
+    fun readArray() {
         val expected = """
           ADDSP #1
           

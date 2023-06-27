@@ -1,18 +1,13 @@
 package compiler.backendemulator
 
 import compiler.backends.emulator.*
-import compiler.frontend.Datatype
-import compiler.frontend.TypeProvider
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import ast.AstParser
 import ast.FunctionType
 import ast.expression.OperatorBuiltIns
-import compiler.frontend.FunctionDefinition
-import compiler.frontend.FunctionDefinitionResolver
-import compiler.frontend.Variable
-import compiler.frontend.VariableType
+import compiler.frontend.*
 import tokenizeLines
 import tokens.parseFile
 import java.io.StringReader
@@ -95,7 +90,7 @@ internal class FunctionSignatureTest {
         val layout = build.layout
 
         assertEquals(layout.size, 0)
-        assertEquals(layout.sizeOfType(VariableType.Local), 0)
+        assertEquals(layout.sizeOfType(FieldAnnotation.LocalVariable), 0)
         assertThat(layout.layout).hasSize(0)
     }
 
@@ -109,10 +104,10 @@ internal class FunctionSignatureTest {
         )
         val layout = built.layout
         assertEquals(layout.size, 1)
-        assertEquals(layout.sizeOfType(VariableType.Local), 0)
+        assertEquals(layout.sizeOfType(FieldAnnotation.LocalVariable), 0)
         assertEquals(
             layout.layout, mapOf(
-                Variable("test", Datatype.Integer, VariableType.Parameter) to StructDataField(
+                CompositeDataTypeField("test", Datatype.Integer, FieldAnnotation.Parameter) to StructDataField(
                     "test",
                     Datatype.Integer,
                     -1, 1
@@ -131,9 +126,9 @@ internal class FunctionSignatureTest {
         )
         val layout = built.layout
         assertEquals(layout.size, 1)
-        assertEquals(layout.sizeOfType(VariableType.Local), 1)
+        assertEquals(layout.sizeOfType(FieldAnnotation.LocalVariable), 1)
         assertThat(layout.layout).containsEntry(
-            Variable("var", Datatype.Integer, VariableType.Local),
+            CompositeDataTypeField("var", Datatype.Integer, FieldAnnotation.LocalVariable),
             StructDataField("var", Datatype.Integer, 0, 1)
         )
     }
@@ -147,15 +142,15 @@ internal class FunctionSignatureTest {
     """
         )
         assertEquals(built.layout.size, 3)
-        assertEquals(built.layout.sizeOfType(VariableType.Local), 1)
+        assertEquals(built.layout.sizeOfType(FieldAnnotation.LocalVariable), 1)
 
         assertEquals(
             mapOf(
-                Variable("result", Datatype.Integer, VariableType.Result) to
+                CompositeDataTypeField("result", Datatype.Integer, FieldAnnotation.Result) to
                         StructDataField("result", Datatype.Integer, -2, 1),
-                Variable("param", Datatype.Integer, VariableType.Parameter) to
+                CompositeDataTypeField("param", Datatype.Integer, FieldAnnotation.Parameter) to
                         StructDataField("param", Datatype.Integer, -1, 1),
-                Variable("var", Datatype.Integer, VariableType.Local) to
+                CompositeDataTypeField("var", Datatype.Integer, FieldAnnotation.LocalVariable) to
                         StructDataField("var", Datatype.Integer, 0, 1)
             ), built.layout.layout
         )
@@ -174,12 +169,12 @@ internal class FunctionSignatureTest {
     """
         )
         assertEquals(built.layout.size, 2)
-        assertEquals(built.layout.sizeOfType(VariableType.Local), 2)
+        assertEquals(built.layout.sizeOfType(FieldAnnotation.LocalVariable), 2)
         assertEquals(
             mapOf(
-                Variable("var1", Datatype.Integer, VariableType.Local) to
+                CompositeDataTypeField("var1", Datatype.Integer, FieldAnnotation.LocalVariable) to
                         StructDataField("var1", Datatype.Integer, 1, 1),
-                Variable("var", Datatype.Integer, VariableType.Local) to
+                CompositeDataTypeField("var", Datatype.Integer, FieldAnnotation.LocalVariable) to
                         StructDataField("var", Datatype.Integer, 0, 1),
             ), built.layout.layout
         )
@@ -194,13 +189,13 @@ internal class FunctionSignatureTest {
             """
         )
         assertEquals(built.layout.size, 3)
-        assertEquals(built.layout.sizeOfType(VariableType.Local), 1)
+        assertEquals(built.layout.sizeOfType(FieldAnnotation.LocalVariable), 1)
         assertEquals(
             built.layout.layout, mapOf(
-                Variable("result", Datatype.Integer, VariableType.Result) to StructDataField("result", Datatype.Integer, -2, 1),
+                CompositeDataTypeField("result", Datatype.Integer, FieldAnnotation.Result) to StructDataField("result", Datatype.Integer, -2, 1),
 
-                Variable("var2", Datatype.Integer, VariableType.Parameter) to StructDataField("var2", Datatype.Integer, -1, 1),
-                Variable("var", Datatype.Integer, VariableType.Local) to StructDataField("var", Datatype.Integer, 0, 1),
+                CompositeDataTypeField("var2", Datatype.Integer, FieldAnnotation.Parameter) to StructDataField("var2", Datatype.Integer, -1, 1),
+                CompositeDataTypeField("var", Datatype.Integer, FieldAnnotation.LocalVariable) to StructDataField("var", Datatype.Integer, 0, 1),
             )
         )
 

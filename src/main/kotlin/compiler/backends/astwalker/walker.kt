@@ -69,7 +69,6 @@ class CompositeValueHolder(
 }
 
 class WalkFrame(
-    val localVariablesTypes: Map<String, Datatype>,
     val holder: CompositeValueHolder,
 ) {
 }
@@ -203,32 +202,23 @@ class WalkerState(
     fun walkUserFunction(userFunction: UserFunction, parameters: List<Value>): Value {
 
 
-        val fields = Datatype.Composite(
-            "functionfields",
-            userFunction.functionContent.localVariables.map {
-                CompositeDataTypeField(
-                    it.name,
-                    it.datatype
-                )
-            })
-
+        val fields = userFunction.functionContent.fields
 
         // Push new frame
         frameStack.add(
             WalkFrame(
-                userFunction.functionContent.localVariables.associate { it.name to it.datatype },
                 CompositeValueHolder(
                     fields,
-                    getVariableHandlesForDatatype(fields).associate { it to PrimitiveValueHolder(it.type) },
+                    getVariableHandlesForDatatype(fields).associateWith { PrimitiveValueHolder(it.type) },
                     null,
                 )
             )
         )
 
         // Add arguments as local variables
-        userFunction.functionContent.localVariables.filter { it.type == VariableType.Parameter }.zip(parameters)
+        fields.compositeFields.filter { it.annotation == FieldAnnotation.Parameter }.zip(parameters)
             .forEach { (variable, value) ->
-                assert(variable.datatype == value.datatype)
+                assert(variable.type == value.datatype)
                 setVariable(variable.name, value)
             }
 

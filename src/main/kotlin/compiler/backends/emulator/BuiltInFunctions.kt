@@ -1,13 +1,9 @@
 package compiler.backends.emulator
 
 import compiler.backends.emulator.emulator.DefaultEmulator
-import compiler.frontend.Datatype
 import ast.FunctionType
 import ast.expression.OperatorBuiltIns
-import compiler.frontend.FunctionDefinition
-import compiler.frontend.Variable
-import compiler.frontend.VariableType
-import compiler.frontend.functionEntryLabel
+import compiler.frontend.*
 
 interface BuiltIn {
 
@@ -88,15 +84,15 @@ class BuiltInFunctions : BuiltInProvider {
 
         instructions.first().addReference(Reference(signature, functionEntryLabel))
 
-        val variables = mutableListOf<Variable>()
+        val fields = mutableListOf<CompositeDataTypeField>()
         if (signature.returnType != Datatype.Void) {
-            variables.add(Variable("result", signature.returnType, VariableType.Result))
+            fields.add(CompositeDataTypeField("result", signature.returnType, FieldAnnotation.Result))
         }
         for ((index, parameterType) in signature.parameterTypes.withIndex()) {
-            variables.add(Variable("param$index", parameterType, VariableType.Parameter))
+            fields.add(CompositeDataTypeField("param$index", parameterType, FieldAnnotation.Parameter))
         }
 
-        val layout = calculateLayout(variables, dummyDatatypeSizeProvider)
+        val layout = calculateLayout(Datatype.Composite(signature.name, fields), dummyDatatypeSizeProvider)
 
         return BuiltFunction(result.signature, layout, instructions)
     }
