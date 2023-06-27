@@ -92,7 +92,7 @@ class BuiltInFunctions : BuiltInProvider {
             fields.add(CompositeDataTypeField("param$index", parameterType, FieldAnnotation.Parameter))
         }
 
-        val layout = calculateLayout(Datatype.Composite(signature.name, fields), dummyDatatypeSizeProvider)
+        val layout = calculateLayout(Datatype.Composite(signature.name, fields))
 
         return BuiltFunction(result.signature, layout, instructions)
     }

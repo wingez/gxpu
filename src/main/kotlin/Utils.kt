@@ -38,3 +38,7 @@ open class PeekIterator<T>(
         return values[index++]
     }
 }
+
+fun requireNotReached():Nothing{
+    throw AssertionError("This should never be reached")
+}

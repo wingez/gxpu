@@ -8,6 +8,7 @@ import ast.AstParser
 import ast.FunctionType
 import ast.expression.OperatorBuiltIns
 import compiler.frontend.*
+import org.junit.jupiter.api.assertThrows
 import tokenizeLines
 import tokens.parseFile
 import java.io.StringReader
@@ -31,7 +32,16 @@ private val defaultTypes = listOf(Datatype.Void, Datatype.Integer)
 
 val dummyTypeContainer = TypeContainer(
     defaultTypes,
-    mapOf("byte" to Datatype.Integer)
+    mapOf(
+        "byte" to Datatype.Integer,
+        "intpair" to Datatype.Composite(
+            "intpair",
+            listOf(
+                CompositeDataTypeField("first", Datatype.Integer),
+                CompositeDataTypeField("second", Datatype.Integer)
+            )
+        )
+    )
 )
 
 internal class FunctionSignatureTest {
@@ -73,7 +83,7 @@ internal class FunctionSignatureTest {
 
         val builder = FunctionBuilder(
             FunctionDefinition.fromFunctionNode(node, dummyTypeContainer),
-            functionProvider, dummyTypeContainer, dummyDatatypeSizeProvider
+            functionProvider, dummyTypeContainer
         )
 
         return builder.buildBody(node)
@@ -192,10 +202,25 @@ internal class FunctionSignatureTest {
         assertEquals(built.layout.sizeOfType(FieldAnnotation.LocalVariable), 1)
         assertEquals(
             built.layout.layout, mapOf(
-                CompositeDataTypeField("result", Datatype.Integer, FieldAnnotation.Result) to StructDataField("result", Datatype.Integer, -2, 1),
+                CompositeDataTypeField("result", Datatype.Integer, FieldAnnotation.Result) to StructDataField(
+                    "result",
+                    Datatype.Integer,
+                    -2,
+                    1
+                ),
 
-                CompositeDataTypeField("var2", Datatype.Integer, FieldAnnotation.Parameter) to StructDataField("var2", Datatype.Integer, -1, 1),
-                CompositeDataTypeField("var", Datatype.Integer, FieldAnnotation.LocalVariable) to StructDataField("var", Datatype.Integer, 0, 1),
+                CompositeDataTypeField("var2", Datatype.Integer, FieldAnnotation.Parameter) to StructDataField(
+                    "var2",
+                    Datatype.Integer,
+                    -1,
+                    1
+                ),
+                CompositeDataTypeField("var", Datatype.Integer, FieldAnnotation.LocalVariable) to StructDataField(
+                    "var",
+                    Datatype.Integer,
+                    0,
+                    1
+                ),
             )
         )
 
@@ -208,4 +233,47 @@ internal class FunctionSignatureTest {
             built.layout.getDescription(),
         )
     }
+
+
+    @Test
+    fun testSizeOf() {
+        kotlin.test.assertEquals(1, sizeOf(Datatype.Integer))
+        kotlin.test.assertEquals(1, sizeOf(Datatype.Boolean))
+        kotlin.test.assertEquals(1, sizeOf(Datatype.Pointer(Datatype.Integer)))
+
+        assertThrows<EmulatorBackendCompilerError> { sizeOf(Datatype.Array(Datatype.Integer)) }
+        kotlin.test.assertEquals(1, sizeOf(Datatype.ArrayPointer(Datatype.Integer)))
+
+        kotlin.test.assertEquals(
+            1,
+            sizeOf(Datatype.Composite("test", listOf(CompositeDataTypeField("a", Datatype.Integer))))
+        )
+        kotlin.test.assertEquals(
+            2,
+            sizeOf(
+                Datatype.Composite(
+                    "test",
+                    listOf(CompositeDataTypeField("a", Datatype.Integer), CompositeDataTypeField("b", Datatype.Integer))
+                )
+            )
+        )
+    }
+
+    @Test
+    fun testComposite() {
+        val built = getSignature(
+            """
+            def test1():
+              val var:intpair
+    """
+        )
+        val layout = built.layout
+        assertEquals(layout.size, 2)
+        assertEquals(layout.sizeOfType(FieldAnnotation.LocalVariable), 2)
+        assertThat(layout.layout).containsEntry(
+            CompositeDataTypeField("var", dummyTypeContainer.getType("intpair"), FieldAnnotation.LocalVariable),
+            StructDataField("var", dummyTypeContainer.getType("intpair"), 0, 2)
+        )
+    }
+
 }

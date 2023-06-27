@@ -7,7 +7,6 @@ import compiler.frontend.*
 
 interface FunctionContext : CodeGenerator {
     fun getField(name: String): StructDataField
-    val datatypeLayoutProvider: DatatypeLayoutProvider
 }
 
 
@@ -196,7 +195,7 @@ private fun handleGenericCall(expr: CallExpression, where: WhereToPutResult, con
         context.addInstruction(
             emulate(
                 DefaultEmulator.add_sp,
-                "val" to context.datatypeLayoutProvider.sizeOf(expr.function.returnType)
+                "val" to sizeOf(expr.function.returnType)
             )
         )
     }
@@ -208,7 +207,7 @@ private fun handleGenericCall(expr: CallExpression, where: WhereToPutResult, con
     context.addInstruction(emulate(DefaultEmulator.call_addr, "addr" to Reference(expr.function, functionEntryLabel)))
 
     // pop arguments if neccesary
-    val argumentSize = expr.parameters.sumOf { context.datatypeLayoutProvider.sizeOf(it.type) }
+    val argumentSize = expr.parameters.sumOf { sizeOf(it.type) }
     if (argumentSize > 0) {
         context.addInstruction(emulate(DefaultEmulator.sub_sp, "val" to argumentSize))
     }

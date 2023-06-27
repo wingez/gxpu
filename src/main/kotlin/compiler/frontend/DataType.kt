@@ -12,7 +12,7 @@ enum class FieldAnnotation {
 data class CompositeDataTypeField(
     val name: String,
     val type: Datatype,
-    val annotation: FieldAnnotation,
+    val annotation: FieldAnnotation=FieldAnnotation.None,
 )
 
 class Datatype private constructor(

@@ -51,7 +51,7 @@ class DummyBuiltInProvider(
                     variables.add(CompositeDataTypeField("param$index", parameterType, FieldAnnotation.Parameter))
                 }
 
-                val layout = calculateLayout(Datatype.Composite(signature.name, variables), dummyDatatypeSizeProvider)
+                val layout = calculateLayout(Datatype.Composite(signature.name, variables))
 
                 return BuiltFunction(builtIn.signature, layout, instructions)
             }
@@ -96,7 +96,7 @@ fun buildBody(body: String): List<EmulatorInstruction> {
     val signature = FunctionDefinition.fromFunctionNode(node, dummyTypeContainer)
 
     val builtFunction =
-        buildFunctionBody(node, signature, DummyBuiltInProvider(), dummyTypeContainer, dummyDatatypeSizeProvider)
+        buildFunctionBody(node, signature, DummyBuiltInProvider(), dummyTypeContainer)
 
 
     return builtFunction.instructions

@@ -5,7 +5,10 @@ import ast.FunctionType
 import ast.NodeTypes
 import compiler.backends.emulator.emulator.DefaultEmulator
 import compiler.frontend.*
+import kotlin.Error
 
+
+class EmulatorBackendCompilerError(message:String):Error(message)
 interface CodeGenerator {
     fun addInstruction(emulatorInstruction: EmulatorInstruction)
 }
@@ -42,11 +45,10 @@ private class CodeSource(
     override val signature: FunctionDefinition,
     val typeProvider: TypeProvider,
     val functionProvider: FunctionDefinitionResolver,
-    val datatypeLayoutProvider: DatatypeLayoutProvider,
 ) : FunctionSource {
 
     override fun build(): BuiltFunction {
-        return buildFunctionBody(node, signature, functionProvider, typeProvider, datatypeLayoutProvider)
+        return buildFunctionBody(node, signature, functionProvider, typeProvider)
     }
 }
 
@@ -136,7 +138,7 @@ class Compiler(
         for (functionNode in nodes.filter { it.type == NodeTypes.Function }) {
             val signature = FunctionDefinition.fromFunctionNode(functionNode, this)
             availableFunctionDefinitions.add(signature)
-            functionSources.add(CodeSource(functionNode, signature, this, this, dummyDatatypeSizeProvider))
+            functionSources.add(CodeSource(functionNode, signature, this, this))
         }
 
         /// Compile all functions
@@ -176,22 +178,5 @@ class Compiler(
         }
 
         return CompiledProgram(resultingInstructions)
-    }
-}
-
-val dummyDatatypeSizeProvider = object : DatatypeLayoutProvider {
-    override fun sizeOf(dataType: Datatype): Int {
-
-        if (dataType.isPointer){
-            return 1
-        }
-
-        return when (dataType) {
-            Datatype.Integer -> 1
-            Datatype.Boolean -> 1
-            else -> throw TODO(dataType.toString())
-        }
-
-
     }
 }

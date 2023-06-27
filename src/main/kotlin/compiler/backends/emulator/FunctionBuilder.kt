@@ -22,10 +22,9 @@ fun buildFunctionBody(
     signature: FunctionDefinition,
     functionProvider: FunctionDefinitionResolver,
     typeProvider: TypeProvider,
-    datatypeLayoutProvider: DatatypeLayoutProvider,
 ): BuiltFunction {
 
-    val builder = FunctionBuilder(signature, functionProvider, typeProvider, datatypeLayoutProvider)
+    val builder = FunctionBuilder(signature, functionProvider, typeProvider)
 
     return builder.buildBody(node)
 }
@@ -34,7 +33,6 @@ class FunctionBuilder(
     private val signature: FunctionDefinition,
     private val functionProvider: FunctionDefinitionResolver,
     private val typeProvider: TypeProvider,
-    override val datatypeLayoutProvider: DatatypeLayoutProvider,
 ) : CodeGenerator, FunctionContext {
 
     val resultingCode = mutableListOf<EmulatorInstruction>()
@@ -57,7 +55,7 @@ class FunctionBuilder(
 
         if (expr.type != Datatype.Void) {
             handleCall(expr, WhereToPutResult.TopStack, this)
-            addInstruction(emulate(DefaultEmulator.sub_sp, "val" to datatypeLayoutProvider.sizeOf(expr.type)))
+            addInstruction(emulate(DefaultEmulator.sub_sp, "val" to sizeOf(expr.type)))
         } else {
             handleCall(expr, WhereToPutResult.A, this)
         }
@@ -166,7 +164,7 @@ class FunctionBuilder(
 
         val functionContent = compileFunction(node, functionProvider, typeProvider)
 
-        layout = calculateLayout(functionContent.fields, datatypeLayoutProvider)
+        layout = calculateLayout(functionContent.fields)
 
         buildCodeBody(functionContent.code)
 
@@ -201,7 +199,6 @@ private fun assertFrameMatchesDefinition(layout: FunctionFrameLayout, definition
 
 fun calculateLayout(
     localVariables: Datatype,
-    datatypeLayoutProvider: DatatypeLayoutProvider
 ): FunctionFrameLayout {
 
     val variablesInOrder = mutableListOf<Pair<CompositeDataTypeField, StructDataField>>()
@@ -211,7 +208,7 @@ fun calculateLayout(
     for (variableType in listOf(FieldAnnotation.Result, FieldAnnotation.Parameter, FieldAnnotation.LocalVariable)) {
         for (variable in localVariables.compositeFields.filter { it.annotation == variableType }) {
 
-            val size = datatypeLayoutProvider.sizeOf(variable.type)
+            val size = sizeOf(variable.type)
 
             variablesInOrder.add(variable to StructDataField(variable.name, variable.type, totalSizeSoFar, size))
             totalSizeSoFar += size
@@ -222,7 +219,7 @@ fun calculateLayout(
     //subtract the size of Result & parameters
     val offset =
         variablesInOrder.filter { it.first.annotation == FieldAnnotation.Result || it.first.annotation == FieldAnnotation.Parameter }
-            .sumOf { datatypeLayoutProvider.sizeOf(it.first.type) }
+            .sumOf { sizeOf(it.first.type) }
 
 
     return variablesInOrder.map { (variable, field) ->
