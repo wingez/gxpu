@@ -182,7 +182,9 @@ fun tryGetValueWhere(expr: ValueExpression, where: WhereToPutResult, context: Fu
                     val existingField = LayedOutStruct(valueResult.field.type).getField(expr.memberName)
                     FpField(existingField.copy(offset = existingField.offset + valueResult.field.offset))
                 }
+                is DynamicAddress -> {
 
+                }
                 else -> TODO()
             }
 
@@ -468,8 +470,19 @@ fun getAddressOf(expr: AddressExpression, context: FunctionContext): GetAddressR
                     val existingField = LayedOutStruct(valueResult.field.type).getField(expr.memberName)
                     FpField(existingField.copy(offset = existingField.offset + valueResult.field.offset))
                 }
+                is DynamicAddress -> {
+                    require(valueResult.where==WhereToPutResult.A)
 
-                else -> TODO()
+                    val offset = LayedOutStruct(expr.of.type).getField(expr.memberName).offset
+
+                    val instructions = valueResult.instructions + listOf(
+                        emulate(DefaultEmulator.adda, "val" to offset)
+                    )
+
+                    DynamicAddress(instructions)
+                }
+
+                else -> TODO(valueResult.toString())
             }
         }
 
