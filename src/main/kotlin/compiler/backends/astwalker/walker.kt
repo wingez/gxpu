@@ -105,6 +105,13 @@ class WalkerState(
     private val types = mutableMapOf(
         "int" to Datatype.Integer,
         "void" to Datatype.Void,
+        "intpair" to Datatype.Composite(
+            "intpair",
+            listOf(
+                CompositeDataTypeField("first", Datatype.Integer),
+                CompositeDataTypeField("second", Datatype.Integer)
+            )
+        )
     )
 
     val availableFunctions = mutableListOf<IWalkerFunction>()

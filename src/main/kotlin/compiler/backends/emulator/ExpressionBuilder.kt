@@ -460,8 +460,17 @@ fun getAddressOf(expr: AddressExpression, context: FunctionContext): GetAddressR
             )
 
             DynamicAddress(instructions)
+        }
+        is AddressMemberAccess -> {
+            val valueResult = getAddressOf(expr.of, context)
+            when (valueResult) {
+                is FpField -> {
+                    val existingField = LayedOutStruct(valueResult.field.type).getField(expr.memberName)
+                    FpField(existingField.copy(offset = existingField.offset + valueResult.field.offset))
+                }
 
-
+                else -> TODO()
+            }
         }
 
         else -> TODO(expr.toString())

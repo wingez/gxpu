@@ -8,7 +8,7 @@ import compiler.frontend.*
 import kotlin.Error
 
 
-class EmulatorBackendCompilerError(message:String):Error(message)
+class EmulatorBackendCompilerError(message: String) : Error(message)
 interface CodeGenerator {
     fun addInstruction(emulatorInstruction: EmulatorInstruction)
 }
@@ -95,16 +95,11 @@ class Compiler(
     }
 
     fun buildStructs() {
-        for (node in nodes.filter { it.type == NodeTypes.Struct }) {
-            TODO()
-//            val struct = buildStruct(node, this)
-//
-//            if (struct.name in includedTypes) {
-//                throw CompileError("Function ${struct.name} already exists")
-//            }
-            //TODO:
-            //includedTypes[struct.name] = struct
-        }
+        nodes.filter { it.type == NodeTypes.Struct }
+            .forEach {
+                val s = buildStruct(it, this)
+                includedTypes[s.name] = s
+            }
     }
 
     fun buildProgram(): CompiledProgram {

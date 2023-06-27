@@ -465,4 +465,35 @@ class CompilerCompareWithAssembly {
 
         bodyShouldMatchAssembled(body, expected)
     }
+
+    @Test
+    fun writeStruct() {
+        var expected = """
+          ADDSP #2
+          
+          PUSH #5
+          POP [FP #0]
+          ret
+        """
+        var body = """
+          val i:intpair
+          i.first=5
+        """
+
+        bodyShouldMatchAssembled(body, expected)
+
+        expected = """
+          ADDSP #2
+          
+          PUSH #5
+          POP [FP #1]
+          ret
+        """
+        body = """
+          val i:intpair
+          i.second=5
+        """
+
+        bodyShouldMatchAssembled(body, expected)
+    }
 }

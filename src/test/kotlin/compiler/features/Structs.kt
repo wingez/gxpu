@@ -13,7 +13,6 @@ class Structs {
     @EnumSource(CompilerBackend::class)
     fun testSingleStructVariable(compiler: CompilerBackend) {
 
-        Assumptions.assumeTrue(compiler != CompilerBackend.Emulator)
         val program = """
     
           struct type1:
@@ -38,8 +37,6 @@ class Structs {
     @EnumSource(CompilerBackend::class)
     fun testSingleStructVariableArithmetic(compiler: CompilerBackend) {
 
-        Assumptions.assumeTrue(compiler != CompilerBackend.Emulator)
-
         val program = """
     
           struct type1:
@@ -63,8 +60,6 @@ class Structs {
     @ParameterizedTest
     @EnumSource(CompilerBackend::class)
     fun testStructNested(compiler: CompilerBackend) {
-        Assumptions.assumeTrue(compiler != CompilerBackend.Emulator)
-
         val program = """
           struct children:
             child1:int
@@ -115,5 +110,22 @@ class Structs {
     """
         runProgramCheckOutput(compiler, program, 3, 6)
     }
+    @ParameterizedTest
+    @EnumSource
+    @Disabled
+    fun testStructResult(compiler: CompilerBackend) {
+        Assumptions.assumeTrue(compiler != CompilerBackend.Emulator)
 
+        val program = """
+          def f():intpair
+            result.first=4
+            result.second=5
+          def main():
+            val x = f()
+           
+            print(x.first)
+            print(x.second)
+    """
+        runProgramCheckOutput(compiler, program, 4, 5)
+    }
 }
