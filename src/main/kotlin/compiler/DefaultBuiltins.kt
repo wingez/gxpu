@@ -2,9 +2,9 @@ package compiler
 
 import ast.FunctionType
 import ast.expression.OperatorBuiltIns
-import compiler.backends.emulator.SignatureBuilder //TODO!!!
 import compiler.frontend.CompositeDataTypeField
 import compiler.frontend.Datatype
+import compiler.frontend.SignatureBuilder
 
 class BuiltInSignatures : BuiltInCollection {
     companion object {

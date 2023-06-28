@@ -6,6 +6,7 @@ import compiler.backends.emulator.emulator.DefaultEmulator
 import compiler.frontend.*
 import kotlin.Error
 
+const val STACK_START = 100
 
 class EmulatorRunner(
     private val builtInProvider: BuiltInProvider

@@ -1,10 +1,10 @@
 package compiler.backends.emulator.instructions
 
-import compiler.backends.emulator.SignatureBuilder
 import compiler.backends.emulator.EmulatorInstruction
 import compiler.backends.emulator.Reference
 import compiler.backends.emulator.Value
 import compiler.frontend.Label
+import compiler.frontend.SignatureBuilder
 import splitMany
 
 class AssembleError(message: String) : Exception(message)

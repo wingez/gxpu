@@ -1,6 +1,5 @@
 package instructions
 
-import compiler.backends.emulator.SignatureBuilder
 import compiler.backends.emulator.instructions.Instruction
 import compiler.backends.emulator.instructions.InstructionSet
 import org.junit.jupiter.api.Assertions.assertIterableEquals
@@ -13,6 +12,7 @@ import compiler.backends.emulator.Reference
 import compiler.backends.emulator.Value
 import compiler.backends.emulator.instructions.AssembleError
 import compiler.frontend.Label
+import compiler.frontend.SignatureBuilder
 
 internal class TestAssembleFile {
     @Test
