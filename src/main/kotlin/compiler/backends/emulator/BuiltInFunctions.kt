@@ -56,10 +56,63 @@ class ByteSubtraction : BuiltIn {
         .getSignature()
 }
 
+class PrintIntArray : BuiltIn {
+    override val name = "print"
+    override fun compile(): List<EmulatorInstruction> {
+        return DefaultEmulator.instructionSet.assembleMnemonicFile(
+            """
+            // store size at FP+0
+            LDA [FP #-1]
+            LDA [A #0]
+            STA [FP #0]
+            
+            // store current pointer at FP+1
+            LDA [FP #-1]
+            ADDA #1
+            STA [FP #1]
+            
+            // 
+            :loop
+            LDA [FP #0]
+            TSTZ A
+            JMPF #ret
+            
+            //decrement size
+            SUBA #1
+            STA [FP #0]
+            
+            //print
+            LDA [FP #1]
+            LDA [A #0]
+            out
+            // increment pointer
+            LDA [FP #1]
+            ADDA #1
+            STA [FP #1]
+            
+            JMP #loop
+            
+            
+            :ret
+            ret
+        """
+        )
+    }
+
+    override val signature = SignatureBuilder(name)
+        .addParameter(Datatype.Str)
+        .setReturnType(Datatype.Void)
+        .setFunctionType(FunctionType.Normal)
+        .getSignature()
+}
+
+
+
 class BuiltInFunctions : BuiltInProvider {
 
     private val available = listOf(
         ByteAddition(), ByteSubtraction(),
+        PrintIntArray(),
     )
 
     override fun getTypes(): Map<String, Datatype> {

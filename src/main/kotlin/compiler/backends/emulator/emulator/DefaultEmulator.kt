@@ -220,6 +220,11 @@ class DefaultEmulator : Emulator(instructionSet) {
             em.a = em.a + value
         }
 
+        val suba = instructionSet.createInstruction("SUBA #val", group = ARITHMETIC) { em, params ->
+            val value = params.getValue("val")
+            em.a = em.a - value
+        }
+
         val adda_sp = instructionSet.createInstruction("ADDA [SP #offset]", group = ARITHMETIC) { em, params ->
             val offset = params.getValue("offset")
             em.a = em.a + em.getMemoryAt(em.sp + offset)

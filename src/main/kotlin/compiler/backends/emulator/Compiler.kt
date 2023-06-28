@@ -91,7 +91,7 @@ class Compiler(
                 return definition
             }
         }
-        TODO(name)
+        TODO(listOf(name, parameterTypes.toString(), functionType.toString()).toString())
     }
 
     fun buildStructs() {
