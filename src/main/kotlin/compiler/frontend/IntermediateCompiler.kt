@@ -28,7 +28,14 @@ fun buildStruct(
     return Datatype.Composite(typeName, members)
 }
 
+fun compileFunctionBody(
+    body:AstNode,
+    definition: FunctionDefinition,
+    functionProvider: FunctionDefinitionResolver,
+    typeProvider: TypeProvider,
+):FunctionContent{
 
+}
 fun compileFunction(
     functionNode: AstNode,
     functionProvider: FunctionDefinitionResolver,
