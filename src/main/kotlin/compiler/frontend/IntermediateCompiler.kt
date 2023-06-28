@@ -1,7 +1,13 @@
 package compiler.frontend
 
 import ast.AstNode
+import ast.AstParser
 import ast.NodeTypes
+import compiler.*
+import tokens.Token
+import tokens.TokenType
+import tokens.parseFile
+import java.io.StringReader
 
 fun buildStruct(
     structNode: AstNode,
@@ -27,6 +33,22 @@ fun buildStruct(
 
     return Datatype.Composite(typeName, members)
 }
+
+fun compileFunctionBody(body: String, builtIns: BuiltInCollection): FunctionContent {
+    val tokens =
+        parseFile(StringReader(body), "dummyfile") + listOf(Token(TokenType.EndBlock, "", SourceInfo.notApplicable))
+    val nodes = AstParser(tokens).parseStatementsUntilEndblock()
+
+    val types = TypeCollection(emptyList(), builtIns)
+
+    return compileFunctionBody(
+        AstNode.fromBody(nodes),
+        FunctionDefinition(mainSignature, emptyList()),
+        FunctionCollection(builtIns.functions),
+        types
+    )
+}
+
 
 fun compileFunctionBody(
     body:AstNode,

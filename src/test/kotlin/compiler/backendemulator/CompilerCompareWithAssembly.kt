@@ -75,29 +75,6 @@ class DummyBuiltInProvider(
     }
 }
 
-fun buildSingleMainFunction(nodes: List<AstNode>): CompiledProgram {
-    TODO()
-//    val node = function("main", emptyList(), nodes, "")
-//    val c = Compiler(DummyBuiltInProvider(), listOf(node))
-//    return c.buildProgram()
-}
-
-fun buildBody(body: String): CompiledProgram {
-    TODO()
-//    val tokens = tokenizeLines(body)
-//    val nodes = parseExpressions(tokens)
-//
-//
-//    val node = function("main", emptyList(), nodes, "void")
-//    val signature = FunctionSignature.fromFunctionNode(node, dummyTypeContainer)
-//
-//    val builtFunction =
-//        buildFunctionBody(node, signature, DummyBuiltInProvider(), dummyTypeContainer)
-//
-//
-//    return builtFunction.instructions
-}
-
 private class GetInstructionsRunner : BackendCompiler {
 
     lateinit var compiledProgram: CompiledProgram
@@ -105,6 +82,21 @@ private class GetInstructionsRunner : BackendCompiler {
         compiledProgram = EmulatorRunner(BuiltInFunctions()).compileIntermediate(allTypes, functions)
         return emptyList()
     }
+}
+
+
+
+fun buildSingleMainFunction(nodes: List<AstNode>): CompiledProgram {
+    TODO()
+//    val node = function("main", emptyList(), nodes, "")
+//    val c = Compiler(DummyBuiltInProvider(), listOf(node))
+//    return c.buildProgram()
+}
+
+fun buildBody(body: String): List<EmulatorInstruction> {
+
+    val intermediate = compileFunctionBody(body, BuiltInSignatures())
+    return buildFunctionBody(intermediate).instructions
 }
 
 
@@ -131,7 +123,7 @@ fun shouldMatch(code: List<EmulatorInstruction>, expected: List<EmulatorInstruct
 
 fun bodyShouldMatchAssembled(body: String, expectedAssembly: String) {
 
-    val code = buildBody(body).instructions
+    val code = buildBody(body)
     val expected = DefaultEmulator().instructionSet.assembleMnemonicFile(StringReader(expectedAssembly))
 
     shouldMatch(code, expected)
@@ -158,10 +150,14 @@ class CompilerCompareWithAssembly {
         exit
 
         ret
+        ret
          */
+        val program="""
+           def main():
+             return
+        """.trimIndent()
 
-
-        val code = buildSingleMainFunction(emptyList())
+        val code = buildProgram(program)
         assertEquals(
             listOf(
                 // Init stack and frame
@@ -172,6 +168,7 @@ class CompilerCompareWithAssembly {
                 // On return
                 emulate(DefaultEmulator.exit),
                 //Start of function
+                emulate(DefaultEmulator.ret),
                 emulate(DefaultEmulator.ret),
             ), code.instructions
         )

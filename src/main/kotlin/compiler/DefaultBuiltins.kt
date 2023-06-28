@@ -3,13 +3,19 @@ package compiler
 import ast.FunctionType
 import ast.expression.OperatorBuiltIns
 import compiler.backends.emulator.SignatureBuilder //TODO!!!
+import compiler.frontend.CompositeDataTypeField
 import compiler.frontend.Datatype
 
-class BuiltInSignatures: BuiltInCollection {
-    companion object{
+class BuiltInSignatures : BuiltInCollection {
+    companion object {
         val print = SignatureBuilder("print")
             .addParameter(Datatype.Integer)
             .getSignature()
+        val printString=SignatureBuilder("print")
+            .addParameter(Datatype.Str)
+            .getSignature()
+
+
         val bool = SignatureBuilder("bool")
             .addParameter(Datatype.Integer)
             .setReturnType(Datatype.Boolean)
@@ -64,16 +70,40 @@ class BuiltInSignatures: BuiltInCollection {
             .addParameter(Datatype.Integer)
             .addParameter(Datatype.Integer)
             .getSignature()
+
         val lessThan = SignatureBuilder(OperatorBuiltIns.LessThan)
             .setFunctionType(FunctionType.Operator)
             .setReturnType(Datatype.Boolean)
             .addParameter(Datatype.Integer)
             .addParameter(Datatype.Integer)
             .getSignature()
+        val greaterThan = SignatureBuilder(OperatorBuiltIns.GreaterThan)
+            .setFunctionType(FunctionType.Operator)
+            .setReturnType(Datatype.Boolean)
+            .addParameter(Datatype.Integer)
+            .addParameter(Datatype.Integer)
+            .getSignature()
+
+
+        val mod = SignatureBuilder("mod")
+            .setFunctionType(FunctionType.Normal)
+            .setReturnType(Datatype.Integer)
+            .addParameter(Datatype.Integer)
+            .addParameter(Datatype.Integer)
+            .getSignature()
+        val idiv = SignatureBuilder("idiv")
+            .setFunctionType(FunctionType.Normal)
+            .setReturnType(Datatype.Integer)
+            .addParameter(Datatype.Integer)
+            .addParameter(Datatype.Integer)
+            .getSignature()
+
+
     }
 
-    override val functions=listOf(
+    override val functions = listOf(
         print,
+        printString,
         bool,
         add,
         sub,
@@ -84,10 +114,20 @@ class BuiltInSignatures: BuiltInCollection {
         notEquals,
         equals,
         lessThan,
-
-    )
+        greaterThan,
+        mod,
+        idiv,
+        )
 
     override val types = listOf(
         Datatype.Integer, Datatype.Void,
+        //"byte" to Datatype.Integer,
+        Datatype.Composite(
+            "intpair",
+            listOf(
+                CompositeDataTypeField("first", Datatype.Integer),
+                CompositeDataTypeField("second", Datatype.Integer)
+            )
+        )
     )
 }

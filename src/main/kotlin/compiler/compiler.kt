@@ -5,9 +5,12 @@ import ast.AstParser
 import ast.FunctionType
 import ast.NodeTypes
 import compiler.frontend.*
+import tokens.Token
+import tokens.TokenType
 import tokens.parseFile
 import java.io.File
 import java.io.Reader
+import java.io.StringReader
 
 val mainSignature = FunctionSignature("main", emptyList(), Datatype.Void, FunctionType.Normal)
 
@@ -20,35 +23,52 @@ interface BuiltInCollection {
     val functions: List<FunctionSignature>
 }
 
-private fun buildStructs(nodes: List<AstNode>, builtIns: BuiltInCollection): List<Datatype> {
-
-    val result = mutableListOf<Datatype>()
-
-    val typeProvider = object : TypeProvider {
-        override fun getType(name: String): Datatype? {
-            return result.find { it.name == name }
-        }
+class FunctionCollection(
+    private val signatures: List<FunctionSignature>,
+) : FunctionSignatureResolver {
+    override fun getFunctionDefinitionMatching(
+        name: String,
+        functionType: FunctionType,
+        parameterTypes: List<Datatype>
+    ): FunctionSignature {
+        return signatures.find { it.matches(name, functionType, parameterTypes) }
+            ?: throw FrontendCompilerError("write something here $name $functionType $parameterTypes")
     }
-
-    fun addType(type: Datatype) {
-        if (typeProvider.getType(type.name) != null) {
-            throw FrontendCompilerError("Datatype with name: ${type.name} already added")
-        }
-        result.add(type)
-    }
-
-    for (type in builtIns.types) {
-        addType(type)
-    }
-
-    for (node in nodes) {
-        require(node.type == NodeTypes.Struct)
-        val struct = buildStruct(node, typeProvider)
-        addType(struct)
-    }
-
-    return result
 }
+
+class TypeCollection(
+    nodes: List<AstNode>,
+    builtIns: BuiltInCollection
+) : TypeProvider {
+
+    private val result = mutableListOf<Datatype>()
+
+    val allTypes get() = result
+
+    override fun getType(name: String): Datatype? {
+        return result.find { it.name == name }
+    }
+
+    init {
+        fun addType(type: Datatype) {
+            if (getType(type.name) != null) {
+                throw FrontendCompilerError("Datatype with name: ${type.name} already added")
+            }
+            result.add(type)
+        }
+
+        for (type in builtIns.types) {
+            addType(type)
+        }
+
+        for (node in nodes) {
+            require(node.type == NodeTypes.Struct)
+            val struct = buildStruct(node, this)
+            addType(struct)
+        }
+    }
+}
+
 
 fun compileAndRunProgram(
     fileName: String,
@@ -61,6 +81,7 @@ fun compileAndRunProgram(
     )
 
 }
+
 
 fun compileAndRunProgram(
     reader: Reader,
@@ -80,53 +101,39 @@ fun compileAndRunProgram(
         }
     }
 
-    val allTypes = buildStructs(structNodes, builtIns)
+    val types = TypeCollection(structNodes, builtIns)
 
 
     val allAvailableFunctionSignatures = mutableListOf<FunctionSignature>()
 
 
-    val typeProvider = object : TypeProvider {
-        override fun getType(name: String): Datatype? {
-            return allTypes.find { it.name == name }
-                ?: throw FrontendCompilerError("write something here $name")
-        }
 
-    }
 
 
     builtIns.functions.forEach { allAvailableFunctionSignatures.add(it) }
 
     val functionBodiesWithDefinitions = mutableListOf<Pair<AstNode, FunctionDefinition>>()
     for (node in functionNodes) {
-        val definition = definitionFromFunctionNode(node, typeProvider)
+        val definition = definitionFromFunctionNode(node, types)
         allAvailableFunctionSignatures.add(definition.signature)
         functionBodiesWithDefinitions.add(node to definition)
     }
 
 
-    val functionSignatureResolver = object : FunctionSignatureResolver {
-        override fun getFunctionDefinitionMatching(
-            name: String,
-            functionType: FunctionType,
-            parameterTypes: List<Datatype>
-        ): FunctionSignature {
-            return allAvailableFunctionSignatures.find { it.matches(name, functionType, parameterTypes) }
-                ?: throw FrontendCompilerError("write something here $name $functionType $parameterTypes")
-        }
-
-    }
+    val functionSignatureResolver = FunctionCollection(allAvailableFunctionSignatures)
 
 
     val functions = functionBodiesWithDefinitions.map { (node, definition) ->
-        compileFunctionBody(node.asFunction().body, definition, functionSignatureResolver, typeProvider)
+        compileFunctionBody(node.asFunction().body, definition, functionSignatureResolver, types)
     }
 
 
-    return backendCompiler.buildAndRun(allTypes, functions)
+    return backendCompiler.buildAndRun(types.allTypes, functions)
 
 }
 
-
-
+fun compileAndRunBody(body:String,backendCompiler: BackendCompiler, builtIns: BuiltInCollection):List<String>{
+    val f = compileFunctionBody(body, builtIns)
+    return backendCompiler.buildAndRun(builtIns.types, listOf(f))
+}
 

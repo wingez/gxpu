@@ -2,16 +2,13 @@ package compiler.backends.astwalker
 
 import ast.FunctionType
 import ast.expression.OperatorBuiltIns
+import compiler.BuiltInSignatures
 import compiler.frontend.Datatype
 import compiler.frontend.FunctionSignature
 
 abstract class Function(
-    name: String,
-    functionType: FunctionType,
-    parameterTypes: List<Datatype>,
-    returnType: Datatype,
+    override val signature: FunctionSignature,
 ) : IWalkerFunction {
-    override val signature = FunctionSignature(name, parameterTypes, returnType, functionType)
 
     override fun toString(): String {
         return "${signature.name}${signature.parameterTypes}: ${signature.returnType}"
@@ -20,7 +17,7 @@ abstract class Function(
 }
 
 class BuiltInPrintInteger : Function(
-    "print", FunctionType.Normal, listOf(Datatype.Integer), Datatype.Void
+    BuiltInSignatures.print,
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
         state.output.result.add(values[0].getPrimitiveValue().toString())
@@ -29,7 +26,7 @@ class BuiltInPrintInteger : Function(
 }
 
 class BuiltInPrintString : Function(
-    "print", FunctionType.Normal, listOf(Datatype.ArrayPointer(Datatype.Integer)), Datatype.Void
+    BuiltInSignatures.printString,
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
 
@@ -47,7 +44,7 @@ class BuiltInPrintString : Function(
 }
 
 class BuiltInArraySize : Function(
-    "size", FunctionType.Instance, listOf(Datatype.ArrayPointer(Datatype.Integer)), Datatype.Integer
+    BuiltInSignatures.arraySize,
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
         val array = values[0].derefPointer().asValue()
@@ -58,10 +55,7 @@ class BuiltInArraySize : Function(
 }
 
 class BuiltInArrayRead : Function(
-    OperatorBuiltIns.ArrayRead,
-    FunctionType.Operator,
-    listOf(Datatype.ArrayPointer(Datatype.Integer), Datatype.Integer),
-    Datatype.Integer
+    BuiltInSignatures.arrayRead
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
         val array = values[0].derefPointer().asValue()
@@ -73,10 +67,7 @@ class BuiltInArrayRead : Function(
 }
 
 class BuiltInArrayWrite : Function(
-    OperatorBuiltIns.ArrayWrite,
-    FunctionType.Operator,
-    listOf(Datatype.ArrayPointer(Datatype.Integer), Datatype.Integer, Datatype.Integer),
-    Datatype.Void
+    BuiltInSignatures.arrayWrite
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
         val array = values[0].derefPointer().asValue()
@@ -95,7 +86,12 @@ class IntegerComparator(
     functionName: String,
     private val compareFunction: (val1: Int, val2: Int) -> Boolean
 ) : Function(
-    functionName, FunctionType.Operator, listOf(Datatype.Integer, Datatype.Integer), Datatype.Boolean
+    FunctionSignature(
+        functionName,
+        listOf(Datatype.Integer, Datatype.Integer),
+        Datatype.Boolean,
+        FunctionType.Operator
+    ),
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
         val value1 = values[0].getPrimitiveValue()
@@ -114,7 +110,7 @@ class IntegerArithmetic(
     functionType: FunctionType,
     private val arithmeticFunction: (val1: Int, val2: Int) -> Int
 ) : Function(
-    functionName, functionType, listOf(Datatype.Integer, Datatype.Integer), Datatype.Integer
+    FunctionSignature(functionName, listOf(Datatype.Integer, Datatype.Integer), Datatype.Integer, functionType),
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
         val value1 = values[0].getPrimitiveValue()
@@ -128,7 +124,7 @@ class IntegerArithmetic(
 
 
 class BuiltInCreateArray : Function(
-    "createArray", FunctionType.Normal, listOf(Datatype.Integer), Datatype.ArrayPointer(Datatype.Integer)
+    BuiltInSignatures.createArray
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
         val size = values[0].getPrimitiveValue()
@@ -150,7 +146,7 @@ class BuiltInCreateArray : Function(
 }
 
 class BoolConverter : Function(
-    "bool", FunctionType.Normal, listOf(Datatype.Integer), Datatype.Boolean
+    BuiltInSignatures.bool
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
         val primitive = values[0].getPrimitiveValue()

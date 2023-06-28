@@ -17,6 +17,7 @@ import compiler.backends.astwalker.WalkConfig
 import compiler.backends.astwalker.WalkerRunner
 import compiler.backends.emulator.BuiltInFunctions
 import compiler.backends.emulator.EmulatorRunner
+import compiler.compileAndRunBody
 import compiler.compileAndRunProgram
 import compiler.frontend.compileFunctionBody
 import org.junit.jupiter.api.fail
@@ -136,16 +137,11 @@ private fun getRunner(type: CompilerBackend): BackendCompiler {
 }
 
 
-fun runBodyCheckOutput(type: CompilerBackend, program: String, vararg result: Any, printError: Boolean = true) {
-    TODO()
+fun runBodyCheckOutput(type: CompilerBackend, body: String, vararg result: Any, printError: Boolean = true) {
     val expected = result.map(Any::toString)
 
-
-    //val actual = getRunner(type).(program, printError)
-
-    //Assertions.assertIterableEquals(expected, actual)
-
-
+    val actual = compileAndRunBody(body, getRunner(type), BuiltInSignatures())
+    Assertions.assertIterableEquals(expected, actual)
 }
 
 fun runProgramCheckOutput(type: CompilerBackend, program: String, vararg result: Any, printError: Boolean = true) {

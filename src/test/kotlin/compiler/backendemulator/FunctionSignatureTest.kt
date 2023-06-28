@@ -6,6 +6,9 @@ import org.junit.jupiter.api.Test
 import ast.AstParser
 import ast.FunctionType
 import ast.expression.OperatorBuiltIns
+import compiler.BuiltInSignatures
+import compiler.FunctionCollection
+import compiler.TypeCollection
 import compiler.frontend.*
 import org.junit.jupiter.api.assertThrows
 import tokenizeLines
@@ -27,19 +30,8 @@ class TypeContainer(
 
 private val defaultTypes = listOf(Datatype.Void, Datatype.Integer)
 
-val dummyTypeContainer = TypeContainer(
-    defaultTypes,
-    mapOf(
-        "byte" to Datatype.Integer,
-        "intpair" to Datatype.Composite(
-            "intpair",
-            listOf(
-                CompositeDataTypeField("first", Datatype.Integer),
-                CompositeDataTypeField("second", Datatype.Integer)
-            )
-        )
-    )
-)
+val dummyTypeContainer = TypeCollection(
+    emptyList(),BuiltInSignatures())
 
 internal class FunctionSignatureTest {
 
@@ -47,43 +39,20 @@ internal class FunctionSignatureTest {
     fun getSignature(program: String): BuiltFunction {
         val node = AstParser(tokenizeLines(program)).parseFunctionDefinition()
 
+        val typeProvider = TypeCollection(emptyList(), BuiltInSignatures())
+        val functionProvider = FunctionCollection(BuiltInSignatures().functions)
 
-        val functionProvider = object : FunctionSignatureResolver {
-            override fun getFunctionDefinitionMatching(
-                name: String,
-                functionType: FunctionType,
-                parameterTypes: List<Datatype>
-            ): FunctionSignature {
 
-                return when (name) {
-                    OperatorBuiltIns.Equal -> FunctionSignature(
-                        OperatorBuiltIns.Equal, listOf(
-                            Datatype.Integer,
-                            Datatype.Integer
-                        ), Datatype.Boolean, FunctionType.Operator
-                    )
+        val builder = FunctionBuilder(
+            compileFunctionBody(
+                node.asFunction().body,
+                definitionFromFunctionNode(node, typeProvider),
+                functionProvider,
+                typeProvider
+            )
+        )
 
-                    "print" -> FunctionSignature(
-                        "print", listOf(
-                            Datatype.Integer,
-                            Datatype.Integer
-                        ), Datatype.Void, FunctionType.Normal
-                    )
-
-                    "main", "test1" -> definitionFromFunctionNode(node, dummyTypeContainer).signature
-                    else -> throw NotImplementedError()
-                }
-            }
-
-        }
-
-        TODO()
-//        val builder = FunctionBuilder(
-//            definitionFromFunctionNode(node, dummyTypeContainer),
-//            functionProvider, dummyTypeContainer
-//        )
-//
-//        return builder.buildBody(node)
+        return builder.buildBody()
     }
 
     @Test
@@ -104,7 +73,7 @@ internal class FunctionSignatureTest {
     fun testParam() {
         val built = getSignature(
             """
-            def test1(test:byte):
+            def test1(test:int):
               print(5)
     """
         )
@@ -131,8 +100,8 @@ internal class FunctionSignatureTest {
     fun testVarParamReturn() {
         val layout = getSignature(
             """
-            def test1(param:byte): byte
-              val var:byte=5
+            def test1(param:int): int
+              val var:int=5
     """
         ).layout
         assertEquals(layout.size, 3)
@@ -165,8 +134,8 @@ internal class FunctionSignatureTest {
     fun testDescription() {
         val layout = getSignature(
             """
-            def test1(var2:byte):byte
-              val var:byte=1
+            def test1(var2:int):int
+              val var:int=1
             """
         ).layout
         assertEquals(layout.size, 3)
@@ -178,9 +147,9 @@ internal class FunctionSignatureTest {
 
         assertEquals(
             listOf(
-                "-2: result: integer",
-                "-1: var2: integer",
-                "0: var: integer",
+                "-2: result: int",
+                "-1: var2: int",
+                "0: var: int",
             ),
             layout.getDescription(),
         )
@@ -222,7 +191,7 @@ internal class FunctionSignatureTest {
         val layout = built.layout
         assertEquals(layout.size, 2)
         assertEquals(layout.sizeOfType(FieldAnnotation.LocalVariable), 2)
-        assertEquals(StructDataField("var", dummyTypeContainer.getType("intpair"), 0), layout.getField("var"))
+        assertEquals(StructDataField("var", dummyTypeContainer.requireType("intpair"), 0), layout.getField("var"))
     }
 
 }
