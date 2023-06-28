@@ -2,15 +2,14 @@ package compiler.backends.emulator
 
 import compiler.backends.emulator.emulator.DefaultEmulator
 import compiler.frontend.*
-import ast.AstNode
 
 data class BuiltFunction(
-    val signature: FunctionDefinition,
+    val signature: FunctionSignature,
     val layout: FunctionFrameLayout,
     val instructions: List<EmulatorInstruction>
 ) {
 
-    fun getDependents(): Set<FunctionDefinition> {
+    fun getDependents(): Set<FunctionSignature> {
         return instructions.flatMap { it.values.values }.filter { it.isReference }.map { it.reference!!.function }
             .toSet()
     }
@@ -18,22 +17,15 @@ data class BuiltFunction(
 }
 
 fun buildFunctionBody(
-    node: AstNode,
-    signature: FunctionDefinition,
-    functionProvider: FunctionDefinitionResolver,
-    typeProvider: TypeProvider,
+    intermediateFunction: FunctionContent,
 ): BuiltFunction {
-
-    val builder = FunctionBuilder(signature, functionProvider, typeProvider)
-
-    return builder.buildBody(node)
+    return FunctionBuilder(intermediateFunction).buildBody()
 }
 
 class FunctionBuilder(
-    private val signature: FunctionDefinition,
-    private val functionProvider: FunctionDefinitionResolver,
-    private val typeProvider: TypeProvider,
+    private val intermediateFunction: FunctionContent,
 ) : CodeGenerator, FunctionContext {
+    val signature = intermediateFunction.definition.signature
 
     val resultingCode = mutableListOf<EmulatorInstruction>()
 
@@ -156,13 +148,11 @@ class FunctionBuilder(
 
     }
 
-    fun buildBody(node: AstNode): BuiltFunction {
+    fun buildBody(): BuiltFunction {
 
-        val functionContent = compileFunction(node, functionProvider, typeProvider)
+        layout = calculateLayout(intermediateFunction.fields)
 
-        layout = calculateLayout(functionContent.fields)
-
-        buildCodeBody(functionContent.code)
+        buildCodeBody(intermediateFunction.code)
 
         return BuiltFunction(signature, layout, resultingCode)
     }
@@ -171,7 +161,7 @@ class FunctionBuilder(
 }
 
 
-private fun assertFrameMatchesDefinition(layout: FunctionFrameLayout, definition: FunctionDefinition) {
+private fun assertFrameMatchesDefinition(layout: FunctionFrameLayout, definition: FunctionSignature) {
 
 
 }

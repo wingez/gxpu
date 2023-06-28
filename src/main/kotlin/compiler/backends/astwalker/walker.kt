@@ -1,11 +1,12 @@
 package compiler.backends.astwalker
 
-import ast.AstNode
 import ast.FunctionType
-import ast.NodeTypes
+import compiler.BackendCompiler
 import compiler.frontend.*
+import compiler.mainSignature
 
 class WalkerException(msg: String = "") : Exception(msg)
+
 
 data class WalkConfig(
     val maxLoopIterations: Int,
@@ -70,19 +71,7 @@ class CompositeValueHolder(
 
 class WalkFrame(
     val holder: CompositeValueHolder,
-) {
-}
-
-fun walk(node: AstNode, config: WalkConfig = WalkConfig.default): WalkerOutput {
-    return walk(listOf(node), config)
-}
-
-fun walk(nodes: List<AstNode>, config: WalkConfig = WalkConfig.default): WalkerOutput {
-
-    val walker = WalkerState(nodes, config)
-    walker.walk()
-    return walker.output
-}
+)
 
 enum class ControlFlow {
     Normal,
@@ -90,29 +79,33 @@ enum class ControlFlow {
     Return,
 }
 
+
+class WalkerRunner(
+    private val config: WalkConfig,
+) : BackendCompiler {
+    override fun buildAndRun(allTypes: List<Datatype>, functions: List<FunctionContent>): List<String> {
+        return WalkerState(allTypes, functions, config).walk().result
+
+    }
+
+}
+
+
 class WalkerState(
-    val nodes: List<AstNode>,
+    types: List<Datatype>,
+    val intermediateFunctions: List<FunctionContent>,
+
     val config: WalkConfig,
-) : TypeProvider, FunctionDefinitionResolver, VariableProvider {
+) : TypeProvider, FunctionSignatureResolver, VariableProvider {
+
+
+    private val types = types.associateBy { it.name }
 
     val output = WalkerOutput()
     val frameStack = mutableListOf<WalkFrame>()
 
     val currentFrame
         get() = frameStack.last()
-
-
-    private val types = mutableMapOf(
-        "int" to Datatype.Integer,
-        "void" to Datatype.Void,
-        "intpair" to Datatype.Composite(
-            "intpair",
-            listOf(
-                CompositeDataTypeField("first", Datatype.Integer),
-                CompositeDataTypeField("second", Datatype.Integer)
-            )
-        )
-    )
 
     val availableFunctions = mutableListOf<IWalkerFunction>()
 
@@ -123,62 +116,51 @@ class WalkerState(
         return types.getValue(name)
     }
 
-    private fun addType(type: Datatype) {
-        if (type.name in types) {
-            throw WalkerException()
-        }
-        types[type.name] = type
-    }
-
     private fun hasFunctionMatching(name: String, functionType: FunctionType, parameterTypes: List<Datatype>): Boolean {
-        return availableFunctions.any { it.definition.matches(name, functionType, parameterTypes) }
+        return availableFunctions.any { it.signature.matches(name, functionType, parameterTypes) }
     }
 
-    fun getFunctionFromSignature(functionDefinition: FunctionDefinition): IWalkerFunction {
-        return availableFunctions.find { it.definition == functionDefinition }
-            ?: throw WalkerException("No functions matches $functionDefinition")
+    fun getFunctionFromSignature(functionSignature: FunctionSignature): IWalkerFunction {
+        return availableFunctions.find { it.signature == functionSignature }
+            ?: throw WalkerException("No functions matches $functionSignature")
     }
 
     override fun getFunctionDefinitionMatching(
         name: String,
         functionType: FunctionType,
         parameterTypes: List<Datatype>
-    ): FunctionDefinition {
-        val func = availableFunctions.find { it.definition.matches(name, functionType, parameterTypes) }
+    ): FunctionSignature {
+        val func = availableFunctions.find { it.signature.matches(name, functionType, parameterTypes) }
             ?: throw WalkerException("No functions matches $name($parameterTypes)")
-        return func.definition
+        return func.signature
     }
 
     private fun addFunction(function: IWalkerFunction) {
         if (hasFunctionMatching(
-                function.definition.name,
-                function.definition.functionType,
-                function.definition.parameterTypes
+                function.signature.name,
+                function.signature.functionType,
+                function.signature.parameterTypes
             )
         ) {
-            throw WalkerException("Function already exists: ${function.definition.name}(${function.definition.parameterTypes})")
+            throw WalkerException("Function already exists: ${function.signature.name}(${function.signature.parameterTypes})")
         }
         availableFunctions.add(function)
     }
 
     fun walk(): WalkerOutput {
 
-        nodes.filter { it.type == NodeTypes.Struct }
-            .forEach{
-                addType(buildStruct(it,this))
-            }
-
         builtInList.forEach {
             addFunction(it)
         }
 
-        for (node in nodes.filter { it.type == NodeTypes.Function }) {
-            addFunction(definitionFromFuncNode(node, this, this))
+        for (f in intermediateFunctions) {
+            addFunction(UserFunction(f))
         }
 
         val mainFunction = getFunctionFromSignature(
-            FunctionDefinition("main", emptyList(), Datatype.Void, FunctionType.Normal)
+            mainSignature
         )
+
         call(mainFunction, emptyList())
 
         return output
@@ -259,7 +241,7 @@ class WalkerState(
             }
         }
 
-        val result = if (userFunction.definition.returnType == Datatype.Void) {
+        val result = if (userFunction.signature.returnType == Datatype.Void) {
             Value.void()
         } else {
             getVariable("result")
@@ -410,7 +392,7 @@ class WalkerState(
             is StringExpression -> createFromString(valueExpression.string)
 
             is AddressOf -> {
-                val compositeHolder =getValueHolderOf(valueExpression.value)
+                val compositeHolder = getValueHolderOf(valueExpression.value)
                 Value.pointer(compositeHolder.type, compositeHolder)
             }
 

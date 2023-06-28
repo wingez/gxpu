@@ -9,12 +9,18 @@ import compiler.backends.emulator.emulator.DefaultEmulator
 import org.junit.jupiter.api.Assertions
 import ast.AstParser
 import ast.parserFromFile
-import compiler.backends.astwalker.walk
 import compiler.backends.emulator.EmulatorInstruction
 import TokenEndBlock
+import compiler.BackendCompiler
+import compiler.BuiltInSignatures
+import compiler.backends.astwalker.WalkConfig
+import compiler.backends.astwalker.WalkerRunner
+import compiler.backends.emulator.BuiltInFunctions
+import compiler.backends.emulator.EmulatorRunner
+import compiler.compileAndRunProgram
+import compiler.frontend.compileFunctionBody
 import org.junit.jupiter.api.fail
 import tokenizeLines
-import tokens.parseFile
 import java.io.StringReader
 import kotlin.test.assertEquals
 
@@ -24,12 +30,6 @@ enum class CompilerBackend {
     Walker,
 }
 
-private interface Runner {
-
-    fun runBody(body: String, printError: Boolean): List<String>
-    fun runProgram(program: String, printError: Boolean): List<String>
-
-}
 
 private class Source(val program: String) : SourceProvider {
     override fun getLine(filename: String, lineNumber: Int): String {
@@ -38,9 +38,9 @@ private class Source(val program: String) : SourceProvider {
     }
 }
 
-private class EmulatorRunner : Runner {
-    override fun runBody(body: String, printError: Boolean): List<String> {
-
+private class EmulatorRunnerd {
+    fun runBody(body: String, printError: Boolean): List<String> {
+        TODO()
         val code = try {
             val tokens = tokenizeLines(body)
             val nodes = AstParser(tokens + listOf(TokenEndBlock)).parseStatementsUntilEndblock()
@@ -55,21 +55,31 @@ private class EmulatorRunner : Runner {
         return run(code.instructions)
     }
 
-    override fun runProgram(program: String, printError: Boolean): List<String> {
+    fun runProgram(program: String, printError: Boolean): List<String> {
+
+        val runner =
+
+            compileAndRunProgram(
+                StringReader(program),
+                "dummyfile",
+                compiler.backends.emulator.EmulatorRunner(BuiltInFunctions()),
+                BuiltInSignatures()
+            )
 
         val generator = try {
             val tokens = tokenizeLines(program)
             val nodes = AstParser(tokens).parse()
 
-            val c = Compiler(DummyBuiltInProvider(), nodes)
-            c.buildProgram()
+            //val c = Compiler(DummyBuiltInProvider(), nodes)
+            //c.buildProgram()
         } catch (e: CompilerError) {
             if (printError) {
                 fail("Error compiling: ${e.getLine(Source(program))}")
             }
             throw e
         }
-        return run(generator.instructions)
+        //return run(generator.instructions)
+        TODO()
     }
 
     private fun run(instructions: List<EmulatorInstruction>): List<String> {
@@ -81,8 +91,8 @@ private class EmulatorRunner : Runner {
     }
 }
 
-private class WalkerRunner : Runner {
-    override fun runBody(body: String, printError: Boolean): List<String> {
+private class WalkerRunnerasd {
+    fun runBody(body: String, printError: Boolean): List<String> {
         val bodyTrimmed = body.trimIndent()
 
         val bodyIndented = bodyTrimmed.lines().map { "  $it" }
@@ -94,7 +104,7 @@ private class WalkerRunner : Runner {
         return runProgram(program, printError)
     }
 
-    override fun runProgram(program: String, printError: Boolean): List<String> {
+    fun runProgram(program: String, printError: Boolean): List<String> {
         val nodes = try {
             parserFromFile(program).parse()
         } catch (e: CompilerError) {
@@ -103,43 +113,47 @@ private class WalkerRunner : Runner {
             }
             throw e
         }
-        return walk(nodes).result
+        TODO()
     }
 }
 
-private class LlvmRunner : Runner {
-    override fun runBody(body: String, printError: Boolean): List<String> {
+private class LlvmRunner {
+    fun runBody(body: String, printError: Boolean): List<String> {
         TODO("Not yet implemented")
     }
 
-    override fun runProgram(program: String, printError: Boolean): List<String> {
+    fun runProgram(program: String, printError: Boolean): List<String> {
         TODO("Not yet implemented")
     }
 
 }
 
-private fun getRunner(type: CompilerBackend): Runner {
+private fun getRunner(type: CompilerBackend): BackendCompiler {
     return when (type) {
-        CompilerBackend.Emulator -> EmulatorRunner()
-        CompilerBackend.Walker -> WalkerRunner()
+        CompilerBackend.Emulator -> EmulatorRunner(BuiltInFunctions())
+        CompilerBackend.Walker -> WalkerRunner(WalkConfig(1000))
     }
 }
 
 
 fun runBodyCheckOutput(type: CompilerBackend, program: String, vararg result: Any, printError: Boolean = true) {
-
+    TODO()
     val expected = result.map(Any::toString)
 
-    val actual = getRunner(type).runBody(program, printError)
 
-    Assertions.assertIterableEquals(expected, actual)
+    //val actual = getRunner(type).(program, printError)
+
+    //Assertions.assertIterableEquals(expected, actual)
+
+
 }
 
 fun runProgramCheckOutput(type: CompilerBackend, program: String, vararg result: Any, printError: Boolean = true) {
 
+
     val expected = result.map { it.toString() }
 
-    val actual = getRunner(type).runProgram(program, printError)
+    val actual = compileAndRunProgram(StringReader(program), "dummyfile", getRunner(type), BuiltInSignatures())
 
     Assertions.assertIterableEquals(expected, actual)
 }

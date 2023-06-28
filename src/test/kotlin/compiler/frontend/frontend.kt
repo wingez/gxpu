@@ -6,14 +6,14 @@ import ast.parserFromFile
 import compiler.backendemulator.dummyTypeContainer
 import kotlin.test.assertEquals
 
-val emptyFunctions = object : FunctionDefinitionResolver {
+val emptyFunctions = object : FunctionSignatureResolver {
     override fun getFunctionDefinitionMatching(
         name: String,
         functionType: FunctionType,
         parameterTypes: List<Datatype>
-    ): FunctionDefinition {
-        if (name=="print"){
-            return FunctionDefinition("print", listOf(Datatype.Integer), Datatype.Void, FunctionType.Normal)
+    ): FunctionSignature {
+        if (name == "print") {
+            return FunctionSignature("print", listOf(Datatype.Integer), Datatype.Void, FunctionType.Normal)
         }
 
         TODO("Not yet implemented")
@@ -27,28 +27,31 @@ internal class FrontendTest {
     fun functionShouldOnlyHaveReturnVariableIfNotReturnVoid() {
 
         val shouldHave = """
-         def main():integer
+         def main():int
            return 5
-     """.trimIndent()
+     """.trimIndent().let { parserFromFile(it).parseFunctionDefinition() }
 
 
         val shouldNotHave = """
          def main():
            print(5)
-     """.trimIndent()
+     """.trimIndent().let { parserFromFile(it).parseFunctionDefinition() }
+
 
         assertEquals(
             1,
-            compileFunction(
-                parserFromFile(shouldHave).parse().first(),
+            compileFunctionBody(
+                shouldHave.asFunction().body,
+                definitionFromFunctionNode(shouldHave, dummyTypeContainer),
                 emptyFunctions,
                 dummyTypeContainer
             ).fields.compositeFields.size
         )
         assertEquals(
             0,
-            compileFunction(
-                parserFromFile(shouldNotHave).parse().first(),
+            compileFunctionBody(
+                shouldNotHave.asFunction().body,
+                definitionFromFunctionNode(shouldNotHave, dummyTypeContainer),
                 emptyFunctions,
                 dummyTypeContainer
             ).fields.compositeFields.size

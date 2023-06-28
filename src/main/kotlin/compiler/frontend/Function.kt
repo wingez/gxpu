@@ -5,7 +5,7 @@ import ast.FunctionType
 import ast.NodeTypes
 
 
-data class FunctionDefinition(
+data class FunctionSignature(
     val name: String,
     val parameterTypes: List<Datatype>,
     val returnType: Datatype,
@@ -14,45 +14,49 @@ data class FunctionDefinition(
     fun matches(name: String, functionType: FunctionType, parameterTypes: List<Datatype>): Boolean {
         return name == this.name && functionType == this.functionType && parameterTypes == this.parameterTypes
     }
-
-    companion object {
-        fun fromFunctionNode(node: AstNode, typeProvider: TypeProvider) = definitionFromFunctionNode(node, typeProvider)
-    }
 }
 
-interface FunctionDefinitionResolver {
+data class FunctionDefinition(
+    val signature: FunctionSignature,
+    val parameterNames: List<String>,
+)
+
+
+interface FunctionSignatureResolver {
     fun getFunctionDefinitionMatching(
         name: String,
         functionType: FunctionType,
         parameterTypes: List<Datatype>
-    ): FunctionDefinition
+    ): FunctionSignature
 }
 
-fun parameterTypes(functionNode: AstNode, typeProvider: TypeProvider): List<Pair<String, Datatype>> {
+private fun parameters(functionNode: AstNode, typeProvider: TypeProvider): Pair<List<String>, List<Datatype>> {
     assert(functionNode.type == NodeTypes.Function)
 
     val function = functionNode.asFunction()
 
     return function.arguments.map {
-        assert(it.type == NodeTypes.NewVariable)
-        val type = typeProvider.requireType(it.asNewVariable().optionalTypeDefinition!!)
-        it.asNewVariable().name to type
+        it.asNewVariable().name
+    } to function.arguments.map {
+        typeProvider.requireType(it.asNewVariable().optionalTypeDefinition!!)
     }
 }
 
-private fun definitionFromFunctionNode(functionNode: AstNode, typeProvider: TypeProvider): FunctionDefinition {
+fun definitionFromFunctionNode(functionNode: AstNode, typeProvider: TypeProvider): FunctionDefinition {
     assert(functionNode.type == NodeTypes.Function)
 
     val function = functionNode.asFunction()
 
-    val parameters = parameterTypes(functionNode, typeProvider).map { it.second }
+    val (paramNames, paramTypes) = parameters(functionNode, typeProvider)
 
     val returnType = if (function.returnType != null) typeProvider.requireType(function.returnType) else Datatype.Void
 
-    return FunctionDefinition(
+    val signature = FunctionSignature(
         name = function.name,
-        parameterTypes = parameters,
+        parameterTypes = paramTypes,
         returnType = returnType,
         functionType = function.type,
     )
+
+    return FunctionDefinition(signature, paramNames)
 }

@@ -2,7 +2,7 @@ package compiler.backends.emulator
 
 import compiler.frontend.Datatype
 import ast.FunctionType
-import compiler.frontend.FunctionDefinition
+import compiler.frontend.FunctionSignature
 
 const val STACK_START = 100
 
@@ -27,7 +27,7 @@ class SignatureBuilder(val name: String) {
         return this
     }
 
-    fun getSignature(): FunctionDefinition {
-        return FunctionDefinition(name, parameters, returnType, functionType)
+    fun getSignature(): FunctionSignature {
+        return FunctionSignature(name, parameters, returnType, functionType)
     }
 }

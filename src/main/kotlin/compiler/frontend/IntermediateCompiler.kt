@@ -28,13 +28,11 @@ fun buildStruct(
     return Datatype.Composite(typeName, members)
 }
 
-
-fun compileFunction(
-    functionNode: AstNode,
-    functionProvider: FunctionDefinitionResolver,
-    typeProvider: TypeProvider
-): FunctionContent {
-
-    return FunctionCompiler(functionProvider, typeProvider).compileFunction(functionNode)
-
+fun compileFunctionBody(
+    body:AstNode,
+    definition: FunctionDefinition,
+    functionProvider: FunctionSignatureResolver,
+    typeProvider: TypeProvider,
+):FunctionContent{
+    return FunctionCompiler(body, definition, functionProvider, typeProvider).compileFunction()
 }

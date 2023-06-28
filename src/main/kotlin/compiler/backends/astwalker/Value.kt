@@ -3,7 +3,7 @@ package compiler.backends.astwalker
 import ast.AstNode
 import ast.NodeTypes
 import compiler.frontend.Datatype
-import compiler.frontend.FunctionDefinitionResolver
+import compiler.frontend.FunctionSignatureResolver
 
 
 data class VariableHandle(
@@ -127,7 +127,7 @@ fun createDefaultValue(datatype: Datatype): Value {
 fun findType(
     node: AstNode,
     variableProvider: VariableProvider,
-    functionProvider: FunctionDefinitionResolver
+    functionProvider: FunctionSignatureResolver
 ): Datatype {
 
     return when (node.type) {

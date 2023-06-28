@@ -101,7 +101,7 @@ class Datatype private constructor(
     }
 
     companion object {
-        val Integer = Datatype("integer", DatatypeClass.Integer, null, null)
+        val Integer = Datatype("int", DatatypeClass.Integer, null, null)
         val Void = Datatype("void", DatatypeClass.Void, null, null)
         val Boolean = Datatype("bool", DatatypeClass.Bool, null, null)
 

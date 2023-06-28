@@ -3,11 +3,12 @@ package compiler.backends.emulator
 import compiler.backends.emulator.emulator.DefaultEmulator
 import ast.FunctionType
 import ast.expression.OperatorBuiltIns
+import compiler.BuiltInSignatures
 import compiler.frontend.*
 
 interface BuiltIn {
 
-    val signature: FunctionDefinition
+    val signature: FunctionSignature
     val name: String
     fun compile(): List<EmulatorInstruction>
 }
@@ -26,12 +27,7 @@ class ByteAddition : BuiltIn {
         )
     }
 
-    override val signature = SignatureBuilder(name)
-        .addParameter(Datatype.Integer)
-        .addParameter(Datatype.Integer)
-        .setReturnType(Datatype.Integer)
-        .setFunctionType(FunctionType.Operator)
-        .getSignature()
+    override val signature = BuiltInSignatures.add
 
 }
 
@@ -48,12 +44,7 @@ class ByteSubtraction : BuiltIn {
         )
     }
 
-    override val signature = SignatureBuilder(name)
-        .addParameter(Datatype.Integer)
-        .addParameter(Datatype.Integer)
-        .setReturnType(Datatype.Integer)
-        .setFunctionType(FunctionType.Operator)
-        .getSignature()
+    override val signature = BuiltInSignatures.sub
 }
 
 class PrintIntArray : BuiltIn {
@@ -115,20 +106,12 @@ class BuiltInFunctions : BuiltInProvider {
         PrintIntArray(),
     )
 
-    override fun getTypes(): Map<String, Datatype> {
-        return mapOf(
-            "void" to Datatype.Void,
-            "byte" to Datatype.Integer,
-            "int" to Datatype.Integer,
-        )
-    }
-
-    override fun getSignatures(): List<FunctionDefinition> {
+    override fun getSignatures(): List<FunctionSignature> {
         return available.map { it.signature }
 
     }
 
-    override fun buildSignature(signature: FunctionDefinition): BuiltFunction {
+    override fun buildSignature(signature: FunctionSignature): BuiltFunction {
 
         val result = available.find { it.signature == signature }
             ?: TODO(signature.toString())

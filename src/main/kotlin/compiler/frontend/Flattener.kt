@@ -80,7 +80,7 @@ class DerefToValue(
 }
 
 class CallExpression(
-    val function: FunctionDefinition,
+    val function: FunctionSignature,
     val parameters: List<ValueExpression>
 ) : ValueExpression {
     override val type: Datatype = function.returnType
@@ -166,26 +166,26 @@ private data class LoopContext(
 )
 
 class FunctionCompiler(
-    val functionProvider: FunctionDefinitionResolver,
-    val typeProvider: TypeProvider,
+    private val body: AstNode,
+    private val definition: FunctionDefinition,
+    private val functionProvider: FunctionSignatureResolver,
+    private val typeProvider: TypeProvider,
 ) {
-    lateinit var definition: FunctionDefinition
     lateinit var fieldDatatype: Datatype
 
     val localVariables = mutableListOf<CompositeDataTypeField>()
 
     var controlStatementCounter = 0
 
-    fun compileFunction(functionNode: AstNode): FunctionContent {
-        assertFunctionNode(functionNode)
+    fun compileFunction(): FunctionContent {
+        require(body.type == NodeTypes.Body)
 
         // Step 1
         // Extract definition
-        definition = FunctionDefinition.fromFunctionNode(functionNode, typeProvider)
 
         // Step 2
         // Extract all variables
-        fieldDatatype = addVariables(functionNode)
+        fieldDatatype = addVariables()
 
         //TODO: Perhaps handle inlining here?
 
@@ -193,7 +193,7 @@ class FunctionCompiler(
 
         // Step 3
         // Convert to code block
-        val functionCodeBlock = flattenFunction(functionNode)
+        val functionCodeBlock = flattenFunction()
 
 
         // Step 4
@@ -209,14 +209,10 @@ class FunctionCompiler(
     }
 
 
-    private fun flattenFunction(
-        functionNode: AstNode,
-    ): CodeBlock {
-        val function = assertFunctionNode(functionNode)
-
+    private fun flattenFunction(): CodeBlock {
         val mainCodeBlock = CodeBlock(functionEntryLabel)
 
-        flattenStatements(function.body, mainCodeBlock, loopContext = null)
+        flattenStatements(body, mainCodeBlock, loopContext = null)
 
         addReturn(mainCodeBlock) //TODO: only add return if needed
 
@@ -309,7 +305,7 @@ class FunctionCompiler(
                 val index = parseValueExpression(node.asArrayAccess().index)
 
                 //TODO: generic-ify
-                val definition = FunctionDefinition(
+                val definition = FunctionSignature(
                     OperatorBuiltIns.ArrayRead, listOf(Datatype.ArrayPointer(Datatype.Integer), Datatype.Integer),
                     Datatype.Integer, FunctionType.Operator
                 )
@@ -465,7 +461,7 @@ class FunctionCompiler(
             currentCodeBlock.addInstruction(
                 Execute(
                     CallExpression(
-                        FunctionDefinition(
+                        FunctionSignature(
                             OperatorBuiltIns.ArrayWrite, listOf(
                                 Datatype.ArrayPointer(Datatype.Integer), Datatype.Integer,
                                 Datatype.Integer
@@ -502,21 +498,24 @@ class FunctionCompiler(
     }
 
 
-    private fun addVariables(
-        functionNode: AstNode,
-    ): Datatype {
+    private fun addVariables(): Datatype {
 
-        if (definition.returnType != Datatype.Void) {
-            localVariables.add(CompositeDataTypeField(RETURN_VALUE_NAME, definition.returnType, FieldAnnotation.Result))
+        if (definition.signature.returnType != Datatype.Void) {
+            localVariables.add(
+                CompositeDataTypeField(
+                    RETURN_VALUE_NAME,
+                    definition.signature.returnType,
+                    FieldAnnotation.Result
+                )
+            )
+        }
+
+        for ((paramType, paramName) in definition.signature.parameterTypes.zip(definition.parameterNames)) {
+            localVariables.add(CompositeDataTypeField(paramName, paramType, FieldAnnotation.Parameter))
         }
 
 
-        for ((parameterName, type) in parameterTypes(functionNode, typeProvider)) {
-            localVariables.add(CompositeDataTypeField(parameterName, type, FieldAnnotation.Parameter))
-        }
-
-
-        for (node in iterateNodeRecursively(functionNode.asFunction().body)) {
+        for (node in iterateNodeRecursively(body)) {
             if (node.type == NodeTypes.NewVariable) {
                 val newVariable = node.asNewVariable()
 
@@ -533,7 +532,7 @@ class FunctionCompiler(
                 localVariables.add(CompositeDataTypeField(newVariable.name, type, FieldAnnotation.LocalVariable))
             }
         }
-        return Datatype.Composite(definition.name, localVariables)
+        return Datatype.Composite(definition.signature.name, localVariables)
     }
 
     private fun lookupVariable(name: String): Variable {

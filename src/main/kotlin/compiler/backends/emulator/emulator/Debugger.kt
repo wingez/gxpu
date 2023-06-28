@@ -2,10 +2,12 @@ package compiler.backends.emulator.emulator
 
 
 import ast.AstParser
-import compiler.backends.emulator.BuiltInFunctions
-import compiler.backends.emulator.Compiler
-import compiler.backends.emulator.STACK_START
-import compiler.backends.emulator.EmulatorInstruction
+import compiler.BackendCompiler
+import compiler.BuiltInSignatures
+import compiler.backends.emulator.*
+import compiler.compileAndRunProgram
+import compiler.frontend.Datatype
+import compiler.frontend.FunctionContent
 import compiler.frontend.functionEntryLabel
 import tokens.parseFile
 import java.io.File
@@ -13,21 +15,18 @@ import kotlin.math.max
 import kotlin.math.min
 
 class InteractiveDebugger(
-    val instructions: List<EmulatorInstruction>
-) {
+) : BackendCompiler {
 
     companion object {
         const val WIDTH = 180
         const val HEIGHT = 25
     }
 
+    lateinit var instructions: List<EmulatorInstruction>
+
     val emulator = DefaultEmulator()
 
     val buffer: Array<CharArray> = IntRange(0, HEIGHT - 1).map { CharArray(WIDTH) { ' ' } }.toTypedArray()
-
-    init {
-        reset()
-    }
 
     fun reset() {
         emulator.reset()
@@ -171,8 +170,17 @@ class InteractiveDebugger(
             }
 
         }
+    }
 
+    override fun buildAndRun(allTypes: List<Datatype>, functions: List<FunctionContent>): List<String> {
+        val emulatorRunner = EmulatorRunner(BuiltInFunctions())
+        instructions = emulatorRunner.compileIntermediate(allTypes, functions).instructions
 
+        reset()
+
+        interactiveLoop()
+
+        return emptyList()
     }
 }
 
@@ -180,13 +188,6 @@ fun main(array: Array<String>) {
 
     val fileName = array[0]
 
-    val tokens = parseFile(File(fileName).inputStream().reader(), fileName)
-    val nodes = AstParser(tokens).parse()
-
-    val compiler = Compiler(BuiltInFunctions(), nodes)
-    val program = compiler.buildProgram()
-
-    val i = InteractiveDebugger(program.instructions)
-
-    i.interactiveLoop()
+    val debugger = InteractiveDebugger()
+    compileAndRunProgram(fileName,debugger, BuiltInSignatures())
 }

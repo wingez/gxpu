@@ -2,11 +2,20 @@ package compiler.backendwalker
 
 import ast.expression.OperatorBuiltIns
 import ast.parserFromFile
-import compiler.backends.astwalker.walk
+import compiler.BuiltInSignatures
+import compiler.backends.astwalker.WalkConfig
+import compiler.backends.astwalker.WalkerRunner
+import compiler.compileAndRunProgram
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
+import java.io.StringReader
 import kotlin.test.assertEquals
 
+
+internal fun run(program:String,maxLoopIterations: Int =1000):List<String>{
+    val runner = WalkerRunner(WalkConfig(maxLoopIterations = maxLoopIterations))
+    return compileAndRunProgram(StringReader(program),"dummyfile", runner, BuiltInSignatures())
+}
 
 internal class WalkerDatatypeTest {
 
@@ -35,15 +44,12 @@ internal class WalkerDatatypeTest {
               print(t.a)
               print(t.b)
         """.trimIndent()
-
-        val nodes = parserFromFile(code).parse()
-
         assertEquals(
             listOf(
                 5, 0,
                 5, 5,
                 10, 5
-            ).map { it.toString() }, walk(nodes).result
+            ).map { it.toString() }, run(code)
         )
     }
 
@@ -54,9 +60,7 @@ internal class WalkerDatatypeTest {
             val a:int[] = createArray(5)
                   
     """
-        val nodes = parserFromFile(program).parse()
-
-        assertDoesNotThrow { walk(nodes) }
+        assertDoesNotThrow { run(program) }
     }
 
     @Test
@@ -74,8 +78,7 @@ internal class WalkerDatatypeTest {
             
             
     """
-        val nodes = parserFromFile(program).parse()
-        assertEquals(listOf(0, 5, 0, 3, 5).map { it.toString() }, walk(nodes).result)
+        assertEquals(listOf(0, 5, 0, 3, 5).map { it.toString() }, run(program))
     }
 
     @Test
@@ -88,8 +91,7 @@ internal class WalkerDatatypeTest {
             print(6+5)
             print(add(6,5))
     """
-        val nodes = parserFromFile(program).parse()
-        assertEquals(listOf(11, 1).map { it.toString() }, walk(nodes).result)
+        assertEquals(listOf(11, 1).map { it.toString() }, run(program))
 
     }
 }

@@ -4,33 +4,27 @@ import compiler.backends.emulator.*
 import compiler.backends.emulator.emulator.DefaultEmulator
 import org.junit.jupiter.api.Test
 import ast.*
+import compiler.BackendCompiler
+import compiler.BuiltInSignatures
 import compiler.backends.emulator.EmulatorInstruction
 import compiler.backends.emulator.Reference
 import compiler.backends.emulator.builtinInlinedSignatures
 import compiler.backends.emulator.emulate
+import compiler.compileAndRunProgram
 import compiler.frontend.*
-import tokenizeLines
-import tokens.parseFile
 import java.io.StringReader
 import kotlin.test.assertEquals
 
 
 class DummyBuiltInProvider(
     private val builtIns: List<BuiltIn> = listOf(ByteAddition(), ByteSubtraction(), PrintIntArray())
-) : BuiltInProvider, FunctionDefinitionResolver {
-    override fun getSignatures(): List<FunctionDefinition> {
+) : BuiltInProvider, FunctionSignatureResolver {
+    override fun getSignatures(): List<FunctionSignature> {
         return builtIns.map { it.signature }
     }
 
-    override fun getTypes(): Map<String, Datatype> {
-        return mapOf(
-            "void" to Datatype.Void,
-            "byte" to Datatype.Integer,
-            "int" to Datatype.Integer,
-        )
-    }
 
-    override fun buildSignature(signature: FunctionDefinition): BuiltFunction {
+    override fun buildSignature(signature: FunctionSignature): BuiltFunction {
         for (builtIn in builtIns) {
             if (builtIn.signature == signature) {
 
@@ -63,7 +57,7 @@ class DummyBuiltInProvider(
         name: String,
         functionType: FunctionType,
         parameterTypes: List<Datatype>
-    ): FunctionDefinition {
+    ): FunctionSignature {
 
         for (definition in builtinInlinedSignatures) {
             if (definition.matches(name, functionType, parameterTypes)) {
@@ -82,32 +76,44 @@ class DummyBuiltInProvider(
 }
 
 fun buildSingleMainFunction(nodes: List<AstNode>): CompiledProgram {
-    val node = function("main", emptyList(), nodes, "")
-    val c = Compiler(DummyBuiltInProvider(), listOf(node))
-    return c.buildProgram()
+    TODO()
+//    val node = function("main", emptyList(), nodes, "")
+//    val c = Compiler(DummyBuiltInProvider(), listOf(node))
+//    return c.buildProgram()
 }
 
-fun buildBody(body: String): List<EmulatorInstruction> {
-    val tokens = tokenizeLines(body)
-    val nodes = parseExpressions(tokens)
-
-
-    val node = function("main", emptyList(), nodes, "void")
-    val signature = FunctionDefinition.fromFunctionNode(node, dummyTypeContainer)
-
-    val builtFunction =
-        buildFunctionBody(node, signature, DummyBuiltInProvider(), dummyTypeContainer)
-
-
-    return builtFunction.instructions
+fun buildBody(body: String): CompiledProgram {
+    TODO()
+//    val tokens = tokenizeLines(body)
+//    val nodes = parseExpressions(tokens)
+//
+//
+//    val node = function("main", emptyList(), nodes, "void")
+//    val signature = FunctionSignature.fromFunctionNode(node, dummyTypeContainer)
+//
+//    val builtFunction =
+//        buildFunctionBody(node, signature, DummyBuiltInProvider(), dummyTypeContainer)
+//
+//
+//    return builtFunction.instructions
 }
+
+private class GetInstructionsRunner : BackendCompiler {
+
+    lateinit var compiledProgram: CompiledProgram
+    override fun buildAndRun(allTypes: List<Datatype>, functions: List<FunctionContent>): List<String> {
+        compiledProgram = EmulatorRunner(BuiltInFunctions()).compileIntermediate(allTypes, functions)
+        return emptyList()
+    }
+}
+
 
 fun buildProgram(body: String): CompiledProgram {
-    val nodes = parserFromFile(body).parse()
 
-    val c = Compiler(DummyBuiltInProvider(), nodes)
+    val runner = GetInstructionsRunner()
+    compileAndRunProgram(StringReader(body),"dummyfile", runner, BuiltInSignatures())
 
-    return c.buildProgram()
+    return runner.compiledProgram
 }
 
 fun shouldMatch(code: List<EmulatorInstruction>, expected: List<EmulatorInstruction>) {
@@ -125,7 +131,7 @@ fun shouldMatch(code: List<EmulatorInstruction>, expected: List<EmulatorInstruct
 
 fun bodyShouldMatchAssembled(body: String, expectedAssembly: String) {
 
-    val code = buildBody(body)
+    val code = buildBody(body).instructions
     val expected = DefaultEmulator().instructionSet.assembleMnemonicFile(StringReader(expectedAssembly))
 
     shouldMatch(code, expected)

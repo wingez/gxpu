@@ -1,7 +1,6 @@
 package compiler.backendemulator
 
 import compiler.backends.emulator.*
-import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import ast.AstParser
@@ -10,8 +9,6 @@ import ast.expression.OperatorBuiltIns
 import compiler.frontend.*
 import org.junit.jupiter.api.assertThrows
 import tokenizeLines
-import tokens.parseFile
-import java.io.StringReader
 
 class TypeContainer(
     types: List<Datatype>,
@@ -51,42 +48,42 @@ internal class FunctionSignatureTest {
         val node = AstParser(tokenizeLines(program)).parseFunctionDefinition()
 
 
-        val functionProvider = object : FunctionDefinitionResolver {
+        val functionProvider = object : FunctionSignatureResolver {
             override fun getFunctionDefinitionMatching(
                 name: String,
                 functionType: FunctionType,
                 parameterTypes: List<Datatype>
-            ): FunctionDefinition {
+            ): FunctionSignature {
 
                 return when (name) {
-                    OperatorBuiltIns.Equal -> FunctionDefinition(
+                    OperatorBuiltIns.Equal -> FunctionSignature(
                         OperatorBuiltIns.Equal, listOf(
                             Datatype.Integer,
                             Datatype.Integer
                         ), Datatype.Boolean, FunctionType.Operator
                     )
 
-                    "print" -> FunctionDefinition(
+                    "print" -> FunctionSignature(
                         "print", listOf(
                             Datatype.Integer,
                             Datatype.Integer
                         ), Datatype.Void, FunctionType.Normal
                     )
 
-                    "main", "test1" -> FunctionDefinition.fromFunctionNode(node, dummyTypeContainer)
+                    "main", "test1" -> definitionFromFunctionNode(node, dummyTypeContainer).signature
                     else -> throw NotImplementedError()
                 }
             }
 
         }
 
-
-        val builder = FunctionBuilder(
-            FunctionDefinition.fromFunctionNode(node, dummyTypeContainer),
-            functionProvider, dummyTypeContainer
-        )
-
-        return builder.buildBody(node)
+        TODO()
+//        val builder = FunctionBuilder(
+//            definitionFromFunctionNode(node, dummyTypeContainer),
+//            functionProvider, dummyTypeContainer
+//        )
+//
+//        return builder.buildBody(node)
     }
 
     @Test

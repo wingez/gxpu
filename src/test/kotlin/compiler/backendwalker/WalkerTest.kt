@@ -3,12 +3,7 @@ package compiler.backendwalker
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
-import ast.function
-import ast.parserFromFile
-import ast.parserFromLine
-import compiler.backends.astwalker.WalkConfig
 import compiler.backends.astwalker.WalkerException
-import compiler.backends.astwalker.walk
 import compiler.frontend.FrontendCompilerError
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -19,54 +14,42 @@ internal class WalkerTest {
 
     @Test
     fun testWalker() {
+        val program = """
+            def main():
+              print(5)
+        """.trimIndent()
 
-        val function = function(
-            "main", emptyList(),
-            parserFromLine("print(5)").parseExpression(),
-            "void"
-        )
-
-        val output = walk(function)
-
-        assertEquals(listOf("5"), output.result)
+        assertEquals(listOf("5"), run(program))
 
     }
 
     @Test
     fun testWalkerAddition() {
 
-        val function = function(
-            "main", emptyList(),
-            parserFromLine("print(5+5)").parseExpression(),
-            "void"
-        )
+        val function = """
+            def main():
+              print(5+5)
+        """.trimIndent()
 
-        val output = walk(function)
-
-        assertEquals(listOf("10"), output.result)
+        assertEquals(listOf("10"), run(function))
 
     }
 
     @Test
     fun testWalkerAssign() {
-        val function =
-            parserFromFile(
-                """
+        val function = """
                 def main():
                   val a:int=5
                   print(a)
-            """.trimIndent()
-            ).parseFunctionDefinition()
-        assertEquals(listOf("5"), walk(function).result)
+            """
+        assertEquals(listOf("5"), run(function))
 
         assertThrows<FrontendCompilerError> {
-            walk(
-                parserFromFile(
-                    """
+            run(
+                """
                 def main():
                   print(a)
-            """.trimIndent()
-                ).parseFunctionDefinition()
+            """
             )
         }
 
@@ -77,62 +60,53 @@ internal class WalkerTest {
 
         for (i in 0..10) {
             val function =
-                parserFromFile(
-                    """
+                """
                 def main():
                   val i = $i
                   if (i!=5):
                     print(20)
                   else:
                     print($i)
-            """.trimIndent()
-                ).parseFunctionDefinition()
-
+            """
             val expected = if (i == 5) i.toString() else "20"
 
-            assertEquals(listOf(expected), walk(function).result)
+            assertEquals(listOf(expected), run(function))
         }
     }
 
     @Test
     fun testWalkerWhile() {
-        val function =
-            parserFromFile(
-                """
+        val function = """
                 def main():
                   val i = 3
                   while i!=6:
                     print(i)
                     i = i+1
-            """.trimIndent()
-            ).parseFunctionDefinition()
+            """
 
         val expected = listOf(3, 4, 5).map { it.toString() }
 
-        assertEquals(expected, walk(function).result)
+        assertEquals(expected, run(function))
     }
 
     @Test
     fun testWhileMaxIterations() {
-        val function = parserFromFile(
-            """
+        val function = """
             def main():
               val i=0
               while i!=10:
                 i=i+1
              
         """.trimIndent()
-        ).parse()
-        assertDoesNotThrow { walk(function) }
+        assertDoesNotThrow { run(function) }
 
-        assertDoesNotThrow { walk(function, WalkConfig(maxLoopIterations = 50)) }
-        assertThrows<WalkerException>("Max iterations exceeded") { walk(function, WalkConfig(maxLoopIterations = 20)) }
+        assertDoesNotThrow { run(function, maxLoopIterations = 50) }
+        assertThrows<WalkerException>("Max iterations exceeded") { run(function, maxLoopIterations = 20) }
     }
 
     @Test
     fun testWhileBreak() {
-        var function = parserFromFile(
-            """
+        var function = """
             def main():
               val i=0
               while i!=10:
@@ -141,13 +115,11 @@ internal class WalkerTest {
                   break
                 i=i+1
         """.trimIndent()
-        ).parse()
 
         val expected = listOf(0, 1).map { it.toString() }
-        assertEquals(expected, walk(function).result)
+        assertEquals(expected, run(function))
 
-        function = parserFromFile(
-            """
+        function = """
             def main():
               val i=0
               print(i)
@@ -155,19 +127,15 @@ internal class WalkerTest {
                 break
               i=i+1
         """.trimIndent()
-        ).parse()
 
-        val msg = assertThrows<FrontendCompilerError> { walk(function) }
+        val msg = assertThrows<FrontendCompilerError> { run(function) }
         assertTrue { msg.message!!.contains("No loop to break from") }
-
     }
-
 
     @Test
     fun testWalkerCallOtherFunctions() {
-        val nodes =
-            parserFromFile(
-                """
+        val program =
+            """
                 def callMe():
                   print(10)
                     
@@ -175,18 +143,16 @@ internal class WalkerTest {
                   callMe()
                   callMe()
             """.trimIndent()
-            ).parse()
 
         val expected = listOf(10, 10).map { it.toString() }
 
-        assertEquals(expected, walk(nodes).result)
+        assertEquals(expected, run(program))
     }
 
     @Test
     fun testWalkerParameters() {
-        val nodes =
-            parserFromFile(
-                """
+        val program =
+            """
                 def a(t:int):
                   print(t)
                   
@@ -197,16 +163,15 @@ internal class WalkerTest {
                   a(5)
                   b(6,7)
             """.trimIndent()
-            ).parse()
 
         val expected = listOf(5, 13).map { it.toString() }
 
-        assertEquals(expected, walk(nodes).result)
+        assertEquals(expected, run(program))
     }
 
     @Test
     fun testEditParametersDoesNotChangeCaller() {
-        val nodes = parserFromFile(
+        val program =
             """
                 def a(t:int):
                   t = t+1
@@ -217,16 +182,15 @@ internal class WalkerTest {
                   print(b)
                   
             """.trimIndent()
-        ).parse()
 
         val expected = listOf(1).map { it.toString() }
 
-        assertEquals(expected, walk(nodes).result)
+        assertEquals(expected, run(program))
     }
 
     @Test
     fun testWalkerReturn() {
-        val nodes = parserFromFile(
+        var program =
             """
                 def a(t:int):int
                   result = t+6
@@ -234,14 +198,13 @@ internal class WalkerTest {
                 def main():
                   print(a(5))
             """.trimIndent()
-        ).parse()
 
         val expected = listOf(11).map { it.toString() }
 
-        assertEquals(expected, walk(nodes).result)
+        assertEquals(expected, run(program))
 
 
-        val nodes2 = parserFromFile(
+        program =
             """
                 def mul(a:int,b:int):int
                   result = 0
@@ -254,28 +217,26 @@ internal class WalkerTest {
                   print(mul(10,10))
                   print(mul(2,5))
             """.trimIndent()
-        ).parse()
 
         val expected2 = listOf(100, 10).map { it.toString() }
 
-        assertEquals(expected2, walk(nodes2).result)
+        assertEquals(expected2, run(program))
 
     }
 
     @Test
     fun testPrintString() {
-        var nodes = parserFromFile(
+        var program =
             """
                 def main():
                   print("hello world!")
             """.trimIndent()
-        ).parse()
 
         var expected = listOf("hello world!")
-        assertEquals(expected, walk(nodes).result)
+        assertEquals(expected, run(program))
 
 
-        nodes = parserFromFile(
+        program =
             """
                 def main():
                   val a = "hello world!"
@@ -284,18 +245,16 @@ internal class WalkerTest {
                   print(a)
                   
             """.trimIndent()
-        ).parse()
 
         expected = listOf("hCllo world!")
 
-        assertEquals(expected, walk(nodes).result)
+        assertEquals(expected, run(program))
 
     }
 
     @Test
     fun testFunctionEarlyReturn() {
-        val nodes =
-            parserFromFile(
+        val program =
                 """
                 def a(t:int):int
                   if t<1:
@@ -313,11 +272,10 @@ internal class WalkerTest {
                   print(a(1))
                   print(a(2))
             """.trimIndent()
-            ).parse()
 
         val expected = listOf(10, 20, 30).map { it.toString() }
 
-        assertEquals(expected, walk(nodes).result)
+        assertEquals(expected, run(program))
     }
 
 

@@ -3,7 +3,7 @@ package compiler.backends.astwalker
 import ast.FunctionType
 import ast.expression.OperatorBuiltIns
 import compiler.frontend.Datatype
-import compiler.frontend.FunctionDefinition
+import compiler.frontend.FunctionSignature
 
 abstract class Function(
     name: String,
@@ -11,10 +11,10 @@ abstract class Function(
     parameterTypes: List<Datatype>,
     returnType: Datatype,
 ) : IWalkerFunction {
-    override val definition = FunctionDefinition(name, parameterTypes, returnType, functionType)
+    override val signature = FunctionSignature(name, parameterTypes, returnType, functionType)
 
     override fun toString(): String {
-        return "${definition.name}${definition.parameterTypes}: ${definition.returnType}"
+        return "${signature.name}${signature.parameterTypes}: ${signature.returnType}"
 
     }
 }

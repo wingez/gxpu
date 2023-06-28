@@ -1,11 +1,30 @@
 package compiler.backends.emulator
 
-import ast.AstNode
 import ast.FunctionType
-import ast.NodeTypes
+import compiler.BackendCompiler
 import compiler.backends.emulator.emulator.DefaultEmulator
 import compiler.frontend.*
 import kotlin.Error
+
+
+class EmulatorRunner(
+    private val builtInProvider: BuiltInProvider
+) : BackendCompiler {
+
+    fun compileIntermediate(allTypes: List<Datatype>, functions: List<FunctionContent>):CompiledProgram{
+        return Compiler(builtInProvider, allTypes, functions).buildProgram()
+    }
+    override fun buildAndRun(allTypes: List<Datatype>, functions: List<FunctionContent>): List<String> {
+        val program = compileIntermediate(allTypes, functions)
+
+
+        val emulator = DefaultEmulator()
+        emulator.setProgram(program.instructions)
+        emulator.run()
+
+        return emulator.outputStream.map { it.toString() }
+    }
+}
 
 
 class EmulatorBackendCompilerError(message: String) : Error(message)
@@ -19,20 +38,18 @@ data class CompiledProgram(
 )
 
 interface BuiltInProvider {
-    fun getSignatures(): List<FunctionDefinition>
-    fun getTypes(): Map<String, Datatype>
-
-    fun buildSignature(signature: FunctionDefinition): BuiltFunction
+    fun getSignatures(): List<FunctionSignature>
+    fun buildSignature(signature: FunctionSignature): BuiltFunction
 }
 
 private interface FunctionSource {
-    val signature: FunctionDefinition
+    val signature: FunctionSignature
     fun build(): BuiltFunction
 }
 
 private class BuiltinSource(
     val builtInProvider: BuiltInProvider,
-    override val signature: FunctionDefinition,
+    override val signature: FunctionSignature,
 ) : FunctionSource {
 
     override fun build(): BuiltFunction {
@@ -41,14 +58,11 @@ private class BuiltinSource(
 }
 
 private class CodeSource(
-    val node: AstNode,
-    override val signature: FunctionDefinition,
-    val typeProvider: TypeProvider,
-    val functionProvider: FunctionDefinitionResolver,
+    private val functionContent: FunctionContent,
 ) : FunctionSource {
-
+    override val signature=functionContent.definition.signature
     override fun build(): BuiltFunction {
-        return buildFunctionBody(node, signature, functionProvider, typeProvider)
+        return buildFunctionBody(functionContent)
     }
 }
 
@@ -56,16 +70,18 @@ val mainSignature = SignatureBuilder("main")
     .setReturnType(Datatype.Void)
     .getSignature()
 
+
 class Compiler(
     val builtInProvider: BuiltInProvider,
-    val nodes: List<AstNode>
-) : TypeProvider, FunctionDefinitionResolver, CodeGenerator {
+    types: List<Datatype>,
+    val intermediateFunctions: List<FunctionContent>,
+) : TypeProvider, FunctionSignatureResolver, CodeGenerator {
 
     private val resultingInstructions = mutableListOf<EmulatorInstruction>()
 
-    val includedTypes = mutableMapOf<String, Datatype>()
+    val includedTypes = types.associateBy { it.name }
 
-    private val availableFunctionDefinitions = mutableSetOf<FunctionDefinition>()
+    private val availableFunctionSignatures = mutableSetOf<FunctionSignature>()
 
     override fun addInstruction(emulatorInstruction: EmulatorInstruction) {
         resultingInstructions.add(emulatorInstruction)
@@ -85,21 +101,13 @@ class Compiler(
         name: String,
         functionType: FunctionType,
         parameterTypes: List<Datatype>
-    ): FunctionDefinition {
-        for (definition in availableFunctionDefinitions) {
+    ): FunctionSignature {
+        for (definition in availableFunctionSignatures) {
             if (definition.matches(name, functionType, parameterTypes)) {
                 return definition
             }
         }
         TODO(listOf(name, parameterTypes.toString(), functionType.toString()).toString())
-    }
-
-    fun buildStructs() {
-        nodes.filter { it.type == NodeTypes.Struct }
-            .forEach {
-                val s = buildStruct(it, this)
-                includedTypes[s.name] = s
-            }
     }
 
     fun buildProgram(): CompiledProgram {
@@ -114,10 +122,6 @@ class Compiler(
         addInstruction(emulate(DefaultEmulator.exit))
 
 
-        /// Find all types
-        includedTypes.putAll(builtInProvider.getTypes())
-        buildStructs()
-
         /// Find all available function signatures
 
         val functionSources = mutableListOf<FunctionSource>()
@@ -125,19 +129,17 @@ class Compiler(
 
         for (signature in builtInProvider.getSignatures()) {
             functionSources.add(BuiltinSource(builtInProvider, signature))
-            availableFunctionDefinitions.add(signature)
+            availableFunctionSignatures.add(signature)
         }
-        availableFunctionDefinitions.addAll(builtinInlinedSignatures)
+        availableFunctionSignatures.addAll(builtinInlinedSignatures)
 
-
-        for (functionNode in nodes.filter { it.type == NodeTypes.Function }) {
-            val signature = FunctionDefinition.fromFunctionNode(functionNode, this)
-            availableFunctionDefinitions.add(signature)
-            functionSources.add(CodeSource(functionNode, signature, this, this))
+        for (f in intermediateFunctions) {
+            availableFunctionSignatures.add(f.definition.signature)
+            functionSources.add(CodeSource(f))
         }
 
         /// Compile all functions
-        val compiledFunctions = mutableMapOf<FunctionDefinition, BuiltFunction>()
+        val compiledFunctions = mutableMapOf<FunctionSignature, BuiltFunction>()
 
         for (source in functionSources) {
             val builtFunction = source.build()
@@ -145,7 +147,7 @@ class Compiler(
         }
 
         // Then add the main-function and all functions it references (recursively)
-        val alreadyPlaced = mutableSetOf<FunctionDefinition>()
+        val alreadyPlaced = mutableSetOf<FunctionSignature>()
 
         val toPlace = mutableListOf(mainSignature)
 

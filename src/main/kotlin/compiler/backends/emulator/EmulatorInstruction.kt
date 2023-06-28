@@ -3,12 +3,12 @@ package compiler.backends.emulator
 import compiler.backends.emulator.emulator.Emulator
 import compiler.backends.emulator.emulator.ReferenceIndexProvider
 import compiler.backends.emulator.instructions.Instruction
-import compiler.frontend.FunctionDefinition
+import compiler.frontend.FunctionSignature
 import compiler.frontend.Label
 
 
 data class Reference(
-    val function: FunctionDefinition,
+    val function: FunctionSignature,
     val label: Label
 )
 
