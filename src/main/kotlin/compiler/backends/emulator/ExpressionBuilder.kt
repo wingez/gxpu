@@ -5,7 +5,8 @@ import compiler.backends.emulator.emulator.DefaultEmulator
 import compiler.frontend.*
 
 interface FunctionContext : CodeGenerator {
-    val fieldLayout: LayedOutDatatype
+    val localsLayout: LayedOutDatatype
+    val globalsLayout: LayedOutDatatype
 }
 
 val builtinInlinedSignatures = listOf(
@@ -42,13 +43,15 @@ fun tryGetValueWhere(expr: ValueExpression, where: WhereToPutResult, context: Fu
         }
 
         is VariableExpression -> {
-            when (expr.variable.type){
+            when (expr.variable.type) {
                 VariableType.Local -> {
-                    val field = context.fieldLayout.getField(expr.variable.name)
+                    val field = context.localsLayout.getField(expr.variable.name)
                     FpField(field)
                 }
+
                 VariableType.Global -> {
-                    TODO()
+                    val field = context.globalsLayout.getField(expr.variable.name)
+                    GlobalsField(field)
                 }
             }
         }
@@ -115,11 +118,13 @@ fun tryGetValueWhere(expr: ValueExpression, where: WhereToPutResult, context: Fu
                     val existingField = LayedOutStruct(valueResult.field.type).getField(expr.memberName)
                     FpField(existingField.copy(offset = existingField.offset + valueResult.field.offset))
                 }
+
                 is DynamicPointerValue -> {
                     val offset = LayedOutStruct(expr.of.type).getField(expr.memberName).offset
                     context.addInstruction(emulate(DefaultEmulator.adda, "val" to offset))
                     DynamicPointerValue(WhereToPutResult.A)
                 }
+
                 else -> TODO(valueResult.toString())
             }
 
@@ -154,8 +159,21 @@ fun requireGetValueIn(expr: ValueExpression, where: WhereToPutResult, context: F
             )
         }
 
+        is GlobalsField -> {
+            require(resultPlace.field.type.isPrimitive)
+            context.addInstruction(
+                when (where) {
+                    WhereToPutResult.A -> emulate(
+                        DefaultEmulator.lda_at, "addr" to resultPlace.field.offset
+                    )
+
+                    else -> TODO()
+                }
+            )
+        }
+
         is DynamicPointerValue -> {
-            require(resultPlace.where==WhereToPutResult.A)
+            require(resultPlace.where == WhereToPutResult.A)
 
             context.addInstruction(
                 //TODO instruction without offset??
@@ -389,11 +407,15 @@ class DynamicValue(
 
 class DynamicPointerValue(
     val where: WhereToPutResult
-): GetValueResult
+) : GetValueResult
 
 interface GetAddressResult
 
 class FpField(
+    val field: StructDataField,
+) : GetAddressResult, GetValueResult
+
+class GlobalsField(
     val field: StructDataField,
 ) : GetAddressResult, GetValueResult
 
@@ -408,15 +430,25 @@ fun getAddressOf(expr: AddressExpression, context: FunctionContext): GetAddressR
 
     return when (expr) {
         is VariableExpression -> {
-            val field = context.fieldLayout.getField(expr.variable.name)
-            FpField(field)
+            when (expr.variable.type) {
+                VariableType.Local -> {
+                    val field = context.localsLayout.getField(expr.variable.name)
+                    FpField(field)
+                }
+
+                VariableType.Global -> {
+                    val field = context.globalsLayout.getField(expr.variable.name)
+                    GlobalsField(field)
+                }
+            }
+
         }
 
         is DerefToAddress -> {
             if (expr.value !is VariableExpression) {
                 TODO()
             }
-            val field = context.fieldLayout.getField(expr.value.variable.name)
+            val field = context.localsLayout.getField(expr.value.variable.name)
 
             val instructions = listOf(
                 emulate(DefaultEmulator.lda_at_fp_offset, "offset" to field.offset)
@@ -424,6 +456,7 @@ fun getAddressOf(expr: AddressExpression, context: FunctionContext): GetAddressR
 
             DynamicAddress(instructions)
         }
+
         is AddressMemberAccess -> {
             val valueResult = getAddressOf(expr.of, context)
             when (valueResult) {
@@ -431,8 +464,9 @@ fun getAddressOf(expr: AddressExpression, context: FunctionContext): GetAddressR
                     val existingField = LayedOutStruct(valueResult.field.type).getField(expr.memberName)
                     FpField(existingField.copy(offset = existingField.offset + valueResult.field.offset))
                 }
+
                 is DynamicAddress -> {
-                    require(valueResult.where==WhereToPutResult.A)
+                    require(valueResult.where == WhereToPutResult.A)
 
                     val offset = LayedOutStruct(expr.of.type).getField(expr.memberName).offset
 

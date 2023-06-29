@@ -16,7 +16,7 @@ import java.io.StringReader
 val mainSignature = FunctionSignature("main", emptyList(), Datatype.Void, FunctionType.Normal)
 
 interface BackendCompiler {
-    fun buildAndRun(allTypes: List<Datatype>, functions: List<FunctionContent>): List<String>
+    fun buildAndRun(allTypes: List<Datatype>, functions: List<FunctionContent>, globals: GlobalsResult): List<String>
 }
 
 interface BuiltInCollection {
@@ -135,12 +135,13 @@ fun compileAndRunProgram(
         compileFunctionBody(node.asFunction().body, definition, globals.variables, functionSignatureResolver, types)
     } + globals.initialize
 
-    return backendCompiler.buildAndRun(types.allTypes, functions)
+    return backendCompiler.buildAndRun(types.allTypes, functions, globals)
 
 }
 
 fun compileAndRunBody(body: String, backendCompiler: BackendCompiler, builtIns: BuiltInCollection): List<String> {
     val f = compileFunctionBody(body, builtIns)
-    return backendCompiler.buildAndRun(builtIns.types, listOf(f))
+    TODO()
+//    return backendCompiler.buildAndRun(builtIns.types, listOf(f))
 }
 

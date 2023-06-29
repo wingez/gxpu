@@ -6,17 +6,24 @@ import compiler.backends.emulator.emulator.DefaultEmulator
 import compiler.frontend.*
 import kotlin.Error
 
-const val STACK_START = 100
-
 class EmulatorRunner(
     private val builtInProvider: BuiltInProvider
 ) : BackendCompiler {
 
-    fun compileIntermediate(allTypes: List<Datatype>, functions: List<FunctionContent>):CompiledProgram{
-        return Compiler(builtInProvider, allTypes, functions).buildProgram()
+    fun compileIntermediate(
+        allTypes: List<Datatype>,
+        functions: List<FunctionContent>,
+        globals: GlobalsResult
+    ): CompiledProgram {
+        return Compiler(builtInProvider, allTypes, globals, functions).buildProgram()
     }
-    override fun buildAndRun(allTypes: List<Datatype>, functions: List<FunctionContent>): List<String> {
-        val program = compileIntermediate(allTypes, functions)
+
+    override fun buildAndRun(
+        allTypes: List<Datatype>,
+        functions: List<FunctionContent>,
+        globals: GlobalsResult
+    ): List<String> {
+        val program = compileIntermediate(allTypes, functions, globals)
 
 
         val emulator = DefaultEmulator()
@@ -60,10 +67,11 @@ private class BuiltinSource(
 
 private class CodeSource(
     private val functionContent: FunctionContent,
+    private val globals: LayedOutDatatype,
 ) : FunctionSource {
-    override val signature=functionContent.definition.signature
+    override val signature = functionContent.definition.signature
     override fun build(): BuiltFunction {
-        return buildFunctionBody(functionContent)
+        return buildFunctionBody(functionContent, globals)
     }
 }
 
@@ -75,6 +83,7 @@ val mainSignature = SignatureBuilder("main")
 class Compiler(
     val builtInProvider: BuiltInProvider,
     types: List<Datatype>,
+    val globals: GlobalsResult,
     val intermediateFunctions: List<FunctionContent>,
 ) : TypeProvider, FunctionSignatureResolver, CodeGenerator {
 
@@ -113,11 +122,26 @@ class Compiler(
 
     fun buildProgram(): CompiledProgram {
 
+        // Build the globals
+        val globalsLayout = LayedOutStruct(globals.fields)
+
+        // the globals is placed at address 0
+        // stack begins after the globals
+        val stackStart = globalsLayout.size
         /// Add the header, should always be present
 
+        addInstruction(emulate(DefaultEmulator.ldfp, "val" to stackStart))
+        addInstruction(emulate(DefaultEmulator.ldsp, "val" to stackStart))
 
-        addInstruction(emulate(DefaultEmulator.ldfp, "val" to STACK_START))
-        addInstruction(emulate(DefaultEmulator.ldsp, "val" to STACK_START))
+
+        addInstruction(
+            emulate(
+                DefaultEmulator.call_addr, "addr" to Reference(
+                    initializeGlobalsSignature,
+                    functionEntryLabel
+                )
+            )
+        )
 
         addInstruction(emulate(DefaultEmulator.call_addr, "addr" to Reference(mainSignature, functionEntryLabel)))
         addInstruction(emulate(DefaultEmulator.exit))
@@ -136,7 +160,7 @@ class Compiler(
 
         for (f in intermediateFunctions) {
             availableFunctionSignatures.add(f.definition.signature)
-            functionSources.add(CodeSource(f))
+            functionSources.add(CodeSource(f, globalsLayout))
         }
 
         /// Compile all functions
@@ -150,7 +174,7 @@ class Compiler(
         // Then add the main-function and all functions it references (recursively)
         val alreadyPlaced = mutableSetOf<FunctionSignature>()
 
-        val toPlace = mutableListOf(mainSignature)
+        val toPlace = mutableListOf(mainSignature, initializeGlobalsSignature)
 
         while (toPlace.isNotEmpty()) {
 

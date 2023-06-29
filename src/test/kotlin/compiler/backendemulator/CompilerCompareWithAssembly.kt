@@ -43,9 +43,9 @@ class DummyBuiltInProvider(
                 for ((index, parameterType) in builtIn.signature.parameterTypes.withIndex()) {
                     variables.add(CompositeDataTypeField("param$index", parameterType))
                 }
-                val definition= FunctionDefinition(signature,builtIn.signature.parameterTypes.map { it.name })
+                val definition = FunctionDefinition(signature, builtIn.signature.parameterTypes.map { it.name })
 
-                val layout = calculateLayout(definition,Datatype.Composite(signature.name, variables))
+                val layout = calculateLayout(definition, Datatype.Composite(signature.name, variables))
 
                 return BuiltFunction(builtIn.signature, layout, instructions)
             }
@@ -78,12 +78,15 @@ class DummyBuiltInProvider(
 private class GetInstructionsRunner : BackendCompiler {
 
     lateinit var compiledProgram: CompiledProgram
-    override fun buildAndRun(allTypes: List<Datatype>, functions: List<FunctionContent>): List<String> {
-        compiledProgram = EmulatorRunner(BuiltInFunctions()).compileIntermediate(allTypes, functions)
+    override fun buildAndRun(
+        allTypes: List<Datatype>,
+        functions: List<FunctionContent>,
+        globals: GlobalsResult
+    ): List<String> {
+        compiledProgram = EmulatorRunner(BuiltInFunctions()).compileIntermediate(allTypes, functions, globals)
         return emptyList()
     }
 }
-
 
 
 fun buildSingleMainFunction(nodes: List<AstNode>): CompiledProgram {
@@ -96,14 +99,15 @@ fun buildSingleMainFunction(nodes: List<AstNode>): CompiledProgram {
 fun buildBody(body: String): List<EmulatorInstruction> {
 
     val intermediate = compileFunctionBody(body, BuiltInSignatures())
-    return buildFunctionBody(intermediate).instructions
+    TODO()
+    //return buildFunctionBody(intermediate).instructions
 }
 
 
 fun buildProgram(body: String): CompiledProgram {
 
     val runner = GetInstructionsRunner()
-    compileAndRunProgram(StringReader(body),"dummyfile", runner, BuiltInSignatures())
+    compileAndRunProgram(StringReader(body), "dummyfile", runner, BuiltInSignatures())
 
     return runner.compiledProgram
 }
@@ -152,7 +156,7 @@ class CompilerCompareWithAssembly {
         ret
         ret
          */
-        val program="""
+        val program = """
            def main():
              return
         """.trimIndent()

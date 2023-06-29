@@ -31,7 +31,8 @@ class TypeContainer(
 private val defaultTypes = listOf(Datatype.Void, Datatype.Integer)
 
 val dummyTypeContainer = TypeCollection(
-    emptyList(),BuiltInSignatures())
+    emptyList(), BuiltInSignatures()
+)
 
 internal class FunctionSignatureTest {
 
@@ -50,7 +51,8 @@ internal class FunctionSignatureTest {
                 emptyList(),
                 functionProvider,
                 typeProvider
-            )
+            ),
+            LayedOutStruct(Datatype.Composite("dummy", emptyList()))
         )
 
         return builder.buildBody()
