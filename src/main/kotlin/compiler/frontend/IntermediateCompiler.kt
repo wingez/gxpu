@@ -44,6 +44,7 @@ fun compileFunctionBody(body: String, builtIns: BuiltInCollection): FunctionCont
     return compileFunctionBody(
         AstNode.fromBody(nodes),
         FunctionDefinition(mainSignature, emptyList()),
+        emptyList(),
         FunctionCollection(builtIns.functions),
         types
     )
@@ -51,10 +52,36 @@ fun compileFunctionBody(body: String, builtIns: BuiltInCollection): FunctionCont
 
 
 fun compileFunctionBody(
-    body:AstNode,
+    body: AstNode,
     definition: FunctionDefinition,
+    globals: List<Variable>,
     functionProvider: FunctionSignatureResolver,
     typeProvider: TypeProvider,
-):FunctionContent{
-    return FunctionCompiler(body, definition, functionProvider, typeProvider).compileFunction()
+): FunctionContent {
+    return FunctionCompiler(body, definition, functionProvider, typeProvider, VariableType.Local, globals)
+        .compileFunction()
+}
+
+data class GlobalsResult(
+    val initialize: FunctionContent,
+    val variables: List<Variable>,
+)
+
+val initializeGlobalsSignature = SignatureBuilder("initializeGlobals")
+    .getSignature()
+
+fun compileGlobalAndInitialization(
+    nodes: List<AstNode>,
+    functionProvider: FunctionSignatureResolver,
+    typeProvider: TypeProvider,
+): GlobalsResult {
+    val definition = FunctionDefinition(initializeGlobalsSignature, emptyList())
+    return compileFunctionBody(
+        AstNode.fromBody(nodes),
+        definition, emptyList(), functionProvider, typeProvider
+    ).let {
+        GlobalsResult(it, it.fields.compositeFields.map { field ->
+            Variable(field, VariableType.Global)
+        })
+    }
 }
