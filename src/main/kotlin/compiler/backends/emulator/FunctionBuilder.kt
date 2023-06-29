@@ -18,19 +18,21 @@ data class BuiltFunction(
 
 fun buildFunctionBody(
     intermediateFunction: FunctionContent,
+    globals: LayedOutDatatype,
 ): BuiltFunction {
-    return FunctionBuilder(intermediateFunction).buildBody()
+    return FunctionBuilder(intermediateFunction, globals).buildBody()
 }
 
 class FunctionBuilder(
     private val intermediateFunction: FunctionContent,
+    override val globalsLayout: LayedOutDatatype,
 ) : CodeGenerator, FunctionContext {
     val signature = intermediateFunction.definition.signature
 
     val resultingCode = mutableListOf<EmulatorInstruction>()
 
     private lateinit var layout: FunctionFrameLayout
-    override val fieldLayout: LayedOutDatatype
+    override val localsLayout: LayedOutDatatype
         get() = layout
 
     override fun addInstruction(emulatorInstruction: EmulatorInstruction) {
@@ -61,11 +63,17 @@ class FunctionBuilder(
         when (targetAddress) {
             is FpField -> {
                 val field = targetAddress.field
-                assert(field.type == Datatype.Integer || field.type.isPointer)
+                assert(field.type.isPrimitive)
 
                 requireGetValueIn(instr.value, WhereToPutResult.TopStack, this)
 
                 addInstruction(emulate(DefaultEmulator.pop_fp_offset, "offset" to field.offset))
+            }
+            is GlobalsField -> {
+                val field = targetAddress.field
+                assert(field.type.isPrimitive)
+                requireGetValueIn(instr.value, WhereToPutResult.A, this)
+                addInstruction(emulate(DefaultEmulator.sta, "addr" to field.offset))
             }
 
             is DynamicAddress -> {

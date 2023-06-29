@@ -57,13 +57,15 @@ fun compileFunctionBody(
     globals: List<Variable>,
     functionProvider: FunctionSignatureResolver,
     typeProvider: TypeProvider,
+    treatNewVariablesAs: VariableType = VariableType.Local,
 ): FunctionContent {
-    return FunctionCompiler(body, definition, functionProvider, typeProvider, VariableType.Local, globals)
+    return FunctionCompiler(body, definition, functionProvider, typeProvider, treatNewVariablesAs, globals)
         .compileFunction()
 }
 
 data class GlobalsResult(
     val initialize: FunctionContent,
+    val fields: Datatype,
     val variables: List<Variable>,
 )
 
@@ -78,9 +80,9 @@ fun compileGlobalAndInitialization(
     val definition = FunctionDefinition(initializeGlobalsSignature, emptyList())
     return compileFunctionBody(
         AstNode.fromBody(nodes),
-        definition, emptyList(), functionProvider, typeProvider
+        definition, emptyList(), functionProvider, typeProvider, VariableType.Global,
     ).let {
-        GlobalsResult(it, it.fields.compositeFields.map { field ->
+        GlobalsResult(it, it.fields, it.fields.compositeFields.map { field ->
             Variable(field, VariableType.Global)
         })
     }

@@ -18,8 +18,20 @@ class Globals {
            def main():
              print(i)
         """.trimIndent()
-        runProgramCheckOutput(compiler, code, 5)
+        runProgramCheckOutput(compiler, code, 0)
+    }
 
+    @ParameterizedTest
+    @EnumSource
+    fun testInitializeGlobal(compiler: CompilerBackend) {
+
+        val code = """
+           val i=5
+            
+           def main():
+             print(i)
+        """.trimIndent()
+        runProgramCheckOutput(compiler, code, 5)
     }
 
 }

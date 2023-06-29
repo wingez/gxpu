@@ -8,6 +8,7 @@ import compiler.backends.emulator.*
 import compiler.compileAndRunProgram
 import compiler.frontend.Datatype
 import compiler.frontend.FunctionContent
+import compiler.frontend.GlobalsResult
 import compiler.frontend.functionEntryLabel
 import tokens.parseFile
 import java.io.File
@@ -137,7 +138,7 @@ class InteractiveDebugger(
         val memoryStartX = 1
         val memoryStartY = 10
 
-        ((STACK_START - 3)..(STACK_START + 10)).reversed().forEachIndexed { rowPos, i ->
+        (0..( 10)).reversed().forEachIndexed { rowPos, i ->
 
             val labels = mutableListOf<String>()
 
@@ -172,9 +173,13 @@ class InteractiveDebugger(
         }
     }
 
-    override fun buildAndRun(allTypes: List<Datatype>, functions: List<FunctionContent>): List<String> {
+    override fun buildAndRun(
+        allTypes: List<Datatype>,
+        functions: List<FunctionContent>,
+        globals: GlobalsResult
+    ): List<String> {
         val emulatorRunner = EmulatorRunner(BuiltInFunctions())
-        instructions = emulatorRunner.compileIntermediate(allTypes, functions).instructions
+        instructions = emulatorRunner.compileIntermediate(allTypes, functions, globals).instructions
 
         reset()
 
@@ -189,5 +194,5 @@ fun main(array: Array<String>) {
     val fileName = array[0]
 
     val debugger = InteractiveDebugger()
-    compileAndRunProgram(fileName,debugger, BuiltInSignatures())
+    compileAndRunProgram(fileName, debugger, BuiltInSignatures())
 }

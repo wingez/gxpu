@@ -37,11 +37,9 @@ enum class ControlFlow {
 class WalkerRunner(
     private val config: WalkConfig,
 ) : BackendCompiler {
-    override fun buildAndRun(allTypes: List<Datatype>, functions: List<FunctionContent>): List<String> {
+    override fun buildAndRun(allTypes: List<Datatype>, functions: List<FunctionContent>, globals: GlobalsResult): List<String> {
         return WalkerState(allTypes, functions, config).walk().result
-
     }
-
 }
 
 
