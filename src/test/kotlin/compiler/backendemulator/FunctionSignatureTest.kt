@@ -47,6 +47,7 @@ internal class FunctionSignatureTest {
             compileFunctionBody(
                 node.asFunction().body,
                 definitionFromFunctionNode(node, typeProvider),
+                emptyList(),
                 functionProvider,
                 typeProvider
             )

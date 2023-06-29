@@ -266,32 +266,6 @@ class WalkerState(
         return call(function, arguments)
     }
 
-    /*fun getArrayIndexValueHolder(node: AstNode): ValueHolder {
-        assert(node.type == NodeTypes.ArrayAccess)
-        val arrayAccess = node.asArrayAccess()
-        val arrayPointer = getValueOf(arrayAccess.parent)
-        val index = getValueOf(arrayAccess.index)
-
-        if (index.datatype != Datatype.Integer) {
-            throw WalkerException("Array index must be integer. Not ${index.datatype}")
-        }
-        if (!arrayPointer.isPointer()) {
-            throw WalkerException("Cannot do array access on type ${arrayPointer.datatype}")
-        }
-        val array = arrayPointer.derefPointer().value
-        if (!array.isArray()) {
-            throw WalkerException("Cannot do array access on type ${arrayPointer.datatype}")
-        }
-        return array.arrayAccess(index.getPrimitiveValue())
-    }*/
-
-    /*fun getMemberValueHolder(node: AstNode): IValueHolder {
-        val toAccessPointer = getValueOf(node.childNodes[0])
-        assert(toAccessPointer.isPointer())
-        val toAccess = toAccessPointer.derefPointer().value
-        return toAccess.getFieldValueHolder(node.data as String)
-    }*/
-
     override fun getTypeOfVariable(variableName: String): Datatype {
         return getVariable(variableName).datatype
     }

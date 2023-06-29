@@ -43,6 +43,7 @@ internal class FrontendTest {
             compileFunctionBody(
                 shouldHave.asFunction().body,
                 definitionFromFunctionNode(shouldHave, dummyTypeContainer),
+                emptyList(),
                 emptyFunctions,
                 dummyTypeContainer
             ).fields.compositeFields.size
@@ -52,6 +53,7 @@ internal class FrontendTest {
             compileFunctionBody(
                 shouldNotHave.asFunction().body,
                 definitionFromFunctionNode(shouldNotHave, dummyTypeContainer),
+                emptyList(),
                 emptyFunctions,
                 dummyTypeContainer
             ).fields.compositeFields.size

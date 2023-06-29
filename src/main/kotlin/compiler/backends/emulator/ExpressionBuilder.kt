@@ -42,9 +42,15 @@ fun tryGetValueWhere(expr: ValueExpression, where: WhereToPutResult, context: Fu
         }
 
         is VariableExpression -> {
-
-            val field = context.fieldLayout.getField(expr.variable.name)
-            FpField(field)
+            when (expr.variable.type){
+                VariableType.Local -> {
+                    val field = context.fieldLayout.getField(expr.variable.name)
+                    FpField(field)
+                }
+                VariableType.Global -> {
+                    TODO()
+                }
+            }
         }
 
         is CallExpression -> {

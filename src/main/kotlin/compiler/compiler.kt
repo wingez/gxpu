@@ -5,6 +5,7 @@ import ast.AstParser
 import ast.FunctionType
 import ast.NodeTypes
 import compiler.frontend.*
+import requireNotReached
 import tokens.Token
 import tokens.TokenType
 import tokens.parseFile
@@ -93,11 +94,18 @@ fun compileAndRunProgram(
     val tokens = parseFile(reader, fileName)
     val nodes = AstParser(tokens).parse()
 
-    val (structNodes, functionNodes) = nodes.partition {
+    val (globalsAndInitializationNodes, structAndFunctionNodes) = nodes.partition {
+        when (it.type) {
+            NodeTypes.Function, NodeTypes.Struct -> false
+            else -> true
+        }
+    }
+
+    val (structNodes, functionNodes) = structAndFunctionNodes.partition {
         when (it.type) {
             NodeTypes.Struct -> true
             NodeTypes.Function -> false
-            else -> TODO()
+            else -> requireNotReached()
         }
     }
 
@@ -105,10 +113,6 @@ fun compileAndRunProgram(
 
 
     val allAvailableFunctionSignatures = mutableListOf<FunctionSignature>()
-
-
-
-
 
     builtIns.functions.forEach { allAvailableFunctionSignatures.add(it) }
 
@@ -122,17 +126,20 @@ fun compileAndRunProgram(
 
     val functionSignatureResolver = FunctionCollection(allAvailableFunctionSignatures)
 
+    val globals = compileGlobalAndInitialization(
+        globalsAndInitializationNodes,
+        functionSignatureResolver, types,
+    )
 
     val functions = functionBodiesWithDefinitions.map { (node, definition) ->
-        compileFunctionBody(node.asFunction().body, definition, functionSignatureResolver, types)
-    }
-
+        compileFunctionBody(node.asFunction().body, definition, globals.variables, functionSignatureResolver, types)
+    } + globals.initialize
 
     return backendCompiler.buildAndRun(types.allTypes, functions)
 
 }
 
-fun compileAndRunBody(body:String,backendCompiler: BackendCompiler, builtIns: BuiltInCollection):List<String>{
+fun compileAndRunBody(body: String, backendCompiler: BackendCompiler, builtIns: BuiltInCollection): List<String> {
     val f = compileFunctionBody(body, builtIns)
     return backendCompiler.buildAndRun(builtIns.types, listOf(f))
 }

@@ -13,10 +13,11 @@ interface Instruction
 
 enum class VariableType {
     Local,
+    Global,
 }
 
 data class Variable(
-    private val field: CompositeDataTypeField,
+    val field: CompositeDataTypeField,
     val type: VariableType,
 ) {
     val name get() = field.name
@@ -170,10 +171,12 @@ class FunctionCompiler(
     private val definition: FunctionDefinition,
     private val functionProvider: FunctionSignatureResolver,
     private val typeProvider: TypeProvider,
+    private val treatNewVariablesAs: VariableType,
+    globalVariables: List<Variable>,
 ) {
     lateinit var fieldDatatype: Datatype
 
-    val localVariables = mutableListOf<CompositeDataTypeField>()
+    val variables = mutableListOf<Variable>().apply { addAll(globalVariables) }
 
     var controlStatementCounter = 0
 
@@ -501,16 +504,19 @@ class FunctionCompiler(
     private fun addVariables(): Datatype {
 
         if (definition.signature.returnType != Datatype.Void) {
-            localVariables.add(
-                CompositeDataTypeField(
-                    RETURN_VALUE_NAME,
-                    definition.signature.returnType,
+            variables.add(
+                Variable(
+                    CompositeDataTypeField(
+                        RETURN_VALUE_NAME,
+                        definition.signature.returnType,
+                    ),
+                    VariableType.Local,
                 )
             )
         }
 
         for ((paramType, paramName) in definition.signature.parameterTypes.zip(definition.parameterNames)) {
-            localVariables.add(CompositeDataTypeField(paramName, paramType))
+            variables.add(Variable(CompositeDataTypeField(paramName, paramType), treatNewVariablesAs))
         }
 
 
@@ -528,17 +534,15 @@ class FunctionCompiler(
                     type = typeProvider.getType(newVariable.optionalTypeDefinition)
                         ?: throw FrontendCompilerError("No type of type ${newVariable.optionalTypeDefinition}")
                 }
-                localVariables.add(CompositeDataTypeField(newVariable.name, type))
+                variables.add(Variable(CompositeDataTypeField(newVariable.name, type), treatNewVariablesAs))
             }
         }
-        return Datatype.Composite(definition.signature.name, localVariables)
+        return Datatype.Composite(definition.signature.name, variables.map { it.field })
     }
 
     private fun lookupVariable(name: String): Variable {
-        val field = localVariables.find { it.name == name }
+        return variables.find { it.name == name }
             ?: throw FrontendCompilerError("variable $name not found")
-
-        return Variable(field, VariableType.Local)
     }
 }
 
