@@ -505,13 +505,12 @@ class FunctionCompiler(
                 CompositeDataTypeField(
                     RETURN_VALUE_NAME,
                     definition.signature.returnType,
-                    FieldAnnotation.Result
                 )
             )
         }
 
         for ((paramType, paramName) in definition.signature.parameterTypes.zip(definition.parameterNames)) {
-            localVariables.add(CompositeDataTypeField(paramName, paramType, FieldAnnotation.Parameter))
+            localVariables.add(CompositeDataTypeField(paramName, paramType))
         }
 
 
@@ -529,7 +528,7 @@ class FunctionCompiler(
                     type = typeProvider.getType(newVariable.optionalTypeDefinition)
                         ?: throw FrontendCompilerError("No type of type ${newVariable.optionalTypeDefinition}")
                 }
-                localVariables.add(CompositeDataTypeField(newVariable.name, type, FieldAnnotation.LocalVariable))
+                localVariables.add(CompositeDataTypeField(newVariable.name, type))
             }
         }
         return Datatype.Composite(definition.signature.name, localVariables)

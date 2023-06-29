@@ -128,7 +128,7 @@ class FunctionBuilder(
 
             if (index == 0) {
                 // Make space for local variables if necessary
-                val sizeOfLocalVariables = layout.sizeOfType(FieldAnnotation.LocalVariable)
+                val sizeOfLocalVariables = layout.sizeOfLocalVariables
                 if (sizeOfLocalVariables > 0) {
                     addInstruction(emulate(DefaultEmulator.add_sp, "val" to sizeOfLocalVariables))
                 }
@@ -144,20 +144,16 @@ class FunctionBuilder(
                 }
             }
         }
-
-
     }
 
     fun buildBody(): BuiltFunction {
 
-        layout = calculateLayout(intermediateFunction.fields)
+        layout = calculateLayout(intermediateFunction.definition, intermediateFunction.fields)
 
         buildCodeBody(intermediateFunction.code)
 
         return BuiltFunction(signature, layout, resultingCode)
     }
-
-
 }
 
 
@@ -167,24 +163,28 @@ private fun assertFrameMatchesDefinition(layout: FunctionFrameLayout, definition
 }
 
 fun calculateLayout(
+    definition: FunctionDefinition,
     localVariables: Datatype,
 ): FunctionFrameLayout {
 
     val variablesInOrder = mutableListOf<CompositeDataTypeField>()
 
+
     // Add in this order
-    for (variableType in listOf(FieldAnnotation.Result, FieldAnnotation.Parameter, FieldAnnotation.LocalVariable)) {
-        for (variable in localVariables.compositeFields.filter { it.annotation == variableType }) {
-            variablesInOrder.add(variable)
-        }
+    if (definition.signature.hasReturnType) {
+        variablesInOrder.add(localVariables.getField(RETURN_VALUE_NAME))
+    }
+    for (paramName in definition.parameterNames) {
+        variablesInOrder.add(localVariables.getField(paramName))
     }
 
     //first local variable should be at index 0.
     //subtract the size of Result & parameters
-    val offset =
-        variablesInOrder.filter { it.annotation == FieldAnnotation.Result || it.annotation == FieldAnnotation.Parameter }
-            .sumOf { sizeOf(it.type) }
+    val offset = variablesInOrder.sumOf { sizeOf(it.type) }
 
+    for (variables in localVariables.compositeFields.filter { it !in variablesInOrder }) {
+        variablesInOrder.add(variables)
+    }
 
     val fieldType = Datatype.Composite("functionLayout", variablesInOrder)
 
@@ -209,10 +209,6 @@ class FunctionFrameLayout(
         return baseField.copy(offset = baseField.offset - offset)
     }
 
-    fun sizeOfType(variableType: FieldAnnotation): Int {
-        return fieldType.compositeFields.filter { it.annotation == variableType }.sumOf { sizeOf(it.type) }
-    }
-
     fun getDescription(): List<String> {
 
         return fieldType.compositeFields.map {
@@ -220,5 +216,6 @@ class FunctionFrameLayout(
         }
     }
 
+    val sizeOfLocalVariables get() = sizeOf(fieldType) - offset
 
 }

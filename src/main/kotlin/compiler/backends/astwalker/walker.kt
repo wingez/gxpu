@@ -205,10 +205,10 @@ class WalkerState(
         )
 
         // Add arguments as local variables
-        fields.compositeFields.filter { it.annotation == FieldAnnotation.Parameter }.zip(parameters)
-            .forEach { (variable, value) ->
-                assert(variable.type == value.datatype)
-                setVariable(variable.name, value)
+        userFunction.functionContent.definition.parameterNames.zip(parameters)
+            .forEach { (paramName, value) ->
+                assert(fields.fieldType(paramName)== value.datatype)
+                setVariable(paramName, value)
             }
 
         // Walk the function

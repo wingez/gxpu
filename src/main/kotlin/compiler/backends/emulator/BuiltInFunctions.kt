@@ -98,7 +98,6 @@ class PrintIntArray : BuiltIn {
 }
 
 
-
 class BuiltInFunctions : BuiltInProvider {
 
     private val available = listOf(
@@ -122,13 +121,14 @@ class BuiltInFunctions : BuiltInProvider {
 
         val fields = mutableListOf<CompositeDataTypeField>()
         if (signature.returnType != Datatype.Void) {
-            fields.add(CompositeDataTypeField("result", signature.returnType, FieldAnnotation.Result))
+            fields.add(CompositeDataTypeField("result", signature.returnType))
         }
         for ((index, parameterType) in signature.parameterTypes.withIndex()) {
-            fields.add(CompositeDataTypeField("param$index", parameterType, FieldAnnotation.Parameter))
+            fields.add(CompositeDataTypeField("param$index", parameterType))
         }
 
-        val layout = calculateLayout(Datatype.Composite(signature.name, fields))
+        val layout =
+            calculateLayout(FunctionDefinition(signature, emptyList()), Datatype.Composite(signature.name, fields))
 
         return BuiltFunction(result.signature, layout, instructions)
     }

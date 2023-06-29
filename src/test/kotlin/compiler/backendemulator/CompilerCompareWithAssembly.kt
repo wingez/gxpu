@@ -37,15 +37,15 @@ class DummyBuiltInProvider(
                         CompositeDataTypeField(
                             "result",
                             builtIn.signature.returnType,
-                            FieldAnnotation.Result
                         )
                     )
                 }
                 for ((index, parameterType) in builtIn.signature.parameterTypes.withIndex()) {
-                    variables.add(CompositeDataTypeField("param$index", parameterType, FieldAnnotation.Parameter))
+                    variables.add(CompositeDataTypeField("param$index", parameterType))
                 }
+                val definition= FunctionDefinition(signature,builtIn.signature.parameterTypes.map { it.name })
 
-                val layout = calculateLayout(Datatype.Composite(signature.name, variables))
+                val layout = calculateLayout(definition,Datatype.Composite(signature.name, variables))
 
                 return BuiltFunction(builtIn.signature, layout, instructions)
             }

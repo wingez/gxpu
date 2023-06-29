@@ -1,18 +1,9 @@
 package compiler.frontend
 
 import ast.TypeDefinition
-
-enum class FieldAnnotation {
-    None,
-    LocalVariable,
-    Parameter,
-    Result,
-}
-
 data class CompositeDataTypeField(
     val name: String,
     val type: Datatype,
-    val annotation: FieldAnnotation = FieldAnnotation.None,
 )
 
 class Datatype private constructor(
@@ -74,9 +65,13 @@ class Datatype private constructor(
         return compositeFields.any { it.name == name }
     }
 
-    fun fieldType(name: String): Datatype {
+    fun getField(name: String):CompositeDataTypeField{
         require(containsField(name))
-        return compositeFields.find { it.name == name }!!.type
+        return compositeFields.find { it.name == name }!!
+    }
+
+    fun fieldType(name: String): Datatype {
+        return getField(name).type
     }
 
     val compositeFields: List<CompositeDataTypeField>

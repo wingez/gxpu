@@ -18,7 +18,7 @@ class DatatypeTest {
 
         val compositeType = Datatype.Composite(
             "test", listOf(
-                CompositeDataTypeField("member1", Datatype.Integer, FieldAnnotation.None)
+                CompositeDataTypeField("member1", Datatype.Integer)
             )
         )
 
@@ -46,8 +46,8 @@ class DatatypeTest {
         assertEquals(false, type.isArray)
         assertEquals(
             listOf(
-                CompositeDataTypeField("a", Datatype.Integer, FieldAnnotation.None),
-                CompositeDataTypeField("b", Datatype.Integer, FieldAnnotation.None)
+                CompositeDataTypeField("a", Datatype.Integer),
+                CompositeDataTypeField("b", Datatype.Integer),
             ), type.compositeFields
         )
     }

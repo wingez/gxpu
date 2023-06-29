@@ -14,6 +14,8 @@ data class FunctionSignature(
     fun matches(name: String, functionType: FunctionType, parameterTypes: List<Datatype>): Boolean {
         return name == this.name && functionType == this.functionType && parameterTypes == this.parameterTypes
     }
+
+    val hasReturnType = returnType != Datatype.Void
 }
 
 data class FunctionDefinition(

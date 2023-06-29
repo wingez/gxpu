@@ -66,7 +66,7 @@ internal class FunctionSignatureTest {
         val layout = build.layout
 
         assertEquals(layout.size, 0)
-        assertEquals(layout.sizeOfType(FieldAnnotation.LocalVariable), 0)
+        assertEquals(layout.sizeOfLocalVariables, 0)
     }
 
     @Test
@@ -79,7 +79,7 @@ internal class FunctionSignatureTest {
         )
         val layout = built.layout
         assertEquals(layout.size, 1)
-        assertEquals(layout.sizeOfType(FieldAnnotation.LocalVariable), 0)
+        assertEquals(layout.sizeOfLocalVariables, 0)
     }
 
     @Test
@@ -92,7 +92,7 @@ internal class FunctionSignatureTest {
         )
         val layout = built.layout
         assertEquals(1, layout.size)
-        assertEquals(1, layout.sizeOfType(FieldAnnotation.LocalVariable))
+        assertEquals(1, layout.sizeOfLocalVariables)
         assertEquals(StructDataField("var", Datatype.Integer, 0), layout.getField("var"))
     }
 
@@ -105,7 +105,7 @@ internal class FunctionSignatureTest {
     """
         ).layout
         assertEquals(layout.size, 3)
-        assertEquals(layout.sizeOfType(FieldAnnotation.LocalVariable), 1)
+        assertEquals(layout.sizeOfLocalVariables, 1)
 
         assertEquals(StructDataField("result", Datatype.Integer, -2), layout.getField("result"))
         assertEquals(StructDataField("param", Datatype.Integer, -1), layout.getField("param"))
@@ -124,7 +124,7 @@ internal class FunctionSignatureTest {
     """
         ).layout
         assertEquals(layout.size, 2)
-        assertEquals(layout.sizeOfType(FieldAnnotation.LocalVariable), 2)
+        assertEquals(layout.sizeOfLocalVariables, 2)
 
         assertEquals(StructDataField("var1", Datatype.Integer, 1), layout.getField("var1"))
         assertEquals(StructDataField("var", Datatype.Integer, 0), layout.getField("var"))
@@ -139,7 +139,7 @@ internal class FunctionSignatureTest {
             """
         ).layout
         assertEquals(layout.size, 3)
-        assertEquals(layout.sizeOfType(FieldAnnotation.LocalVariable), 1)
+        assertEquals(layout.sizeOfLocalVariables, 1)
 
         assertEquals(StructDataField("result", Datatype.Integer, -2), layout.getField("result"))
         assertEquals(StructDataField("var2", Datatype.Integer, -1), layout.getField("var2"))
@@ -190,7 +190,7 @@ internal class FunctionSignatureTest {
         )
         val layout = built.layout
         assertEquals(layout.size, 2)
-        assertEquals(layout.sizeOfType(FieldAnnotation.LocalVariable), 2)
+        assertEquals(layout.sizeOfLocalVariables, 2)
         assertEquals(StructDataField("var", dummyTypeContainer.requireType("intpair"), 0), layout.getField("var"))
     }
 

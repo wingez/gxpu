@@ -28,7 +28,7 @@ fun buildStruct(
 
         val fieldName = newValue.name
 
-        CompositeDataTypeField(fieldName, fieldType, FieldAnnotation.None)
+        CompositeDataTypeField(fieldName, fieldType)
     }
 
     return Datatype.Composite(typeName, members)
