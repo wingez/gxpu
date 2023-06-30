@@ -557,8 +557,7 @@ class CompilerCompareWithAssembly {
           STA [#0]
           RET
           :main
-          ADDSP #1
-          LDA [#0]
+          LDA [#0] 
           out
           RET
         """

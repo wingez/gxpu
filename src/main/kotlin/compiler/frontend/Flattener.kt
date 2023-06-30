@@ -537,7 +537,7 @@ class FunctionCompiler(
                 variables.add(Variable(CompositeDataTypeField(newVariable.name, type), treatNewVariablesAs))
             }
         }
-        return Datatype.Composite(definition.signature.name, variables.map { it.field })
+        return Datatype.Composite(definition.signature.name, variables.filter{it.type==treatNewVariablesAs}.map { it.field })
     }
 
     private fun lookupVariable(name: String): Variable {

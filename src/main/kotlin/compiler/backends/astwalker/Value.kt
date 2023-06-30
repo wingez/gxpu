@@ -21,10 +21,6 @@ fun createDefaultValue(datatype: Datatype): Value {
     throw WalkerException("Cannot instanciate empty variable of type $datatype")
 }
 */
-interface VariableProvider {
-    fun getTypeOfVariable(variableName: String): Datatype
-}
-
 
 data class Value(
     val datatype: Datatype,
