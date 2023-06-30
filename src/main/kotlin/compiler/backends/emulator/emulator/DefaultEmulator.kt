@@ -34,7 +34,7 @@ class DefaultEmulator : Emulator(instructionSet) {
             em.a = params.getValue("val")
         }
 
-        val lda_at = instructionSet.createInstruction("LDA #addr", group = LOAD_STORE) { em, params ->
+        val lda_at = instructionSet.createInstruction("LDA [#addr]", group = LOAD_STORE) { em, params ->
             em.a = em.getMemoryAt(params.getValue("addr"))
         }
 
