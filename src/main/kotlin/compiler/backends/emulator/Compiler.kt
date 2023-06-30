@@ -133,16 +133,16 @@ class Compiler(
         addInstruction(emulate(DefaultEmulator.ldfp, "val" to stackStart))
         addInstruction(emulate(DefaultEmulator.ldsp, "val" to stackStart))
 
-
-        addInstruction(
-            emulate(
-                DefaultEmulator.call_addr, "addr" to Reference(
-                    initializeGlobalsSignature,
-                    functionEntryLabel
+        if (globals.needsInitialization) {
+            addInstruction(
+                emulate(
+                    DefaultEmulator.call_addr, "addr" to Reference(
+                        initializeGlobalsSignature,
+                        functionEntryLabel
+                    )
                 )
             )
-        )
-
+        }
         addInstruction(emulate(DefaultEmulator.call_addr, "addr" to Reference(mainSignature, functionEntryLabel)))
         addInstruction(emulate(DefaultEmulator.exit))
 
@@ -174,7 +174,12 @@ class Compiler(
         // Then add the main-function and all functions it references (recursively)
         val alreadyPlaced = mutableSetOf<FunctionSignature>()
 
-        val toPlace = mutableListOf(mainSignature, initializeGlobalsSignature)
+        val toPlace = mutableListOf(mainSignature)
+
+        if (globals.needsInitialization){
+            toPlace.add(initializeGlobalsSignature)
+        }
+
 
         while (toPlace.isNotEmpty()) {
 

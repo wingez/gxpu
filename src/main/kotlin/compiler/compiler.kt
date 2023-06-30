@@ -19,9 +19,21 @@ interface BackendCompiler {
     fun buildAndRun(allTypes: List<Datatype>, functions: List<FunctionContent>, globals: GlobalsResult): List<String>
 }
 
-interface BuiltInCollection {
+interface BuiltInCollection : TypeProvider, FunctionSignatureResolver {
     val types: List<Datatype>
     val functions: List<FunctionSignature>
+
+    override fun getFunctionDefinitionMatching(
+        name: String,
+        functionType: FunctionType,
+        parameterTypes: List<Datatype>
+    ): FunctionSignature {
+        return FunctionCollection(functions).getFunctionDefinitionMatching(name, functionType, parameterTypes)
+    }
+
+    override fun getType(name: String): Datatype? {
+        return types.find { it.name == name }
+    }
 }
 
 class FunctionCollection(
@@ -139,9 +151,15 @@ fun compileAndRunProgram(
 
 }
 
-fun compileAndRunBody(body: String, backendCompiler: BackendCompiler, builtIns: BuiltInCollection): List<String> {
+fun compileAndRunBody(
+    body: String,
+    backendCompiler: BackendCompiler,
+    builtIns: BuiltInCollection,
+): List<String> {
     val f = compileFunctionBody(body, builtIns)
-    TODO()
-//    return backendCompiler.buildAndRun(builtIns.types, listOf(f))
+    return backendCompiler.buildAndRun(
+        builtIns.types,
+        listOf(f),
+        compileGlobalAndInitialization(emptyList(), builtIns, builtIns))
 }
 

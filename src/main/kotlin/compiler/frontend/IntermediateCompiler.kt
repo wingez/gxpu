@@ -67,7 +67,9 @@ data class GlobalsResult(
     val initialize: FunctionContent,
     val fields: Datatype,
     val variables: List<Variable>,
-)
+){
+    val needsInitialization get() = initialize.code.instructions.any { it !is Return } // every functions  has an implicit return. Ignore that
+}
 
 val initializeGlobalsSignature = SignatureBuilder("initializeGlobals")
     .getSignature()

@@ -75,6 +75,8 @@ class DummyBuiltInProvider(
     }
 }
 
+private val noGlobals = LayedOutStruct(Datatype.Composite("noglobals", emptyList()))
+
 private class GetInstructionsRunner : BackendCompiler {
 
     lateinit var compiledProgram: CompiledProgram
@@ -99,8 +101,8 @@ fun buildSingleMainFunction(nodes: List<AstNode>): CompiledProgram {
 fun buildBody(body: String): List<EmulatorInstruction> {
 
     val intermediate = compileFunctionBody(body, BuiltInSignatures())
-    TODO()
-    //return buildFunctionBody(intermediate).instructions
+
+    return buildFunctionBody(intermediate, noGlobals).instructions
 }
 
 
@@ -165,8 +167,8 @@ class CompilerCompareWithAssembly {
         assertEquals(
             listOf(
                 // Init stack and frame
-                emulate(DefaultEmulator.ldfp, "val" to 100),
-                emulate(DefaultEmulator.ldsp, "val" to 100),
+                emulate(DefaultEmulator.ldfp, "val" to 0),
+                emulate(DefaultEmulator.ldsp, "val" to 0),
                 // Call
                 emulate(DefaultEmulator.call_addr, "addr" to Reference(mainSignature, functionEntryLabel)),
                 // On return
@@ -296,8 +298,8 @@ class CompilerCompareWithAssembly {
     @Test
     fun testCall() {
         val expected = """
-        LDFP #100
-        LDSP #100
+        LDFP #0
+        LDSP #0
         CALL #main
         exit
         
@@ -539,4 +541,36 @@ class CompilerCompareWithAssembly {
 
         bodyShouldMatchAssembled(body, expected)
     }
+
+    @Test
+    fun testReadWriteGlobal() {
+        val expected = """
+          LDFP #1
+          LDSP #1
+          CALL #initglobals
+          CALL #main
+          exit
+          
+          :initglobals
+          ADDSP #1
+          LDA #5
+          STA [#0]
+          RET
+          :main
+          ADDSP #1
+          LDA [#0]
+          out
+          RET
+        """
+        val program = """
+            
+            val i=5
+            def main():
+              print(i)
+        """
+
+        programShouldMatchAssembled(program, expected)
+    }
+
+
 }
