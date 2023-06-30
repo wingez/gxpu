@@ -37,18 +37,23 @@ enum class ControlFlow {
 class WalkerRunner(
     private val config: WalkConfig,
 ) : BackendCompiler {
-    override fun buildAndRun(allTypes: List<Datatype>, functions: List<FunctionContent>, globals: GlobalsResult): List<String> {
-        return WalkerState(allTypes, functions, config).walk().result
+    override fun buildAndRun(
+        allTypes: List<Datatype>,
+        functions: List<FunctionContent>,
+        globals: GlobalsResult
+    ): List<String> {
+        return WalkerState(allTypes, functions, config, globals).walk().result
     }
 }
 
 
 class WalkerState(
     types: List<Datatype>,
-    val intermediateFunctions: List<FunctionContent>,
+    private val intermediateFunctions: List<FunctionContent>,
 
-    val config: WalkConfig,
-) : TypeProvider, FunctionSignatureResolver, VariableProvider {
+    private val config: WalkConfig,
+    private val globalsDefinition: GlobalsResult,
+) : TypeProvider, FunctionSignatureResolver {
 
 
     private val types = types.associateBy { it.name }
@@ -60,6 +65,8 @@ class WalkerState(
         get() = frameStack.last()
 
     val availableFunctions = mutableListOf<IWalkerFunction>()
+
+    lateinit var globalVariables: ValueHolder
 
     override fun getType(name: String): Datatype {
         if (name !in types) {
@@ -109,6 +116,11 @@ class WalkerState(
             addFunction(UserFunction(f))
         }
 
+        // setup global variables
+        globalVariables = ValueHolder(globalsDefinition.fields)
+        walkUserFunction(UserFunction(globalsDefinition.initialize), emptyList())
+
+        //Call main
         val mainFunction = getFunctionFromSignature(
             mainSignature
         )
@@ -122,17 +134,26 @@ class WalkerState(
         return function.execute(parameters, this)
     }
 
-    fun setVariable(variableName: String, value: Value) {
-        getVariableView(variableName).applyValue(value)
+    fun setVariable(variable: Variable, value: Value) {
+        getVariableView(variable).applyValue(value)
     }
 
 
-    fun getVariableView(variableName: String): ValueHolder.View {
-        return currentFrame.localVariableHolder.viewEntire().viewField(variableName)
+    fun getVariableView(variable: Variable): ValueHolder.View {
+        return when (variable.type) {
+            VariableType.Local -> {
+                currentFrame.localVariableHolder.viewEntire().viewField(variable.name)
+
+            }
+            VariableType.Global->{
+                globalVariables.viewEntire().viewField(variable.name)
+            }
+            else -> TODO()
+        }
     }
 
-    fun getVariable(variableName: String): Value {
-        return getVariableView(variableName).getValue()
+    fun getVariable(variable: Variable): Value {
+        return getVariableView(variable).getValue()
     }
 
     fun walkUserFunction(userFunction: UserFunction, parameters: List<Value>): Value {
@@ -141,13 +162,13 @@ class WalkerState(
         val fields = userFunction.functionContent.fields
 
         // Push new frame
-        frameStack.add(WalkFrame(ValueHolder(userFunction.functionContent.fields)))
+        frameStack.add(WalkFrame(ValueHolder(fields)))
 
         // Add arguments as local variables
         userFunction.functionContent.definition.parameterNames.zip(parameters)
             .forEach { (paramName, value) ->
                 assert(fields.fieldType(paramName) == value.datatype)
-                setVariable(paramName, value)
+                setVariable(Variable(fields.getField(paramName), VariableType.Local), value)
             }
 
         // Walk the function
@@ -183,7 +204,7 @@ class WalkerState(
         val result = if (userFunction.signature.returnType == Datatype.Void) {
             Value.void
         } else {
-            getVariable("result")
+            getVariable(Variable(fields.getField(RETURN_VALUE_NAME), VariableType.Local))
         }
 
         // Pop frame
@@ -264,16 +285,11 @@ class WalkerState(
         return call(function, arguments)
     }
 
-    override fun getTypeOfVariable(variableName: String): Datatype {
-        return getVariable(variableName).datatype
-    }
-
-
     fun getValueView(addressExpression: AddressExpression): ValueHolder.View {
 
         return when (addressExpression) {
             is VariableExpression -> {
-                return getVariableView(addressExpression.variable.name)
+                return getVariableView(addressExpression.variable)
             }
 
             is DerefToAddress -> {
@@ -294,7 +310,7 @@ class WalkerState(
         return when (valueExpression) {
             is ConstantExpression -> Value.primitive(Datatype.Integer, valueExpression.value)
             is CallExpression -> handleCall(valueExpression)
-            is VariableExpression -> getVariable(valueExpression.variable.name)
+            is VariableExpression -> getVariable(valueExpression.variable)
             is StringExpression -> createFromString(valueExpression.string)
 
             is AddressOf -> {
