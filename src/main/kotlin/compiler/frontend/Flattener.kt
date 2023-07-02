@@ -254,7 +254,7 @@ class FunctionCompiler(
                 codeBlock.addInstruction(Jump(loopContext.endLabel))
             }
 
-            NodeTypes.Return -> addReturn(codeBlock)
+            NodeTypes.Return -> parseReturn(node, codeBlock)
 
             else -> {
                 val valueExpression = parseValueExpression(node)
@@ -263,7 +263,20 @@ class FunctionCompiler(
         }
     }
 
-    private fun addReturn(codeBlock: CodeBlock) {
+    private fun parseReturn(node: AstNode, codeBlock: CodeBlock) {
+        if (node.asReturn().hasValue()) {
+            parseAssign(
+                AstNode.fromAssign(
+                    AstNode.fromIdentifier(RETURN_VALUE_NAME, node.sourceInfo),
+                    node.child,
+                    node.sourceInfo
+                ), codeBlock
+            )
+        }
+        addReturn(codeBlock)
+    }
+
+    private fun addReturn(codeBlock: CodeBlock){
         codeBlock.addInstruction(Return())
     }
 
@@ -537,7 +550,9 @@ class FunctionCompiler(
                 variables.add(Variable(CompositeDataTypeField(newVariable.name, type), treatNewVariablesAs))
             }
         }
-        return Datatype.Composite(definition.signature.name, variables.filter{it.type==treatNewVariablesAs}.map { it.field })
+        return Datatype.Composite(
+            definition.signature.name,
+            variables.filter { it.type == treatNewVariablesAs }.map { it.field })
     }
 
     private fun lookupVariable(name: String): Variable {

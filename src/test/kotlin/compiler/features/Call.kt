@@ -90,4 +90,29 @@ class Call {
         runProgramCheckOutput(compiler, program, 11,18)
     }
 
+    @ParameterizedTest
+    @EnumSource
+    fun testReturn(compiler: CompilerBackend) {
+        var program= """
+                def a():int
+                  result = 5
+                  
+                def main():
+                  print(a())
+            """.trimIndent()
+
+        runProgramCheckOutput(compiler, program, 5)
+        program= """
+                def a():int
+                  return 5
+                  
+                def main():
+                  print(a())
+            """.trimIndent()
+
+        runProgramCheckOutput(compiler, program, 5)
+    }
+
+
+
 }

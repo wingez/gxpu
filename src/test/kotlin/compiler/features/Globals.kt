@@ -34,4 +34,19 @@ class Globals {
         runProgramCheckOutput(compiler, code, 5)
     }
 
+    @ParameterizedTest
+    @EnumSource
+    fun testGlobalInitializeCall(compiler: CompilerBackend) {
+
+        val code = """
+           val i=callme()
+           
+           def callme():int
+             result= 6
+           
+           def main():
+             print(i)
+        """.trimIndent()
+        runProgramCheckOutput(compiler, code, 6)
+    }
 }
