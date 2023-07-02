@@ -24,7 +24,7 @@ class WalkerOutput {
 }
 
 class WalkFrame(
-    val holder: FieldsHolder,
+    val localVariableHolder: ValueHolder,
 )
 
 enum class ControlFlow {
@@ -129,8 +129,8 @@ class WalkerState(
     }
 
 
-    fun getVariableView(variableName: String): FieldsHolder.FieldsView {
-        return currentFrame.holder.viewEntire().viewField(variableName)
+    fun getVariableView(variableName: String): ValueHolder.View {
+        return currentFrame.localVariableHolder.viewEntire().viewField(variableName)
     }
 
     fun getVariable(variableName: String): Value {
@@ -143,7 +143,7 @@ class WalkerState(
         val fields = userFunction.functionContent.fields
 
         // Push new frame
-        frameStack.add(WalkFrame(FieldsHolder(userFunction.functionContent.fields)))
+        frameStack.add(WalkFrame(ValueHolder(userFunction.functionContent.fields)))
 
         // Add arguments as local variables
         userFunction.functionContent.definition.parameterNames.zip(parameters)
@@ -297,7 +297,7 @@ class WalkerState(
     }
 
 
-    fun getValueView(addressExpression: AddressExpression): FieldsHolder.FieldsView {
+    fun getValueView(addressExpression: AddressExpression): ValueHolder.View {
 
         return when (addressExpression) {
             is VariableExpression -> {
@@ -327,7 +327,7 @@ class WalkerState(
 
             is AddressOf -> {
                 val compositeHolder = getValueView(valueExpression.value)
-                Value.pointer( compositeHolder)
+                Value.pointer(compositeHolder)
             }
 
             is DerefToValue -> {
@@ -343,3 +343,22 @@ class WalkerState(
         }
     }
 }
+
+fun createArray(type: Datatype, size: Int): Value = createArray(type, size) { 0 }
+fun createArray(type: Datatype, size: Int, init: (Int) -> Int): Value {
+
+    val arrayType = Datatype.Array(type)
+
+    val holder = ValueHolder(arrayType, size)
+
+    for (i in 0 until size) {
+        holder.primitives[i] = PrimitiveValue.integer(init.invoke(i))
+    }
+
+    return Value.pointer(holder.viewEntire())
+}
+
+fun createFromString(string: String): Value {
+    return createArray(Datatype.Integer, string.length) { i -> string[i].code }
+}
+

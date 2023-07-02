@@ -107,15 +107,15 @@ class NewTest {
                 CompositeDataTypeField("field3", Datatype.Integer),
             )
         )
-        val holder = FieldsHolder(myDatatype)
+        val holder = ValueHolder(myDatatype)
 
-        assertNotEquals(holder, FieldsHolder(myDatatype))
+        assertNotEquals(holder, ValueHolder(myDatatype))
 
 
         val entireView = holder.viewEntire()
 
         assertEquals(
-            FieldsHolder.FieldsView(
+            ValueHolder.View(
                 holder, myDatatype, 0 until 3
             ), entireView
         )
@@ -124,12 +124,12 @@ class NewTest {
         val viewField2 = entireView.viewField("field2")
         val viewField3 = entireView.viewField("field3")
         assertEquals(
-            FieldsHolder.FieldsView(
+            ValueHolder.View(
                 holder, Datatype.Integer, 0 until 1
             ), viewField1
         )
         assertEquals(
-            FieldsHolder.FieldsView(
+            ValueHolder.View(
                 holder, Datatype.Integer, 2 until 3
             ), viewField3
         )

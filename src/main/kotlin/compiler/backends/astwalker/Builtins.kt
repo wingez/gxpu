@@ -29,19 +29,16 @@ class BuiltInPrintString : Function(
     BuiltInSignatures.printString,
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
-        TODO()
-        /*
 
-        val array = values[0].asPrimitive().pointer.asValue()
-
-        val arraySize = array.arraySize
+        val arrayView = values[0].asPrimitive.pointer
 
         var result = ""
-        for (i in 0 until arraySize) {
-            result += Char(array.arrayHolderAt(i).value.getPrimitiveValue())
+        for (i in 0 until arrayView.arraySize()){
+            result+= Char(arrayView.arrayRead(i).getPrimitiveValue().integer)
         }
+
         state.output.result.add(result)
-        return Value.void()*/
+        return Value.void
     }
 }
 
@@ -49,15 +46,8 @@ class BuiltInArraySize : Function(
     BuiltInSignatures.arraySize,
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
-        TODO()
-        /*
-
-        val array = values[0].derefPointer().asValue()
-
-        val arraySize = array.arraySize
-        return Value.primitive(Datatype.Integer, arraySize)
-
-         */
+        val arrayView = values[0].asPrimitive.pointer
+        return Value.primitive(Datatype.Integer, arrayView.arraySize())
     }
 }
 
@@ -65,15 +55,15 @@ class BuiltInArrayRead : Function(
     BuiltInSignatures.arrayRead
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
-       /*
-        val array = values[0].derefPointer().asValue()
+        val arrayView = values[0].asPrimitive.pointer
+        val index = values[1].asPrimitive.integer
 
-        val index = values[1].getPrimitiveValue()
+        val arraySize = arrayView.arraySize()
+        if (index !in 0 until arraySize){
+            throw WalkerException("trying to read at index $index which is outside array bounds($arraySize)")
+        }
 
-        return array.arrayHolderAt(index).value
-
-        */
-        TODO()
+        return arrayView.arrayRead(index).getValue()
     }
 }
 
@@ -81,19 +71,12 @@ class BuiltInArrayWrite : Function(
     BuiltInSignatures.arrayWrite
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
-        TODO()
-        /*
-        val array = values[0].derefPointer().asValue()
 
-        val index = values[1].getPrimitiveValue()
+        val arrayView = values[0].asPrimitive.pointer
+        val index = values[1].asPrimitive.integer
 
-        val value = values[2]
-
-        array.arrayHolderAt(index).value = value
-
-        return Value.void()
-
-         */
+        arrayView.arrayRead(index).applyValue(values[2])
+        return Value.void
     }
 }
 
@@ -142,26 +125,8 @@ class BuiltInCreateArray : Function(
     BuiltInSignatures.createArray
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
-        TODO()
-        /*
-        val size = values[0].getPrimitiveValue()
-
-        val holders = (0 until size).map {
-            PrimitiveValueHolder(Datatype.Integer).apply {
-                value = Value.primitive(Datatype.Integer, 0)
-            }
-        }
-
-
-        val array = Value.array(Datatype.Array(Datatype.Integer), holders)
-
-        val holder = PrimitiveValueHolder(array.datatype)
-        holder.value = array
-
-        return Value.pointer(array.datatype, CompositeValueHolder(array.datatype, emptyMap(), holder))
-
-    }
-         */
+        val size = values[0].asPrimitive.integer
+        return createArray(Datatype.Integer, size)
     }
 }
 

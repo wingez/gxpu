@@ -25,28 +25,6 @@ interface VariableProvider {
     fun getTypeOfVariable(variableName: String): Datatype
 }
 
-fun createFromString(string: String): Value {
-    TODO()
-    /*
-    val arrayContentType = Datatype.Integer
-
-    val arrayType = Datatype.Array(arrayContentType)
-
-
-    val arrayValueHolders = string.map { char ->
-
-        PrimitiveValueHolder(arrayContentType)
-            .apply {
-                value = Value.primitive(arrayContentType, char.code)
-            }
-    }
-
-    val arrayHolder = PrimitiveValueHolder(arrayType)
-    arrayHolder.value = Value.array(arrayType, arrayValueHolders)
-
-    return Value.pointer(arrayType, CompositeValueHolder(arrayType, emptyMap(), arrayHolder))
-*/
-}
 
 data class Value(
     val datatype: Datatype,
@@ -71,7 +49,7 @@ data class Value(
             return Value(datatype, listOf(PrimitiveValue.integer(value)))
         }
 
-        fun pointer(value: FieldsHolder.FieldsView): Value {
+        fun pointer(value: ValueHolder.View): Value {
             return Value(Datatype.Pointer(value.datatype), listOf(PrimitiveValue.pointer(value)))
         }
     }
@@ -81,7 +59,7 @@ data class Value(
 
 data class PrimitiveValue private constructor(
     val integer: Int,
-    private val _pointer: FieldsHolder.FieldsView?,
+    private val _pointer: ValueHolder.View?,
 
     ) {
     val pointer
@@ -92,26 +70,38 @@ data class PrimitiveValue private constructor(
 
     companion object {
         fun integer(value: Int) = PrimitiveValue(value, null)
-        fun pointer(value: FieldsHolder.FieldsView) = PrimitiveValue(0, value)
+        fun pointer(value: ValueHolder.View) = PrimitiveValue(0, value)
     }
 }
 
-class FieldsHolder(
+class ValueHolder(
     val datatype: Datatype,
+    arraySize: Int = -1
 ) {
+
+    val primitives: MutableList<PrimitiveValue>
+
     init {
-        require(datatype.isComposite)
+        require(datatype.isComposite || datatype.isArray)
+
+        val size = if (datatype.isComposite) {
+            sizeOf(datatype)
+        } else if (datatype.isArray) {
+            require(arraySize >= 0)
+            sizeOf(datatype.arrayType) * arraySize
+        } else {
+            requireNotReached()
+        }
+        primitives = MutableList(size) { PrimitiveValue.integer(0) }
     }
 
-    private val fieldValues = MutableList(sizeOf(datatype)) { PrimitiveValue.integer(0) }
-
-    fun viewEntire(): FieldsView {
-        return FieldsView(this, datatype, fieldValues.indices)
+    fun viewEntire(): View {
+        return View(this, datatype, primitives.indices)
     }
 
 
-    data class FieldsView(
-        private val holder: FieldsHolder,
+    data class View(
+        private val holder: ValueHolder,
         val datatype: Datatype,
         private val range: IntRange,
     ) {
@@ -124,12 +114,12 @@ class FieldsHolder(
             }
         }
 
-        fun viewField(fieldName: String): FieldsView {
+        fun viewField(fieldName: String): View {
             require(!isPrimitive)
 
             val field = fieldOffset(datatype, fieldName)
             val start = range.first + field.offset
-            return FieldsView(holder, field.type, start until (start + sizeOf(field.type)))
+            return View(holder, field.type, start until (start + sizeOf(field.type)))
         }
 
         fun pointerTo(): PrimitiveValue {
@@ -143,25 +133,36 @@ class FieldsHolder(
 
         fun setPrimitiveValue(value: PrimitiveValue) {
             require(isPrimitive)
-            holder.fieldValues[range.first] = value
+            holder.primitives[range.first] = value
         }
 
         fun getValue(): Value {
-            val primitives = List(range.count()) { i -> holder.fieldValues[range.first + i] }
+            val primitives = List(range.count()) { i -> holder.primitives[range.first + i] }
             return Value(datatype, primitives)
         }
 
         fun applyValue(values: Value) {
             require(values.primitives.size == range.count())
             for ((index, value) in values.primitives.withIndex()) {
-                holder.fieldValues[range.first + index] = value
+                holder.primitives[range.first + index] = value
             }
         }
+
+        fun arrayRead(index: Int): View {
+            require(datatype.isArray)
+            val elementSize = sizeOf(datatype.arrayType)
+
+            val startPos = elementSize * index + range.first
+
+            return View(holder, datatype.arrayType, startPos until startPos + elementSize)
+        }
+        fun arraySize():Int{
+            require(datatype.isArray)
+            require(datatype.arrayType==Datatype.Integer)
+            return range.count()
+        }
     }
-
-
 }
-
 
 fun sizeOf(datatype: Datatype): Int {
     if (datatype.isPrimitive) {
