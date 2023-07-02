@@ -20,8 +20,8 @@ class BuiltInPrintInteger : Function(
     BuiltInSignatures.print,
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
-        state.output.result.add(values[0].getPrimitiveValue().toString())
-        return Value.void()
+        state.output.result.add(values[0].asPrimitive.integer.toString())
+        return Value.void
     }
 }
 
@@ -29,8 +29,10 @@ class BuiltInPrintString : Function(
     BuiltInSignatures.printString,
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
+        TODO()
+        /*
 
-        val array = values[0].derefPointer().asValue()
+        val array = values[0].asPrimitive().pointer.asValue()
 
         val arraySize = array.arraySize
 
@@ -39,7 +41,7 @@ class BuiltInPrintString : Function(
             result += Char(array.arrayHolderAt(i).value.getPrimitiveValue())
         }
         state.output.result.add(result)
-        return Value.void()
+        return Value.void()*/
     }
 }
 
@@ -47,10 +49,15 @@ class BuiltInArraySize : Function(
     BuiltInSignatures.arraySize,
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
+        TODO()
+        /*
+
         val array = values[0].derefPointer().asValue()
 
         val arraySize = array.arraySize
         return Value.primitive(Datatype.Integer, arraySize)
+
+         */
     }
 }
 
@@ -58,11 +65,15 @@ class BuiltInArrayRead : Function(
     BuiltInSignatures.arrayRead
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
+       /*
         val array = values[0].derefPointer().asValue()
 
         val index = values[1].getPrimitiveValue()
 
         return array.arrayHolderAt(index).value
+
+        */
+        TODO()
     }
 }
 
@@ -70,6 +81,8 @@ class BuiltInArrayWrite : Function(
     BuiltInSignatures.arrayWrite
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
+        TODO()
+        /*
         val array = values[0].derefPointer().asValue()
 
         val index = values[1].getPrimitiveValue()
@@ -79,6 +92,8 @@ class BuiltInArrayWrite : Function(
         array.arrayHolderAt(index).value = value
 
         return Value.void()
+
+         */
     }
 }
 
@@ -94,8 +109,8 @@ class IntegerComparator(
     ),
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
-        val value1 = values[0].getPrimitiveValue()
-        val value2 = values[1].getPrimitiveValue()
+        val value1 = values[0].asPrimitive.integer
+        val value2 = values[1].asPrimitive.integer
 
         val result = when (compareFunction.invoke(value1, value2)) {
             true -> 1
@@ -113,8 +128,8 @@ class IntegerArithmetic(
     FunctionSignature(functionName, listOf(Datatype.Integer, Datatype.Integer), Datatype.Integer, functionType),
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
-        val value1 = values[0].getPrimitiveValue()
-        val value2 = values[1].getPrimitiveValue()
+        val value1 = values[0].asPrimitive.integer
+        val value2 = values[1].asPrimitive.integer
 
         val result = arithmeticFunction.invoke(value1, value2)
 
@@ -127,6 +142,8 @@ class BuiltInCreateArray : Function(
     BuiltInSignatures.createArray
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
+        TODO()
+        /*
         val size = values[0].getPrimitiveValue()
 
         val holders = (0 until size).map {
@@ -142,6 +159,9 @@ class BuiltInCreateArray : Function(
         holder.value = array
 
         return Value.pointer(array.datatype, CompositeValueHolder(array.datatype, emptyMap(), holder))
+
+    }
+         */
     }
 }
 
@@ -149,9 +169,7 @@ class BoolConverter : Function(
     BuiltInSignatures.bool
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
-        val primitive = values[0].getPrimitiveValue()
-
-        return Value.primitive(Datatype.Boolean, primitive)
+        return Value(Datatype.Boolean, values[0].primitives)
     }
 }
 

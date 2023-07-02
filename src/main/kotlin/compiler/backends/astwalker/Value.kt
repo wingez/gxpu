@@ -1,112 +1,9 @@
 package compiler.backends.astwalker
 
-import ast.AstNode
-import ast.NodeTypes
 import compiler.frontend.Datatype
-import compiler.frontend.FunctionSignatureResolver
+import requireNotReached
 
-
-data class VariableHandle(
-    val accessors: List<String>,
-    val type: Datatype,
-)
-
-class Value private constructor(
-    val datatype: Datatype,
-    private val primitiveValue: Int = 0,
-    private val pointerTargetHolder: CompositeValueHolder? = null,
-    private val arrayValueHolders: List<PrimitiveValueHolder>? = null,
-    private val compositeValues: Map<VariableHandle, Value>? = null
-) {
-
-    fun isPrimitive() = datatype.isPrimitive
-    fun isArray() = datatype.isArray
-    fun isPointer() = datatype.isPointer
-    fun isComposite() = datatype.isComposite
-
-    fun getPrimitiveValue(): Int {
-        assert(isPrimitive())
-        return primitiveValue
-    }
-
-    val arraySize: Int
-        get() {
-            check(isArray())
-            return arrayValueHolders!!.size
-        }
-
-    fun arrayHolderAt(index: Int): PrimitiveValueHolder {
-        check(isArray())
-        if (index !in arrayValueHolders!!.indices) {
-            throw WalkerException("index outside of array")
-        }
-        return arrayValueHolders[index]
-    }
-
-    fun derefPointer(): CompositeValueHolder {
-        assert(isPointer())
-        return pointerTargetHolder!!
-    }
-
-    fun getField(fieldName: String): Value {
-        require(isComposite())
-        require(datatype.containsField(fieldName))
-
-        val fieldType = datatype.fieldType(fieldName)
-        if (!fieldType.isComposite) {
-            return compositeValues!!.getValue(VariableHandle(listOf(fieldName), fieldType))
-        } else {
-            return composite(
-                fieldType,
-                compositeValues!!.keys.filter { it.accessors.first() == fieldName }.associate {
-                    VariableHandle(it.accessors.subList(1, it.accessors.size), it.type) to compositeValues.getValue(it)
-                })
-        }
-    }
-
-    override fun toString(): String {
-        if (isPrimitive()) {
-            return "Variable(type=$datatype, value=$primitiveValue)"
-        }
-        return super.toString()
-    }
-
-    companion object {
-        fun void(): Value {
-            return Value(Datatype.Void, 0, null)
-        }
-
-        fun primitive(datatype: Datatype, primitiveValue: Int): Value {
-            assert(datatype.isPrimitive)
-            return Value(datatype, primitiveValue, null)
-        }
-
-        fun pointer(datatype: Datatype, pointTo: CompositeValueHolder?): Value {
-            if (pointTo != null) {
-                require(datatype == pointTo.type)
-            }
-            return Value(Datatype.Pointer(datatype), 0, pointTo)
-        }
-
-        fun array(type: Datatype, holders: List<PrimitiveValueHolder>): Value {
-            check(type.isArray)
-            return Value(type, arrayValueHolders = holders)
-        }
-
-        fun composite(type: Datatype, fields: Map<VariableHandle, Value>): Value {
-            require(type.isComposite)
-            require(fields.values.all { !it.isComposite() })
-            return Value(type, compositeValues = fields)
-        }
-    }
-}
-
-class PrimitiveValueHolder(
-    val type: Datatype,
-) {
-    var value = createDefaultValue(type)
-}
-
+/*
 fun createDefaultValue(datatype: Datatype): Value {
     if (datatype.isPrimitive) {
         return Value.primitive(datatype, 0)
@@ -123,47 +20,14 @@ fun createDefaultValue(datatype: Datatype): Value {
 
     throw WalkerException("Cannot instanciate empty variable of type $datatype")
 }
-
-fun findType(
-    node: AstNode,
-    variableProvider: VariableProvider,
-    functionProvider: FunctionSignatureResolver
-): Datatype {
-
-    return when (node.type) {
-        NodeTypes.Identifier -> variableProvider.getTypeOfVariable(node.asIdentifier())
-        NodeTypes.Constant -> Datatype.Integer
-        NodeTypes.String -> Datatype.Array(Datatype.Integer)
-        NodeTypes.Call -> {
-            val callNode = node.asCall()
-            val parameterTypes = callNode.parameters.map { findType(it, variableProvider, functionProvider) }
-            return functionProvider.getFunctionDefinitionMatching(
-                callNode.targetName, callNode.functionType, parameterTypes
-            ).returnType
-        }
-
-        NodeTypes.ArrayAccess -> {
-            val arrayAccess = node.asArrayAccess()
-
-            // datatype for the array
-            val arrayPointerType = findType(arrayAccess.parent, variableProvider, functionProvider)
-            assert(arrayPointerType.isPointer)
-            val arrayType = arrayPointerType.pointerType
-            assert(arrayType.isArray)
-            // what this is an array of
-            return arrayType.arrayType
-        }
-
-        else -> throw WalkerException()
-    }
-}
-
+*/
 interface VariableProvider {
     fun getTypeOfVariable(variableName: String): Datatype
 }
 
 fun createFromString(string: String): Value {
-
+    TODO()
+    /*
     val arrayContentType = Datatype.Integer
 
     val arrayType = Datatype.Array(arrayContentType)
@@ -181,5 +45,151 @@ fun createFromString(string: String): Value {
     arrayHolder.value = Value.array(arrayType, arrayValueHolders)
 
     return Value.pointer(arrayType, CompositeValueHolder(arrayType, emptyMap(), arrayHolder))
+*/
+}
+
+data class Value(
+    val datatype: Datatype,
+    val primitives: List<PrimitiveValue>,
+) {
+    val asPrimitive: PrimitiveValue
+        get() {
+            require(datatype.isPrimitive)
+            require(primitives.size == 1)
+            return primitives.first()
+        }
+
+    fun getField(fieldName: String): Value {
+        val field = fieldOffset(datatype, fieldName)
+        return Value(field.type, primitives.subList(field.offset, field.offset + sizeOf(field.type)))
+    }
+
+    companion object {
+        val void = Value(Datatype.Void, emptyList())
+
+        fun primitive(datatype: Datatype, value: Int): Value {
+            return Value(datatype, listOf(PrimitiveValue.integer(value)))
+        }
+
+        fun pointer(value: FieldsHolder.FieldsView): Value {
+            return Value(Datatype.Pointer(value.datatype), listOf(PrimitiveValue.pointer(value)))
+        }
+    }
+
 
 }
+
+data class PrimitiveValue private constructor(
+    val integer: Int,
+    private val _pointer: FieldsHolder.FieldsView?,
+
+    ) {
+    val pointer
+        get() = run {
+            requireNotNull(_pointer)
+            _pointer
+        }
+
+    companion object {
+        fun integer(value: Int) = PrimitiveValue(value, null)
+        fun pointer(value: FieldsHolder.FieldsView) = PrimitiveValue(0, value)
+    }
+}
+
+class FieldsHolder(
+    val datatype: Datatype,
+) {
+    init {
+        require(datatype.isComposite)
+    }
+
+    private val fieldValues = MutableList(sizeOf(datatype)) { PrimitiveValue.integer(0) }
+
+    fun viewEntire(): FieldsView {
+        return FieldsView(this, datatype, fieldValues.indices)
+    }
+
+
+    data class FieldsView(
+        private val holder: FieldsHolder,
+        val datatype: Datatype,
+        private val range: IntRange,
+    ) {
+
+        val isPrimitive get() = datatype.isPrimitive
+
+        init {
+            if (isPrimitive) {
+                require(range.count() == 1)
+            }
+        }
+
+        fun viewField(fieldName: String): FieldsView {
+            require(!isPrimitive)
+
+            val field = fieldOffset(datatype, fieldName)
+            val start = range.first + field.offset
+            return FieldsView(holder, field.type, start until (start + sizeOf(field.type)))
+        }
+
+        fun pointerTo(): PrimitiveValue {
+            return PrimitiveValue.pointer(this)
+        }
+
+        fun getPrimitiveValue(): PrimitiveValue {
+            require(isPrimitive)
+            return getValue().asPrimitive
+        }
+
+        fun setPrimitiveValue(value: PrimitiveValue) {
+            require(isPrimitive)
+            holder.fieldValues[range.first] = value
+        }
+
+        fun getValue(): Value {
+            val primitives = List(range.count()) { i -> holder.fieldValues[range.first + i] }
+            return Value(datatype, primitives)
+        }
+
+        fun applyValue(values: Value) {
+            require(values.primitives.size == range.count())
+            for ((index, value) in values.primitives.withIndex()) {
+                holder.fieldValues[range.first + index] = value
+            }
+        }
+    }
+
+
+}
+
+
+fun sizeOf(datatype: Datatype): Int {
+    if (datatype.isPrimitive) {
+        return 1
+    }
+    if (datatype.isComposite) {
+        return datatype.compositeFields.sumOf { sizeOf(it.type) }
+    } else {
+        TODO(datatype.toString())
+    }
+}
+
+private data class FieldOffset(
+    val offset: Int,
+    val type: Datatype,
+)
+
+private fun fieldOffset(datatype: Datatype, fieldName: String): FieldOffset {
+    require(datatype.isComposite)
+
+    var offset = 0
+    for (field in datatype.compositeFields) {
+        if (field.name == fieldName) {
+            return FieldOffset(offset, field.type)
+        } else {
+            offset += sizeOf(field.type)
+        }
+    }
+    requireNotReached()
+}
+
