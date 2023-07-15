@@ -4,6 +4,7 @@ import CompilerError
 import SourceProvider
 import ast.syntaxerror.ParserSyntaxError
 import compiler.features.CompilerBackend
+import compiler.features.intMatcher
 import compiler.features.runProgramCheckOutput
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -25,7 +26,7 @@ private inline fun <reified T : CompilerError> assertThrowsProgram(
 
     assertThrows<T> {
         val compiler = CompilerBackend.Walker //TODO perhaps run on all backends
-        runProgramCheckOutput(compiler, program, printError = false)
+        runProgramCheckOutput(compiler, program, intMatcher())
 
     }.also {
         assertEquals(message, it.message)

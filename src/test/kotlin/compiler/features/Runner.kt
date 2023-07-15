@@ -136,20 +136,36 @@ private fun getRunner(type: CompilerBackend): BackendCompiler {
     }
 }
 
-
-fun runBodyCheckOutput(type: CompilerBackend, body: String, vararg result: Any, printError: Boolean = true) {
-    val expected = result.map(Any::toString)
-
-    val actual = compileAndRunBody(body, getRunner(type), BuiltInSignatures())
-    Assertions.assertIterableEquals(expected, actual)
+fun interface OutputMatcher {
+    fun assertOutputMatch(output: Any)
 }
 
-fun runProgramCheckOutput(type: CompilerBackend, program: String, vararg result: Any, printError: Boolean = true) {
+fun intMatcher(vararg ints: Int): OutputMatcher {
+    return matchLines(ints.map { it.toString() })
+}
 
+fun matchString(string: String): OutputMatcher {
+    return matchLines(string)
+}
 
-    val expected = result.map { it.toString() }
+fun matchLines(vararg lines: String): OutputMatcher {
+    return matchLines(lines.toList())
+}
 
+fun matchLines(lines: List<String>): OutputMatcher {
+    return OutputMatcher { output ->
+        assertEquals(lines, output)
+    }
+}
+
+fun runBodyCheckOutput(type: CompilerBackend, body: String, resultMatcher: OutputMatcher) {
+    val actual = compileAndRunBody(body, getRunner(type), BuiltInSignatures())
+
+    resultMatcher.assertOutputMatch(actual)
+}
+
+fun runProgramCheckOutput(type: CompilerBackend, program: String, resultMatcher: OutputMatcher) {
     val actual = compileAndRunProgram(StringReader(program), "dummyfile", getRunner(type), BuiltInSignatures())
 
-    Assertions.assertIterableEquals(expected, actual)
+    resultMatcher.assertOutputMatch(actual)
 }

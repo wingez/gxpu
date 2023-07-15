@@ -12,7 +12,7 @@ class CompileRunArithmetic {
         val code = """
           print(5+10) 
         """
-        runBodyCheckOutput(compiler, code, 15)
+        runBodyCheckOutput(compiler, code, intMatcher(15))
     }
 
     @ParameterizedTest
@@ -23,7 +23,7 @@ class CompileRunArithmetic {
           print(8-var)
            
         """
-        runBodyCheckOutput(compiler, code, 3)
+        runBodyCheckOutput(compiler, code, intMatcher(3))
 
     }
 
@@ -46,7 +46,7 @@ class CompileRunArithmetic {
             else:
               print(0)
         """
-        runBodyCheckOutput(compiler, code, 1, 0, 0)
+        runBodyCheckOutput(compiler, code, intMatcher(1, 0, 0))
 
     }
 

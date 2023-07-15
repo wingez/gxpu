@@ -29,7 +29,7 @@ class Structs {
             print(a.member2)
      
     """
-        runProgramCheckOutput(compiler, program, 2, 5)
+        runProgramCheckOutput(compiler, program, intMatcher(2, 5))
     }
 
 
@@ -53,7 +53,7 @@ class Structs {
             print((a.member2)+(a.member1))
      
     """
-        runProgramCheckOutput(compiler, program, 4, 7)
+        runProgramCheckOutput(compiler, program, intMatcher(4, 7))
     }
 
 
@@ -82,7 +82,7 @@ class Structs {
             print((a.child).child2)
      
     """
-        runProgramCheckOutput(compiler, program, 1, 2, 3)
+        runProgramCheckOutput(compiler, program, intMatcher(1, 2, 3))
     }
 
     @ParameterizedTest
@@ -106,7 +106,7 @@ class Structs {
             print(p->a)
             print(p->b)
     """
-        runProgramCheckOutput(compiler, program, 3, 6)
+        runProgramCheckOutput(compiler, program, intMatcher(3, 6))
     }
     @ParameterizedTest
     @EnumSource
@@ -124,6 +124,6 @@ class Structs {
             print(x.first)
             print(x.second)
     """
-        runProgramCheckOutput(compiler, program, 4, 5)
+        runProgramCheckOutput(compiler, program, intMatcher(4, 5))
     }
 }

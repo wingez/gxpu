@@ -22,7 +22,7 @@ class Call {
             print(3)
     """
 
-        runProgramCheckOutput(compiler, program, 5, 10, 3)
+        runProgramCheckOutput(compiler, program, intMatcher(5, 10, 3))
     }
 
     @ParameterizedTest
@@ -37,7 +37,7 @@ class Call {
             print(1)
           """
 
-        runProgramCheckOutput(compiler, program, 5, 1)
+        runProgramCheckOutput(compiler, program, intMatcher(5, 1))
     }
 
     @ParameterizedTest
@@ -55,7 +55,7 @@ class Call {
             
     """
 
-        runProgramCheckOutput(compiler, program, 5, 7, 10, 7)
+        runProgramCheckOutput(compiler, program, intMatcher(5, 7, 10, 7))
     }
 
     @ParameterizedTest
@@ -72,13 +72,13 @@ class Call {
               test(1,var,var) 
             
     """
-        runProgramCheckOutput(compiler, program, 6, 5)
+        runProgramCheckOutput(compiler, program, intMatcher(6, 5))
     }
 
     @ParameterizedTest
     @EnumSource
     fun testInstanceFunction(compiler: CompilerBackend) {
-        val program= """
+        val program = """
                 def (a:int) add(b:int):int
                   result = a+b
                   
@@ -87,13 +87,13 @@ class Call {
                   print((5+6).add(7))
             """.trimIndent()
 
-        runProgramCheckOutput(compiler, program, 11,18)
+        runProgramCheckOutput(compiler, program, intMatcher(11, 18))
     }
 
     @ParameterizedTest
     @EnumSource
     fun testReturn(compiler: CompilerBackend) {
-        var program= """
+        var program = """
                 def a():int
                   result = 5
                   
@@ -101,8 +101,8 @@ class Call {
                   print(a())
             """.trimIndent()
 
-        runProgramCheckOutput(compiler, program, 5)
-        program= """
+        runProgramCheckOutput(compiler, program, intMatcher(5))
+        program = """
                 def a():int
                   return 5
                   
@@ -110,9 +110,6 @@ class Call {
                   print(a())
             """.trimIndent()
 
-        runProgramCheckOutput(compiler, program, 5)
+        runProgramCheckOutput(compiler, program, intMatcher(5))
     }
-
-
-
 }

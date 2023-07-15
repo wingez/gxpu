@@ -1,6 +1,8 @@
 package compiler.features.programs
 
 import compiler.features.CompilerBackend
+import compiler.features.intMatcher
+import compiler.features.matchLines
 import compiler.features.runProgramCheckOutput
 import org.junit.jupiter.api.Assumptions
 import org.junit.jupiter.params.ParameterizedTest
@@ -29,7 +31,7 @@ class Strings {
             print(a)
             print(b)
     """
-        runProgramCheckOutput(compiler, program, "abcd", "bcde")
+        runProgramCheckOutput(compiler, program, matchLines("abcd", "bcde"))
     }
 
 
@@ -83,6 +85,6 @@ class Strings {
             
     """.trimIndent()
 
-        runProgramCheckOutput(compiler, program, 0, 1, 10, 18, 19, 207)
+        runProgramCheckOutput(compiler, program, intMatcher(0, 1, 10, 18, 19, 207))
     }
 }

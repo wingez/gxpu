@@ -18,7 +18,7 @@ class Pointers {
             
         """.trimIndent()
 
-        runBodyCheckOutput(compiler, body,6, 5)
+        runBodyCheckOutput(compiler, body,intMatcher(6, 5))
     }
 
     @ParameterizedTest
@@ -36,7 +36,7 @@ class Pointers {
             
         """.trimIndent()
 
-        runBodyCheckOutput(compiler, body, 5, 10)
+        runBodyCheckOutput(compiler, body, intMatcher(5, 10))
     }
 
     @ParameterizedTest
@@ -55,7 +55,7 @@ class Pointers {
             
         """.trimIndent()
 
-        runProgramCheckOutput(compiler, body, 5, 6)
+        runProgramCheckOutput(compiler, body, intMatcher(5, 6))
     }
 
 

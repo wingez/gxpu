@@ -17,7 +17,7 @@ class ControlFlow {
         val code = """
         print(5)
     """
-        runBodyCheckOutput(compiler, code, 5)
+        runBodyCheckOutput(compiler, code, intMatcher(5))
     }
 
     @ParameterizedTest
@@ -27,7 +27,7 @@ class ControlFlow {
             val var:byte=5
             print(var)
         """
-        runBodyCheckOutput(compiler, code, 5)
+        runBodyCheckOutput(compiler, code, intMatcher(5))
     }
 
     @ParameterizedTest
@@ -39,7 +39,7 @@ class ControlFlow {
             print(var)
             print(var1)
         """
-        runBodyCheckOutput(compiler, code, 5, 10)
+        runBodyCheckOutput(compiler, code, intMatcher(5, 10))
     }
 
     @ParameterizedTest
@@ -51,7 +51,7 @@ class ControlFlow {
             var=3
             print(var)
         """
-        runBodyCheckOutput(compiler, code, 5, 3)
+        runBodyCheckOutput(compiler, code, intMatcher(5, 3))
     }
 
     @ParameterizedTest
@@ -63,7 +63,7 @@ class ControlFlow {
             var= var+1
             print(var)
         """
-        runBodyCheckOutput(compiler, code, 5, 6)
+        runBodyCheckOutput(compiler, code, intMatcher(5, 6))
     }
 
     @ParameterizedTest
@@ -76,7 +76,7 @@ class ControlFlow {
             print(var2)
             print(var1)
         """
-        runBodyCheckOutput(compiler, code, 2, 1)
+        runBodyCheckOutput(compiler, code, intMatcher(2, 1))
     }
 
     @ParameterizedTest
@@ -88,7 +88,7 @@ class ControlFlow {
             print(var)
         """
         assertThrows<FrontendCompilerError> {
-            runBodyCheckOutput(compiler, code, 5)
+            runBodyCheckOutput(compiler, code, intMatcher(5))
         }
     }
 
@@ -102,11 +102,11 @@ class ControlFlow {
         """
         when (compiler) {
             CompilerBackend.Emulator -> assertThrows<EmulatorCyclesExceeded> {
-                runBodyCheckOutput(compiler, code)
+                runBodyCheckOutput(compiler, code, intMatcher())
             }
 
             CompilerBackend.Walker -> assertThrows<WalkerException> {
-                runBodyCheckOutput(compiler, code)
+                runBodyCheckOutput(compiler, code, intMatcher())
             }
 
             else -> TODO()
@@ -122,7 +122,7 @@ class ControlFlow {
           print(var)
           var=var-1
         """
-        runBodyCheckOutput(compiler, code, 5, 4, 3, 2, 1)
+        runBodyCheckOutput(compiler, code, intMatcher(5, 4, 3, 2, 1))
     }
 
     @ParameterizedTest
@@ -135,7 +135,7 @@ class ControlFlow {
             print(0)
           print(2)
         """
-        runBodyCheckOutput(compiler, body, 1, 2)
+        runBodyCheckOutput(compiler, body, intMatcher(1, 2))
 
         body = """
         val a:byte=3
@@ -146,7 +146,7 @@ class ControlFlow {
           a=a-1
         
         """
-        runBodyCheckOutput(compiler, body, 8, 3, 2, 8, 1)
+        runBodyCheckOutput(compiler, body, intMatcher(8, 3, 2, 8, 1))
     }
 }
 

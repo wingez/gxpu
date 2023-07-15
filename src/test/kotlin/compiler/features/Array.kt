@@ -18,7 +18,7 @@ class Array {
           
           print(arr.size())
     """
-        runBodyCheckOutput(compiler, program, 3)
+        runBodyCheckOutput(compiler, program, intMatcher(3))
     }
 
 
@@ -30,7 +30,7 @@ class Array {
           
           print(arr[0])
     """
-        runBodyCheckOutput(compiler, program, 0)
+        runBodyCheckOutput(compiler, program, intMatcher(0))
     }
 
     @ParameterizedTest
@@ -47,7 +47,7 @@ class Array {
           
           
     """
-        runBodyCheckOutput(compiler, program, 0, 0, 10, 0)
+        runBodyCheckOutput(compiler, program, intMatcher(0, 0, 10, 0))
     }
 
 
@@ -71,7 +71,7 @@ class Array {
             
             printArray(arr)
     """
-        runProgramCheckOutput(compiler, program, 5, 10, 15)
+        runProgramCheckOutput(compiler, program, intMatcher(5, 10, 15))
     }
 
     @ParameterizedTest
@@ -89,7 +89,7 @@ class Array {
             editArray(arr)
             print(arr[0])
     """
-        runProgramCheckOutput(compiler, program, 100)
+        runProgramCheckOutput(compiler, program, intMatcher(100))
     }
 
 
@@ -101,7 +101,7 @@ class Array {
             val a:*int[] = createArray(5)
             a.size() = 10
     """
-        assertThrows<FrontendCompilerError> { runProgramCheckOutput(compiler, program) }
+        assertThrows<FrontendCompilerError> { runProgramCheckOutput(compiler, program,intMatcher()) }
     }
 
     @ParameterizedTest
@@ -117,7 +117,7 @@ class Array {
             print(a[10])
             
         """
-        assertThrows<WalkerException> { runProgramCheckOutput(compiler, program) }
+        assertThrows<WalkerException> { runProgramCheckOutput(compiler, program, intMatcher()) }
     }
 
 

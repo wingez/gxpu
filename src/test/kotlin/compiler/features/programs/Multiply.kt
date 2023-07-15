@@ -1,6 +1,7 @@
 package compiler.features.programs
 
 import compiler.features.CompilerBackend
+import compiler.features.intMatcher
 import compiler.features.runProgramCheckOutput
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
@@ -22,7 +23,7 @@ class Multiply {
             print(mul(4,5))
             print(mul(10,0))
           """
-        runProgramCheckOutput(compiler, program, 0, 20, 0)
+        runProgramCheckOutput(compiler, program, intMatcher(0, 20, 0))
     }
 
 }

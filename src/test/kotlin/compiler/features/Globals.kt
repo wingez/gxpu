@@ -18,7 +18,7 @@ class Globals {
            def main():
              print(i)
         """.trimIndent()
-        runProgramCheckOutput(compiler, code, 0)
+        runProgramCheckOutput(compiler, code, intMatcher(0))
     }
 
     @ParameterizedTest
@@ -31,7 +31,7 @@ class Globals {
            def main():
              print(i)
         """.trimIndent()
-        runProgramCheckOutput(compiler, code, 5)
+        runProgramCheckOutput(compiler, code, intMatcher(5))
     }
 
     @ParameterizedTest
@@ -47,6 +47,6 @@ class Globals {
            def main():
              print(i)
         """.trimIndent()
-        runProgramCheckOutput(compiler, code, 6)
+        runProgramCheckOutput(compiler, code, intMatcher(6))
     }
 }

@@ -1,6 +1,7 @@
 package compiler.features.programs
 
 import compiler.features.CompilerBackend
+import compiler.features.intMatcher
 import compiler.features.runProgramCheckOutput
 import org.junit.jupiter.api.Assumptions
 import org.junit.jupiter.params.ParameterizedTest
@@ -32,6 +33,6 @@ class Primes {
                
               number = number+1
     """.trimIndent()
-        runProgramCheckOutput(compiler,program,2, 3, 5, 7, 11, 13, 17, 19, 23, 29 )
+        runProgramCheckOutput(compiler,program, intMatcher(2, 3, 5, 7, 11, 13, 17, 19, 23, 29 ))
     }
 }
