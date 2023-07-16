@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import compiler.backends.astwalker.WalkerException
+import compiler.features.matchString
 import compiler.frontend.FrontendCompilerError
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -19,7 +20,7 @@ internal class WalkerTest {
               print(5)
         """.trimIndent()
 
-        assertEquals(listOf("5"), run(program))
+        assertEquals(listOf(5), run(program))
 
     }
 
@@ -31,7 +32,7 @@ internal class WalkerTest {
               print(5+5)
         """.trimIndent()
 
-        assertEquals(listOf("10"), run(function))
+        assertEquals(listOf(10), run(function))
 
     }
 
@@ -42,7 +43,7 @@ internal class WalkerTest {
                   val a:int=5
                   print(a)
             """
-        assertEquals(listOf("5"), run(function))
+        assertEquals(listOf(5), run(function))
 
         assertThrows<FrontendCompilerError> {
             run(
@@ -68,7 +69,7 @@ internal class WalkerTest {
                   else:
                     print($i)
             """
-            val expected = if (i == 5) i.toString() else "20"
+            val expected = if (i == 5) i else 20
 
             assertEquals(listOf(expected), run(function))
         }
@@ -84,7 +85,7 @@ internal class WalkerTest {
                     i = i+1
             """
 
-        val expected = listOf(3, 4, 5).map { it.toString() }
+        val expected = listOf(3, 4, 5)
 
         assertEquals(expected, run(function))
     }
@@ -116,7 +117,7 @@ internal class WalkerTest {
                 i=i+1
         """.trimIndent()
 
-        val expected = listOf(0, 1).map { it.toString() }
+        val expected = listOf(0, 1)
         assertEquals(expected, run(function))
 
         function = """
@@ -144,7 +145,7 @@ internal class WalkerTest {
                   callMe()
             """.trimIndent()
 
-        val expected = listOf(10, 10).map { it.toString() }
+        val expected = listOf(10, 10)
 
         assertEquals(expected, run(program))
     }
@@ -164,7 +165,7 @@ internal class WalkerTest {
                   b(6,7)
             """.trimIndent()
 
-        val expected = listOf(5, 13).map { it.toString() }
+        val expected = listOf(5, 13)
 
         assertEquals(expected, run(program))
     }
@@ -183,7 +184,7 @@ internal class WalkerTest {
                   
             """.trimIndent()
 
-        val expected = listOf(1).map { it.toString() }
+        val expected = listOf(1)
 
         assertEquals(expected, run(program))
     }
@@ -199,7 +200,7 @@ internal class WalkerTest {
                   print(a(5))
             """.trimIndent()
 
-        val expected = listOf(11).map { it.toString() }
+        val expected = listOf(11)
 
         assertEquals(expected, run(program))
 
@@ -218,7 +219,7 @@ internal class WalkerTest {
                   print(mul(2,5))
             """.trimIndent()
 
-        val expected2 = listOf(100, 10).map { it.toString() }
+        val expected2 = listOf(100, 10)
 
         assertEquals(expected2, run(program))
 
@@ -232,8 +233,7 @@ internal class WalkerTest {
                   print("hello world!")
             """.trimIndent()
 
-        var expected = listOf("hello world!")
-        assertEquals(expected, run(program))
+        matchString("hello world!").assertOutputMatch(run(program))
 
 
         program =
@@ -246,10 +246,7 @@ internal class WalkerTest {
                   
             """.trimIndent()
 
-        expected = listOf("hCllo world!")
-
-        assertEquals(expected, run(program))
-
+        matchString("hCllo world!").assertOutputMatch(run(program))
     }
 
     @Test
@@ -273,7 +270,7 @@ internal class WalkerTest {
                   print(a(2))
             """.trimIndent()
 
-        val expected = listOf(10, 20, 30).map { it.toString() }
+        val expected = listOf(10, 20, 30)
 
         assertEquals(expected, run(program))
     }

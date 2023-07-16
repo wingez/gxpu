@@ -84,7 +84,7 @@ private class GetInstructionsRunner : BackendCompiler {
         allTypes: List<Datatype>,
         functions: List<FunctionContent>,
         globals: GlobalsResult
-    ): List<String> {
+    ): List<Int> {
         compiledProgram = EmulatorRunner(BuiltInFunctions()).compileIntermediate(allTypes, functions, globals)
         return emptyList()
     }

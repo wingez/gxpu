@@ -82,6 +82,6 @@ class Strings {
             
     """.trimIndent()
 
-        runProgramCheckOutput(compiler, program, intMatcher(0, 1, 10, 18, 19, 207))
+        runProgramCheckOutput(compiler, program, matchLines("0", "1", "10", "18", "19", "207"))
     }
 }

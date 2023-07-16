@@ -4,6 +4,7 @@ import ast.expression.OperatorBuiltIns
 import compiler.BuiltInSignatures
 import compiler.backends.astwalker.*
 import compiler.compileAndRunProgram
+import compiler.features.intMatcher
 import compiler.frontend.CompositeDataTypeField
 import compiler.frontend.Datatype
 import org.junit.jupiter.api.Test
@@ -13,7 +14,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 
 
-internal fun run(program: String, maxLoopIterations: Int = 1000): List<String> {
+internal fun run(program: String, maxLoopIterations: Int = 1000): List<Int> {
     val runner = WalkerRunner(WalkConfig(maxLoopIterations = maxLoopIterations))
     return compileAndRunProgram(StringReader(program), "dummyfile", runner, BuiltInSignatures())
 }
@@ -44,13 +45,12 @@ internal class WalkerDatatypeTest {
               print(t.a)
               print(t.b)
         """.trimIndent()
-        assertEquals(
-            listOf(
-                5, 0,
-                5, 5,
-                10, 5
-            ).map { it.toString() }, run(code)
-        )
+
+        intMatcher(
+            5, 0,
+            5, 5,
+            10, 5
+        ).assertOutputMatch(run(code))
     }
 
     @Test
@@ -78,7 +78,7 @@ internal class WalkerDatatypeTest {
             
             
     """
-        assertEquals(listOf(0, 5, 0, 3, 5).map { it.toString() }, run(program))
+        intMatcher(0, 5, 0, 3, 5).assertOutputMatch(run(program))
     }
 
     @Test
@@ -91,8 +91,7 @@ internal class WalkerDatatypeTest {
             print(6+5)
             print(add(6,5))
     """
-        assertEquals(listOf(11, 1).map { it.toString() }, run(program))
-
+        intMatcher(11, 1).assertOutputMatch(run(program))
     }
 }
 

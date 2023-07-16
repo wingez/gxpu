@@ -16,7 +16,7 @@ import java.io.StringReader
 val mainSignature = FunctionSignature("main", emptyList(), Datatype.Void, FunctionType.Normal)
 
 interface BackendCompiler {
-    fun buildAndRun(allTypes: List<Datatype>, functions: List<FunctionContent>, globals: GlobalsResult): List<String>
+    fun buildAndRun(allTypes: List<Datatype>, functions: List<FunctionContent>, globals: GlobalsResult): List<Int>
 }
 
 interface BuiltInCollection : TypeProvider, FunctionSignatureResolver {
@@ -87,7 +87,7 @@ fun compileAndRunProgram(
     fileName: String,
     backendCompiler: BackendCompiler,
     builtIns: BuiltInCollection
-): List<String> {
+): List<Int> {
     return compileAndRunProgram(
         File(fileName).inputStream().reader(),
         fileName, backendCompiler, builtIns
@@ -101,7 +101,7 @@ fun compileAndRunProgram(
     fileName: String,
     backendCompiler: BackendCompiler,
     builtIns: BuiltInCollection
-): List<String> {
+): List<Int> {
 
     val tokens = parseFile(reader, fileName)
     val nodes = AstParser(tokens).parse()
@@ -155,7 +155,7 @@ fun compileAndRunBody(
     body: String,
     backendCompiler: BackendCompiler,
     builtIns: BuiltInCollection,
-): List<String> {
+): List<Int> {
     val f = compileFunctionBody(body, builtIns)
     return backendCompiler.buildAndRun(
         builtIns.types,

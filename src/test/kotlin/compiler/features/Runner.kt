@@ -2,11 +2,8 @@ package compiler.features
 
 import CompilerError
 import SourceProvider
-import compiler.backendemulator.DummyBuiltInProvider
 import compiler.backendemulator.buildSingleMainFunction
-import compiler.backends.emulator.Compiler
 import compiler.backends.emulator.emulator.DefaultEmulator
-import org.junit.jupiter.api.Assertions
 import ast.AstParser
 import ast.parserFromFile
 import compiler.backends.emulator.EmulatorInstruction
@@ -19,10 +16,10 @@ import compiler.backends.emulator.BuiltInFunctions
 import compiler.backends.emulator.EmulatorRunner
 import compiler.compileAndRunBody
 import compiler.compileAndRunProgram
-import compiler.frontend.compileFunctionBody
 import org.junit.jupiter.api.fail
 import tokenizeLines
 import java.io.StringReader
+import kotlin.streams.toList
 import kotlin.test.assertEquals
 
 
@@ -137,15 +134,29 @@ private fun getRunner(type: CompilerBackend): BackendCompiler {
 }
 
 fun interface OutputMatcher {
-    fun assertOutputMatch(output: Any)
+    fun assertOutputMatch(output: List<Int>)
+}
+
+private fun intArrayToString(ints: List<Int>): String {
+    return String(ints.map { Char(it) }.toCharArray())
+}
+
+fun intMatcher(ints: List<Int>): OutputMatcher {
+
+
+    return OutputMatcher { output ->
+        val message = "Expected: ${intArrayToString(ints)}, Actual: ${intArrayToString(output)}"
+
+        assertEquals(ints, output, message)
+    }
 }
 
 fun intMatcher(vararg ints: Int): OutputMatcher {
-    return matchLines(ints.map { it.toString() })
+    return intMatcher(ints.toList())
 }
 
 fun matchString(string: String): OutputMatcher {
-    return matchLines(string)
+    return intMatcher(string.chars().toList())
 }
 
 fun matchLines(vararg lines: String): OutputMatcher {
@@ -153,9 +164,7 @@ fun matchLines(vararg lines: String): OutputMatcher {
 }
 
 fun matchLines(lines: List<String>): OutputMatcher {
-    return OutputMatcher { output ->
-        assertEquals(lines, output)
-    }
+    return matchString(lines.joinToString(""))
 }
 
 fun runBodyCheckOutput(type: CompilerBackend, body: String, resultMatcher: OutputMatcher) {

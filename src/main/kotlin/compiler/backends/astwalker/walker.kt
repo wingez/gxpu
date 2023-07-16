@@ -20,7 +20,7 @@ data class WalkConfig(
 
 class WalkerOutput {
 
-    val result = mutableListOf<String>()
+    val result = mutableListOf<Int>()
 }
 
 class WalkFrame(
@@ -41,7 +41,7 @@ class WalkerRunner(
         allTypes: List<Datatype>,
         functions: List<FunctionContent>,
         globals: GlobalsResult
-    ): List<String> {
+    ): List<Int> {
         return WalkerState(allTypes, functions, config, globals).walk().result
     }
 }

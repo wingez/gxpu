@@ -22,7 +22,7 @@ class EmulatorRunner(
         allTypes: List<Datatype>,
         functions: List<FunctionContent>,
         globals: GlobalsResult
-    ): List<String> {
+    ): List<Int> {
         val program = compileIntermediate(allTypes, functions, globals)
 
 
@@ -30,7 +30,7 @@ class EmulatorRunner(
         emulator.setProgram(program.instructions)
         emulator.run()
 
-        return emulator.outputStream.map { it.toString() }
+        return emulator.outputStream
     }
 }
 

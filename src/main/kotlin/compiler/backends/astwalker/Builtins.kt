@@ -20,7 +20,7 @@ class BuiltInPrintInteger : Function(
     BuiltInSignatures.print,
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
-        state.output.result.add(values[0].asPrimitive.integer.toString())
+        state.output.result.add(values[0].asPrimitive.integer)
         return Value.void
     }
 }
@@ -32,12 +32,10 @@ class BuiltInPrintString : Function(
 
         val arrayView = values[0].asPrimitive.pointer
 
-        var result = ""
         for (i in 0 until arrayView.arraySize()){
-            result+= Char(arrayView.arrayRead(i).getPrimitiveValue().integer)
+            state.output.result.add(arrayView.arrayRead(i).getPrimitiveValue().integer)
         }
 
-        state.output.result.add(result)
         return Value.void
     }
 }

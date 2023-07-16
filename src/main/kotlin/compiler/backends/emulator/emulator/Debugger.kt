@@ -177,7 +177,7 @@ class InteractiveDebugger(
         allTypes: List<Datatype>,
         functions: List<FunctionContent>,
         globals: GlobalsResult
-    ): List<String> {
+    ): List<Int> {
         val emulatorRunner = EmulatorRunner(BuiltInFunctions())
         instructions = emulatorRunner.compileIntermediate(allTypes, functions, globals).instructions
 
