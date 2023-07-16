@@ -127,7 +127,23 @@ fun tryGetValueWhere(expr: ValueExpression, where: WhereToPutResult, context: Fu
 
                 else -> TODO(valueResult.toString())
             }
+        }
 
+        is StringExpression -> {
+            // TODO make sure this cannot be part of a composite expression
+            val str = expr.string
+            val arrayValues = mutableListOf(str.length)
+            for (char in str.chars()) {
+                arrayValues.add(char)
+            }
+
+            for (arrayValue in arrayValues) {
+                context.addInstruction(emulate(DefaultEmulator.push, "val" to arrayValue))
+            }
+
+            context.addInstruction(emulate(DefaultEmulator.lda_sp_offset, "offset" to -arrayValues.size))
+            context.addInstruction(emulate(DefaultEmulator.pusha))
+            DynamicValue(WhereToPutResult.TopStack)
         }
 
         else -> TODO(expr.toString())

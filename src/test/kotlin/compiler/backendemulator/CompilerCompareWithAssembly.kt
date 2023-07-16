@@ -571,5 +571,26 @@ class CompilerCompareWithAssembly {
         programShouldMatchAssembled(program, expected)
     }
 
+    @Test
+    fun testCreateString() {
+        val expected = """
+            ADDSP #1
+            PUSH #4
+            PUSH #97
+            PUSH #98
+            PUSH #99
+            PUSH #100
+            LDA SP #-5
+            PUSHA
+            POP [FP #0]
+            RET
+        """.trimIndent()
+
+        val program = """
+              val a = "abcd"
+        """.trimIndent()
+
+        bodyShouldMatchAssembled(program, expected)
+    }
 
 }

@@ -13,9 +13,6 @@ class Strings {
     @ParameterizedTest
     @EnumSource
     fun testStringCopy(compiler: CompilerBackend) {
-
-        Assumptions.assumeTrue(compiler != CompilerBackend.Emulator)
-
         val program = """
           def main():
             val a = "abcd"
