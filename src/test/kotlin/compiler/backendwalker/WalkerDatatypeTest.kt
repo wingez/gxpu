@@ -6,7 +6,9 @@ import compiler.backends.astwalker.*
 import compiler.compileAndRunProgram
 import compiler.features.intMatcher
 import compiler.frontend.CompositeDataTypeField
+import compiler.frontend.CompositeDatatype
 import compiler.frontend.Datatype
+import compiler.frontend.Primitives
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import java.io.StringReader
@@ -99,11 +101,11 @@ class NewTest {
 
     @Test
     fun test() {
-        val myDatatype = Datatype.Composite(
+        val myDatatype = CompositeDatatype(
             "test", listOf(
-                CompositeDataTypeField("field1", Datatype.Integer),
-                CompositeDataTypeField("field2", Datatype.Integer),
-                CompositeDataTypeField("field3", Datatype.Integer),
+                CompositeDataTypeField("field1", Primitives.Integer),
+                CompositeDataTypeField("field2", Primitives.Integer),
+                CompositeDataTypeField("field3", Primitives.Integer),
             )
         )
         val holder = ValueHolder(myDatatype)
@@ -124,12 +126,12 @@ class NewTest {
         val viewField3 = entireView.viewField("field3")
         assertEquals(
             ValueHolder.View(
-                holder, Datatype.Integer, 0 until 1
+                holder, Primitives.Integer, 0 until 1
             ), viewField1
         )
         assertEquals(
             ValueHolder.View(
-                holder, Datatype.Integer, 2 until 3
+                holder, Primitives.Integer, 2 until 3
             ), viewField3
         )
 

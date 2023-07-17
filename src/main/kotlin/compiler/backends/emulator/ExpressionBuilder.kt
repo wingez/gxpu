@@ -115,12 +115,12 @@ fun tryGetValueWhere(expr: ValueExpression, where: WhereToPutResult, context: Fu
             val valueResult = tryGetValueWhere(expr.of, WhereToPutResult.TopStack, context)
             when (valueResult) {
                 is FpField -> {
-                    val existingField = LayedOutStruct(valueResult.field.type).getField(expr.memberName)
+                    val existingField = LayedOutStruct(valueResult.field.type as CompositeDatatype).getField(expr.memberName)
                     FpField(existingField.copy(offset = existingField.offset + valueResult.field.offset))
                 }
 
                 is DynamicPointerValue -> {
-                    val offset = LayedOutStruct(expr.of.type).getField(expr.memberName).offset
+                    val offset = LayedOutStruct(expr.of.type as CompositeDatatype).getField(expr.memberName).offset
                     context.addInstruction(emulate(DefaultEmulator.adda, "val" to offset))
                     DynamicPointerValue(WhereToPutResult.A)
                 }
@@ -176,7 +176,7 @@ fun requireGetValueIn(expr: ValueExpression, where: WhereToPutResult, context: F
         }
 
         is GlobalsField -> {
-            require(resultPlace.field.type.isPrimitive)
+            require(resultPlace.field.type is PrimitiveDataType)
             context.addInstruction(
                 when (where) {
                     WhereToPutResult.A -> emulate(
@@ -219,7 +219,7 @@ fun requireGetValueIn(expr: ValueExpression, where: WhereToPutResult, context: F
 private fun handleGenericCall(expr: CallExpression, where: WhereToPutResult, context: FunctionContext) {
 
     //Maks space for result variable
-    if (expr.function.returnType != Datatype.Void) {
+    if (expr.function.returnType != Primitives.Nothing) {
         context.addInstruction(
             emulate(
                 DefaultEmulator.add_sp,
@@ -245,9 +245,9 @@ private fun handleGenericCall(expr: CallExpression, where: WhereToPutResult, con
     if (where == WhereToPutResult.A) {
         val retType = expr.function.returnType
 
-        if (retType != Datatype.Void) {
+        if (retType != Primitives.Nothing) {
 
-            if (retType != Datatype.Integer && retType != Datatype.Boolean) {
+            if (retType != Primitives.Integer && retType != Primitives.Boolean) {
                 TODO(expr.function.returnType.toString())
             }
             context.addInstruction(emulate(DefaultEmulator.popa))
@@ -477,14 +477,14 @@ fun getAddressOf(expr: AddressExpression, context: FunctionContext): GetAddressR
             val valueResult = getAddressOf(expr.of, context)
             when (valueResult) {
                 is FpField -> {
-                    val existingField = LayedOutStruct(valueResult.field.type).getField(expr.memberName)
+                    val existingField = LayedOutStruct(valueResult.field.type as CompositeDatatype).getField(expr.memberName)
                     FpField(existingField.copy(offset = existingField.offset + valueResult.field.offset))
                 }
 
                 is DynamicAddress -> {
                     require(valueResult.where == WhereToPutResult.A)
 
-                    val offset = LayedOutStruct(expr.of.type).getField(expr.memberName).offset
+                    val offset = LayedOutStruct(expr.of.type as CompositeDatatype).getField(expr.memberName).offset
 
                     val instructions = valueResult.instructions + listOf(
                         emulate(DefaultEmulator.adda, "val" to offset)

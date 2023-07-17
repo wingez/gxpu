@@ -1,71 +1,60 @@
 package compiler.frontend
 
 import ast.TypeDefinition
+
+interface Datatype {
+    val name: String
+}
+
+data class PrimitiveDataType(
+    override val name: String
+) : Datatype {
+    override fun toString(): String = name
+}
+
+object Primitives {
+    val Nothing = PrimitiveDataType("void")
+    val Integer = PrimitiveDataType("int")
+    val Boolean = PrimitiveDataType("bool")
+    val Str = Integer.arrayPointerOf()
+}
+
 data class CompositeDataTypeField(
     val name: String,
     val type: Datatype,
 )
 
-class Datatype private constructor(
-    val name: String,
-    private val type: DatatypeClass,
-    private val compositeMembersNullable: List<CompositeDataTypeField>?,
-    private val subTypeNullable: Datatype?,
-) {
+data class PointerDatatype(
+    val pointerType: Datatype
+) : Datatype {
+    override val name: String
+        get() = "pointer[${pointerType.name}]"
 
-    private enum class DatatypeClass {
-        Void,
-        Integer,
-        Composite,
-        Bool,
-        Array,
-        Pointer,
-    }
+    override fun toString(): String = name
+}
 
-    val isComposite = type == DatatypeClass.Composite
+data class ArrayDatatype(
+    val arrayType: Datatype
+) : Datatype {
+    override val name: String
+        get() = "array[${arrayType.name}]"
 
-    val isPrimitive = type == DatatypeClass.Integer || type == DatatypeClass.Bool || type == DatatypeClass.Pointer
+    override fun toString(): String = name
+}
 
-    val isPointer = type == DatatypeClass.Pointer
-
-    val isVoid = type == DatatypeClass.Void
-
-    val isArray = type == DatatypeClass.Array
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as Datatype
-
-        if (type != other.type) return false
-        if (name != other.name) return false
-        if (isComposite) {
-            if (compositeMembersNullable != other.compositeMembersNullable) {
-                return false
-            }
-        }
-        if (isArray) {
-            if (subTypeNullable != other.subTypeNullable) {
-                return false
-            }
-        }
-        return true
-    }
-
-    override fun hashCode(): Int {
-        var result = type.hashCode()
-        result = 31 * result + name.hashCode()
-        result = 31 * result + (compositeMembersNullable?.hashCode() ?: 0)
-        result = 31 * result + (subTypeNullable?.hashCode() ?: 0)
-        return result
+data class CompositeDatatype(
+    override val name: String,
+    val compositeFields: List<CompositeDataTypeField>
+) : Datatype {
+    init {
+        requireNoDuplicateFields()
     }
 
     fun containsField(name: String): Boolean {
-        require(isComposite)
         return compositeFields.any { it.name == name }
     }
 
-    fun getField(name: String):CompositeDataTypeField{
+    fun getField(name: String): CompositeDataTypeField {
         require(containsField(name))
         return compositeFields.find { it.name == name }!!
     }
@@ -74,64 +63,26 @@ class Datatype private constructor(
         return getField(name).type
     }
 
-    val compositeFields: List<CompositeDataTypeField>
-        get() {
-            require(isComposite)
-            return compositeMembersNullable!!
-        }
-    val arrayType: Datatype
-        get() {
-            require(isArray)
-            return subTypeNullable!!
-        }
 
-    val pointerType: Datatype
-        get() {
-            require(isPointer)
-            return subTypeNullable!!
-        }
-
-    override fun toString(): String {
-        return name
-    }
-
-    companion object {
-        val Integer = Datatype("int", DatatypeClass.Integer, null, null)
-        val Void = Datatype("void", DatatypeClass.Void, null, null)
-        val Boolean = Datatype("bool", DatatypeClass.Bool, null, null)
-
-        val Str = Pointer(Array(Integer))
-
-        fun Composite(name: String, members: List<CompositeDataTypeField>): Datatype {
-            requireNoDuplicateFields(members)
-            return Datatype(name, DatatypeClass.Composite, members, null)
-        }
-
-        fun Array(arrayType: Datatype): Datatype {
-            require(!arrayType.isArray)
-            val name = "array[$arrayType]"
-            return Datatype(name, DatatypeClass.Array, null, arrayType)
-        }
-
-        fun ArrayPointer(arrayType: Datatype): Datatype {
-            return Pointer(Array(arrayType))
-        }
-
-        fun Pointer(toType: Datatype): Datatype {
-            require(!toType.isPointer)
-            val name = "pointer[$toType]"
-            return Datatype(name, DatatypeClass.Pointer, null, toType)
+    private fun requireNoDuplicateFields() {
+        for (f in compositeFields.map { it.name }) {
+            require(compositeFields.count { it.name == f } == 1) { "Duplicate field: $f" }
         }
     }
 }
 
-private fun requireNoDuplicateFields(fields: List<CompositeDataTypeField>) {
-    for (f in fields.map { it.name }) {
-        if (fields.count { it.name == f } > 1) {
-            require(false) { "Duplicate field: $f" }
-        }
-    }
+fun Datatype.arrayOf(): Datatype {
+    return ArrayDatatype(this)
 }
+
+fun Datatype.arrayPointerOf(): Datatype {
+    return this.arrayOf().pointerOf()
+}
+
+fun Datatype.pointerOf(): Datatype {
+    return PointerDatatype(this)
+}
+
 
 interface TypeProvider {
     fun getType(name: String): Datatype?
@@ -139,10 +90,10 @@ interface TypeProvider {
         val typeName = typeDefinition.typeName
         var type = getType(typeName) ?: return null
         if (typeDefinition.isArray) {
-            type = Datatype.Array(type)
+            type = type.arrayOf()
         }
         if (typeDefinition.isPointer) {
-            type = Datatype.Pointer(type)
+            type = type.pointerOf()
         }
         return type
     }

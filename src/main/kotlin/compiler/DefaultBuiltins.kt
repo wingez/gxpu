@@ -2,100 +2,98 @@ package compiler
 
 import ast.FunctionType
 import ast.expression.OperatorBuiltIns
-import compiler.frontend.CompositeDataTypeField
-import compiler.frontend.Datatype
-import compiler.frontend.SignatureBuilder
+import compiler.frontend.*
 
 class BuiltInSignatures : BuiltInCollection {
     companion object {
         val print = SignatureBuilder("print")
-            .addParameter(Datatype.Integer)
+            .addParameter(Primitives.Integer)
             .getSignature()
         val printString=SignatureBuilder("print")
-            .addParameter(Datatype.Str)
+            .addParameter(Primitives.Str)
             .getSignature()
 
 
         val bool = SignatureBuilder("bool")
-            .addParameter(Datatype.Integer)
-            .setReturnType(Datatype.Boolean)
+            .addParameter(Primitives.Integer)
+            .setReturnType(Primitives.Boolean)
             .getSignature()
 
         val add = SignatureBuilder(OperatorBuiltIns.Addition)
-            .addParameter(Datatype.Integer)
-            .addParameter(Datatype.Integer)
-            .setReturnType(Datatype.Integer)
+            .addParameter(Primitives.Integer)
+            .addParameter(Primitives.Integer)
+            .setReturnType(Primitives.Integer)
             .setFunctionType(FunctionType.Operator)
             .getSignature()
 
         val sub = SignatureBuilder(OperatorBuiltIns.Subtraction)
-            .addParameter(Datatype.Integer)
-            .addParameter(Datatype.Integer)
-            .setReturnType(Datatype.Integer)
+            .addParameter(Primitives.Integer)
+            .addParameter(Primitives.Integer)
+            .setReturnType(Primitives.Integer)
             .setFunctionType(FunctionType.Operator)
             .getSignature()
 
         val arraySize = SignatureBuilder("size")
             .setFunctionType(FunctionType.Instance)
-            .setReturnType(Datatype.Integer)
-            .addParameter(Datatype.ArrayPointer(Datatype.Integer))
+            .setReturnType(Primitives.Integer)
+            .addParameter(Primitives.Integer.arrayPointerOf())
             .getSignature()
         val createArray = SignatureBuilder("createArray")
             .setFunctionType(FunctionType.Normal)
-            .setReturnType(Datatype.ArrayPointer(Datatype.Integer))
-            .addParameter(Datatype.Integer)
+            .setReturnType(Primitives.Integer.arrayPointerOf())
+            .addParameter(Primitives.Integer)
             .getSignature()
         val arrayRead = SignatureBuilder(OperatorBuiltIns.ArrayRead)
             .setFunctionType(FunctionType.Operator)
-            .setReturnType(Datatype.Integer)
-            .addParameter(Datatype.ArrayPointer(Datatype.Integer))
-            .addParameter(Datatype.Integer)
+            .setReturnType(Primitives.Integer)
+            .addParameter(Primitives.Integer.arrayPointerOf())
+            .addParameter(Primitives.Integer)
             .getSignature()
         val arrayWrite = SignatureBuilder(OperatorBuiltIns.ArrayWrite)
             .setFunctionType(FunctionType.Operator)
-            .setReturnType(Datatype.Void)
-            .addParameter(Datatype.ArrayPointer(Datatype.Integer))
-            .addParameter(Datatype.Integer)
-            .addParameter(Datatype.Integer)
+            .setReturnType(Primitives.Nothing)
+            .addParameter(Primitives.Integer.arrayPointerOf())
+            .addParameter(Primitives.Integer)
+            .addParameter(Primitives.Integer)
             .getSignature()
         val notEquals = SignatureBuilder(OperatorBuiltIns.NotEqual)
             .setFunctionType(FunctionType.Operator)
-            .setReturnType(Datatype.Boolean)
-            .addParameter(Datatype.Integer)
-            .addParameter(Datatype.Integer)
+            .setReturnType(Primitives.Boolean)
+            .addParameter(Primitives.Integer)
+            .addParameter(Primitives.Integer)
             .getSignature()
         val equals = SignatureBuilder(OperatorBuiltIns.Equal)
             .setFunctionType(FunctionType.Operator)
-            .setReturnType(Datatype.Boolean)
-            .addParameter(Datatype.Integer)
-            .addParameter(Datatype.Integer)
+            .setReturnType(Primitives.Boolean)
+            .addParameter(Primitives.Integer)
+            .addParameter(Primitives.Integer)
             .getSignature()
 
         val lessThan = SignatureBuilder(OperatorBuiltIns.LessThan)
             .setFunctionType(FunctionType.Operator)
-            .setReturnType(Datatype.Boolean)
-            .addParameter(Datatype.Integer)
-            .addParameter(Datatype.Integer)
+            .setReturnType(Primitives.Boolean)
+            .addParameter(Primitives.Integer)
+            .addParameter(Primitives.Integer)
             .getSignature()
         val greaterThan = SignatureBuilder(OperatorBuiltIns.GreaterThan)
             .setFunctionType(FunctionType.Operator)
-            .setReturnType(Datatype.Boolean)
-            .addParameter(Datatype.Integer)
-            .addParameter(Datatype.Integer)
+            .setReturnType(Primitives.Boolean)
+            .addParameter(Primitives.Integer)
+            .addParameter(Primitives.Integer)
             .getSignature()
 
 
         val mod = SignatureBuilder("mod")
             .setFunctionType(FunctionType.Normal)
-            .setReturnType(Datatype.Integer)
-            .addParameter(Datatype.Integer)
-            .addParameter(Datatype.Integer)
+            .setReturnType(Primitives.Integer)
+            .addParameter(Primitives.Integer)
+            .addParameter(Primitives.Integer)
             .getSignature()
         val idiv = SignatureBuilder("idiv")
             .setFunctionType(FunctionType.Normal)
-            .setReturnType(Datatype.Integer)
-            .addParameter(Datatype.Integer)
-            .addParameter(Datatype.Integer)
+            .setReturnType(Primitives.Integer)
+            .addParameter(Primitives.Integer)
+            .addParameter(Primitives.Integer)
             .getSignature()
 
 
@@ -120,13 +118,13 @@ class BuiltInSignatures : BuiltInCollection {
         )
 
     override val types = listOf(
-        Datatype.Integer, Datatype.Void,
-        //"byte" to Datatype.Integer,
-        Datatype.Composite(
+        Primitives.Integer, Primitives.Nothing,
+        //"byte" to Primitives.Integer,
+        CompositeDatatype(
             "intpair",
             listOf(
-                CompositeDataTypeField("first", Datatype.Integer),
-                CompositeDataTypeField("second", Datatype.Integer)
+                CompositeDataTypeField("first", Primitives.Integer),
+                CompositeDataTypeField("second", Primitives.Integer)
             )
         )
     )

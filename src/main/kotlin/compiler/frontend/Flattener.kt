@@ -35,7 +35,7 @@ interface AddressExpression {
 class ConstantExpression(
     val value: Int,
 ) : ValueExpression {
-    override val type: Datatype = Datatype.Integer
+    override val type: Datatype = Primitives.Integer
 }
 
 class VariableExpression(
@@ -49,15 +49,20 @@ class AddressMemberAccess(
     val of: AddressExpression,
     val memberName: String,
 ) : AddressExpression {
+
+    init {
+        require(of.type is CompositeDatatype)
+    }
+
     override val type: Datatype
-        get() = of.type.fieldType(memberName)
+        get() = (of.type as CompositeDatatype).fieldType(memberName)
 }
 
 class AddressOf(
     val value: AddressExpression
 ) : ValueExpression {
     override val type: Datatype
-        get() = Datatype.Pointer(value.type)
+        get() = value.type.pointerOf()
 }
 
 
@@ -65,19 +70,19 @@ class DerefToAddress(
     val value: ValueExpression
 ) : AddressExpression {
     override val type: Datatype
-        get() = value.type.pointerType
+        get() = (value.type as PointerDatatype).pointerType
 }
 
 class ValueMemberAccess(val of: ValueExpression, val memberName: String) : ValueExpression {
     override val type: Datatype
-        get() = of.type.fieldType(memberName)
+        get() = (of.type as CompositeDatatype).fieldType(memberName)
 }
 
 class DerefToValue(
     val value: AddressExpression
 ) : ValueExpression {
     override val type: Datatype
-        get() = value.type.pointerType
+        get() = (value.type as PointerDatatype).pointerType
 }
 
 class CallExpression(
@@ -90,7 +95,7 @@ class CallExpression(
 class StringExpression(
     val string: String
 ) : ValueExpression {
-    override val type: Datatype = Datatype.Str
+    override val type: Datatype = Primitives.Str
 }
 
 class Execute(
@@ -131,7 +136,7 @@ data class IntermediateCode(
 data class FunctionContent(
     val definition: FunctionDefinition,
     val code: IntermediateCode,
-    val fields: Datatype,
+    val fields: CompositeDatatype,
 )
 
 
@@ -174,7 +179,7 @@ class FunctionCompiler(
     private val treatNewVariablesAs: VariableType,
     globalVariables: List<Variable>,
 ) {
-    lateinit var fieldDatatype: Datatype
+    lateinit var fieldDatatype: CompositeDatatype
 
     val variables = mutableListOf<Variable>().apply { addAll(globalVariables) }
 
@@ -276,7 +281,7 @@ class FunctionCompiler(
         addReturn(codeBlock)
     }
 
-    private fun addReturn(codeBlock: CodeBlock){
+    private fun addReturn(codeBlock: CodeBlock) {
         codeBlock.addInstruction(Return())
     }
 
@@ -293,7 +298,8 @@ class FunctionCompiler(
             NodeTypes.MemberAccess -> {
                 val structAddress = parseAddressExpression(node.child)
                 val name = node.data as String
-                if (!structAddress.type.isComposite || !structAddress.type.containsField(name)) {
+                val type = structAddress.type
+                if (!(type is CompositeDatatype && type.containsField(name))) {
                     throw FrontendCompilerError("Type ${structAddress.type} contains no field \"$name\"")
                 }
 
@@ -322,8 +328,8 @@ class FunctionCompiler(
 
                 //TODO: generic-ify
                 val definition = FunctionSignature(
-                    OperatorBuiltIns.ArrayRead, listOf(Datatype.ArrayPointer(Datatype.Integer), Datatype.Integer),
-                    Datatype.Integer, FunctionType.Operator
+                    OperatorBuiltIns.ArrayRead, listOf(Primitives.Integer.arrayPointerOf(), Primitives.Integer),
+                    Primitives.Integer, FunctionType.Operator
                 )
                 CallExpression(definition, listOf(member, index))
             }
@@ -335,7 +341,7 @@ class FunctionCompiler(
 
             NodeTypes.Deref -> {
                 val pointer = parseAddressExpression(node.child)
-                if (!pointer.type.isPointer) {
+                if (pointer.type !is PointerDatatype) {
                     throw FrontendCompilerError("Must be a pointer")
                 }
                 DerefToValue(pointer)
@@ -349,7 +355,9 @@ class FunctionCompiler(
         val value = parseValueExpression(node.childNodes.first())
         val memberName = node.asIdentifier()
 
-        if (!value.type.isComposite || !value.type.containsField(memberName)) {
+        val type = value.type
+
+        if (!(type is CompositeDatatype && type.containsField(memberName))) {
             throw FrontendCompilerError("Type ${value.type} has no field $memberName")
         }
 
@@ -371,7 +379,7 @@ class FunctionCompiler(
         val ifNode = node.asIf()
 
         val condition = parseValueExpression(ifNode.condition)
-        if (condition.type != Datatype.Boolean) {
+        if (condition.type != Primitives.Boolean) {
             throw FrontendCompilerError("type of condition must be bool")
         }
 
@@ -426,7 +434,7 @@ class FunctionCompiler(
         val whileNode = node.asWhile()
 
         val condition = parseValueExpression(whileNode.condition)
-        if (condition.type != Datatype.Boolean) {
+        if (condition.type != Primitives.Boolean) {
             throw FrontendCompilerError("type of condition must be bool, not ${condition.type}")
         }
 
@@ -468,7 +476,7 @@ class FunctionCompiler(
             val arrayAccess = assign.target.asArrayAccess()
 
             val array = parseValueExpression(arrayAccess.parent)
-            if (array.type != Datatype.ArrayPointer(Datatype.Integer))
+            if (array.type != Primitives.Integer.arrayPointerOf())
                 TODO(array.type.toString())
 
             val index = parseValueExpression(arrayAccess.index)
@@ -479,9 +487,9 @@ class FunctionCompiler(
                     CallExpression(
                         FunctionSignature(
                             OperatorBuiltIns.ArrayWrite, listOf(
-                                Datatype.ArrayPointer(Datatype.Integer), Datatype.Integer,
-                                Datatype.Integer
-                            ), Datatype.Void, FunctionType.Operator
+                                Primitives.Integer.arrayPointerOf(), Primitives.Integer,
+                                Primitives.Integer
+                            ), Primitives.Nothing, FunctionType.Operator
                         ), parameters = listOf(array, index, value)
                     )
                 )
@@ -514,9 +522,9 @@ class FunctionCompiler(
     }
 
 
-    private fun addVariables(): Datatype {
+    private fun addVariables(): CompositeDatatype {
 
-        if (definition.signature.returnType != Datatype.Void) {
+        if (definition.signature.returnType != Primitives.Nothing) {
             variables.add(
                 Variable(
                     CompositeDataTypeField(
@@ -550,7 +558,7 @@ class FunctionCompiler(
                 variables.add(Variable(CompositeDataTypeField(newVariable.name, type), treatNewVariablesAs))
             }
         }
-        return Datatype.Composite(
+        return CompositeDatatype(
             definition.signature.name,
             variables.filter { it.type == treatNewVariablesAs }.map { it.field })
     }

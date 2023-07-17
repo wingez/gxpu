@@ -76,7 +76,7 @@ private class CodeSource(
 }
 
 val mainSignature = SignatureBuilder("main")
-    .setReturnType(Datatype.Void)
+    .setReturnType(Primitives.Nothing)
     .getSignature()
 
 
@@ -99,7 +99,7 @@ class Compiler(
 
     override fun getType(name: String): Datatype {
         if (name.isEmpty()) {
-            return Datatype.Void
+            return Primitives.Nothing
         }
         if (name !in includedTypes) {
             throw CompileError("No type with name $name found")

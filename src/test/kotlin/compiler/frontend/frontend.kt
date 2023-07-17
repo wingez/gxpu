@@ -13,7 +13,7 @@ val emptyFunctions = object : FunctionSignatureResolver {
         parameterTypes: List<Datatype>
     ): FunctionSignature {
         if (name == "print") {
-            return FunctionSignature("print", listOf(Datatype.Integer), Datatype.Void, FunctionType.Normal)
+            return FunctionSignature("print", listOf(Primitives.Integer), Primitives.Nothing, FunctionType.Normal)
         }
 
         TODO("Not yet implemented")

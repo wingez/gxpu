@@ -201,7 +201,7 @@ class WalkerState(
             }
         }
 
-        val result = if (userFunction.signature.returnType == Datatype.Void) {
+        val result = if (userFunction.signature.returnType == Primitives.Nothing) {
             Value.void
         } else {
             getVariable(Variable(fields.getField(RETURN_VALUE_NAME), VariableType.Local))
@@ -250,9 +250,9 @@ class WalkerState(
     }
 
     private fun jumpHelper(condition: ValueExpression, jumpOn: Boolean, label: Label): Pair<ControlFlow, Label?> {
-        require(condition.type == Datatype.Boolean)
+        require(condition.type == Primitives.Boolean)
         val value = getValueOf(condition)
-        assert(value.datatype == Datatype.Boolean)
+        assert(value.datatype == Primitives.Boolean)
 
         val compareValue = if (jumpOn) 1 else 0
         if (value.asPrimitive == PrimitiveValue.integer(compareValue)) {
@@ -308,7 +308,7 @@ class WalkerState(
     fun getValueOf(valueExpression: ValueExpression): Value {
 
         return when (valueExpression) {
-            is ConstantExpression -> Value.primitive(Datatype.Integer, valueExpression.value)
+            is ConstantExpression -> Value.primitive(Primitives.Integer, valueExpression.value)
             is CallExpression -> handleCall(valueExpression)
             is VariableExpression -> getVariable(valueExpression.variable)
             is StringExpression -> createFromString(valueExpression.string)
@@ -335,7 +335,7 @@ class WalkerState(
 fun createArray(type: Datatype, size: Int): Value = createArray(type, size) { 0 }
 fun createArray(type: Datatype, size: Int, init: (Int) -> Int): Value {
 
-    val arrayType = Datatype.Array(type)
+    val arrayType = type.arrayOf()
 
     val holder = ValueHolder(arrayType, size)
 
@@ -347,6 +347,6 @@ fun createArray(type: Datatype, size: Int, init: (Int) -> Int): Value {
 }
 
 fun createFromString(string: String): Value {
-    return createArray(Datatype.Integer, string.length) { i -> string[i].code }
+    return createArray(Primitives.Integer, string.length) { i -> string[i].code }
 }
 

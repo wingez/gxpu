@@ -14,23 +14,6 @@ private val builtInTypeProvider = object : TypeProvider {
 class DatatypeTest {
 
     @Test
-    fun testBasic() {
-
-        val compositeType = Datatype.Composite(
-            "test", listOf(
-                CompositeDataTypeField("member1", Datatype.Integer)
-            )
-        )
-
-        assertEquals(true, Datatype.Integer.isPrimitive)
-        assertEquals(false, Datatype.Void.isPrimitive)
-        assertEquals(false, compositeType.isPrimitive)
-
-        assertThrows<IllegalArgumentException> { Datatype.Integer.compositeFields }
-        assertThrows<IllegalArgumentException> { Datatype.Void.compositeFields }
-    }
-
-    @Test
     fun fromNode() {
         val node = parserFromFile(
             """
@@ -40,14 +23,10 @@ class DatatypeTest {
         """.trimIndent()
         ).parseStruct()
         val type = buildStruct(node, builtInTypeProvider)
-        assertEquals(true, type.isComposite)
-        assertEquals(false, type.isPointer)
-        assertEquals(false, type.isPointer)
-        assertEquals(false, type.isArray)
         assertEquals(
             listOf(
-                CompositeDataTypeField("a", Datatype.Integer),
-                CompositeDataTypeField("b", Datatype.Integer),
+                CompositeDataTypeField("a", Primitives.Integer),
+                CompositeDataTypeField("b", Primitives.Integer),
             ), type.compositeFields
         )
     }

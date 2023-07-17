@@ -5,6 +5,7 @@ import ast.expression.OperatorBuiltIns
 import compiler.BuiltInSignatures
 import compiler.frontend.Datatype
 import compiler.frontend.FunctionSignature
+import compiler.frontend.Primitives
 
 abstract class Function(
     override val signature: FunctionSignature,
@@ -45,7 +46,7 @@ class BuiltInArraySize : Function(
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
         val arrayView = values[0].asPrimitive.pointer
-        return Value.primitive(Datatype.Integer, arrayView.arraySize())
+        return Value.primitive(Primitives.Integer, arrayView.arraySize())
     }
 }
 
@@ -84,8 +85,8 @@ class IntegerComparator(
 ) : Function(
     FunctionSignature(
         functionName,
-        listOf(Datatype.Integer, Datatype.Integer),
-        Datatype.Boolean,
+        listOf(Primitives.Integer, Primitives.Integer),
+        Primitives.Boolean,
         FunctionType.Operator
     ),
 ) {
@@ -97,7 +98,7 @@ class IntegerComparator(
             true -> 1
             false -> 0
         }
-        return Value.primitive(Datatype.Boolean, result)
+        return Value.primitive(Primitives.Boolean, result)
     }
 }
 
@@ -106,7 +107,7 @@ class IntegerArithmetic(
     functionType: FunctionType,
     private val arithmeticFunction: (val1: Int, val2: Int) -> Int
 ) : Function(
-    FunctionSignature(functionName, listOf(Datatype.Integer, Datatype.Integer), Datatype.Integer, functionType),
+    FunctionSignature(functionName, listOf(Primitives.Integer, Primitives.Integer), Primitives.Integer, functionType),
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
         val value1 = values[0].asPrimitive.integer
@@ -114,7 +115,7 @@ class IntegerArithmetic(
 
         val result = arithmeticFunction.invoke(value1, value2)
 
-        return Value.primitive(Datatype.Integer, result)
+        return Value.primitive(Primitives.Integer, result)
     }
 }
 
@@ -124,7 +125,7 @@ class BuiltInCreateArray : Function(
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
         val size = values[0].asPrimitive.integer
-        return createArray(Datatype.Integer, size)
+        return createArray(Primitives.Integer, size)
     }
 }
 
@@ -132,7 +133,7 @@ class BoolConverter : Function(
     BuiltInSignatures.bool
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
-        return Value(Datatype.Boolean, values[0].primitives)
+        return Value(Primitives.Boolean, values[0].primitives)
     }
 }
 

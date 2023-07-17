@@ -13,7 +13,7 @@ import java.io.File
 import java.io.Reader
 import java.io.StringReader
 
-val mainSignature = FunctionSignature("main", emptyList(), Datatype.Void, FunctionType.Normal)
+val mainSignature = FunctionSignature("main", emptyList(), Primitives.Nothing, FunctionType.Normal)
 
 interface BackendCompiler {
     fun buildAndRun(allTypes: List<Datatype>, functions: List<FunctionContent>, globals: GlobalsResult): List<Int>

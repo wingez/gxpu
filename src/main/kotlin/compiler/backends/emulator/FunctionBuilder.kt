@@ -43,7 +43,7 @@ class FunctionBuilder(
     private fun handleExecute(instr: Execute) {
         val expr = instr.expression
 
-        if (expr.type != Datatype.Void) {
+        if (expr.type != Primitives.Nothing) {
             requireGetValueIn(expr, WhereToPutResult.TopStack, this)
             addInstruction(emulate(DefaultEmulator.sub_sp, "val" to sizeOf(expr.type)))
         } else {
@@ -63,7 +63,7 @@ class FunctionBuilder(
         when (targetAddress) {
             is FpField -> {
                 val field = targetAddress.field
-                assert(field.type.isPrimitive)
+                assert(field.type is PrimitiveDataType || field.type is PointerDatatype)
 
                 requireGetValueIn(instr.value, WhereToPutResult.TopStack, this)
 
@@ -71,7 +71,7 @@ class FunctionBuilder(
             }
             is GlobalsField -> {
                 val field = targetAddress.field
-                assert(field.type.isPrimitive)
+                assert(field.type is PrimitiveDataType)
                 requireGetValueIn(instr.value, WhereToPutResult.A, this)
                 addInstruction(emulate(DefaultEmulator.sta, "addr" to field.offset))
             }
@@ -104,7 +104,7 @@ class FunctionBuilder(
     }
 
     private fun jumpHelper(expr: ValueExpression, jumpOn: Boolean, label: Label) {
-        assert(expr.type == Datatype.Boolean)
+        assert(expr.type == Primitives.Boolean)
 
         requireGetValueIn(expr, WhereToPutResult.Flag, this)
         if (!jumpOn) {
@@ -164,15 +164,9 @@ class FunctionBuilder(
     }
 }
 
-
-private fun assertFrameMatchesDefinition(layout: FunctionFrameLayout, definition: FunctionSignature) {
-
-
-}
-
 fun calculateLayout(
     definition: FunctionDefinition,
-    localVariables: Datatype,
+    localVariables: CompositeDatatype,
 ): FunctionFrameLayout {
 
     val variablesInOrder = mutableListOf<CompositeDataTypeField>()
@@ -194,7 +188,7 @@ fun calculateLayout(
         variablesInOrder.add(variables)
     }
 
-    val fieldType = Datatype.Composite("functionLayout", variablesInOrder)
+    val fieldType = CompositeDatatype("functionLayout", variablesInOrder)
 
     return FunctionFrameLayout(
         fieldType,
@@ -203,7 +197,7 @@ fun calculateLayout(
 }
 
 class FunctionFrameLayout(
-    private val fieldType: Datatype,
+    private val fieldType: CompositeDatatype,
     private val offset: Int,
 ) : LayedOutDatatype {
 

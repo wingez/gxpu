@@ -32,7 +32,7 @@ class DummyBuiltInProvider(
                 instructions.first().addReference(Reference(signature, functionEntryLabel))
 
                 val variables = mutableListOf<CompositeDataTypeField>()
-                if (builtIn.signature.returnType != Datatype.Void) {
+                if (builtIn.signature.returnType != Primitives.Nothing) {
                     variables.add(
                         CompositeDataTypeField(
                             "result",
@@ -45,7 +45,7 @@ class DummyBuiltInProvider(
                 }
                 val definition = FunctionDefinition(signature, builtIn.signature.parameterTypes.map { it.name })
 
-                val layout = calculateLayout(definition, Datatype.Composite(signature.name, variables))
+                val layout = calculateLayout(definition, CompositeDatatype(signature.name, variables))
 
                 return BuiltFunction(builtIn.signature, layout, instructions)
             }
@@ -75,7 +75,7 @@ class DummyBuiltInProvider(
     }
 }
 
-private val noGlobals = LayedOutStruct(Datatype.Composite("noglobals", emptyList()))
+private val noGlobals = LayedOutStruct(CompositeDatatype("noglobals", emptyList()))
 
 private class GetInstructionsRunner : BackendCompiler {
 

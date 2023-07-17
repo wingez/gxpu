@@ -1,23 +1,16 @@
 package compiler.backends.emulator
 
-import compiler.frontend.Datatype
+import compiler.frontend.*
 import requireNotReached
 
 fun sizeOf(dataType: Datatype): Int {
 
-    if (dataType.isPrimitive) {
-        return 1
+    return when(dataType){
+        Primitives.Nothing -> requireNotReached()
+        is PrimitiveDataType, is PointerDatatype -> 1
+        is CompositeDatatype -> dataType.compositeFields.sumOf { sizeOf(it.type) }
+        else -> throw EmulatorBackendCompilerError("cannot do sizeof $dataType")
     }
-    if (dataType.isPointer) {
-        return 1
-    }
-    if (dataType.isArray) {
-        throw EmulatorBackendCompilerError(dataType.toString())
-    }
-    if (dataType.isComposite) {
-        return dataType.compositeFields.sumOf { sizeOf(it.type) }
-    }
-    requireNotReached()
 }
 
 
@@ -28,12 +21,8 @@ interface LayedOutDatatype {
 
 
 class LayedOutStruct(
-    private val dataType: Datatype
+    private val dataType: CompositeDatatype
 ) : LayedOutDatatype {
-    init {
-        require(dataType.isComposite)
-    }
-
     override val size: Int
         get() = dataType.compositeFields.sumOf { sizeOf(it.type) }
     override fun getField(fieldName: String): StructDataField {

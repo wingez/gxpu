@@ -15,7 +15,7 @@ data class FunctionSignature(
         return name == this.name && functionType == this.functionType && parameterTypes == this.parameterTypes
     }
 
-    val hasReturnType = returnType != Datatype.Void
+    val hasReturnType = returnType != Primitives.Nothing
 }
 
 data class FunctionDefinition(
@@ -51,7 +51,7 @@ fun definitionFromFunctionNode(functionNode: AstNode, typeProvider: TypeProvider
 
     val (paramNames, paramTypes) = parameters(functionNode, typeProvider)
 
-    val returnType = if (function.returnType != null) typeProvider.requireType(function.returnType) else Datatype.Void
+    val returnType = if (function.returnType != null) typeProvider.requireType(function.returnType) else Primitives.Nothing
 
     val signature = FunctionSignature(
         name = function.name,
@@ -65,7 +65,7 @@ fun definitionFromFunctionNode(functionNode: AstNode, typeProvider: TypeProvider
 
 class SignatureBuilder(val name: String) {
     private val parameters = mutableListOf<Datatype>()
-    private var returnType: Datatype = Datatype.Void
+    private var returnType: Datatype = Primitives.Nothing
     private var functionType = FunctionType.Normal
 
     fun addParameter(type: Datatype): SignatureBuilder {

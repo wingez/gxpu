@@ -91,8 +91,8 @@ class PrintIntArray : BuiltIn {
     }
 
     override val signature = SignatureBuilder(name)
-        .addParameter(Datatype.Str)
-        .setReturnType(Datatype.Void)
+        .addParameter(Primitives.Str)
+        .setReturnType(Primitives.Nothing)
         .setFunctionType(FunctionType.Normal)
         .getSignature()
 }
@@ -120,7 +120,7 @@ class BuiltInFunctions : BuiltInProvider {
         instructions.first().addReference(Reference(signature, functionEntryLabel))
 
         val fields = mutableListOf<CompositeDataTypeField>()
-        if (signature.returnType != Datatype.Void) {
+        if (signature.returnType != Primitives.Nothing) {
             fields.add(CompositeDataTypeField("result", signature.returnType))
         }
         for ((index, parameterType) in signature.parameterTypes.withIndex()) {
@@ -128,7 +128,7 @@ class BuiltInFunctions : BuiltInProvider {
         }
 
         val layout =
-            calculateLayout(FunctionDefinition(signature, emptyList()), Datatype.Composite(signature.name, fields))
+            calculateLayout(FunctionDefinition(signature, emptyList()), CompositeDatatype(signature.name, fields))
 
         return BuiltFunction(result.signature, layout, instructions)
     }

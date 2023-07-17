@@ -21,14 +21,14 @@ class TypeContainer(
     private val allTypes = aliases + types.associateBy { it.name }
     override fun getType(name: String): Datatype {
         if (name.isEmpty())
-            return Datatype.Integer
+            return Primitives.Integer
 
         return allTypes[name] ?: throw AssertionError("Did not find $name")
 
     }
 }
 
-private val defaultTypes = listOf(Datatype.Void, Datatype.Integer)
+private val defaultTypes = listOf(Primitives.Nothing, Primitives.Integer)
 
 val dummyTypeContainer = TypeCollection(
     emptyList(), BuiltInSignatures()
@@ -52,7 +52,7 @@ internal class FunctionSignatureTest {
                 functionProvider,
                 typeProvider
             ),
-            LayedOutStruct(Datatype.Composite("dummy", emptyList()))
+            LayedOutStruct(CompositeDatatype("dummy", emptyList()))
         )
 
         return builder.buildBody()
@@ -96,7 +96,7 @@ internal class FunctionSignatureTest {
         val layout = built.layout
         assertEquals(1, layout.size)
         assertEquals(1, layout.sizeOfLocalVariables)
-        assertEquals(StructDataField("var", Datatype.Integer, 0), layout.getField("var"))
+        assertEquals(StructDataField("var", Primitives.Integer, 0), layout.getField("var"))
     }
 
     @Test
@@ -110,9 +110,9 @@ internal class FunctionSignatureTest {
         assertEquals(layout.size, 3)
         assertEquals(layout.sizeOfLocalVariables, 1)
 
-        assertEquals(StructDataField("result", Datatype.Integer, -2), layout.getField("result"))
-        assertEquals(StructDataField("param", Datatype.Integer, -1), layout.getField("param"))
-        assertEquals(StructDataField("var", Datatype.Integer, 0), layout.getField("var"))
+        assertEquals(StructDataField("result", Primitives.Integer, -2), layout.getField("result"))
+        assertEquals(StructDataField("param", Primitives.Integer, -1), layout.getField("param"))
+        assertEquals(StructDataField("var", Primitives.Integer, 0), layout.getField("var"))
     }
 
     @Test
@@ -129,8 +129,8 @@ internal class FunctionSignatureTest {
         assertEquals(layout.size, 2)
         assertEquals(layout.sizeOfLocalVariables, 2)
 
-        assertEquals(StructDataField("var1", Datatype.Integer, 1), layout.getField("var1"))
-        assertEquals(StructDataField("var", Datatype.Integer, 0), layout.getField("var"))
+        assertEquals(StructDataField("var1", Primitives.Integer, 1), layout.getField("var1"))
+        assertEquals(StructDataField("var", Primitives.Integer, 0), layout.getField("var"))
     }
 
     @Test
@@ -144,9 +144,9 @@ internal class FunctionSignatureTest {
         assertEquals(layout.size, 3)
         assertEquals(layout.sizeOfLocalVariables, 1)
 
-        assertEquals(StructDataField("result", Datatype.Integer, -2), layout.getField("result"))
-        assertEquals(StructDataField("var2", Datatype.Integer, -1), layout.getField("var2"))
-        assertEquals(StructDataField("var", Datatype.Integer, 0), layout.getField("var"))
+        assertEquals(StructDataField("result", Primitives.Integer, -2), layout.getField("result"))
+        assertEquals(StructDataField("var2", Primitives.Integer, -1), layout.getField("var2"))
+        assertEquals(StructDataField("var", Primitives.Integer, 0), layout.getField("var"))
 
         assertEquals(
             listOf(
@@ -161,23 +161,23 @@ internal class FunctionSignatureTest {
 
     @Test
     fun testSizeOf() {
-        kotlin.test.assertEquals(1, sizeOf(Datatype.Integer))
-        kotlin.test.assertEquals(1, sizeOf(Datatype.Boolean))
-        kotlin.test.assertEquals(1, sizeOf(Datatype.Pointer(Datatype.Integer)))
+        kotlin.test.assertEquals(1, sizeOf(Primitives.Integer))
+        kotlin.test.assertEquals(1, sizeOf(Primitives.Boolean))
+        kotlin.test.assertEquals(1, sizeOf(Primitives.Integer.pointerOf()))
 
-        assertThrows<EmulatorBackendCompilerError> { sizeOf(Datatype.Array(Datatype.Integer)) }
-        kotlin.test.assertEquals(1, sizeOf(Datatype.ArrayPointer(Datatype.Integer)))
+        assertThrows<EmulatorBackendCompilerError> { sizeOf(Primitives.Integer.arrayOf()) }
+        kotlin.test.assertEquals(1, sizeOf(Primitives.Integer.arrayPointerOf()))
 
         kotlin.test.assertEquals(
             1,
-            sizeOf(Datatype.Composite("test", listOf(CompositeDataTypeField("a", Datatype.Integer))))
+            sizeOf(CompositeDatatype("test", listOf(CompositeDataTypeField("a", Primitives.Integer))))
         )
         kotlin.test.assertEquals(
             2,
             sizeOf(
-                Datatype.Composite(
+                CompositeDatatype(
                     "test",
-                    listOf(CompositeDataTypeField("a", Datatype.Integer), CompositeDataTypeField("b", Datatype.Integer))
+                    listOf(CompositeDataTypeField("a", Primitives.Integer), CompositeDataTypeField("b", Primitives.Integer))
                 )
             )
         )

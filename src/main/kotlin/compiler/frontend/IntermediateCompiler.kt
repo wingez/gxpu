@@ -12,7 +12,7 @@ import java.io.StringReader
 fun buildStruct(
     structNode: AstNode,
     typeProvider: TypeProvider,
-): Datatype {
+): CompositeDatatype {
 
     require(structNode.type == NodeTypes.Struct)
 
@@ -31,7 +31,7 @@ fun buildStruct(
         CompositeDataTypeField(fieldName, fieldType)
     }
 
-    return Datatype.Composite(typeName, members)
+    return CompositeDatatype(typeName, members)
 }
 
 fun compileFunctionBody(body: String, builtIns: BuiltInCollection): FunctionContent {
@@ -65,7 +65,7 @@ fun compileFunctionBody(
 
 data class GlobalsResult(
     val initialize: FunctionContent,
-    val fields: Datatype,
+    val fields: CompositeDatatype,
     val variables: List<Variable>,
 ){
     val needsInitialization get() = initialize.code.instructions.any { it !is Return } // every functions  has an implicit return. Ignore that
