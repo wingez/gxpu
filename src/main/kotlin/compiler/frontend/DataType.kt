@@ -69,6 +69,11 @@ data class CompositeDatatype(
             require(compositeFields.count { it.name == f } == 1) { "Duplicate field: $f" }
         }
     }
+
+    override fun toString(): String {
+        val fieldsFormatted = compositeFields.joinToString { "${it.name}:${it.type.name}" }
+        return "$name{$fieldsFormatted}"
+    }
 }
 
 fun Datatype.arrayOf(): Datatype {

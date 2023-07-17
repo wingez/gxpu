@@ -2,7 +2,6 @@ package compiler.frontend
 
 import ast.parserFromFile
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import kotlin.test.assertEquals
 
 private val builtInTypeProvider = object : TypeProvider {
@@ -31,5 +30,27 @@ class DatatypeTest {
         )
     }
 
+    @Test
+    fun testToString() {
+        val myType = Primitives.Integer
+
+        assertEquals("int", myType.toString())
+        assertEquals("int", myType.name)
+
+        assertEquals("array[int]", myType.arrayOf().toString())
+        assertEquals("array[int]", myType.arrayOf().name)
+
+        assertEquals("pointer[int]", myType.pointerOf().toString())
+        assertEquals("pointer[int]", myType.pointerOf().name)
+
+        val myComposite = CompositeDatatype(
+            "pair", listOf(
+                CompositeDataTypeField("fst", Primitives.Integer),
+                CompositeDataTypeField("snd", Primitives.Integer.pointerOf()),
+            )
+        )
+        assertEquals("pair", myComposite.name)
+        assertEquals("pair{fst:int, snd:pointer[int]}", myComposite.toString())
+    }
 
 }
