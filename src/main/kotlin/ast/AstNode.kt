@@ -339,12 +339,6 @@ data class FunctionData(
     val returnType: TypeDefinition?,
 )
 
-data class TypeDefinition(
-    val typeName: String,
-    val isArray: Boolean = false,
-    val isPointer: Boolean = false,
-)
-
 fun iterateNodeRecursively(node: AstNode): Iterable<AstNode> {
     val result = mutableListOf<AstNode>()
     iterateNodeRecursivelyImpl(node, result)

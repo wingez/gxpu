@@ -1,33 +1,61 @@
 package ast
 
+import ast.syntaxerror.ParserSyntaxError
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import kotlin.test.assertEquals
 
-class AstParserType{
+class AstParserType {
 
 
     @Test
-    fun testBasicType(){
+    fun testBasicType() {
         assertEquals(
-            TypeDefinition("test"),
-        parserFromLine("test").parseTypeDefinition()
+            TypeDefinition.normal("test", emptyList()),
+            parserFromLine("test").parseTypeDefinition()
         )
     }
 
     @Test
-    fun testArray(){
+    fun testArray() {
         assertEquals(
-            TypeDefinition("test",isArray = true),
+            TypeDefinition.normal("test", listOf(TypeDefinitionModifier.Array)),
             parserFromLine("test[]").parseTypeDefinition()
         )
     }
 
     @Test
-    fun testPointer(){
+    fun testPointer() {
         assertEquals(
-            TypeDefinition("test", isPointer = true),
+            TypeDefinition.normal("test", listOf(TypeDefinitionModifier.Pointer)),
             parserFromLine("*test").parseTypeDefinition()
         )
+    }
+
+    @Test
+    fun testFunction() {
+        assertEquals(
+            TypeDefinition(FunctionBase(TypeDefinition.normal("Nothing", emptyList()), emptyList()), emptyList()),
+            parserFromLine("()->Nothing").parseTypeDefinition()
+        )
+    }
+
+    @Test
+    fun testWithParametersFunction() {
+        assertEquals(
+            TypeDefinition(
+                FunctionBase(
+                    TypeDefinition.normal("Nothing"), listOf(
+                        TypeDefinition.normal("Int"), TypeDefinition.normal("Bool")
+                    )
+                ), emptyList()
+            ),
+            parserFromLine("(Int,Bool)->Nothing").parseTypeDefinition()
+        )
+
+        assertThrows<ParserSyntaxError> {
+            parserFromLine("(Int,)->Nothing").parseTypeDefinition()
+        }
     }
 
 }

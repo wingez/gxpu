@@ -133,7 +133,7 @@ internal class AstParserTest {
         assertEqualsIgnoreSource(
             AstNode.fromFunction(
                 "test", FunctionType.Normal, emptyList(), printBody,
-                TypeDefinition("byte", isArray = true), na
+                TypeDefinition.normal("byte", listOf(TypeDefinitionModifier.Array)), na
             ),
             parserFromFile(program).parseFunctionDefinition()
         )
@@ -142,7 +142,7 @@ internal class AstParserTest {
     @Test
     fun testNewVariable() {
         assertEqualsIgnoreSource(
-            listOf(AstNode.fromNewVariable("var", TypeDefinition("byte"), null, na)),
+            listOf(AstNode.fromNewVariable("var", TypeDefinition.normal("byte", emptyList()), null, na)),
             parserFromLine("val var:byte").parseNewValDeclaration(),
         )
 
@@ -325,7 +325,7 @@ internal class AstParserTest {
                 "hello", FunctionType.Instance, listOf(
                     AstNode.fromNewVariable(
                         "this",
-                        TypeDefinition("int"),
+                        TypeDefinition.normal("int", emptyList()),
                         null, na
                     )
                 ), listOf(AstNode.fromCall("call", FunctionType.Normal, emptyList(), na)), null, na

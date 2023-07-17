@@ -7,8 +7,8 @@ import tokens.*
 
 
 class TokenIterator(
-     tokens: List<Token>
-) :PeekIterator<Token>(tokens) {
+    tokens: List<Token>
+) : PeekIterator<Token>(tokens) {
 
     fun consumeIdentifier(): String {
         return consumeType(TokenType.Identifier).additionalData
@@ -21,12 +21,12 @@ class TokenIterator(
         }
         return result
     }
+
     fun consumeType(type: TokenType): Token {
         if (!peekIs(type))
             throwSyntaxError("Expected token to be of type $type, but was ${peek().type}", peek().sourceInfo)
         return consume()
     }
-
 }
 
 class AstParser(tokens: List<Token>) {
@@ -246,16 +246,9 @@ class AstParser(tokens: List<Token>) {
     }
 
     fun parseTypeDefinition(): TypeDefinition {
-        val isPointer = tokens.peekIs(TokenType.Star, consumeMatch = true)
 
-        val type: String = tokens.consumeIdentifier()
+        return parseTypeDefinition(tokens)
 
-        val isArray = tokens.peekIs(TokenType.LeftBracket)
-        if (isArray) {
-            tokens.consumeType(TokenType.LeftBracket)
-            tokens.consumeType(TokenType.RightBracket)
-        }
-        return TypeDefinition(type, isPointer = isPointer, isArray = isArray)
     }
 
 

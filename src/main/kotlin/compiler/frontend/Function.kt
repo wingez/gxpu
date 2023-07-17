@@ -51,7 +51,8 @@ fun definitionFromFunctionNode(functionNode: AstNode, typeProvider: TypeProvider
 
     val (paramNames, paramTypes) = parameters(functionNode, typeProvider)
 
-    val returnType = if (function.returnType != null) typeProvider.requireType(function.returnType) else Primitives.Nothing
+    val returnType =
+        if (function.returnType != null) typeProvider.requireType(function.returnType) else Primitives.Nothing
 
     val signature = FunctionSignature(
         name = function.name,

@@ -250,7 +250,7 @@ private class MemberAccessReducer : MatchingReducer(
 
 private class ArrowMemberAccessReducer : MatchingReducer(
     listOf(
-        anyNodeMatcher, TokenMatcher(TokenType.Deref), NodeMatcher(NodeTypes.Identifier)
+        anyNodeMatcher, TokenMatcher(TokenType.RightArrow), NodeMatcher(NodeTypes.Identifier)
     )
 ) {
     override val priority = priorities.memberAccess

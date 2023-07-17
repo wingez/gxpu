@@ -1,6 +1,8 @@
 package compiler.frontend
 
+import ast.StaticBase
 import ast.TypeDefinition
+import ast.TypeDefinitionModifier
 
 interface Datatype {
     val name: String
@@ -92,15 +94,21 @@ fun Datatype.pointerOf(): Datatype {
 interface TypeProvider {
     fun getType(name: String): Datatype?
     fun getType(typeDefinition: TypeDefinition): Datatype? {
-        val typeName = typeDefinition.typeName
-        var type = getType(typeName) ?: return null
-        if (typeDefinition.isArray) {
-            type = type.arrayOf()
+
+        return when (typeDefinition.base) {
+            is StaticBase -> {
+                val typeName = typeDefinition.base.name
+                var type = getType(typeName) ?: return null
+                if (typeDefinition.hasModifier(TypeDefinitionModifier.Array)) {
+                    type = type.arrayOf()
+                }
+                if (typeDefinition.hasModifier(TypeDefinitionModifier.Pointer)) {
+                    type = type.pointerOf()
+                }
+                type
+            }
+            else -> TODO(typeDefinition.base.toString())
         }
-        if (typeDefinition.isPointer) {
-            type = type.pointerOf()
-        }
-        return type
     }
 
     fun requireType(name: String): Datatype {
@@ -110,6 +118,6 @@ interface TypeProvider {
 
     fun requireType(typeDefinition: TypeDefinition): Datatype {
         return getType(typeDefinition)
-            ?: throw FrontendCompilerError("Could not find type: ${typeDefinition.typeName}")
+            ?: throw FrontendCompilerError("Could not find type: ${typeDefinition}")
     }
 }

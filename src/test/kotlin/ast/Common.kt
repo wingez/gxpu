@@ -49,7 +49,15 @@ fun constant(value: Int): AstNode {
 }
 
 fun variable(name: String, type: String = "byte", isPointer: Boolean = false, isArray: Boolean = false): AstNode {
-    return AstNode.fromNewVariable(name, TypeDefinition(type, isPointer = isPointer, isArray = isArray), null, na)
+    val modifiers = mutableListOf<TypeDefinitionModifier>()
+    if (isPointer) {
+        modifiers.add(TypeDefinitionModifier.Pointer)
+    }
+    if (isArray) {
+        modifiers.add(TypeDefinitionModifier.Array)
+    }
+
+    return AstNode.fromNewVariable(name, TypeDefinition.normal(type, modifiers), null, na)
 }
 
 fun call(target: String, parameters: List<AstNode>): AstNode {
@@ -57,7 +65,7 @@ fun call(target: String, parameters: List<AstNode>): AstNode {
 }
 
 fun function(name: String, arguments: List<AstNode>, body: List<AstNode>, returnTypeName: String?): AstNode {
-    val returnTypeDef = if (returnTypeName != null) TypeDefinition(returnTypeName) else null
+    val returnTypeDef = if (returnTypeName != null) TypeDefinition.normal(returnTypeName, emptyList()) else null
     return AstNode.fromFunction(name, FunctionType.Normal, arguments, body, returnTypeDef, na)
 }
 

@@ -35,7 +35,7 @@ enum class TokenType {
     LesserSign,
     NotEqual,
     DoubleEqual,
-    Deref,
+    RightArrow,
     String,
     Ampersand,
 }
@@ -284,7 +284,7 @@ val operatorsToType = mapOf(
     ">" to TokenType.GreaterSign,
     "<" to TokenType.LesserSign,
     "." to TokenType.Dot,
-    "->" to TokenType.Deref,
+    "->" to TokenType.RightArrow,
     "*" to TokenType.Star,
     "&" to TokenType.Ampersand,
 )

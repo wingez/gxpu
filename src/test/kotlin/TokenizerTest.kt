@@ -43,7 +43,7 @@ val TokenComma = Token(TokenType.Comma, "", SourceInfo.notApplicable)
 val TokenColon = Token(TokenType.Colon, "", SourceInfo.notApplicable)
 val TokenAssign = Token(TokenType.Equals, "", SourceInfo.notApplicable)
 val TokenDot = Token(TokenType.Dot, "", SourceInfo.notApplicable)
-val TokenDeref = Token(TokenType.Deref, "", SourceInfo.notApplicable)
+val TokenRightArrow = Token(TokenType.RightArrow, "", SourceInfo.notApplicable)
 val TokenKeywordDef = Token(TokenType.KeywordDef, "", SourceInfo.notApplicable)
 val TokenKeywordWhile = Token(TokenType.KeywordWhile, "", SourceInfo.notApplicable)
 val TokenKeywordIf = Token(TokenType.KeywordIf, "", SourceInfo.notApplicable)
@@ -245,7 +245,7 @@ internal class TokenizerTest {
         assertEqualsWithoutLineNo(listOf(TokenRightParenthesis, TokenPlusSign, TokenEOL), tokenizeLine(")+"))
 
         assertEqualsWithoutLineNo(
-            listOf(TokenRightParenthesis, TokenDeref, tidentifier("test"), TokenEOL),
+            listOf(TokenRightParenthesis, TokenRightArrow, tidentifier("test"), TokenEOL),
             tokenizeLine(")->test"),
         )
     }
