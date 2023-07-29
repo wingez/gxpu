@@ -44,6 +44,12 @@ class VariableExpression(
     override val type = variable.datatype
 }
 
+class FunctionReference(
+    val definition: FunctionDefinition
+) : ValueExpression {
+    override val type: Datatype
+        get() = FunctionDefinitionDatatype(definition)
+}
 
 class AddressMemberAccess(
     val of: AddressExpression,
@@ -86,10 +92,10 @@ class DerefToValue(
 }
 
 class CallExpression(
-    val function: FunctionSignature,
+    val function: FunctionDefinition,
     val parameters: List<ValueExpression>
 ) : ValueExpression {
-    override val type: Datatype = function.returnType
+    override val type: Datatype = function.signature.returnType
 }
 
 class StringExpression(
@@ -289,7 +295,7 @@ class FunctionCompiler(
         node: AstNode,
     ): AddressExpression {
         return when (node.type) {
-            NodeTypes.Identifier -> VariableExpression(lookupVariable(node.asIdentifier()))
+            NodeTypes.Identifier -> handleIdentifierToAddress(node.asIdentifier())
 
             NodeTypes.Deref -> {
                 DerefToAddress(parseValueExpression(node.child))
@@ -319,7 +325,7 @@ class FunctionCompiler(
             }
 
             NodeTypes.Constant -> ConstantExpression(node.asConstant())
-            NodeTypes.Identifier -> VariableExpression(lookupVariable(node.asIdentifier()))
+            NodeTypes.Identifier -> handleIdentifierToValue(node.asIdentifier())
             NodeTypes.String -> StringExpression(node.asString())
             NodeTypes.MemberAccess -> parseMemberAccess(node)
             NodeTypes.ArrayAccess -> {
@@ -330,7 +336,7 @@ class FunctionCompiler(
                 val definition = FunctionSignature(
                     OperatorBuiltIns.ArrayRead, listOf(Primitives.Integer.arrayPointerOf(), Primitives.Integer),
                     Primitives.Integer, FunctionType.Operator
-                )
+                ).let { FunctionDefinition(it, it.parameterTypes.map { "todo" }) }
                 CallExpression(definition, listOf(member, index))
             }
 
@@ -350,6 +356,29 @@ class FunctionCompiler(
             else -> throw AssertionError("Cannot parse node ${node.type} yet")
         }
     }
+
+    private fun handleIdentifierToAddress(identifier: String): AddressExpression {
+        val foundVariable = lookupVariable(identifier)
+        if (foundVariable != null) {
+            return VariableExpression(foundVariable)
+        }
+        TODO()
+    }
+
+    private fun handleIdentifierToValue(identifier: String): ValueExpression {
+
+        val foundVariable = lookupVariable(identifier)
+        if (foundVariable != null) {
+            return VariableExpression(foundVariable)
+        }
+        val functionDef = functionProvider.getFunctionDefinitionMatchingName(identifier)
+        return FunctionReference(functionDef)
+    }
+
+    private fun lookupVariable(name: String): Variable? {
+        return variables.find { it.name == name }
+    }
+
 
     private fun parseMemberAccess(node: AstNode): ValueExpression {
         val value = parseValueExpression(node.childNodes.first())
@@ -490,7 +519,8 @@ class FunctionCompiler(
                                 Primitives.Integer.arrayPointerOf(), Primitives.Integer,
                                 Primitives.Integer
                             ), Primitives.Nothing, FunctionType.Operator
-                        ), parameters = listOf(array, index, value)
+                        ).let { FunctionDefinition(it, it.parameterTypes.map { "todo" }) },
+                        parameters = listOf(array, index, value)
                     )
                 )
             )
@@ -561,11 +591,6 @@ class FunctionCompiler(
         return CompositeDatatype(
             definition.signature.name,
             variables.filter { it.type == treatNewVariablesAs }.map { it.field })
-    }
-
-    private fun lookupVariable(name: String): Variable {
-        return variables.find { it.name == name }
-            ?: throw FrontendCompilerError("variable $name not found")
     }
 }
 

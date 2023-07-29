@@ -53,6 +53,8 @@ fun tryGetValueWhere(expr: ValueExpression, where: WhereToPutResult, context: Fu
                     val field = context.globalsLayout.getField(expr.variable.name)
                     GlobalsField(field)
                 }
+
+                else -> TODO()
             }
         }
 
@@ -219,11 +221,11 @@ fun requireGetValueIn(expr: ValueExpression, where: WhereToPutResult, context: F
 private fun handleGenericCall(expr: CallExpression, where: WhereToPutResult, context: FunctionContext) {
 
     //Maks space for result variable
-    if (expr.function.returnType != Primitives.Nothing) {
+    if (expr.function.signature.returnType != Primitives.Nothing) {
         context.addInstruction(
             emulate(
                 DefaultEmulator.add_sp,
-                "val" to sizeOf(expr.function.returnType)
+                "val" to sizeOf(expr.function.signature.returnType)
             )
         )
     }
@@ -243,12 +245,12 @@ private fun handleGenericCall(expr: CallExpression, where: WhereToPutResult, con
     // Pop value from stack if required
 
     if (where == WhereToPutResult.A) {
-        val retType = expr.function.returnType
+        val retType = expr.function.signature.returnType
 
         if (retType != Primitives.Nothing) {
 
             if (retType != Primitives.Integer && retType != Primitives.Boolean) {
-                TODO(expr.function.returnType.toString())
+                TODO(expr.function.signature.returnType.toString())
             }
             context.addInstruction(emulate(DefaultEmulator.popa))
         }
@@ -334,7 +336,7 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
                     // Try to do the test directly here
 
                     requireGetValueIn(
-                        CallExpression(ByteSubtraction().signature, expr.parameters),
+                        CallExpression(ByteSubtraction().definition, expr.parameters),
                         WhereToPutResult.A,
                         context
                     )
@@ -344,7 +346,7 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
 
                 else -> {
                     // Otherwise just implicit convert from int to bool
-                    requireGetValueIn(CallExpression(ByteSubtraction().signature, expr.parameters), where, context)
+                    requireGetValueIn(CallExpression(ByteSubtraction().definition, expr.parameters), where, context)
                     where
                 }
             }
@@ -355,7 +357,7 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
                 // try to inline the test
                 WhereToPutResult.Flag -> {
                     requireGetValueIn(
-                        CallExpression(ByteSubtraction().signature, expr.parameters),
+                        CallExpression(ByteSubtraction().definition, expr.parameters),
                         WhereToPutResult.A,
                         context
                     )
@@ -366,7 +368,7 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
                 else -> {
                     // We need to implicit convert from int to bool but invert the boolean value of the subtraction result
                     requireGetValueIn(
-                        CallExpression(ByteSubtraction().signature, expr.parameters),
+                        CallExpression(ByteSubtraction().definition, expr.parameters),
                         WhereToPutResult.A,
                         context
                     )
@@ -381,7 +383,7 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
                 // try to inline the test
                 WhereToPutResult.Flag -> {
                     requireGetValueIn(
-                        CallExpression(ByteSubtraction().signature, expr.parameters),
+                        CallExpression(ByteSubtraction().definition, expr.parameters),
                         WhereToPutResult.A,
                         context
                     )
@@ -456,6 +458,8 @@ fun getAddressOf(expr: AddressExpression, context: FunctionContext): GetAddressR
                     val field = context.globalsLayout.getField(expr.variable.name)
                     GlobalsField(field)
                 }
+
+                else -> TODO()
             }
 
         }

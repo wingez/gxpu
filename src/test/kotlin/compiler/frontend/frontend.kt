@@ -3,6 +3,7 @@ package compiler.frontend
 import org.junit.jupiter.api.Test
 import ast.FunctionType
 import ast.parserFromFile
+import compiler.BuiltInSignatures
 import compiler.backendemulator.dummyTypeContainer
 import kotlin.test.assertEquals
 
@@ -11,14 +12,17 @@ val emptyFunctions = object : FunctionSignatureResolver {
         name: String,
         functionType: FunctionType,
         parameterTypes: List<Datatype>
-    ): FunctionSignature {
+    ): FunctionDefinition {
         if (name == "print") {
-            return FunctionSignature("print", listOf(Primitives.Integer), Primitives.Nothing, FunctionType.Normal)
+            return BuiltInSignatures.print
         }
 
         TODO("Not yet implemented")
     }
 
+    override fun getFunctionDefinitionMatchingName(name: String): FunctionDefinition {
+        TODO("Not yet implemented")
+    }
 }
 
 internal class FrontendTest {

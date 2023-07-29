@@ -29,7 +29,12 @@ interface FunctionSignatureResolver {
         name: String,
         functionType: FunctionType,
         parameterTypes: List<Datatype>
-    ): FunctionSignature
+    ): FunctionDefinition
+
+    // TODO find a better way of doing this
+    fun getFunctionDefinitionMatchingName(
+        name: String,
+    ): FunctionDefinition
 }
 
 private fun parameters(functionNode: AstNode, typeProvider: TypeProvider): Pair<List<String>, List<Datatype>> {
@@ -64,27 +69,28 @@ fun definitionFromFunctionNode(functionNode: AstNode, typeProvider: TypeProvider
     return FunctionDefinition(signature, paramNames)
 }
 
-class SignatureBuilder(val name: String) {
-    private val parameters = mutableListOf<Datatype>()
+class DefinitionBuilder(val name: String) {
+    private val parameters = mutableListOf<Pair<String, Datatype>>()
     private var returnType: Datatype = Primitives.Nothing
     private var functionType = FunctionType.Normal
 
-    fun addParameter(type: Datatype): SignatureBuilder {
-        parameters.add(type)
+    fun addParameter(name: String, type: Datatype): DefinitionBuilder {
+        parameters.add(name to type)
         return this
     }
 
-    fun setReturnType(type: Datatype): SignatureBuilder {
+    fun setReturnType(type: Datatype): DefinitionBuilder {
         returnType = type
         return this
     }
 
-    fun setFunctionType(type: FunctionType): SignatureBuilder {
+    fun setFunctionType(type: FunctionType): DefinitionBuilder {
         functionType = type
         return this
     }
 
-    fun getSignature(): FunctionSignature {
-        return FunctionSignature(name, parameters, returnType, functionType)
+    fun getDefinition(): FunctionDefinition {
+        val signature = FunctionSignature(name, parameters.map { it.second }, returnType, functionType)
+        return FunctionDefinition(signature, parameters.map { it.first })
     }
 }

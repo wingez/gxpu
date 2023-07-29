@@ -1,17 +1,16 @@
 package compiler.backends.astwalker
 
-import ast.AstNode
 import compiler.frontend.*
 
 interface IWalkerFunction {
-    val signature: FunctionSignature
+    val definition: FunctionDefinition
     fun execute(values: List<Value>, state: WalkerState): Value
 }
 
 class UserFunction(
     val functionContent: FunctionContent
 ) : IWalkerFunction {
-    override val signature: FunctionSignature = functionContent.definition.signature
+    override val definition: FunctionDefinition = functionContent.definition
     val code = functionContent.code
 
     override fun execute(values: List<Value>, state: WalkerState): Value {

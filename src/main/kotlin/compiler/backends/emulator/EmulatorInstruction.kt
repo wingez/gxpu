@@ -3,12 +3,13 @@ package compiler.backends.emulator
 import compiler.backends.emulator.emulator.Emulator
 import compiler.backends.emulator.emulator.ReferenceIndexProvider
 import compiler.backends.emulator.instructions.Instruction
+import compiler.frontend.FunctionDefinition
 import compiler.frontend.FunctionSignature
 import compiler.frontend.Label
 
 
 data class Reference(
-    val function: FunctionSignature,
+    val function: FunctionDefinition,
     val label: Label
 )
 
@@ -33,7 +34,7 @@ data class Value(
         return if (isConstant) {
             constant.toString()
         } else {
-            "${reference!!.function.name}.${reference.label.identifier}"
+            "${reference!!.function.signature.name}.${reference.label.identifier}"
         }
     }
 }

@@ -78,6 +78,13 @@ data class CompositeDatatype(
     }
 }
 
+data class FunctionDefinitionDatatype(
+    val definition: FunctionDefinition
+):Datatype{
+    override val name: String
+        get() = definition.signature.toString()
+}
+
 fun Datatype.arrayOf(): Datatype {
     return ArrayDatatype(this)
 }

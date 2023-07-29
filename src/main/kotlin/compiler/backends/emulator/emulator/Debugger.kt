@@ -69,7 +69,7 @@ class InteractiveDebugger(
         for ((index, instr) in instructions.withIndex()) {
             for (ref in instr.references) {
                 if (ref.label == functionEntryLabel) {
-                    result.add(ref.function.name to index)
+                    result.add(ref.function.signature.name to index)
                 }
             }
         }

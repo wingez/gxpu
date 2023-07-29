@@ -4,6 +4,7 @@ import ast.FunctionType
 import compiler.BackendCompiler
 import compiler.backends.emulator.emulator.DefaultEmulator
 import compiler.frontend.*
+import requireNotReached
 import kotlin.Error
 
 class EmulatorRunner(
@@ -46,22 +47,22 @@ data class CompiledProgram(
 )
 
 interface BuiltInProvider {
-    fun getSignatures(): List<FunctionSignature>
-    fun buildSignature(signature: FunctionSignature): BuiltFunction
+    fun getDefinitions(): List<FunctionDefinition>
+    fun buildDefinition(definition: FunctionDefinition): BuiltFunction
 }
 
 private interface FunctionSource {
-    val signature: FunctionSignature
+    val definition: FunctionDefinition
     fun build(): BuiltFunction
 }
 
 private class BuiltinSource(
     val builtInProvider: BuiltInProvider,
-    override val signature: FunctionSignature,
+    override val definition: FunctionDefinition,
 ) : FunctionSource {
 
     override fun build(): BuiltFunction {
-        return builtInProvider.buildSignature(signature)
+        return builtInProvider.buildDefinition(definition)
     }
 }
 
@@ -69,15 +70,15 @@ private class CodeSource(
     private val functionContent: FunctionContent,
     private val globals: LayedOutDatatype,
 ) : FunctionSource {
-    override val signature = functionContent.definition.signature
+    override val definition = functionContent.definition
     override fun build(): BuiltFunction {
         return buildFunctionBody(functionContent, globals)
     }
 }
 
-val mainSignature = SignatureBuilder("main")
+val mainDefinition = DefinitionBuilder("main")
     .setReturnType(Primitives.Nothing)
-    .getSignature()
+    .getDefinition()
 
 
 class Compiler(
@@ -91,7 +92,7 @@ class Compiler(
 
     val includedTypes = types.associateBy { it.name }
 
-    private val availableFunctionSignatures = mutableSetOf<FunctionSignature>()
+    private val availableFunctionDefinitions = mutableSetOf<FunctionDefinition>()
 
     override fun addInstruction(emulatorInstruction: EmulatorInstruction) {
         resultingInstructions.add(emulatorInstruction)
@@ -111,13 +112,18 @@ class Compiler(
         name: String,
         functionType: FunctionType,
         parameterTypes: List<Datatype>
-    ): FunctionSignature {
-        for (definition in availableFunctionSignatures) {
-            if (definition.matches(name, functionType, parameterTypes)) {
+    ): FunctionDefinition {
+        for (definition in availableFunctionDefinitions) {
+            if (definition.signature.matches(name, functionType, parameterTypes)) {
                 return definition
             }
         }
         TODO(listOf(name, parameterTypes.toString(), functionType.toString()).toString())
+    }
+
+    override fun getFunctionDefinitionMatchingName(name: String): FunctionDefinition {
+        return availableFunctionDefinitions.find { it.signature.name==name }
+            ?:throw CompileError("No type with name $name found")
     }
 
     fun buildProgram(): CompiledProgram {
@@ -137,13 +143,13 @@ class Compiler(
             addInstruction(
                 emulate(
                     DefaultEmulator.call_addr, "addr" to Reference(
-                        initializeGlobalsSignature,
+                        initializeGlobalsDefinition,
                         functionEntryLabel
                     )
                 )
             )
         }
-        addInstruction(emulate(DefaultEmulator.call_addr, "addr" to Reference(mainSignature, functionEntryLabel)))
+        addInstruction(emulate(DefaultEmulator.call_addr, "addr" to Reference(mainDefinition, functionEntryLabel)))
         addInstruction(emulate(DefaultEmulator.exit))
 
 
@@ -152,32 +158,24 @@ class Compiler(
         val functionSources = mutableListOf<FunctionSource>()
 
 
-        for (signature in builtInProvider.getSignatures()) {
+        for (signature in builtInProvider.getDefinitions()) {
             functionSources.add(BuiltinSource(builtInProvider, signature))
-            availableFunctionSignatures.add(signature)
+            availableFunctionDefinitions.add(signature)
         }
-        availableFunctionSignatures.addAll(builtinInlinedSignatures)
+        availableFunctionDefinitions.addAll(builtinInlinedSignatures)
 
         for (f in intermediateFunctions) {
-            availableFunctionSignatures.add(f.definition.signature)
+            availableFunctionDefinitions.add(f.definition)
             functionSources.add(CodeSource(f, globalsLayout))
         }
 
-        /// Compile all functions
-        val compiledFunctions = mutableMapOf<FunctionSignature, BuiltFunction>()
-
-        for (source in functionSources) {
-            val builtFunction = source.build()
-            compiledFunctions[source.signature] = builtFunction
-        }
-
         // Then add the main-function and all functions it references (recursively)
-        val alreadyPlaced = mutableSetOf<FunctionSignature>()
+        val alreadyPlaced = mutableSetOf<FunctionDefinition>()
 
-        val toPlace = mutableListOf(mainSignature)
+        val toPlace = mutableListOf<FunctionDefinition>(mainDefinition)
 
         if (globals.needsInitialization){
-            toPlace.add(initializeGlobalsSignature)
+            toPlace.add(initializeGlobalsDefinition)
         }
 
 
@@ -189,19 +187,23 @@ class Compiler(
                 continue
             }
 
-            val included = compiledFunctions.getValue(top)
+            val source = functionSources.find{it.definition == top}
+                ?: requireNotReached()
+
+            val builtFunction = source.build()
+
 
             // Add all dependents to be included
-            val notAddedDependents = included.getDependents()
+            val notAddedDependents = builtFunction.getDependents()
                 .filter { it !in alreadyPlaced }
                 .filter { it != top }
 
             toPlace.addAll(notAddedDependents)
 
 
-            alreadyPlaced.add(included.signature)
+            alreadyPlaced.add(top)
 
-            included.instructions.forEach { addInstruction(it) }
+            builtFunction.instructions.forEach { addInstruction(it) }
         }
 
         return CompiledProgram(resultingInstructions)
