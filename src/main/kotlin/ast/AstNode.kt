@@ -338,16 +338,3 @@ data class FunctionData(
     val type: FunctionType,
     val returnType: TypeDefinition?,
 )
-
-fun iterateNodeRecursively(node: AstNode): Iterable<AstNode> {
-    val result = mutableListOf<AstNode>()
-    iterateNodeRecursivelyImpl(node, result)
-    return result
-}
-
-private fun iterateNodeRecursivelyImpl(node: AstNode, list: MutableList<AstNode>) {
-    list.add(node)
-    for (child in node.childNodes) {
-        iterateNodeRecursivelyImpl(child,list)
-    }
-}
