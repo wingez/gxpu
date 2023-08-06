@@ -243,5 +243,13 @@ class AstParserExpressions {
         )
     }
 
+    @Test
+    fun testLambda(){
+        assertEquals(
+            AstNode.fromLambda(listOf(constant(5)),na),
+            parseExpression("{5}")
+        )
+    }
+
 }
 

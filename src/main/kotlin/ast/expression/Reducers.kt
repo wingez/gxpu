@@ -23,6 +23,7 @@ private val priorities = object {
 
     val binaryComparisons = 10
 
+    val lambda = 5
 
     val bracketsBlockToArray = 0
 
@@ -266,6 +267,18 @@ private class ArrowMemberAccessReducer : MatchingReducer(
 
 }
 
+private class LambdaReducer:MatchingReducer(
+    listOf(
+        TokenMatcher(TokenType.LeftWing), anyNodeMatcher, TokenMatcher(TokenType.RightWing)
+    )
+){
+    override val priority= priorities.lambda
+    override fun tryReduceMatched(values: List<Value>): Value {
+        return Value.node(
+            AstNode.fromLambda(listOf(values[1].node),values[0].sourceInfo)
+        )
+    }
+}
 
 private val reducers: List<Reducer> = listOf(
     ExtractSingleValueParenthesis(),
@@ -283,6 +296,8 @@ private val reducers: List<Reducer> = listOf(
     ArrowMemberAccessReducer(),
 
     UnaryOperatorReducer(TokenType.MinusSign, priorities.negate),
+
+    LambdaReducer(),
 
     ) + binaryOperationPriorities.keys.map { BinaryOperatorReducer(it) }
 private val reducersOrdered = reducers.sortedBy { -it.priority }
