@@ -24,6 +24,7 @@ enum class NodeTypes {
     Array,
     AddressOf,
     Deref,
+    Lambda,
 }
 
 enum class FunctionType {
@@ -324,6 +325,10 @@ data class AstNode(
 
         fun fromMemberAccess(node: AstNode, member: String, sourceInfo: SourceInfo): AstNode {
             return AstNode(NodeTypes.MemberAccess, member, listOf(node), sourceInfo)
+        }
+
+        fun fromLambda(body: List<AstNode>, sourceInfo: SourceInfo): AstNode {
+            return AstNode(NodeTypes.Lambda, null, listOf(AstNode.fromBody(body)), sourceInfo)
         }
     }
 }
