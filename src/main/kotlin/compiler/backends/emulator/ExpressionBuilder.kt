@@ -334,7 +334,7 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
                     // Try to do the test directly here
 
                     requireGetValueIn(
-                        CallExpression(ByteSubtraction().signature, expr.parameters),
+                        CallExpression(ByteSubtraction().definition, expr.parameters),
                         WhereToPutResult.A,
                         context
                     )
@@ -344,7 +344,7 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
 
                 else -> {
                     // Otherwise just implicit convert from int to bool
-                    requireGetValueIn(CallExpression(ByteSubtraction().signature, expr.parameters), where, context)
+                    requireGetValueIn(CallExpression(ByteSubtraction().definition, expr.parameters), where, context)
                     where
                 }
             }
@@ -355,7 +355,7 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
                 // try to inline the test
                 WhereToPutResult.Flag -> {
                     requireGetValueIn(
-                        CallExpression(ByteSubtraction().signature, expr.parameters),
+                        CallExpression(ByteSubtraction().definition, expr.parameters),
                         WhereToPutResult.A,
                         context
                     )
@@ -366,7 +366,7 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
                 else -> {
                     // We need to implicit convert from int to bool but invert the boolean value of the subtraction result
                     requireGetValueIn(
-                        CallExpression(ByteSubtraction().signature, expr.parameters),
+                        CallExpression(ByteSubtraction().definition, expr.parameters),
                         WhereToPutResult.A,
                         context
                     )
@@ -381,7 +381,7 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
                 // try to inline the test
                 WhereToPutResult.Flag -> {
                     requireGetValueIn(
-                        CallExpression(ByteSubtraction().signature, expr.parameters),
+                        CallExpression(ByteSubtraction().definition, expr.parameters),
                         WhereToPutResult.A,
                         context
                     )

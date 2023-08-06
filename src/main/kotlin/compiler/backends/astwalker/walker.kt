@@ -3,7 +3,7 @@ package compiler.backends.astwalker
 import ast.FunctionType
 import compiler.BackendCompiler
 import compiler.frontend.*
-import compiler.mainSignature
+import compiler.mainDefinition
 
 class WalkerException(msg: String = "") : Exception(msg)
 
@@ -76,32 +76,32 @@ class WalkerState(
     }
 
     private fun hasFunctionMatching(name: String, functionType: FunctionType, parameterTypes: List<Datatype>): Boolean {
-        return availableFunctions.any { it.signature.matches(name, functionType, parameterTypes) }
+        return availableFunctions.any { it.definition.matches(name, functionType, parameterTypes) }
     }
 
-    fun getFunctionFromSignature(functionSignature: FunctionSignature): IWalkerFunction {
-        return availableFunctions.find { it.signature == functionSignature }
-            ?: throw WalkerException("No functions matches $functionSignature")
+    fun getFunctionFromSignature(functionDefinition: FunctionDefinition): IWalkerFunction {
+        return availableFunctions.find { it.definition == functionDefinition }
+            ?: throw WalkerException("No functions matches $functionDefinition")
     }
 
     override fun getFunctionDefinitionMatching(
         name: String,
         functionType: FunctionType,
         parameterTypes: List<Datatype>
-    ): FunctionSignature {
-        val func = availableFunctions.find { it.signature.matches(name, functionType, parameterTypes) }
+    ): FunctionDefinition {
+        val func = availableFunctions.find { it.definition.matches(name, functionType, parameterTypes) }
             ?: throw WalkerException("No functions matches $name($parameterTypes)")
-        return func.signature
+        return func.definition
     }
 
     private fun addFunction(function: IWalkerFunction) {
         if (hasFunctionMatching(
-                function.signature.name,
-                function.signature.functionType,
-                function.signature.parameterTypes
+                function.definition.name,
+                function.definition.functionType,
+                function.definition.parameterTypes
             )
         ) {
-            throw WalkerException("Function already exists: ${function.signature.name}(${function.signature.parameterTypes})")
+            throw WalkerException("Function already exists: ${function.definition.name}(${function.definition.parameterTypes})")
         }
         availableFunctions.add(function)
     }
@@ -122,7 +122,7 @@ class WalkerState(
 
         //Call main
         val mainFunction = getFunctionFromSignature(
-            mainSignature
+            mainDefinition
         )
 
         call(mainFunction, emptyList())
@@ -201,7 +201,7 @@ class WalkerState(
             }
         }
 
-        val result = if (userFunction.signature.returnType == Primitives.Nothing) {
+        val result = if (userFunction.definition.returnType == Primitives.Nothing) {
             Value.void
         } else {
             getVariable(Variable(fields.getField(RETURN_VALUE_NAME), VariableType.Local))

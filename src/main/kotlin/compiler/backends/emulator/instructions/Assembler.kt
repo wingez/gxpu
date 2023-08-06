@@ -4,7 +4,7 @@ import compiler.backends.emulator.EmulatorInstruction
 import compiler.backends.emulator.Reference
 import compiler.backends.emulator.Value
 import compiler.frontend.Label
-import compiler.frontend.SignatureBuilder
+import compiler.frontend.DefinitionBuilder
 import splitMany
 
 class AssembleError(message: String) : Exception(message)
@@ -83,7 +83,7 @@ class Assembler(
     private fun getVariableOrConstant(value: String): Value {
 
         if (!value.all { it.isDigit()||it=='-' }) {
-            return Value(reference = Reference(SignatureBuilder("main").getSignature(), Label(value)))
+            return Value(reference = Reference(DefinitionBuilder("main").getDefinition(), Label(value)))
         }
 
         return Value(constant = value.toInt())
@@ -130,7 +130,7 @@ class Assembler(
         }
         if (isLabel(trimmedMnemonic)) {
             val labelName = trimmedMnemonic.substring(LABEL.length)
-            referencesToAddToNextInstruction.add(Reference(SignatureBuilder("main").getSignature(), Label(labelName)))
+            referencesToAddToNextInstruction.add(Reference(DefinitionBuilder("main").getDefinition(), Label(labelName)))
             return
         }
 

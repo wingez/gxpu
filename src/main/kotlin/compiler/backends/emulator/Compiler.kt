@@ -46,22 +46,22 @@ data class CompiledProgram(
 )
 
 interface BuiltInProvider {
-    fun getSignatures(): List<FunctionSignature>
-    fun buildSignature(signature: FunctionSignature): BuiltFunction
+    fun getDefinitions(): List<FunctionDefinition>
+    fun buildDefinition(signature: FunctionDefinition): BuiltFunction
 }
 
 private interface FunctionSource {
-    val signature: FunctionSignature
+    val definition: FunctionDefinition
     fun build(): BuiltFunction
 }
 
 private class BuiltinSource(
     val builtInProvider: BuiltInProvider,
-    override val signature: FunctionSignature,
+    override val definition: FunctionDefinition,
 ) : FunctionSource {
 
     override fun build(): BuiltFunction {
-        return builtInProvider.buildSignature(signature)
+        return builtInProvider.buildDefinition(definition)
     }
 }
 
@@ -69,15 +69,15 @@ private class CodeSource(
     private val functionContent: FunctionContent,
     private val globals: LayedOutDatatype,
 ) : FunctionSource {
-    override val signature = functionContent.definition.signature
+    override val definition = functionContent.definition
     override fun build(): BuiltFunction {
         return buildFunctionBody(functionContent, globals)
     }
 }
 
-val mainSignature = SignatureBuilder("main")
+val mainSignature = DefinitionBuilder("main")
     .setReturnType(Primitives.Nothing)
-    .getSignature()
+    .getDefinition()
 
 
 class Compiler(
@@ -91,7 +91,7 @@ class Compiler(
 
     val includedTypes = types.associateBy { it.name }
 
-    private val availableFunctionSignatures = mutableSetOf<FunctionSignature>()
+    private val availableFunctionSignatures = mutableSetOf<FunctionDefinition>()
 
     override fun addInstruction(emulatorInstruction: EmulatorInstruction) {
         resultingInstructions.add(emulatorInstruction)
@@ -111,7 +111,7 @@ class Compiler(
         name: String,
         functionType: FunctionType,
         parameterTypes: List<Datatype>
-    ): FunctionSignature {
+    ): FunctionDefinition {
         for (definition in availableFunctionSignatures) {
             if (definition.matches(name, functionType, parameterTypes)) {
                 return definition
@@ -137,7 +137,7 @@ class Compiler(
             addInstruction(
                 emulate(
                     DefaultEmulator.call_addr, "addr" to Reference(
-                        initializeGlobalsSignature,
+                        initializeGlobalsDefinition,
                         functionEntryLabel
                     )
                 )
@@ -152,32 +152,32 @@ class Compiler(
         val functionSources = mutableListOf<FunctionSource>()
 
 
-        for (signature in builtInProvider.getSignatures()) {
+        for (signature in builtInProvider.getDefinitions()) {
             functionSources.add(BuiltinSource(builtInProvider, signature))
             availableFunctionSignatures.add(signature)
         }
         availableFunctionSignatures.addAll(builtinInlinedSignatures)
 
         for (f in intermediateFunctions) {
-            availableFunctionSignatures.add(f.definition.signature)
+            availableFunctionSignatures.add(f.definition)
             functionSources.add(CodeSource(f, globalsLayout))
         }
 
         /// Compile all functions
-        val compiledFunctions = mutableMapOf<FunctionSignature, BuiltFunction>()
+        val compiledFunctions = mutableMapOf<FunctionDefinition, BuiltFunction>()
 
         for (source in functionSources) {
             val builtFunction = source.build()
-            compiledFunctions[source.signature] = builtFunction
+            compiledFunctions[source.definition] = builtFunction
         }
 
         // Then add the main-function and all functions it references (recursively)
-        val alreadyPlaced = mutableSetOf<FunctionSignature>()
+        val alreadyPlaced = mutableSetOf<FunctionDefinition>()
 
         val toPlace = mutableListOf(mainSignature)
 
         if (globals.needsInitialization){
-            toPlace.add(initializeGlobalsSignature)
+            toPlace.add(initializeGlobalsDefinition)
         }
 
 
@@ -199,7 +199,7 @@ class Compiler(
             toPlace.addAll(notAddedDependents)
 
 
-            alreadyPlaced.add(included.signature)
+            alreadyPlaced.add(included.definition)
 
             included.instructions.forEach { addInstruction(it) }
         }

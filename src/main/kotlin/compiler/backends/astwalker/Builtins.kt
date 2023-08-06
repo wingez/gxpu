@@ -3,16 +3,15 @@ package compiler.backends.astwalker
 import ast.FunctionType
 import ast.expression.OperatorBuiltIns
 import compiler.BuiltInSignatures
-import compiler.frontend.Datatype
-import compiler.frontend.FunctionSignature
+import compiler.frontend.FunctionDefinition
 import compiler.frontend.Primitives
 
 abstract class Function(
-    override val signature: FunctionSignature,
+    override val definition: FunctionDefinition,
 ) : IWalkerFunction {
 
     override fun toString(): String {
-        return "${signature.name}${signature.parameterTypes}: ${signature.returnType}"
+        return "${definition.name}${definition.parameterTypes}: ${definition.returnType}"
 
     }
 }
@@ -33,7 +32,7 @@ class BuiltInPrintString : Function(
 
         val arrayView = values[0].asPrimitive.pointer
 
-        for (i in 0 until arrayView.arraySize()){
+        for (i in 0 until arrayView.arraySize()) {
             state.output.result.add(arrayView.arrayRead(i).getPrimitiveValue().integer)
         }
 
@@ -58,7 +57,7 @@ class BuiltInArrayRead : Function(
         val index = values[1].asPrimitive.integer
 
         val arraySize = arrayView.arraySize()
-        if (index !in 0 until arraySize){
+        if (index !in 0 until arraySize) {
             throw WalkerException("trying to read at index $index which is outside array bounds($arraySize)")
         }
 
@@ -83,9 +82,9 @@ class IntegerComparator(
     functionName: String,
     private val compareFunction: (val1: Int, val2: Int) -> Boolean
 ) : Function(
-    FunctionSignature(
+    FunctionDefinition(
         functionName,
-        listOf(Primitives.Integer, Primitives.Integer),
+        listOf("arg1" to Primitives.Integer, "arg2" to Primitives.Integer),
         Primitives.Boolean,
         FunctionType.Operator
     ),
@@ -107,7 +106,12 @@ class IntegerArithmetic(
     functionType: FunctionType,
     private val arithmeticFunction: (val1: Int, val2: Int) -> Int
 ) : Function(
-    FunctionSignature(functionName, listOf(Primitives.Integer, Primitives.Integer), Primitives.Integer, functionType),
+    FunctionDefinition(
+        functionName,
+        listOf("arg1" to Primitives.Integer, "arg2" to Primitives.Integer),
+        Primitives.Integer,
+        functionType
+    ),
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
         val value1 = values[0].asPrimitive.integer
