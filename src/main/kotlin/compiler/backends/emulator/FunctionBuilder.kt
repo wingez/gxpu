@@ -4,12 +4,12 @@ import compiler.backends.emulator.emulator.DefaultEmulator
 import compiler.frontend.*
 
 data class BuiltFunction(
-    val signature: FunctionSignature,
+    val definition: FunctionDefinition,
     val layout: FunctionFrameLayout,
     val instructions: List<EmulatorInstruction>
 ) {
 
-    fun getDependents(): Set<FunctionSignature> {
+    fun getDependents(): Set<FunctionDefinition> {
         return instructions.flatMap { it.values.values }.filter { it.isReference }.map { it.reference!!.function }
             .toSet()
     }
@@ -27,7 +27,7 @@ class FunctionBuilder(
     private val intermediateFunction: FunctionContent,
     override val globalsLayout: LayedOutDatatype,
 ) : CodeGenerator, FunctionContext {
-    val signature = intermediateFunction.definition.signature
+    val definition = intermediateFunction.definition
 
     val resultingCode = mutableListOf<EmulatorInstruction>()
 
@@ -95,7 +95,7 @@ class FunctionBuilder(
             is Assign -> handleAssign(instr)
             is JumpOnFalse -> jumpHelper(instr.condition, false, instr.label)
             is JumpOnTrue -> jumpHelper(instr.condition, true, instr.label)
-            is Jump -> addInstruction(emulate(DefaultEmulator.jump, "addr" to Reference(signature, instr.label)))
+            is Jump -> addInstruction(emulate(DefaultEmulator.jump, "addr" to Reference(definition, instr.label)))
             is Return -> handleReturn()
             else -> TODO(instr.toString())
         }
@@ -108,7 +108,7 @@ class FunctionBuilder(
 
         requireGetValueIn(expr, WhereToPutResult.Flag, this)
         if (!jumpOn) {
-            addInstruction(emulate(DefaultEmulator.jump_not_flag, "addr" to Reference(signature, label)))
+            addInstruction(emulate(DefaultEmulator.jump_not_flag, "addr" to Reference(definition, label)))
         } else {
             TODO()
         }
@@ -120,7 +120,7 @@ class FunctionBuilder(
         val referencesToAdd = mutableMapOf<Int, MutableList<Reference>>()
 
         for ((label, index) in code.labels) {
-            val reference = Reference(signature, label)
+            val reference = Reference(definition, label)
             if (index !in referencesToAdd) {
                 referencesToAdd[index] = mutableListOf()
             }
@@ -160,7 +160,7 @@ class FunctionBuilder(
 
         buildCodeBody(intermediateFunction.code)
 
-        return BuiltFunction(signature, layout, resultingCode)
+        return BuiltFunction(definition, layout, resultingCode)
     }
 }
 
@@ -173,7 +173,7 @@ fun calculateLayout(
 
 
     // Add in this order
-    if (definition.signature.hasReturnType) {
+    if (definition.hasReturnType) {
         variablesInOrder.add(localVariables.getField(RETURN_VALUE_NAME))
     }
     for (paramName in definition.parameterNames) {

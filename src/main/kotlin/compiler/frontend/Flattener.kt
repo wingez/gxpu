@@ -2,6 +2,8 @@ package compiler.frontend
 
 import ast.expression.OperatorBuiltIns
 import ast.*
+import compiler.BuiltInSignatures
+import compiler.backends.emulator.BuiltInFunctions
 
 const val RETURN_VALUE_NAME = "result"
 
@@ -86,7 +88,7 @@ class DerefToValue(
 }
 
 class CallExpression(
-    val function: FunctionSignature,
+    val function: FunctionDefinition,
     val parameters: List<ValueExpression>
 ) : ValueExpression {
     override val type: Datatype = function.returnType
@@ -327,10 +329,7 @@ class FunctionCompiler(
                 val index = parseValueExpression(node.asArrayAccess().index)
 
                 //TODO: generic-ify
-                val definition = FunctionSignature(
-                    OperatorBuiltIns.ArrayRead, listOf(Primitives.Integer.arrayPointerOf(), Primitives.Integer),
-                    Primitives.Integer, FunctionType.Operator
-                )
+                val definition = BuiltInSignatures.arrayRead
                 CallExpression(definition, listOf(member, index))
             }
 
@@ -485,12 +484,7 @@ class FunctionCompiler(
             currentCodeBlock.addInstruction(
                 Execute(
                     CallExpression(
-                        FunctionSignature(
-                            OperatorBuiltIns.ArrayWrite, listOf(
-                                Primitives.Integer.arrayPointerOf(), Primitives.Integer,
-                                Primitives.Integer
-                            ), Primitives.Nothing, FunctionType.Operator
-                        ), parameters = listOf(array, index, value)
+                        BuiltInSignatures.arrayWrite, listOf(array, index, value)
                     )
                 )
             )
@@ -524,19 +518,19 @@ class FunctionCompiler(
 
     private fun addVariables(): CompositeDatatype {
 
-        if (definition.signature.returnType != Primitives.Nothing) {
+        if (definition.returnType != Primitives.Nothing) {
             variables.add(
                 Variable(
                     CompositeDataTypeField(
                         RETURN_VALUE_NAME,
-                        definition.signature.returnType,
+                        definition.returnType,
                     ),
                     VariableType.Local,
                 )
             )
         }
 
-        for ((paramType, paramName) in definition.signature.parameterTypes.zip(definition.parameterNames)) {
+        for ((paramName,paramType ) in definition.parameters) {
             variables.add(Variable(CompositeDataTypeField(paramName, paramType), treatNewVariablesAs))
         }
 
@@ -559,7 +553,7 @@ class FunctionCompiler(
             }
         }
         return CompositeDatatype(
-            definition.signature.name,
+            definition.name,
             variables.filter { it.type == treatNewVariablesAs }.map { it.field })
     }
 

@@ -5,23 +5,22 @@ import ast.FunctionType
 import ast.NodeTypes
 
 
-data class FunctionSignature(
+data class FunctionDefinition(
     val name: String,
-    val parameterTypes: List<Datatype>,
+    val parameters: List<Pair<String, Datatype>>,
     val returnType: Datatype,
     val functionType: FunctionType,
-) {
+
+    ) {
     fun matches(name: String, functionType: FunctionType, parameterTypes: List<Datatype>): Boolean {
         return name == this.name && functionType == this.functionType && parameterTypes == this.parameterTypes
     }
 
     val hasReturnType = returnType != Primitives.Nothing
-}
 
-data class FunctionDefinition(
-    val signature: FunctionSignature,
-    val parameterNames: List<String>,
-)
+    val parameterTypes get() = parameters.map { it.second }
+    val parameterNames get() = parameters.map { it.first }
+}
 
 
 interface FunctionSignatureResolver {
@@ -29,18 +28,16 @@ interface FunctionSignatureResolver {
         name: String,
         functionType: FunctionType,
         parameterTypes: List<Datatype>
-    ): FunctionSignature
+    ): FunctionDefinition
 }
 
-private fun parameters(functionNode: AstNode, typeProvider: TypeProvider): Pair<List<String>, List<Datatype>> {
+private fun parameters(functionNode: AstNode, typeProvider: TypeProvider): List<Pair<String, Datatype>> {
     assert(functionNode.type == NodeTypes.Function)
 
     val function = functionNode.asFunction()
 
     return function.arguments.map {
-        it.asNewVariable().name
-    } to function.arguments.map {
-        typeProvider.requireType(it.asNewVariable().optionalTypeDefinition!!)
+        it.asNewVariable().name to typeProvider.requireType(it.asNewVariable().optionalTypeDefinition!!)
     }
 }
 
@@ -49,42 +46,40 @@ fun definitionFromFunctionNode(functionNode: AstNode, typeProvider: TypeProvider
 
     val function = functionNode.asFunction()
 
-    val (paramNames, paramTypes) = parameters(functionNode, typeProvider)
+    val params = parameters(functionNode, typeProvider)
 
     val returnType =
         if (function.returnType != null) typeProvider.requireType(function.returnType) else Primitives.Nothing
 
-    val signature = FunctionSignature(
+    return FunctionDefinition(
         name = function.name,
-        parameterTypes = paramTypes,
+        parameters = params,
         returnType = returnType,
         functionType = function.type,
     )
-
-    return FunctionDefinition(signature, paramNames)
 }
 
-class SignatureBuilder(val name: String) {
-    private val parameters = mutableListOf<Datatype>()
+class DefinitionBuilder(val name: String) {
+    private val parameters = mutableListOf<Pair<String, Datatype>>()
     private var returnType: Datatype = Primitives.Nothing
     private var functionType = FunctionType.Normal
 
-    fun addParameter(type: Datatype): SignatureBuilder {
-        parameters.add(type)
+    fun addParameter(name: String, type: Datatype): DefinitionBuilder {
+        parameters.add(name to type)
         return this
     }
 
-    fun setReturnType(type: Datatype): SignatureBuilder {
+    fun setReturnType(type: Datatype): DefinitionBuilder {
         returnType = type
         return this
     }
 
-    fun setFunctionType(type: FunctionType): SignatureBuilder {
+    fun setFunctionType(type: FunctionType): DefinitionBuilder {
         functionType = type
         return this
     }
 
-    fun getSignature(): FunctionSignature {
-        return FunctionSignature(name, parameters, returnType, functionType)
+    fun getDefinition(): FunctionDefinition {
+        return FunctionDefinition(name, parameters, returnType, functionType)
     }
 }

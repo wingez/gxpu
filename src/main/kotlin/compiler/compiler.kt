@@ -6,14 +6,11 @@ import ast.FunctionType
 import ast.NodeTypes
 import compiler.frontend.*
 import requireNotReached
-import tokens.Token
-import tokens.TokenType
 import tokens.parseFile
 import java.io.File
 import java.io.Reader
-import java.io.StringReader
 
-val mainSignature = FunctionSignature("main", emptyList(), Primitives.Nothing, FunctionType.Normal)
+val mainDefinition = FunctionDefinition("main", emptyList(), Primitives.Nothing, FunctionType.Normal)
 
 interface BackendCompiler {
     fun buildAndRun(allTypes: List<Datatype>, functions: List<FunctionContent>, globals: GlobalsResult): List<Int>
@@ -21,13 +18,13 @@ interface BackendCompiler {
 
 interface BuiltInCollection : TypeProvider, FunctionSignatureResolver {
     val types: List<Datatype>
-    val functions: List<FunctionSignature>
+    val functions: List<FunctionDefinition>
 
     override fun getFunctionDefinitionMatching(
         name: String,
         functionType: FunctionType,
         parameterTypes: List<Datatype>
-    ): FunctionSignature {
+    ): FunctionDefinition {
         return FunctionCollection(functions).getFunctionDefinitionMatching(name, functionType, parameterTypes)
     }
 
@@ -37,13 +34,13 @@ interface BuiltInCollection : TypeProvider, FunctionSignatureResolver {
 }
 
 class FunctionCollection(
-    private val signatures: List<FunctionSignature>,
+    private val signatures: List<FunctionDefinition>,
 ) : FunctionSignatureResolver {
     override fun getFunctionDefinitionMatching(
         name: String,
         functionType: FunctionType,
         parameterTypes: List<Datatype>
-    ): FunctionSignature {
+    ): FunctionDefinition {
         return signatures.find { it.matches(name, functionType, parameterTypes) }
             ?: throw FrontendCompilerError("write something here $name $functionType $parameterTypes")
     }
@@ -124,19 +121,19 @@ fun compileAndRunProgram(
     val types = TypeCollection(structNodes, builtIns)
 
 
-    val allAvailableFunctionSignatures = mutableListOf<FunctionSignature>()
+    val allAvailableFunctionDefinitions = mutableListOf<FunctionDefinition>()
 
-    builtIns.functions.forEach { allAvailableFunctionSignatures.add(it) }
+    builtIns.functions.forEach { allAvailableFunctionDefinitions.add(it) }
 
     val functionBodiesWithDefinitions = mutableListOf<Pair<AstNode, FunctionDefinition>>()
     for (node in functionNodes) {
         val definition = definitionFromFunctionNode(node, types)
-        allAvailableFunctionSignatures.add(definition.signature)
+        allAvailableFunctionDefinitions.add(definition)
         functionBodiesWithDefinitions.add(node to definition)
     }
 
 
-    val functionSignatureResolver = FunctionCollection(allAvailableFunctionSignatures)
+    val functionSignatureResolver = FunctionCollection(allAvailableFunctionDefinitions)
 
     val globals = compileGlobalAndInitialization(
         globalsAndInitializationNodes,

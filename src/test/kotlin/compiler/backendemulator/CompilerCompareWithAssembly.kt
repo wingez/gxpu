@@ -19,35 +19,34 @@ import kotlin.test.assertEquals
 class DummyBuiltInProvider(
     private val builtIns: List<BuiltIn> = listOf(ByteAddition(), ByteSubtraction(), PrintIntArray())
 ) : BuiltInProvider, FunctionSignatureResolver {
-    override fun getSignatures(): List<FunctionSignature> {
-        return builtIns.map { it.signature }
+    override fun getDefinitions(): List<FunctionDefinition> {
+        return builtIns.map { it.definition }
     }
 
 
-    override fun buildSignature(signature: FunctionSignature): BuiltFunction {
+    override fun buildDefinition(definition: FunctionDefinition): BuiltFunction {
         for (builtIn in builtIns) {
-            if (builtIn.signature == signature) {
+            if (builtIn.definition == definition) {
 
                 val instructions = builtIn.compile()
-                instructions.first().addReference(Reference(signature, functionEntryLabel))
+                instructions.first().addReference(Reference(definition, functionEntryLabel))
 
                 val variables = mutableListOf<CompositeDataTypeField>()
-                if (builtIn.signature.returnType != Primitives.Nothing) {
+                if (builtIn.definition.returnType != Primitives.Nothing) {
                     variables.add(
                         CompositeDataTypeField(
                             "result",
-                            builtIn.signature.returnType,
+                            builtIn.definition.returnType,
                         )
                     )
                 }
-                for ((index, parameterType) in builtIn.signature.parameterTypes.withIndex()) {
+                for ((index, parameterType) in builtIn.definition.parameterTypes.withIndex()) {
                     variables.add(CompositeDataTypeField("param$index", parameterType))
                 }
-                val definition = FunctionDefinition(signature, builtIn.signature.parameterTypes.map { it.name })
 
-                val layout = calculateLayout(definition, CompositeDatatype(signature.name, variables))
+                val layout = calculateLayout(definition, CompositeDatatype(definition.name, variables))
 
-                return BuiltFunction(builtIn.signature, layout, instructions)
+                return BuiltFunction(builtIn.definition, layout, instructions)
             }
         }
         throw AssertionError()
@@ -57,7 +56,7 @@ class DummyBuiltInProvider(
         name: String,
         functionType: FunctionType,
         parameterTypes: List<Datatype>
-    ): FunctionSignature {
+    ): FunctionDefinition {
 
         for (definition in builtinInlinedSignatures) {
             if (definition.matches(name, functionType, parameterTypes)) {
@@ -66,8 +65,8 @@ class DummyBuiltInProvider(
         }
 
         for (builtIn in builtIns) {
-            if (builtIn.signature.matches(name, functionType, parameterTypes)) {
-                return builtIn.signature
+            if (builtIn.definition.matches(name, functionType, parameterTypes)) {
+                return builtIn.definition
             }
         }
 

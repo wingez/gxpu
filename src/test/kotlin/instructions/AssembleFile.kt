@@ -12,7 +12,7 @@ import compiler.backends.emulator.Reference
 import compiler.backends.emulator.Value
 import compiler.backends.emulator.instructions.AssembleError
 import compiler.frontend.Label
-import compiler.frontend.SignatureBuilder
+import compiler.frontend.DefinitionBuilder
 
 internal class TestAssembleFile {
     @Test
@@ -82,7 +82,7 @@ internal class TestAssembleFile {
                     testInstr, mapOf(
                         "ins" to Value(
                             reference = Reference(
-                                SignatureBuilder("main").getSignature(),
+                                DefinitionBuilder("main").getDefinition(),
                                 Label("here")
                             )
                         )
@@ -103,7 +103,7 @@ internal class TestAssembleFile {
                     testInstr, mapOf(
                         "ins" to Value(
                             reference = Reference(
-                                SignatureBuilder("main").getSignature(),
+                                DefinitionBuilder("main").getDefinition(),
                                 Label("here")
                             )
                         )
@@ -112,7 +112,7 @@ internal class TestAssembleFile {
                     testInstr, mapOf(
                         "ins" to Value(
                             reference = Reference(
-                                SignatureBuilder("main").getSignature(),
+                                DefinitionBuilder("main").getDefinition(),
                                 Label("here2")
                             )
                         )
@@ -158,7 +158,7 @@ internal class TestAssembleFile {
                     testInstr, mapOf(
                         "ins" to Value(
                             reference = Reference(
-                                SignatureBuilder("main").getSignature(),
+                                DefinitionBuilder("main").getDefinition(),
                                 Label("here")
                             )
                         )

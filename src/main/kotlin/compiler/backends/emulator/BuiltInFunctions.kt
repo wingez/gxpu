@@ -8,7 +8,7 @@ import compiler.frontend.*
 
 interface BuiltIn {
 
-    val signature: FunctionSignature
+    val definition: FunctionDefinition
     val name: String
     fun compile(): List<EmulatorInstruction>
 }
@@ -27,7 +27,7 @@ class ByteAddition : BuiltIn {
         )
     }
 
-    override val signature = BuiltInSignatures.add
+    override val definition = BuiltInSignatures.add
 
 }
 
@@ -44,7 +44,7 @@ class ByteSubtraction : BuiltIn {
         )
     }
 
-    override val signature = BuiltInSignatures.sub
+    override val definition = BuiltInSignatures.sub
 }
 
 class PrintIntArray : BuiltIn {
@@ -90,11 +90,11 @@ class PrintIntArray : BuiltIn {
         )
     }
 
-    override val signature = SignatureBuilder(name)
-        .addParameter(Primitives.Str)
+    override val definition = DefinitionBuilder(name)
+        .addParameter("str", Primitives.Str)
         .setReturnType(Primitives.Nothing)
         .setFunctionType(FunctionType.Normal)
-        .getSignature()
+        .getDefinition()
 }
 
 
@@ -105,32 +105,32 @@ class BuiltInFunctions : BuiltInProvider {
         PrintIntArray(),
     )
 
-    override fun getSignatures(): List<FunctionSignature> {
-        return available.map { it.signature }
+    override fun getDefinitions(): List<FunctionDefinition> {
+        return available.map { it.definition }
 
     }
 
-    override fun buildSignature(signature: FunctionSignature): BuiltFunction {
+    override fun buildDefinition(definition: FunctionDefinition): BuiltFunction {
 
-        val result = available.find { it.signature == signature }
-            ?: TODO(signature.toString())
+        val result = available.find { it.definition == definition }
+            ?: TODO(definition.toString())
 
         val instructions = result.compile()
 
-        instructions.first().addReference(Reference(signature, functionEntryLabel))
+        instructions.first().addReference(Reference(definition, functionEntryLabel))
 
         val fields = mutableListOf<CompositeDataTypeField>()
-        if (signature.returnType != Primitives.Nothing) {
-            fields.add(CompositeDataTypeField("result", signature.returnType))
+        if (definition.returnType != Primitives.Nothing) {
+            fields.add(CompositeDataTypeField("result", definition.returnType))
         }
-        for ((index, parameterType) in signature.parameterTypes.withIndex()) {
-            fields.add(CompositeDataTypeField("param$index", parameterType))
+        for ((index, parameter) in definition.parameters.withIndex()) {
+            val (parameterName, parameterType) = parameter
+            fields.add(CompositeDataTypeField(parameterName, parameterType))
         }
 
-        val layout =
-            calculateLayout(FunctionDefinition(signature, emptyList()), CompositeDatatype(signature.name, fields))
+        val layout = calculateLayout(definition, CompositeDatatype(definition.name, fields))
 
-        return BuiltFunction(result.signature, layout, instructions)
+        return BuiltFunction(result.definition, layout, instructions)
     }
 }
 
