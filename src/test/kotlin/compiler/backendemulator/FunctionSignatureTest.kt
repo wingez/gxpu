@@ -44,14 +44,19 @@ internal class FunctionSignatureTest {
         val functionProvider = FunctionCollection(BuiltInSignatures().functions)
 
 
+        val function = compileFunctionBody(
+            node.asFunction().body,
+            definitionFromFunctionNode(node, typeProvider),
+            emptyList(),
+            functionProvider,
+            typeProvider
+        ).let {
+            require(it.size == 1)
+            it.first()
+        }
+
         val builder = FunctionBuilder(
-            compileFunctionBody(
-                node.asFunction().body,
-                definitionFromFunctionNode(node, typeProvider),
-                emptyList(),
-                functionProvider,
-                typeProvider
-            ),
+            function,
             LayedOutStruct(CompositeDatatype("dummy", emptyList()))
         )
 
@@ -177,7 +182,10 @@ internal class FunctionSignatureTest {
             sizeOf(
                 CompositeDatatype(
                     "test",
-                    listOf(CompositeDataTypeField("a", Primitives.Integer), CompositeDataTypeField("b", Primitives.Integer))
+                    listOf(
+                        CompositeDataTypeField("a", Primitives.Integer),
+                        CompositeDataTypeField("b", Primitives.Integer)
+                    )
                 )
             )
         )

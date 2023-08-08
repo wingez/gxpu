@@ -25,6 +25,7 @@ enum class NodeTypes {
     AddressOf,
     Deref,
     Lambda,
+    FunctionReference,
 }
 
 enum class FunctionType {

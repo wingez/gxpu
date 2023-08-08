@@ -4,6 +4,10 @@ import ast.AstNode
 import ast.FunctionType
 import ast.NodeTypes
 
+data class Signature(
+    val parameterTypes: List<Datatype>,
+    val returnType: Datatype,
+)
 
 data class FunctionDefinition(
     val name: String,
@@ -15,6 +19,8 @@ data class FunctionDefinition(
     fun matches(name: String, functionType: FunctionType, parameterTypes: List<Datatype>): Boolean {
         return name == this.name && functionType == this.functionType && parameterTypes == this.parameterTypes
     }
+
+    val signature = Signature(parameterTypes, returnType)
 
     val hasReturnType = returnType != Primitives.Nothing
 

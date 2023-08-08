@@ -101,7 +101,7 @@ fun buildBody(body: String): List<EmulatorInstruction> {
 
     val intermediate = compileFunctionBody(body, BuiltInSignatures())
 
-    return buildFunctionBody(intermediate, noGlobals).instructions
+    return intermediate.flatMap { buildFunctionBody(it, noGlobals).instructions}
 }
 
 
