@@ -145,7 +145,7 @@ class WalkerState(
                 currentFrame.localVariableHolder.viewEntire().viewField(variable.name)
 
             }
-            VariableType.Global->{
+            VariableType.Global -> {
                 globalVariables.viewEntire().viewField(variable.name)
             }
             else -> TODO()
@@ -202,7 +202,7 @@ class WalkerState(
         }
 
         val result = if (userFunction.definition.returnType == Primitives.Nothing) {
-            Value.void
+            Value.nothing
         } else {
             getVariable(Variable(fields.getField(RETURN_VALUE_NAME), VariableType.Local))
         }
@@ -325,6 +325,13 @@ class WalkerState(
             is ValueMemberAccess -> {
                 val existing = getValueOf(valueExpression.of)
                 existing.getField(valueExpression.memberName)
+            }
+
+            is FunctionReference -> {
+                val index =
+                    availableFunctions.withIndex().find { it.value.definition == valueExpression.function }?.index
+                require(index != null)
+                Value.primitive(valueExpression.type, index)
             }
 
             else -> TODO(valueExpression.toString())

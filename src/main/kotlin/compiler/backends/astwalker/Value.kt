@@ -28,7 +28,7 @@ data class Value(
 ) {
     val asPrimitive: PrimitiveValue
         get() {
-            require(datatype is PrimitiveDataType || datatype is PointerDatatype)
+            require(datatype is PrimitiveDataType || datatype is PointerDatatype || datatype is FunctionDatatype)
             require(primitives.size == 1)
             return primitives.first()
         }
@@ -40,7 +40,7 @@ data class Value(
     }
 
     companion object {
-        val void = Value(Primitives.Nothing, emptyList())
+        val nothing = Value(Primitives.Nothing, emptyList())
 
         fun primitive(datatype: Datatype, value: Int): Value {
             return Value(datatype, listOf(PrimitiveValue.integer(value)))
