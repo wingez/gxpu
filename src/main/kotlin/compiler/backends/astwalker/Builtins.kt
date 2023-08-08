@@ -3,6 +3,7 @@ package compiler.backends.astwalker
 import ast.FunctionType
 import ast.expression.OperatorBuiltIns
 import compiler.BuiltInSignatures
+import compiler.frontend.FunctionDatatype
 import compiler.frontend.FunctionDefinition
 import compiler.frontend.Primitives
 
@@ -21,7 +22,7 @@ class BuiltInPrintInteger : Function(
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
         state.output.result.add(values[0].asPrimitive.integer)
-        return Value.void
+        return Value.nothing
     }
 }
 
@@ -36,7 +37,7 @@ class BuiltInPrintString : Function(
             state.output.result.add(arrayView.arrayRead(i).getPrimitiveValue().integer)
         }
 
-        return Value.void
+        return Value.nothing
     }
 }
 
@@ -74,7 +75,7 @@ class BuiltInArrayWrite : Function(
         val index = values[1].asPrimitive.integer
 
         arrayView.arrayRead(index).applyValue(values[2])
-        return Value.void
+        return Value.nothing
     }
 }
 
@@ -149,6 +150,22 @@ val integerDiv = IntegerArithmetic("idiv", FunctionType.Normal) { val1, val2 ->
     val1 / val2
 }
 
+class Run : Function(
+    BuiltInSignatures.run
+) {
+    override fun execute(values: List<Value>, state: WalkerState): Value {
+        val functionReference = values[0]
+        require(functionReference.datatype is FunctionDatatype)
+
+        val index = functionReference.asPrimitive.integer
+
+        val toCall = state.availableFunctions[index]
+
+        state.call(toCall, emptyList())
+
+        return Value.nothing
+    }
+}
 
 val builtInList = listOf(
     BuiltInPrintInteger(),
@@ -169,4 +186,6 @@ val builtInList = listOf(
     BoolConverter(),
 
     BuiltInCreateArray(),
+
+    Run(),
 )
