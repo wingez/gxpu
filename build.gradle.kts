@@ -2,6 +2,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm") version "1.5.31"
+    application
 }
 
 group = "me.gustav"
@@ -20,6 +21,14 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+application {
+    mainClass.set("cli.CliKt")
+}
+
+tasks.getByName("run", JavaExec::class) {
+    standardInput = System.`in`
 }
 
 tasks.withType<KotlinCompile> {

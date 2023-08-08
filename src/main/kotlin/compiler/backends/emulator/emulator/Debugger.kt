@@ -167,6 +167,10 @@ class InteractiveDebugger(
                 "r" -> reset()
                 "" -> emulator.stepSingleInstruction()
                 "s" -> emulator.stepSingleInstruction()
+                null -> {
+                    println("null")
+                    return
+                }
                 else -> println("unknown command")
             }
 
