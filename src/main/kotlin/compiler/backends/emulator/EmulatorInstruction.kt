@@ -67,6 +67,17 @@ data class EmulatorInstruction(
         instruction.emulate.invoke(emulator, parameters)
     }
 
+    fun formatAsMnemonic():String{
+        var result = instruction.mnemonic
+
+        for ((key,value)in values){
+            result = result.replace(key,value.toString())
+        }
+
+        return result
+    }
+
+
     override fun toString(): String {
         return "${instruction.mnemonic}, $values"
     }

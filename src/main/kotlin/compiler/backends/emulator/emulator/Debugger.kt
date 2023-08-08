@@ -114,7 +114,7 @@ class InteractiveDebugger(
             val prefixes = labels.joinToString(" ").padStart(15)
 
 
-            val line = "$prefixes ${instructions[position]}"
+            val line = "$prefixes ${instructions[position].formatAsMnemonic()}"
 
             setText(line, 40, i)
         }
