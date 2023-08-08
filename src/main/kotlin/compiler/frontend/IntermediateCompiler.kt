@@ -34,7 +34,7 @@ fun buildStruct(
     return CompositeDatatype(typeName, members)
 }
 
-fun compileFunctionBody(body: String, builtIns: BuiltInCollection): FunctionContent {
+fun compileFunctionBody(body: String, builtIns: BuiltInCollection): List<FunctionContent> {
     val tokens =
         parseFile(StringReader(body), "dummyfile") + listOf(Token(TokenType.EndBlock, "", SourceInfo.notApplicable))
     val nodes = AstParser(tokens).parseStatementsUntilEndblock()
@@ -58,17 +58,18 @@ fun compileFunctionBody(
     functionProvider: FunctionSignatureResolver,
     typeProvider: TypeProvider,
     treatNewVariablesAs: VariableType = VariableType.Local,
-): FunctionContent {
+): List<FunctionContent> {
     return FunctionCompiler(body, definition, functionProvider, typeProvider, treatNewVariablesAs, globals)
         .compileFunction()
 }
 
 data class GlobalsResult(
-    val initialize: FunctionContent,
+    val initialization: FunctionContent,
     val fields: CompositeDatatype,
     val variables: List<Variable>,
-){
-    val needsInitialization get() = initialize.code.instructions.any { it !is Return } // every functions  has an implicit return. Ignore that
+) {
+    val needsInitialization
+        get() = initialization.code.instructions.any { it !is Return }// every functions  has an implicit return. Ignore that
 }
 
 val initializeGlobalsDefinition = DefinitionBuilder("initializeGlobals")
@@ -83,7 +84,9 @@ fun compileGlobalAndInitialization(
         AstNode.fromBody(nodes),
         initializeGlobalsDefinition, emptyList(), functionProvider, typeProvider, VariableType.Global,
     ).let {
-        GlobalsResult(it, it.fields, it.fields.compositeFields.map { field ->
+        require(it.size==1){"lambdas in globals initialization not supported yet"}
+        val globalsInit = it.first()
+        GlobalsResult(globalsInit, globalsInit.fields, globalsInit.fields.compositeFields.map { field ->
             Variable(field, VariableType.Global)
         })
     }

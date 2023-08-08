@@ -176,7 +176,7 @@ class Compiler(
 
         val toPlace = mutableListOf(mainSignature)
 
-        if (globals.needsInitialization){
+        if (globals.needsInitialization) {
             toPlace.add(initializeGlobalsDefinition)
         }
 

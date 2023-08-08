@@ -118,7 +118,7 @@ class WalkerState(
 
         // setup global variables
         globalVariables = ValueHolder(globalsDefinition.fields)
-        walkUserFunction(UserFunction(globalsDefinition.initialize), emptyList())
+        walkUserFunction(UserFunction(globalsDefinition.initialization), emptyList())
 
         //Call main
         val mainFunction = getFunctionFromSignature(

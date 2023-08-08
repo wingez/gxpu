@@ -140,9 +140,9 @@ fun compileAndRunProgram(
         functionSignatureResolver, types,
     )
 
-    val functions = functionBodiesWithDefinitions.map { (node, definition) ->
+    val functions = functionBodiesWithDefinitions.flatMap { (node, definition) ->
         compileFunctionBody(node.asFunction().body, definition, globals.variables, functionSignatureResolver, types)
-    } + globals.initialize
+    } + globals.initialization
 
     return backendCompiler.buildAndRun(types.allTypes, functions, globals)
 
@@ -156,7 +156,7 @@ fun compileAndRunBody(
     val f = compileFunctionBody(body, builtIns)
     return backendCompiler.buildAndRun(
         builtIns.types,
-        listOf(f),
+        f,
         compileGlobalAndInitialization(emptyList(), builtIns, builtIns))
 }
 

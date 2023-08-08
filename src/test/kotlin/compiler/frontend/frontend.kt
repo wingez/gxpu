@@ -19,7 +19,6 @@ val emptyFunctions = object : FunctionSignatureResolver {
 
         TODO("Not yet implemented")
     }
-
 }
 
 internal class FrontendTest {
@@ -47,7 +46,7 @@ internal class FrontendTest {
                 emptyList(),
                 emptyFunctions,
                 dummyTypeContainer
-            ).fields.compositeFields.size
+            ).first().fields.compositeFields.size
         )
         assertEquals(
             0,
@@ -57,7 +56,7 @@ internal class FrontendTest {
                 emptyList(),
                 emptyFunctions,
                 dummyTypeContainer
-            ).fields.compositeFields.size
+            ).first().fields.compositeFields.size
         )
     }
 }

@@ -100,6 +100,13 @@ class StringExpression(
     override val type: Datatype = Primitives.Str
 }
 
+data class FunctionReference(
+    val function: FunctionDefinition,
+) : ValueExpression {
+    override val type: Datatype
+        get() = FunctionDatatype(function.signature)
+}
+
 class Execute(
     val expression: ValueExpression
 ) : Instruction
@@ -174,24 +181,26 @@ private data class LoopContext(
 )
 
 class FunctionCompiler(
-    private val body: AstNode,
+    private var body: AstNode,
     private val definition: FunctionDefinition,
     private val functionProvider: FunctionSignatureResolver,
     private val typeProvider: TypeProvider,
     private val treatNewVariablesAs: VariableType,
-    globalVariables: List<Variable>,
+    private val globalVariables: List<Variable>,
 ) {
     lateinit var fieldDatatype: CompositeDatatype
+    lateinit var lambdas: List<FunctionContent>
 
     val variables = mutableListOf<Variable>().apply { addAll(globalVariables) }
 
     var controlStatementCounter = 0
 
-    fun compileFunction(): FunctionContent {
+    fun compileFunction(): List<FunctionContent> {
         require(body.type == NodeTypes.Body)
 
         // Step 1
-        // Extract definition
+        // Extract lambdas
+        lambdas = extractLambdas()
 
         // Step 2
         // Extract all variables
@@ -211,13 +220,46 @@ class FunctionCompiler(
         val codeContent = flattenCodeBlock(functionCodeBlock)
 
         // Return
-        return FunctionContent(
+        return lambdas + FunctionContent(
             definition = definition,
             fields = fieldDatatype,
             code = codeContent,
         )
     }
 
+    private fun extractLambdas(): List<FunctionContent> {
+
+        val listOfExtractedLambdas = mutableListOf<FunctionContent>()
+        var counter = 0
+
+        body = iterateAndModify(body) { node ->
+            if (node.type == NodeTypes.Lambda) {
+
+                //TODO: guarantee uniqueness
+                val lambdaName = "lambda-${definition.name}-${counter++}"
+
+                val lambdaDefinition = DefinitionBuilder(lambdaName)
+                    .getDefinition()
+
+                FunctionCompiler(
+                    node.child,
+                    lambdaDefinition,
+                    functionProvider,
+                    typeProvider,
+                    treatNewVariablesAs,
+                    globalVariables
+                )
+                    .compileFunction()
+                    .let { listOfExtractedLambdas.addAll(it) }
+
+                replaceWith(AstNode(NodeTypes.FunctionReference, lambdaName, emptyList(), SourceInfo.notApplicable))
+            } else {
+                keep()
+            }
+        }
+
+        return listOfExtractedLambdas
+    }
 
     private fun flattenFunction(): CodeBlock {
         val mainCodeBlock = CodeBlock(functionEntryLabel)
@@ -345,7 +387,12 @@ class FunctionCompiler(
                 }
                 DerefToValue(pointer)
             }
-
+            NodeTypes.FunctionReference -> {
+                // TODO: this only applies to lambdas, make work for anything
+                val function = lambdas.find { it.definition.name == node.asIdentifier() }
+                require(function != null)
+                FunctionReference(function.definition)
+            }
             else -> throw AssertionError("Cannot parse node ${node.type} yet")
         }
     }
@@ -530,7 +577,7 @@ class FunctionCompiler(
             )
         }
 
-        for ((paramName,paramType ) in definition.parameters) {
+        for ((paramName, paramType) in definition.parameters) {
             variables.add(Variable(CompositeDataTypeField(paramName, paramType), treatNewVariablesAs))
         }
 
