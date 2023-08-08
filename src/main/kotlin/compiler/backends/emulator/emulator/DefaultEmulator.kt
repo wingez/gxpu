@@ -152,11 +152,20 @@ class DefaultEmulator : Emulator(instructionSet) {
             em.sp = em.sp + toAdd
         }
 
-        val call_addr = instructionSet.createInstruction("CALL #addr", group = FLOW_CONTROL) { em, params ->
-            val addr = params.getValue("addr")
+        private fun call(em: Emulator, addr: Int) {
             em.pushFrame()
             em.fp = em.sp
             em.pc = addr
+        }
+
+        val call_addr = instructionSet.createInstruction("CALL #addr", group = FLOW_CONTROL) { em, params ->
+            val addr = params.getValue("addr")
+            call(em, addr)
+        }
+
+        val call_a = instructionSet.createInstruction("CALL A", group = FLOW_CONTROL) { em, params ->
+            val addr = em.a
+            call(em, addr)
         }
 
         val ret = instructionSet.createInstruction("RET", group = FLOW_CONTROL) { em, params ->
@@ -180,18 +189,6 @@ class DefaultEmulator : Emulator(instructionSet) {
             val addr = params.getValue("addr")
             if (!em.flag) {
                 em.pc = addr
-            }
-        }
-
-        val branch = instructionSet.createInstruction("bra #offset", group = FLOW_CONTROL) { em, params ->
-            val offset = params.getValue("offset")
-            em.pc = em.pc + offset
-        }
-
-        val branch_zero = instructionSet.createInstruction("braz #offset", group = FLOW_CONTROL) { em, params ->
-            val offset = params.getValue("offset")
-            if (em.flag) {
-                em.pc = em.pc + offset
             }
         }
 

@@ -115,7 +115,8 @@ fun tryGetValueWhere(expr: ValueExpression, where: WhereToPutResult, context: Fu
             val valueResult = tryGetValueWhere(expr.of, WhereToPutResult.TopStack, context)
             when (valueResult) {
                 is FpField -> {
-                    val existingField = LayedOutStruct(valueResult.field.type as CompositeDatatype).getField(expr.memberName)
+                    val existingField =
+                        LayedOutStruct(valueResult.field.type as CompositeDatatype).getField(expr.memberName)
                     FpField(existingField.copy(offset = existingField.offset + valueResult.field.offset))
                 }
 
@@ -144,6 +145,16 @@ fun tryGetValueWhere(expr: ValueExpression, where: WhereToPutResult, context: Fu
             context.addInstruction(emulate(DefaultEmulator.lda_sp_offset, "offset" to -arrayValues.size))
             context.addInstruction(emulate(DefaultEmulator.pusha))
             DynamicValue(WhereToPutResult.TopStack)
+        }
+
+        is FunctionReference -> {
+            context.addInstruction(
+                emulate(
+                    DefaultEmulator.lda_constant,
+                    "val" to Reference(expr.function, functionEntryLabel)
+                )
+            )
+            DynamicValue(WhereToPutResult.A)
         }
 
         else -> TODO(expr.toString())
@@ -395,6 +406,12 @@ fun handleCall(expr: CallExpression, where: WhereToPutResult, context: FunctionC
             }
         }
 
+        BuiltInSignatures.run -> {
+            requireGetValueIn(expr.parameters.first(), WhereToPutResult.A, context)
+            context.addInstruction(emulate(DefaultEmulator.call_a))
+            WhereToPutResult.A
+        }
+
 
         else -> {
             handleGenericCall(expr, where, context)
@@ -477,7 +494,8 @@ fun getAddressOf(expr: AddressExpression, context: FunctionContext): GetAddressR
             val valueResult = getAddressOf(expr.of, context)
             when (valueResult) {
                 is FpField -> {
-                    val existingField = LayedOutStruct(valueResult.field.type as CompositeDatatype).getField(expr.memberName)
+                    val existingField =
+                        LayedOutStruct(valueResult.field.type as CompositeDatatype).getField(expr.memberName)
                     FpField(existingField.copy(offset = existingField.offset + valueResult.field.offset))
                 }
 
