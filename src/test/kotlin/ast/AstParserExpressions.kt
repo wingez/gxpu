@@ -246,7 +246,7 @@ class AstParserExpressions {
     @Test
     fun testLambda(){
         assertEquals(
-            AstNode.fromLambda(listOf(constant(5)),na),
+            AstNode.fromLambda(listOf(constant(5)), na),
             parseExpression("{5}")
         )
     }
