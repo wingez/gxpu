@@ -357,4 +357,17 @@ internal class AstParserTest {
             parseExpression("(5+6).hello()")
         )
     }
+
+    @Test
+    fun testParseImport() {
+        assertEqualsIgnoreSource(
+            AstNode.fromImport("test",na),
+            parserFromFile(
+                """
+                import test
+            """.trimIndent()
+            ).parseImport()
+        )
+    }
+
 }

@@ -26,6 +26,7 @@ enum class NodeTypes {
     Deref,
     Lambda,
     FunctionReference,
+    Import,
 }
 
 enum class FunctionType {
@@ -330,6 +331,10 @@ data class AstNode(
 
         fun fromLambda(body: List<AstNode>, sourceInfo: SourceInfo): AstNode {
             return AstNode(NodeTypes.Lambda, null, listOf(AstNode.fromBody(body)), sourceInfo)
+        }
+
+        fun fromImport(import: String, sourceInfo: SourceInfo): AstNode {
+            return AstNode(NodeTypes.Import, import, emptyList(), sourceInfo)
         }
     }
 }
