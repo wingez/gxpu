@@ -11,15 +11,16 @@ import java.io.Reader
 import java.io.StringReader
 
 data class CompiledFile(
-    val allTypes: MutableList<Datatype>,
+    val allTypes: List<Datatype>,
     val functions: List<FunctionContent>,
     val globals: GlobalsResult
 )
+
 fun compileFile(
-    filename:String,
-    reader:Reader,
-    builtIns: BuiltInCollection,
-): CompiledFile{
+    filename: String,
+    reader: Reader,
+    programCompiler: ProgramCompiler,
+): CompiledFile {
     val tokens = parseFile(reader, filename)
     val nodes = AstParser(tokens).parse()
 
@@ -31,16 +32,29 @@ fun compileFile(
     val globalsAndInitializationNodes =
         nodes.filter { it.type !in listOf(NodeTypes.Struct, NodeTypes.Function, NodeTypes.Import) }
 
-    val types = TypeCollection(structNodes, builtIns)
-
-
+    val types = mutableListOf<Datatype>()
     val allAvailableFunctionDefinitions = mutableListOf<FunctionDefinition>()
 
-    builtIns.functions.forEach { allAvailableFunctionDefinitions.add(it) }
+    val (builtInTypes, builtInFunctions) = programCompiler.importBuiltins()
+    types.addAll(builtInTypes)
+    allAvailableFunctionDefinitions.addAll(builtInFunctions)
+
+    //TODO: apply import nodes
+
+    val foundStructs = buildAllStructs(structNodes, types)
+    types.addAll(foundStructs)
+
+
+    val typeProvider = object : TypeProvider {
+        override fun getType(name: String): Datatype? {
+            return types.find { it.name == name }
+        }
+    }
+
 
     val functionBodiesWithDefinitions = mutableListOf<Pair<AstNode, FunctionDefinition>>()
     for (node in functionNodes) {
-        val definition = definitionFromFunctionNode(node, types)
+        val definition = definitionFromFunctionNode(node, typeProvider)
         allAvailableFunctionDefinitions.add(definition)
         functionBodiesWithDefinitions.add(node to definition)
     }
@@ -50,18 +64,43 @@ fun compileFile(
 
     val globals = compileGlobalAndInitialization(
         globalsAndInitializationNodes,
-        functionSignatureResolver, types,
+        functionSignatureResolver, typeProvider,
     )
 
     val functions = functionBodiesWithDefinitions.flatMap { (node, definition) ->
-        compileFunctionBody(node.asFunction().body, definition, globals.variables, functionSignatureResolver, types)
+        compileFunctionBody(node.asFunction().body, definition, globals.variables, functionSignatureResolver, typeProvider)
     } + globals.initialization
 
     return CompiledFile(
-        types.allTypes,functions,globals
+        foundStructs, functions, globals
     )
 }
 
+fun buildAllStructs(
+    nodes: List<AstNode>,
+    existingTypes: List<Datatype>,
+): List<Datatype> {
+
+    val result = mutableListOf<Datatype>()
+
+    val all = mutableListOf<Datatype>()
+    all.addAll(existingTypes)
+
+
+    val typeProvider = object : TypeProvider {
+        override fun getType(name: String): Datatype? {
+            return all.find { it.name == name }
+        }
+    }
+
+    for (node in nodes) {
+        val new = buildStruct(node, typeProvider)
+        result.add(new)
+        all.add(new)
+    }
+
+    return result
+}
 
 fun buildStruct(
     structNode: AstNode,
@@ -138,7 +177,7 @@ fun compileGlobalAndInitialization(
         AstNode.fromBody(nodes),
         initializeGlobalsDefinition, emptyList(), functionProvider, typeProvider, VariableType.Global,
     ).let {
-        require(it.size==1){"lambdas in globals initialization not supported yet"}
+        require(it.size == 1) { "lambdas in globals initialization not supported yet" }
         val globalsInit = it.first()
         GlobalsResult(globalsInit, globalsInit.fields, globalsInit.fields.compositeFields.map { field ->
             Variable(field, VariableType.Global)
