@@ -5,12 +5,10 @@ import compiler.BuiltInSignatures
 import compiler.backends.astwalker.*
 import compiler.compileAndRunProgram
 import compiler.features.intMatcher
-import compiler.frontend.CompositeDataTypeField
-import compiler.frontend.CompositeDatatype
-import compiler.frontend.Datatype
-import compiler.frontend.Primitives
+import compiler.frontend.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
+import java.io.Reader
 import java.io.StringReader
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -18,7 +16,12 @@ import kotlin.test.assertNotEquals
 
 internal fun run(program: String, maxLoopIterations: Int = 1000): List<Int> {
     val runner = WalkerRunner(WalkConfig(maxLoopIterations = maxLoopIterations))
-    return compileAndRunProgram(StringReader(program), "dummyfile", runner, BuiltInSignatures())
+    val intermediate = ProgramCompiler(object : FileProvider {
+        override fun getReader(filename: String): Reader {
+            return StringReader(program)
+        }
+    }, "dummyfile", BuiltInSignatures()).compile()
+    return runner.buildAndRun(intermediate.allTypes, intermediate.functions, intermediate.globals)
 }
 
 internal class WalkerDatatypeTest {
