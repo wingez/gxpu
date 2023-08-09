@@ -1,18 +1,22 @@
 package instructions
 
+import compiler.backends.emulator.EmulatorInstruction
+import compiler.backends.emulator.Reference
+import compiler.backends.emulator.Value
+import compiler.backends.emulator.instructions.AssembleError
 import compiler.backends.emulator.instructions.Instruction
 import compiler.backends.emulator.instructions.InstructionSet
+import compiler.frontend.DefinitionBuilder
+import compiler.frontend.Label
 import org.junit.jupiter.api.Assertions.assertIterableEquals
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
-import compiler.backends.emulator.EmulatorInstruction
-import compiler.backends.emulator.Reference
-import compiler.backends.emulator.Value
-import compiler.backends.emulator.instructions.AssembleError
-import compiler.frontend.Label
-import compiler.frontend.DefinitionBuilder
+
+val definition = DefinitionBuilder("main")
+    .setSourceFile("mainfile")
+    .getDefinition()
 
 internal class TestAssembleFile {
     @Test
@@ -21,6 +25,7 @@ internal class TestAssembleFile {
 
         assertThrows<AssembleError> {
             i.assembleMnemonicFile(
+                definition,
                 """
                     endscope
         """.trimIndent()
@@ -28,6 +33,7 @@ internal class TestAssembleFile {
         }
         assertThrows<AssembleError> {
             i.assembleMnemonicFile(
+                definition,
                 """
                 scope
                 scope
@@ -38,6 +44,7 @@ internal class TestAssembleFile {
 
         assertDoesNotThrow {
             i.assembleMnemonicFile(
+                definition,
                 """
                 scope          
                 endscope
@@ -52,6 +59,7 @@ internal class TestAssembleFile {
 
         assertThrows<AssembleError> {
             i.assembleMnemonicFile(
+                definition,
                 """
            #var = 5
            #var = 4
@@ -70,6 +78,7 @@ internal class TestAssembleFile {
         assertIterableEquals(
             emptyList<UByte>(),
             i.assembleMnemonicFile(
+                definition,
                 """
             :here
         """.trimIndent()
@@ -82,7 +91,7 @@ internal class TestAssembleFile {
                     testInstr, mapOf(
                         "ins" to Value(
                             reference = Reference(
-                                DefinitionBuilder("main").getDefinition(),
+                                definition,
                                 Label("here")
                             )
                         )
@@ -90,6 +99,7 @@ internal class TestAssembleFile {
                 )
             ),
             i.assembleMnemonicFile(
+                definition,
                 """
             :here
             test #here
@@ -103,7 +113,7 @@ internal class TestAssembleFile {
                     testInstr, mapOf(
                         "ins" to Value(
                             reference = Reference(
-                                DefinitionBuilder("main").getDefinition(),
+                                instructions.definition,
                                 Label("here")
                             )
                         )
@@ -112,7 +122,7 @@ internal class TestAssembleFile {
                     testInstr, mapOf(
                         "ins" to Value(
                             reference = Reference(
-                                DefinitionBuilder("main").getDefinition(),
+                                instructions.definition,
                                 Label("here2")
                             )
                         )
@@ -120,6 +130,7 @@ internal class TestAssembleFile {
                 )
             ),
             i.assembleMnemonicFile(
+                definition,
                 """
             :here
             test #here
@@ -137,6 +148,7 @@ internal class TestAssembleFile {
 
         assertThrows<AssembleError> {
             i.assembleMnemonicFile(
+                definition,
                 """
                 :here
                 :here
@@ -158,7 +170,7 @@ internal class TestAssembleFile {
                     testInstr, mapOf(
                         "ins" to Value(
                             reference = Reference(
-                                DefinitionBuilder("main").getDefinition(),
+                                definition,
                                 Label("here")
                             )
                         )
@@ -169,6 +181,7 @@ internal class TestAssembleFile {
                     )
                 )
             ), i.assembleMnemonicFile(
+                definition,
                 """
             test #here
             :here

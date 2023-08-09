@@ -11,19 +11,15 @@ class EmulatorRunner(
 ) : BackendCompiler {
 
     fun compileIntermediate(
-        allTypes: List<Datatype>,
-        functions: List<FunctionContent>,
-        globals: GlobalsResult
+        intermediateProgram: CompiledIntermediateProgram,
     ): CompiledProgram {
-        return Compiler(builtInProvider, allTypes, globals, functions).buildProgram()
+        return Compiler(builtInProvider, intermediateProgram).buildProgram()
     }
 
     override fun buildAndRun(
-        allTypes: List<Datatype>,
-        functions: List<FunctionContent>,
-        globals: GlobalsResult
+        intermediateProgram: CompiledIntermediateProgram,
     ): List<Int> {
-        val program = compileIntermediate(allTypes, functions, globals)
+        val program = compileIntermediate(intermediateProgram)
 
 
         val emulator = DefaultEmulator()
@@ -75,21 +71,13 @@ private class CodeSource(
     }
 }
 
-val mainSignature = DefinitionBuilder("main")
-    .setReturnType(Primitives.Nothing)
-    .getDefinition()
-
 
 class Compiler(
     val builtInProvider: BuiltInProvider,
-    types: List<Datatype>,
-    val globals: GlobalsResult,
-    val intermediateFunctions: List<FunctionContent>,
-) : TypeProvider, FunctionSignatureResolver, CodeGenerator {
+    val intermediateProgram: CompiledIntermediateProgram,
+) : CodeGenerator {
 
     private val resultingInstructions = mutableListOf<EmulatorInstruction>()
-
-    val includedTypes = types.associateBy { it.name }
 
     private val availableFunctionSignatures = mutableSetOf<FunctionDefinition>()
 
@@ -97,33 +85,12 @@ class Compiler(
         resultingInstructions.add(emulatorInstruction)
     }
 
-    override fun getType(name: String): Datatype {
-        if (name.isEmpty()) {
-            return Primitives.Nothing
-        }
-        if (name !in includedTypes) {
-            throw CompileError("No type with name $name found")
-        }
-        return includedTypes.getValue(name)
-    }
-
-    override fun getFunctionDefinitionMatching(
-        name: String,
-        functionType: FunctionType,
-        parameterTypes: List<Datatype>
-    ): FunctionDefinition {
-        for (definition in availableFunctionSignatures) {
-            if (definition.matches(name, functionType, parameterTypes)) {
-                return definition
-            }
-        }
-        TODO(listOf(name, parameterTypes.toString(), functionType.toString()).toString())
-    }
-
     fun buildProgram(): CompiledProgram {
 
         // Build the globals
-        val globalsLayout = LayedOutStruct(globals.fields)
+        val allGlobalsFields = CompositeDatatype("globals",
+            intermediateProgram.globals.flatMap { it.fields.compositeFields })
+        val globalsLayout = LayedOutStruct(allGlobalsFields)
 
         // the globals is placed at address 0
         // stack begins after the globals
@@ -133,17 +100,28 @@ class Compiler(
         addInstruction(emulate(DefaultEmulator.ldfp, "val" to stackStart))
         addInstruction(emulate(DefaultEmulator.ldsp, "val" to stackStart))
 
-        if (globals.needsInitialization) {
-            addInstruction(
-                emulate(
-                    DefaultEmulator.call_addr, "addr" to Reference(
-                        initializeGlobalsDefinition,
-                        functionEntryLabel
+
+        val toPlace = mutableListOf(intermediateProgram.mainFunction.definition)
+
+        for (global in intermediateProgram.globals) {
+            if (global.needsInitialization) {
+                toPlace.add(global.initialization.definition)
+                addInstruction(
+                    emulate(
+                        DefaultEmulator.call_addr, "addr" to Reference(
+                            global.initialization.definition,
+                            functionEntryLabel
+                        )
                     )
                 )
-            )
+            }
         }
-        addInstruction(emulate(DefaultEmulator.call_addr, "addr" to Reference(mainSignature, functionEntryLabel)))
+        addInstruction(
+            emulate(
+                DefaultEmulator.call_addr,
+                "addr" to Reference(intermediateProgram.mainFunction.definition, functionEntryLabel)
+            )
+        )
         addInstruction(emulate(DefaultEmulator.exit))
 
 
@@ -158,7 +136,7 @@ class Compiler(
         }
         availableFunctionSignatures.addAll(builtinInlinedSignatures)
 
-        for (f in intermediateFunctions) {
+        for (f in intermediateProgram.functions) {
             availableFunctionSignatures.add(f.definition)
             functionSources.add(CodeSource(f, globalsLayout))
         }
@@ -173,12 +151,6 @@ class Compiler(
 
         // Then add the main-function and all functions it references (recursively)
         val alreadyPlaced = mutableSetOf<FunctionDefinition>()
-
-        val toPlace = mutableListOf(mainSignature)
-
-        if (globals.needsInitialization) {
-            toPlace.add(initializeGlobalsDefinition)
-        }
 
 
         while (toPlace.isNotEmpty()) {

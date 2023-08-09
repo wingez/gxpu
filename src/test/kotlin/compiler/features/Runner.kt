@@ -78,13 +78,29 @@ fun runBodyCheckOutput(type: CompilerBackend, body: String, resultMatcher: Outpu
 }
 
 fun runProgramCheckOutput(type: CompilerBackend, program: String, resultMatcher: OutputMatcher) {
-    val intermediate = ProgramCompiler(object : FileProvider {
-        override fun getReader(filename: String): Reader {
-            return StringReader(program)
-        }
-    }, "dummyfile", BuiltInSignatures()).compile()
 
-    val actual = getRunner(type).buildAndRun(intermediate.allTypes, intermediate.functions, intermediate.globals)
+    runProgramCheckOutput(type, mapOf("dummyfile" to program), "dummyfile", resultMatcher)
+
+
+}
+
+
+fun runProgramCheckOutput(
+    type: CompilerBackend,
+    program: Map<String, String>,
+    mainFilename: String,
+    resultMatcher: OutputMatcher
+) {
+
+    val intermediate = ProgramCompiler(object : FileProvider {
+        override fun getReader(filename: String): Reader? {
+
+            return program[filename]?.let { StringReader(it) }
+        }
+    }, mainFilename, BuiltInSignatures()).compile()
+
+    val actual = getRunner(type).buildAndRun(intermediate)
 
     resultMatcher.assertOutputMatch(actual)
+
 }

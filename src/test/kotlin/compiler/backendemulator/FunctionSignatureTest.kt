@@ -46,7 +46,7 @@ internal class FunctionSignatureTest {
 
         val function = compileFunctionBody(
             node.asFunction().body,
-            definitionFromFunctionNode(node, typeProvider),
+            definitionFromFunctionNode(node,"dummyfile", typeProvider),
             emptyList(),
             functionProvider,
             typeProvider

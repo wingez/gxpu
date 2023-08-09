@@ -2,6 +2,7 @@ package compiler.backends.emulator.instructions
 
 import compiler.backends.emulator.emulator.Emulator
 import compiler.backends.emulator.EmulatorInstruction
+import compiler.frontend.FunctionDefinition
 import splitMany
 import java.io.StringReader
 
@@ -141,21 +142,21 @@ class InstructionSet(val maxSize: Int = Instruction.MAX_SIZE) {
     }
 
 
-    fun assembleMnemonic(mnemonic: String): List<EmulatorInstruction> {
+    fun assembleMnemonic(definition: FunctionDefinition, mnemonic: String): List<EmulatorInstruction> {
 
-        val assembler = Assembler(listOf(mnemonic), this)
+        val assembler = Assembler(listOf(mnemonic), this, definition)
         return assembler.getResultingInstructions()
     }
 
-    fun assembleMnemonicFile(file: String): List<EmulatorInstruction> {
-        return assembleMnemonicFile(StringReader(file))
+    fun assembleMnemonicFile(definition: FunctionDefinition, file: String): List<EmulatorInstruction> {
+        return assembleMnemonicFile(definition, StringReader(file))
     }
 
-    fun assembleMnemonicFile(file: StringReader): List<EmulatorInstruction> {
+    fun assembleMnemonicFile(definition: FunctionDefinition, file: StringReader): List<EmulatorInstruction> {
 
         val lines = file.readLines().map { it.trim('\n') }.toList()
 
-        val assembler = Assembler(lines, this)
+        val assembler = Assembler(lines, this, definition)
 
         return assembler.getResultingInstructions()
     }

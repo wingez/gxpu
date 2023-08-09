@@ -10,7 +10,7 @@ import tokens.parseFile
 import java.io.Reader
 import java.io.StringReader
 
-data class CompiledFile(
+data class CompiledIntermediateFile(
     val allTypes: List<Datatype>,
     val functions: List<FunctionContent>,
     val globals: GlobalsResult
@@ -20,7 +20,7 @@ fun compileFile(
     filename: String,
     reader: Reader,
     programCompiler: ProgramCompiler,
-): CompiledFile {
+): CompiledIntermediateFile {
     val tokens = parseFile(reader, filename)
     val nodes = AstParser(tokens).parse()
 
@@ -35,11 +35,18 @@ fun compileFile(
     val types = mutableListOf<Datatype>()
     val allAvailableFunctionDefinitions = mutableListOf<FunctionDefinition>()
 
+    //Import builtins
     val (builtInTypes, builtInFunctions) = programCompiler.importBuiltins()
     types.addAll(builtInTypes)
     allAvailableFunctionDefinitions.addAll(builtInFunctions)
 
-    //TODO: apply import nodes
+    //Import
+    for (node in importNodes) {
+        val toImport = node.asIdentifier()
+        val (importedTypes, importedFunctions) = programCompiler.import(toImport)
+        types.addAll(importedTypes)
+        allAvailableFunctionDefinitions.addAll(importedFunctions)
+    }
 
     val foundStructs = buildAllStructs(structNodes, types)
     types.addAll(foundStructs)
@@ -54,7 +61,7 @@ fun compileFile(
 
     val functionBodiesWithDefinitions = mutableListOf<Pair<AstNode, FunctionDefinition>>()
     for (node in functionNodes) {
-        val definition = definitionFromFunctionNode(node, typeProvider)
+        val definition = definitionFromFunctionNode(node, filename, typeProvider)
         allAvailableFunctionDefinitions.add(definition)
         functionBodiesWithDefinitions.add(node to definition)
     }
@@ -63,15 +70,21 @@ fun compileFile(
     val functionSignatureResolver = FunctionCollection(allAvailableFunctionDefinitions)
 
     val globals = compileGlobalAndInitialization(
-        globalsAndInitializationNodes,
+        globalsAndInitializationNodes, filename,
         functionSignatureResolver, typeProvider,
     )
 
     val functions = functionBodiesWithDefinitions.flatMap { (node, definition) ->
-        compileFunctionBody(node.asFunction().body, definition, globals.variables, functionSignatureResolver, typeProvider)
+        compileFunctionBody(
+            node.asFunction().body,
+            definition,
+            globals.variables,
+            functionSignatureResolver,
+            typeProvider
+        )
     } + globals.initialization
 
-    return CompiledFile(
+    return CompiledIntermediateFile(
         foundStructs, functions, globals
     )
 }
@@ -127,22 +140,6 @@ fun buildStruct(
     return CompositeDatatype(typeName, members)
 }
 
-fun compileFunctionBody(body: String, builtIns: BuiltInCollection): List<FunctionContent> {
-    val tokens =
-        parseFile(StringReader(body), "dummyfile") + listOf(Token(TokenType.EndBlock, "", SourceInfo.notApplicable))
-    val nodes = AstParser(tokens).parseStatementsUntilEndblock()
-
-    val types = TypeCollection(emptyList(), builtIns)
-
-    return compileFunctionBody(
-        AstNode.fromBody(nodes),
-        mainDefinition,
-        emptyList(),
-        FunctionCollection(builtIns.functions),
-        types
-    )
-}
-
 
 fun compileFunctionBody(
     body: AstNode,
@@ -165,14 +162,18 @@ data class GlobalsResult(
         get() = initialization.code.hasContent
 }
 
-val initializeGlobalsDefinition = DefinitionBuilder("initializeGlobals")
-    .getDefinition()
-
 fun compileGlobalAndInitialization(
     nodes: List<AstNode>,
+    filename: String,
     functionProvider: FunctionSignatureResolver,
     typeProvider: TypeProvider,
 ): GlobalsResult {
+
+
+    val initializeGlobalsDefinition = DefinitionBuilder("initializeGlobals")
+        .setSourceFile(filename)
+        .getDefinition()
+
     return compileFunctionBody(
         AstNode.fromBody(nodes),
         initializeGlobalsDefinition, emptyList(), functionProvider, typeProvider, VariableType.Global,

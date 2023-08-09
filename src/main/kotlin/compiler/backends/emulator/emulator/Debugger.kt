@@ -6,10 +6,7 @@ import compiler.BackendCompiler
 import compiler.BuiltInSignatures
 import compiler.backends.emulator.*
 import compiler.compileAndRunProgram
-import compiler.frontend.Datatype
-import compiler.frontend.FunctionContent
-import compiler.frontend.GlobalsResult
-import compiler.frontend.functionEntryLabel
+import compiler.frontend.*
 import tokens.parseFile
 import java.io.File
 import kotlin.math.max
@@ -177,13 +174,9 @@ class InteractiveDebugger(
         }
     }
 
-    override fun buildAndRun(
-        allTypes: List<Datatype>,
-        functions: List<FunctionContent>,
-        globals: GlobalsResult
-    ): List<Int> {
+    override fun buildAndRun(intermediateProgram: CompiledIntermediateProgram): List<Int> {
         val emulatorRunner = EmulatorRunner(BuiltInFunctions())
-        instructions = emulatorRunner.compileIntermediate(allTypes, functions, globals).instructions
+        instructions = emulatorRunner.compileIntermediate(intermediateProgram).instructions
 
         reset()
 

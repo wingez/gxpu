@@ -8,14 +8,20 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import compiler.backends.emulator.EmulatorInstruction
 import compiler.backends.emulator.emulate
+import compiler.frontend.DefinitionBuilder
 import java.io.StringReader
 
 internal class EmulatorBasicTest {
 
     companion object {
         fun assembleLoadEmulator(program: String): Emulator {
+
+            val definition = DefinitionBuilder("main")
+                .setSourceFile("mainfile")
+                .getDefinition()
+
             val e = DefaultEmulator()
-            val instructions = e.instructionSet.assembleMnemonicFile(StringReader(program))
+            val instructions = e.instructionSet.assembleMnemonicFile(definition, StringReader(program))
             e.setProgram(instructions)
             return e
         }

@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import compiler.backends.emulator.EmulatorInstruction
 import compiler.backends.emulator.emulate
+import compiler.frontend.DefinitionBuilder
 
 val emptyEmulate = { _: Emulator, _: Map<String, Int> -> }
 
@@ -87,8 +88,8 @@ internal class InstructionTest {
         val mnem1 = "LDA [FP #5]"
         val mnem2 = "LDA FP #4"
 
-        assertEquals(i.assembleMnemonic(mnem1), listOf(emulate(lda_at_fp_offset, "offset" to 5)))
-        assertEquals(i.assembleMnemonic(mnem2), listOf(emulate(lda_fp_offset, "offset" to 4)))
+        assertEquals(i.assembleMnemonic(definition, mnem1), listOf(emulate(lda_at_fp_offset, "offset" to 5)))
+        assertEquals(i.assembleMnemonic(definition,mnem2), listOf(emulate(lda_fp_offset, "offset" to 4)))
     }
 
     @Test
@@ -128,23 +129,23 @@ internal class InstructionTest {
         i.addInstruction(test2)
         i.addInstruction(test3)
 
-        assertIterableEquals(i.assembleMnemonic("test"), listOf(emulate(test1)))
-        assertIterableEquals(i.assembleMnemonic("test #4"), listOf(emulate(test3, "ins" to 4)))
+        assertIterableEquals(i.assembleMnemonic(definition,"test"), listOf(emulate(test1)))
+        assertIterableEquals(i.assembleMnemonic(definition,"test #4"), listOf(emulate(test3, "ins" to 4)))
 
         assertThrows(InstructionBuilderError::class.java) {
-            i.assembleMnemonic("test 4")
+            i.assembleMnemonic(definition,"test 4")
         }
 
         assertIterableEquals(
-            i.assembleMnemonic("test #5 #6"),
+            i.assembleMnemonic(definition,"test #5 #6"),
             listOf(emulate(test2, values = listOf("ins" to 5, "tmp" to 6), references = emptyList()))
         )
         assertIterableEquals(
-            i.assembleMnemonic("test    #5   #6"),
+            i.assembleMnemonic(definition,"test    #5   #6"),
             listOf(emulate(test2, values = listOf("ins" to 5, "tmp" to 6), references = emptyList()))
         )
 
-        assertIterableEquals(i.assembleMnemonic("    "), emptyList<EmulatorInstruction>())
+        assertIterableEquals(i.assembleMnemonic(definition,"    "), emptyList<EmulatorInstruction>())
     }
 
     @Test
@@ -160,13 +161,13 @@ internal class InstructionTest {
                     values = listOf("var" to 258, "val" to 8),
                     references = emptyList()
                 )
-            ), i.assembleMnemonic("test ##258 #8")
+            ), i.assembleMnemonic(definition,"test ##258 #8")
         )
     }
 
     @Test
     fun testAssembleMnemonicComment() {
-        assertIterableEquals(InstructionSet().assembleMnemonic("   // comment"), emptyList<Int>())
+        assertIterableEquals(InstructionSet().assembleMnemonic(definition,"   // comment"), emptyList<Int>())
     }
 
     @Test
@@ -177,9 +178,9 @@ internal class InstructionTest {
         i.addInstruction(test)
         i.addInstruction(test2)
 
-        assertIterableEquals(i.assembleMnemonic("test #0"), listOf(emulate(test, "ins" to 0)))
-        assertIterableEquals(i.assembleMnemonic("TesT #0"), listOf(emulate(test, "ins" to 0)))
-        assertIterableEquals(i.assembleMnemonic("test2 #0"), listOf(emulate(test2, "ins" to 0)))
+        assertIterableEquals(i.assembleMnemonic(definition,"test #0"), listOf(emulate(test, "ins" to 0)))
+        assertIterableEquals(i.assembleMnemonic(definition,"TesT #0"), listOf(emulate(test, "ins" to 0)))
+        assertIterableEquals(i.assembleMnemonic(definition,"test2 #0"), listOf(emulate(test2, "ins" to 0)))
     }
 
     @Test
@@ -188,8 +189,8 @@ internal class InstructionTest {
         val instr = Instruction("sta fp, #offset", emulate = emptyEmulate, 1)
         i.addInstruction(instr)
 
-        assertIterableEquals(i.assembleMnemonic("sta fp, #5"), listOf(emulate(instr, "offset" to 5)))
-        assertIterableEquals(i.assembleMnemonic("sta fp, #-10"), listOf(emulate(instr, "offset" to -10)))
+        assertIterableEquals(i.assembleMnemonic(definition,"sta fp, #5"), listOf(emulate(instr, "offset" to 5)))
+        assertIterableEquals(i.assembleMnemonic(definition,"sta fp, #-10"), listOf(emulate(instr, "offset" to -10)))
     }
 
     @Test

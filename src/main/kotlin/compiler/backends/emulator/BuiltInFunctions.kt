@@ -16,7 +16,7 @@ interface BuiltIn {
 class ByteAddition : BuiltIn {
     override val name = OperatorBuiltIns.Addition
     override fun compile(): List<EmulatorInstruction> {
-        return DefaultEmulator.instructionSet.assembleMnemonicFile(
+        return DefaultEmulator.instructionSet.assembleMnemonicFile(definition,
             """
             POPA
             POP ADDA
@@ -34,7 +34,7 @@ class ByteAddition : BuiltIn {
 class ByteSubtraction : BuiltIn {
     override val name = OperatorBuiltIns.Subtraction
     override fun compile(): List<EmulatorInstruction> {
-        return DefaultEmulator.instructionSet.assembleMnemonicFile(
+        return DefaultEmulator.instructionSet.assembleMnemonicFile(definition,
             """
             LDA [SP #-2]
             POP SUBA
@@ -48,9 +48,10 @@ class ByteSubtraction : BuiltIn {
 }
 
 class PrintIntArray : BuiltIn {
-    override val name = "print"
+    override val definition = BuiltInSignatures.printString
+    override val name = definition.name
     override fun compile(): List<EmulatorInstruction> {
-        return DefaultEmulator.instructionSet.assembleMnemonicFile(
+        return DefaultEmulator.instructionSet.assembleMnemonicFile(definition,
             """
             // store size at FP+0
             LDA [FP #-1]
@@ -90,11 +91,6 @@ class PrintIntArray : BuiltIn {
         )
     }
 
-    override val definition = DefinitionBuilder(name)
-        .addParameter("str", Primitives.Str)
-        .setReturnType(Primitives.Nothing)
-        .setFunctionType(FunctionType.Normal)
-        .getDefinition()
 }
 
 

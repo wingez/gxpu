@@ -242,6 +242,7 @@ class FunctionCompiler(
                 val lambdaName = "lambda-${definition.name}-${counter++}"
 
                 val lambdaDefinition = DefinitionBuilder(lambdaName)
+                    .setSourceFile(definition.sourceFile)
                     .getDefinition()
 
                 FunctionCompiler(

@@ -21,7 +21,7 @@ internal fun run(program: String, maxLoopIterations: Int = 1000): List<Int> {
             return StringReader(program)
         }
     }, "dummyfile", BuiltInSignatures()).compile()
-    return runner.buildAndRun(intermediate.allTypes, intermediate.functions, intermediate.globals)
+    return runner.buildAndRun(intermediate)
 }
 
 internal class WalkerDatatypeTest {

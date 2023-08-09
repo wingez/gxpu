@@ -4,7 +4,7 @@ import compiler.backends.emulator.EmulatorInstruction
 import compiler.backends.emulator.Reference
 import compiler.backends.emulator.Value
 import compiler.frontend.Label
-import compiler.frontend.DefinitionBuilder
+import compiler.frontend.FunctionDefinition
 import splitMany
 
 class AssembleError(message: String) : Exception(message)
@@ -12,6 +12,7 @@ class AssembleError(message: String) : Exception(message)
 class Assembler(
     private val lines: List<String>,
     private val instructionSet: InstructionSet,
+    val definition: FunctionDefinition,
 ) {
     private val scopes = mutableListOf<MutableMap<String, String>>()
     private var currentLine = 0
@@ -83,7 +84,7 @@ class Assembler(
     private fun getVariableOrConstant(value: String): Value {
 
         if (!value.all { it.isDigit()||it=='-' }) {
-            return Value(reference = Reference(DefinitionBuilder("main").getDefinition(), Label(value)))
+            return Value(reference = Reference(definition, Label(value)))
         }
 
         return Value(constant = value.toInt())
@@ -130,7 +131,7 @@ class Assembler(
         }
         if (isLabel(trimmedMnemonic)) {
             val labelName = trimmedMnemonic.substring(LABEL.length)
-            referencesToAddToNextInstruction.add(Reference(DefinitionBuilder("main").getDefinition(), Label(labelName)))
+            referencesToAddToNextInstruction.add(Reference(definition, Label(labelName)))
             return
         }
 

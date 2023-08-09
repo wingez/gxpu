@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test
 import ast.*
 import compiler.BackendCompiler
 import compiler.BuiltInSignatures
+import compiler.backends.emulator.CompiledProgram
 import compiler.backends.emulator.EmulatorInstruction
 import compiler.backends.emulator.Reference
 import compiler.backends.emulator.builtinInlinedSignatures
@@ -80,12 +81,8 @@ private val noGlobals = LayedOutStruct(CompositeDatatype("noglobals", emptyList(
 private class GetInstructionsRunner : BackendCompiler {
 
     lateinit var compiledProgram: CompiledProgram
-    override fun buildAndRun(
-        allTypes: List<Datatype>,
-        functions: List<FunctionContent>,
-        globals: GlobalsResult
-    ): List<Int> {
-        compiledProgram = EmulatorRunner(BuiltInFunctions()).compileIntermediate(allTypes, functions, globals)
+    override fun buildAndRun(intermediateProgram: CompiledIntermediateProgram): List<Int> {
+        compiledProgram = EmulatorRunner(BuiltInFunctions()).compileIntermediate(intermediateProgram)
         return emptyList()
     }
 }
@@ -100,9 +97,9 @@ fun buildSingleMainFunction(nodes: List<AstNode>): CompiledProgram {
 
 fun buildBody(body: String): List<EmulatorInstruction> {
 
-    val intermediate = compileFunctionBody(body, BuiltInSignatures())
+    val intermediate = compileProgramFromSingleBody(body, BuiltInSignatures())
 
-    return intermediate.flatMap { buildFunctionBody(it, noGlobals).instructions}
+    return intermediate.functions.flatMap { buildFunctionBody(it, noGlobals).instructions }
 }
 
 
@@ -110,13 +107,13 @@ fun buildProgram(body: String): CompiledProgram {
 
     val runner = GetInstructionsRunner()
 
-    val intermediate = ProgramCompiler(object :FileProvider{
+    val intermediate = ProgramCompiler(object : FileProvider {
         override fun getReader(filename: String): Reader {
             return StringReader(body)
         }
     }, "dummyfile", BuiltInSignatures()).compile()
 
-    runner.buildAndRun(intermediate.allTypes,intermediate.functions,intermediate.globals)
+    runner.buildAndRun(intermediate)
 
     return runner.compiledProgram
 }
@@ -134,17 +131,21 @@ fun shouldMatch(code: List<EmulatorInstruction>, expected: List<EmulatorInstruct
     )
 }
 
+val dummydef = DefinitionBuilder("main")
+    .setSourceFile("dummyfile")
+    .getDefinition()
+
 fun bodyShouldMatchAssembled(body: String, expectedAssembly: String) {
 
     val code = buildBody(body)
-    val expected = DefaultEmulator().instructionSet.assembleMnemonicFile(StringReader(expectedAssembly))
+    val expected = DefaultEmulator().instructionSet.assembleMnemonicFile(dummydef, StringReader(expectedAssembly))
 
     shouldMatch(code, expected)
 }
 
 fun programShouldMatchAssembled(program: String, expectedAssembly: String) {
     val code = buildProgram(program)
-    val expected = DefaultEmulator().instructionSet.assembleMnemonicFile(StringReader(expectedAssembly))
+    val expected = DefaultEmulator().instructionSet.assembleMnemonicFile(dummydef, StringReader(expectedAssembly))
     shouldMatch(code.instructions, expected)
 }
 
@@ -177,7 +178,7 @@ class CompilerCompareWithAssembly {
                 emulate(DefaultEmulator.ldfp, "val" to 0),
                 emulate(DefaultEmulator.ldsp, "val" to 0),
                 // Call
-                emulate(DefaultEmulator.call_addr, "addr" to Reference(mainSignature, functionEntryLabel)),
+                emulate(DefaultEmulator.call_addr, "addr" to Reference(dummydef, functionEntryLabel)),
                 // On return
                 emulate(DefaultEmulator.exit),
                 //Start of function
