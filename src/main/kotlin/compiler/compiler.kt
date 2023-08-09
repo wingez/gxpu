@@ -1,19 +1,12 @@
 package compiler
 
 import ast.AstNode
-import ast.AstParser
 import ast.FunctionType
 import ast.NodeTypes
 import compiler.frontend.*
-import requireNotReached
-import tokens.parseFile
-import java.io.File
-import java.io.Reader
-
-val mainDefinition = FunctionDefinition("main", emptyList(), Primitives.Nothing, FunctionType.Normal)
 
 interface BackendCompiler {
-    fun buildAndRun(allTypes: List<Datatype>, functions: List<FunctionContent>, globals: GlobalsResult): List<Int>
+    fun buildAndRun(intermediateProgram: CompiledIntermediateProgram): List<Int>
 }
 
 interface BuiltInCollection : TypeProvider, FunctionSignatureResolver {
@@ -84,8 +77,8 @@ fun compileAndRunProgram(
     backendCompiler: BackendCompiler,
     builtIns: BuiltInCollection
 ): List<Int> {
-    val compiledFile = compileProgram(fileName, builtIns)
-    return backendCompiler.buildAndRun(compiledFile.allTypes, compiledFile.functions, compiledFile.globals)
+    val compiledProgram = compileProgram(fileName, builtIns)
+    return backendCompiler.buildAndRun(compiledProgram)
 }
 
 fun compileAndRunBody(
@@ -93,11 +86,7 @@ fun compileAndRunBody(
     backendCompiler: BackendCompiler,
     builtIns: BuiltInCollection,
 ): List<Int> {
-    val f = compileFunctionBody(body, builtIns)
-    return backendCompiler.buildAndRun(
-        builtIns.types,
-        f,
-        compileGlobalAndInitialization(emptyList(), builtIns, builtIns)
-    )
+    val f = compileProgramFromSingleBody(body, builtIns)
+    return backendCompiler.buildAndRun(f)
 }
 

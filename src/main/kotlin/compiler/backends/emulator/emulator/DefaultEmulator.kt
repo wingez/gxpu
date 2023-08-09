@@ -14,12 +14,6 @@ class DefaultEmulator : Emulator(instructionSet) {
 
         val instructionSet = InstructionSet()
 
-
-        fun build(mnemonic: String): List<EmulatorInstruction> {
-            return instructionSet.assembleMnemonic(mnemonic)
-        }
-
-
         val invalid = instructionSet.createInstruction("invalid", group = MISC) { _, _ ->
             throw EmulatorInvalidInstructionError("invalid")
         }

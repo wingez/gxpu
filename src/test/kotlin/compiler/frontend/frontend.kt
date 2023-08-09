@@ -42,7 +42,7 @@ internal class FrontendTest {
             1,
             compileFunctionBody(
                 shouldHave.asFunction().body,
-                definitionFromFunctionNode(shouldHave, dummyTypeContainer),
+                definitionFromFunctionNode(shouldHave, "dummyfile", dummyTypeContainer),
                 emptyList(),
                 emptyFunctions,
                 dummyTypeContainer
@@ -52,7 +52,7 @@ internal class FrontendTest {
             0,
             compileFunctionBody(
                 shouldNotHave.asFunction().body,
-                definitionFromFunctionNode(shouldNotHave, dummyTypeContainer),
+                definitionFromFunctionNode(shouldNotHave, "dummyfile", dummyTypeContainer),
                 emptyList(),
                 emptyFunctions,
                 dummyTypeContainer

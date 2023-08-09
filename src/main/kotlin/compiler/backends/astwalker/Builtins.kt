@@ -3,6 +3,7 @@ package compiler.backends.astwalker
 import ast.FunctionType
 import ast.expression.OperatorBuiltIns
 import compiler.BuiltInSignatures
+import compiler.BuiltInSourceFile
 import compiler.frontend.FunctionDatatype
 import compiler.frontend.FunctionDefinition
 import compiler.frontend.Primitives
@@ -85,6 +86,7 @@ class IntegerComparator(
 ) : Function(
     FunctionDefinition(
         functionName,
+        BuiltInSourceFile,
         listOf("arg1" to Primitives.Integer, "arg2" to Primitives.Integer),
         Primitives.Boolean,
         FunctionType.Operator
@@ -109,6 +111,7 @@ class IntegerArithmetic(
 ) : Function(
     FunctionDefinition(
         functionName,
+        BuiltInSourceFile,
         listOf("arg1" to Primitives.Integer, "arg2" to Primitives.Integer),
         Primitives.Integer,
         functionType

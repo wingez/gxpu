@@ -3,7 +3,6 @@ package compiler.backends.astwalker
 import ast.FunctionType
 import compiler.BackendCompiler
 import compiler.frontend.*
-import compiler.mainDefinition
 
 class WalkerException(msg: String = "") : Exception(msg)
 
@@ -37,26 +36,17 @@ enum class ControlFlow {
 class WalkerRunner(
     private val config: WalkConfig,
 ) : BackendCompiler {
-    override fun buildAndRun(
-        allTypes: List<Datatype>,
-        functions: List<FunctionContent>,
-        globals: GlobalsResult
-    ): List<Int> {
-        return WalkerState(allTypes, functions, config, globals).walk().result
+    override fun buildAndRun(intermediateProgram: CompiledIntermediateProgram): List<Int> {
+        return WalkerState(intermediateProgram, config).walk().result
     }
 }
 
 
 class WalkerState(
-    types: List<Datatype>,
-    private val intermediateFunctions: List<FunctionContent>,
-
+    val intermediateProgram: CompiledIntermediateProgram,
     private val config: WalkConfig,
-    private val globalsDefinition: GlobalsResult,
-) : TypeProvider, FunctionSignatureResolver {
+) {
 
-
-    private val types = types.associateBy { it.name }
 
     val output = WalkerOutput()
     val frameStack = mutableListOf<WalkFrame>()
@@ -68,39 +58,14 @@ class WalkerState(
 
     lateinit var globalVariables: ValueHolder
 
-    override fun getType(name: String): Datatype {
-        if (name !in types) {
-            throw WalkerException("No such type $name")
-        }
-        return types.getValue(name)
-    }
-
-    private fun hasFunctionMatching(name: String, functionType: FunctionType, parameterTypes: List<Datatype>): Boolean {
-        return availableFunctions.any { it.definition.matches(name, functionType, parameterTypes) }
-    }
-
     fun getFunctionFromSignature(functionDefinition: FunctionDefinition): IWalkerFunction {
         return availableFunctions.find { it.definition == functionDefinition }
             ?: throw WalkerException("No functions matches $functionDefinition")
     }
 
-    override fun getFunctionDefinitionMatching(
-        name: String,
-        functionType: FunctionType,
-        parameterTypes: List<Datatype>
-    ): FunctionDefinition {
-        val func = availableFunctions.find { it.definition.matches(name, functionType, parameterTypes) }
-            ?: throw WalkerException("No functions matches $name($parameterTypes)")
-        return func.definition
-    }
 
     private fun addFunction(function: IWalkerFunction) {
-        if (hasFunctionMatching(
-                function.definition.name,
-                function.definition.functionType,
-                function.definition.parameterTypes
-            )
-        ) {
+        if (availableFunctions.any { it.definition == function.definition }) {
             throw WalkerException("Function already exists: ${function.definition.name}(${function.definition.parameterTypes})")
         }
         availableFunctions.add(function)
@@ -112,17 +77,21 @@ class WalkerState(
             addFunction(it)
         }
 
-        for (f in intermediateFunctions) {
+        for (f in intermediateProgram.functions) {
             addFunction(UserFunction(f))
         }
 
         // setup global variables
-        globalVariables = ValueHolder(globalsDefinition.fields)
-        walkUserFunction(UserFunction(globalsDefinition.initialization), emptyList())
+        val allGlobalsFields = CompositeDatatype("globals",
+            intermediateProgram.globals.flatMap { it.fields.compositeFields })
+        globalVariables = ValueHolder(allGlobalsFields)
+        for (global in intermediateProgram.globals) {
+            walkUserFunction(UserFunction(global.initialization), emptyList())
+        }
 
         //Call main
         val mainFunction = getFunctionFromSignature(
-            mainDefinition
+            intermediateProgram.mainFunction.definition
         )
 
         call(mainFunction, emptyList())

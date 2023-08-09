@@ -11,6 +11,7 @@ data class Signature(
 
 data class FunctionDefinition(
     val name: String,
+    val sourceFile: String,
     val parameters: List<Pair<String, Datatype>>,
     val returnType: Datatype,
     val functionType: FunctionType,
@@ -47,7 +48,11 @@ private fun parameters(functionNode: AstNode, typeProvider: TypeProvider): List<
     }
 }
 
-fun definitionFromFunctionNode(functionNode: AstNode, typeProvider: TypeProvider): FunctionDefinition {
+fun definitionFromFunctionNode(
+    functionNode: AstNode,
+    sourceFile: String,
+    typeProvider: TypeProvider
+): FunctionDefinition {
     assert(functionNode.type == NodeTypes.Function)
 
     val function = functionNode.asFunction()
@@ -59,6 +64,7 @@ fun definitionFromFunctionNode(functionNode: AstNode, typeProvider: TypeProvider
 
     return FunctionDefinition(
         name = function.name,
+        sourceFile = sourceFile,
         parameters = params,
         returnType = returnType,
         functionType = function.type,
@@ -69,6 +75,7 @@ class DefinitionBuilder(val name: String) {
     private val parameters = mutableListOf<Pair<String, Datatype>>()
     private var returnType: Datatype = Primitives.Nothing
     private var functionType = FunctionType.Normal
+    private var sourceFile: String? = null
 
     fun addParameter(name: String, type: Datatype): DefinitionBuilder {
         parameters.add(name to type)
@@ -85,7 +92,13 @@ class DefinitionBuilder(val name: String) {
         return this
     }
 
+    fun setSourceFile(filename: String): DefinitionBuilder {
+        sourceFile = filename
+        return this
+    }
+
     fun getDefinition(): FunctionDefinition {
-        return FunctionDefinition(name, parameters, returnType, functionType)
+        require(sourceFile != null)
+        return FunctionDefinition(name, sourceFile!!, parameters, returnType, functionType)
     }
 }
