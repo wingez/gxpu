@@ -103,20 +103,13 @@ fun compileAndRunProgram(
     val tokens = parseFile(reader, fileName)
     val nodes = AstParser(tokens).parse()
 
-    val (globalsAndInitializationNodes, structAndFunctionNodes) = nodes.partition {
-        when (it.type) {
-            NodeTypes.Function, NodeTypes.Struct -> false
-            else -> true
-        }
-    }
 
-    val (structNodes, functionNodes) = structAndFunctionNodes.partition {
-        when (it.type) {
-            NodeTypes.Struct -> true
-            NodeTypes.Function -> false
-            else -> requireNotReached()
-        }
-    }
+    val structNodes = nodes.filter { it.type == NodeTypes.Struct }
+    val functionNodes = nodes.filter { it.type == NodeTypes.Function }
+    val importNodes = nodes.filter { it.type == NodeTypes.Import }
+
+    val globalsAndInitializationNodes =
+        nodes.filter { it.type !in listOf(NodeTypes.Struct, NodeTypes.Function, NodeTypes.Import) }
 
     val types = TypeCollection(structNodes, builtIns)
 
@@ -157,6 +150,7 @@ fun compileAndRunBody(
     return backendCompiler.buildAndRun(
         builtIns.types,
         f,
-        compileGlobalAndInitialization(emptyList(), builtIns, builtIns))
+        compileGlobalAndInitialization(emptyList(), builtIns, builtIns)
+    )
 }
 
