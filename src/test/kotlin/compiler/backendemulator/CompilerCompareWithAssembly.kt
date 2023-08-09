@@ -12,6 +12,7 @@ import compiler.backends.emulator.builtinInlinedSignatures
 import compiler.backends.emulator.emulate
 import compiler.compileAndRunProgram
 import compiler.frontend.*
+import java.io.Reader
 import java.io.StringReader
 import kotlin.test.assertEquals
 
@@ -108,7 +109,14 @@ fun buildBody(body: String): List<EmulatorInstruction> {
 fun buildProgram(body: String): CompiledProgram {
 
     val runner = GetInstructionsRunner()
-    compileAndRunProgram(StringReader(body), "dummyfile", runner, BuiltInSignatures())
+
+    val intermediate = ProgramCompiler(object :FileProvider{
+        override fun getReader(filename: String): Reader {
+            return StringReader(body)
+        }
+    }, "dummyfile", BuiltInSignatures()).compile()
+
+    runner.buildAndRun(intermediate.allTypes,intermediate.functions,intermediate.globals)
 
     return runner.compiledProgram
 }

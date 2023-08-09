@@ -7,7 +7,61 @@ import compiler.*
 import tokens.Token
 import tokens.TokenType
 import tokens.parseFile
+import java.io.Reader
 import java.io.StringReader
+
+data class CompiledFile(
+    val allTypes: MutableList<Datatype>,
+    val functions: List<FunctionContent>,
+    val globals: GlobalsResult
+)
+fun compileFile(
+    filename:String,
+    reader:Reader,
+    builtIns: BuiltInCollection,
+): CompiledFile{
+    val tokens = parseFile(reader, filename)
+    val nodes = AstParser(tokens).parse()
+
+
+    val structNodes = nodes.filter { it.type == NodeTypes.Struct }
+    val functionNodes = nodes.filter { it.type == NodeTypes.Function }
+    val importNodes = nodes.filter { it.type == NodeTypes.Import }
+
+    val globalsAndInitializationNodes =
+        nodes.filter { it.type !in listOf(NodeTypes.Struct, NodeTypes.Function, NodeTypes.Import) }
+
+    val types = TypeCollection(structNodes, builtIns)
+
+
+    val allAvailableFunctionDefinitions = mutableListOf<FunctionDefinition>()
+
+    builtIns.functions.forEach { allAvailableFunctionDefinitions.add(it) }
+
+    val functionBodiesWithDefinitions = mutableListOf<Pair<AstNode, FunctionDefinition>>()
+    for (node in functionNodes) {
+        val definition = definitionFromFunctionNode(node, types)
+        allAvailableFunctionDefinitions.add(definition)
+        functionBodiesWithDefinitions.add(node to definition)
+    }
+
+
+    val functionSignatureResolver = FunctionCollection(allAvailableFunctionDefinitions)
+
+    val globals = compileGlobalAndInitialization(
+        globalsAndInitializationNodes,
+        functionSignatureResolver, types,
+    )
+
+    val functions = functionBodiesWithDefinitions.flatMap { (node, definition) ->
+        compileFunctionBody(node.asFunction().body, definition, globals.variables, functionSignatureResolver, types)
+    } + globals.initialization
+
+    return CompiledFile(
+        types.allTypes,functions,globals
+    )
+}
+
 
 fun buildStruct(
     structNode: AstNode,
@@ -69,7 +123,7 @@ data class GlobalsResult(
     val variables: List<Variable>,
 ) {
     val needsInitialization
-        get() = initialization.code.instructions.any { it !is Return }// every functions  has an implicit return. Ignore that
+        get() = initialization.code.hasContent
 }
 
 val initializeGlobalsDefinition = DefinitionBuilder("initializeGlobals")

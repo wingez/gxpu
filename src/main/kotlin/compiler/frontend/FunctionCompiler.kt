@@ -1,9 +1,7 @@
 package compiler.frontend
 
-import ast.expression.OperatorBuiltIns
 import ast.*
 import compiler.BuiltInSignatures
-import compiler.backends.emulator.BuiltInFunctions
 
 const val RETURN_VALUE_NAME = "result"
 
@@ -140,7 +138,12 @@ data class Label(
 data class IntermediateCode(
     val instructions: List<Instruction>,
     val labels: Map<Label, Int>
-)
+) {
+    val hasContent
+        get() =
+            // Check if instructions are empty or only contains a return statement
+            instructions.any { it !is Return }// every function  has an implicit return. Ignore that
+}
 
 data class FunctionContent(
     val definition: FunctionDefinition,
