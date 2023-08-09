@@ -63,6 +63,7 @@ class AstParser(tokens: List<Token>) {
 
             TokenType.KeywordReturn -> result.add(parseReturnStatement())
             TokenType.KeywordBreak -> result.add(parseBreakStatement())
+            TokenType.Import -> result.add(parseImport())
 
             TokenType.KeywordVal -> result.addAll(parseNewValDeclaration())
 
@@ -251,6 +252,12 @@ class AstParser(tokens: List<Token>) {
 
     }
 
+    fun parseImport(): AstNode {
+        val sourceInfo = tokens.consumeType(TokenType.Import).sourceInfo
+        val import = tokens.consumeIdentifier()
+        tokens.consumeType(TokenType.EOL)
+        return AstNode.fromImport(import, sourceInfo)
+    }
 
     fun parseStruct(): AstNode {
         val sourceInfo = tokens.consumeType(TokenType.KeywordStruct).sourceInfo

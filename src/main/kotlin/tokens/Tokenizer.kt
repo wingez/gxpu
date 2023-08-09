@@ -40,6 +40,7 @@ enum class TokenType {
     RightArrow,
     String,
     Ampersand,
+    Import,
 }
 
 data class Token(
@@ -51,28 +52,6 @@ data class Token(
     fun asConstant(): Int {
         assert(type == TokenType.NumericConstant)
         return additionalData.toInt()
-    }
-
-    fun isExpressionSeparator(): Boolean {
-        return type in listOf(
-            TokenType.EOL,
-            TokenType.LeftParenthesis,
-            TokenType.RightParenthesis,
-            TokenType.RightBracket,
-            TokenType.Comma,
-            TokenType.Colon,
-            TokenType.Equals
-        )
-    }
-
-    fun isSingleOperation(): Boolean {
-        return type in listOf(
-            TokenType.Dot,
-            TokenType.PlusSign,
-            TokenType.MinusSign,
-            TokenType.NotEqual,
-            TokenType.DoubleEqual,
-        )
     }
 }
 
@@ -302,6 +281,7 @@ val keywords = mapOf(
     "struct" to TokenType.KeywordStruct,
     "break" to TokenType.KeywordBreak,
     "val" to TokenType.KeywordVal,
+    "import" to TokenType.Import,
 )
 
 fun toToken(text: String, source: SourceInfo): Token? {
