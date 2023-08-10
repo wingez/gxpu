@@ -38,7 +38,7 @@ internal class FunctionSignatureTest {
 
 
     fun getSignature(program: String): BuiltFunction {
-        val node = AstParser(tokenizeLines(program)).parseFunctionDefinition()
+        val node = AstParser(tokenizeLines(program)).parseFunctionWithBody()
 
         val typeProvider = TypeCollection(emptyList(), BuiltInSignatures())
         val functionProvider = FunctionCollection(BuiltInSignatures().functions)

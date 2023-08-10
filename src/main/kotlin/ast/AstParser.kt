@@ -55,7 +55,7 @@ class AstParser(tokens: List<Token>) {
         val result = mutableListOf<AstNode>()
 
         when (tokens.peek().type) {
-            TokenType.KeywordDef -> result.add(parseFunctionDefinition())
+            TokenType.KeywordDef -> result.add(parseFunctionWithBody())
             TokenType.KeywordStruct -> result.add(parseStruct())
 
             TokenType.KeywordIf -> result.add(parseIfStatement())
@@ -142,7 +142,26 @@ class AstParser(tokens: List<Token>) {
         return AstNode.fromNewVariable(memberName.additionalData, typeDefinition, null, memberName.sourceInfo)
     }
 
-    fun parseFunctionDefinition(): AstNode {
+    fun parseFunctionWithBody(): AstNode {
+        val definitionNode = parseFunctionDefinition()
+        val definition = definitionNode.asFunction()
+
+        require(!definition.body.hasChildren())
+
+        tokens.consumeType(TokenType.BeginBlock)
+        val statements = parseStatementsUntilEndblock()
+
+        return AstNode.fromFunction(
+            definition.name,
+            definition.type,
+            definition.arguments.childNodes,
+            statements,
+            definition.returnType,
+            definitionNode.sourceInfo
+        )
+    }
+
+    private fun parseFunctionDefinition(): AstNode {
         val sourceInfo = tokens.consumeType(TokenType.KeywordDef).sourceInfo
 
         val parameters = mutableListOf<AstNode>()
@@ -175,11 +194,7 @@ class AstParser(tokens: List<Token>) {
         }
 
         tokens.consumeType(TokenType.EOL)
-        tokens.consumeType(TokenType.BeginBlock)
-
-        val statements = parseStatementsUntilEndblock()
-
-        return AstNode.fromFunction(name, type, parameters, statements, optionalReturnTypeDef, sourceInfo)
+        return AstNode.fromFunction(name, type, parameters, emptyList(), optionalReturnTypeDef, sourceInfo)
     }
 
     fun parseStatementsUntilEndblock(): List<AstNode> {

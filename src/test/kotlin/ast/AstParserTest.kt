@@ -63,7 +63,7 @@ internal class AstParserTest {
     fun testParseFunction() {
         assertEquals(
             function("test", emptyList(), printBody, null),
-            AstParser(getFuncTokens()).parseFunctionDefinition(),
+            AstParser(getFuncTokens()).parseFunctionWithBody(),
         )
     }
 
@@ -74,7 +74,7 @@ internal class AstParserTest {
                 "test", arguments = listOf(variable("param1")),
                 body = printBody, null
             ),
-            AstParser(getFuncTokens("param1")).parseFunctionDefinition(),
+            AstParser(getFuncTokens("param1")).parseFunctionWithBody(),
         )
     }
 
@@ -88,7 +88,7 @@ internal class AstParserTest {
                     variable("param3"),
                 ), body = printBody, null
             ),
-            AstParser(getFuncTokens("param1", "param2", "param3")).parseFunctionDefinition(),
+            AstParser(getFuncTokens("param1", "param2", "param3")).parseFunctionWithBody(),
         )
     }
 
@@ -105,7 +105,7 @@ internal class AstParserTest {
                 "test", arguments = listOf(variable("param", "type")),
                 body = printBody, null
             ),
-            AstParser(tokens).parseFunctionDefinition(),
+            AstParser(tokens).parseFunctionWithBody(),
         )
     }
 
@@ -119,7 +119,7 @@ internal class AstParserTest {
         )
         assertEqualsIgnoreSource(
             function("test", emptyList(), printBody, "byte"),
-            AstParser(tokens).parseFunctionDefinition(),
+            AstParser(tokens).parseFunctionWithBody(),
         )
     }
 
@@ -135,7 +135,7 @@ internal class AstParserTest {
                 "test", FunctionType.Normal, emptyList(), printBody,
                 TypeDefinition.normal("byte", listOf(TypeDefinitionModifier.Array)), na
             ),
-            parserFromFile(program).parseFunctionDefinition()
+            parserFromFile(program).parseFunctionWithBody()
         )
     }
 
@@ -335,7 +335,7 @@ internal class AstParserTest {
                 def (this:int) hello():
                   call()
             """.trimIndent()
-            ).parseFunctionDefinition()
+            ).parseFunctionWithBody()
         )
     }
 

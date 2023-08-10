@@ -96,7 +96,7 @@ class AstParserStructTest {
           a.member1=2
           a.member2=1
         """
-            ).parseFunctionDefinition(),
+            ).parseFunctionWithBody(),
         )
     }
 

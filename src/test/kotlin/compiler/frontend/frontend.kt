@@ -29,13 +29,13 @@ internal class FrontendTest {
         val shouldHave = """
          def main():int
            return 5
-     """.trimIndent().let { parserFromFile(it).parseFunctionDefinition() }
+     """.trimIndent().let { parserFromFile(it).parseFunctionWithBody() }
 
 
         val shouldNotHave = """
          def main():
            print(5)
-     """.trimIndent().let { parserFromFile(it).parseFunctionDefinition() }
+     """.trimIndent().let { parserFromFile(it).parseFunctionWithBody() }
 
 
         assertEquals(
