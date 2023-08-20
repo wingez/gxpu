@@ -332,7 +332,7 @@ internal class AstParserTest {
             ),
             parserFromFile(
                 """
-                def (this:int) hello():
+                def int.hello():
                   call()
             """.trimIndent()
             ).parseFunctionDefinition()

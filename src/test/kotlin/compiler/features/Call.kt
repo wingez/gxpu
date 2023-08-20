@@ -79,8 +79,8 @@ class Call {
     @EnumSource
     fun testInstanceFunction(compiler: CompilerBackend) {
         val program = """
-                def (a:int) add(b:int):int
-                  result = a+b
+                def  int.add(b:int):int
+                  result = this+b
                   
                 def main():
                   print(5.add(6))

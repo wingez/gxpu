@@ -148,16 +148,25 @@ class AstParser(tokens: List<Token>) {
         val parameters = mutableListOf<AstNode>()
 
         val type: FunctionType
-        if (tokens.peekIs(TokenType.LeftParenthesis, consumeMatch = true)) {
-            val classType = parsePrimitiveMemberDeclaration()
-            parameters.add(classType)
+        val name: String
+
+        val nameOrInstanceType = tokens.consumeIdentifier()
+
+
+        if (tokens.peekIs(TokenType.Dot, consumeMatch = true)) {
+            name = tokens.consumeIdentifier()
             type = FunctionType.Instance
-            tokens.consumeType(TokenType.RightParenthesis)
+
+            // Add the instance parameter as an ast-node
+            //TODO: dont hardcode "this"
+            val paramTypeDef = TypeDefinition.normal(nameOrInstanceType)
+            val paramNode = AstNode.fromNewVariable("this", paramTypeDef, null, SourceInfo.notApplicable)
+            parameters.add(paramNode)
         } else {
+            name = nameOrInstanceType
             type = FunctionType.Normal
         }
 
-        val name = tokens.consumeType(TokenType.Identifier).additionalData
         tokens.consumeType(TokenType.LeftParenthesis)
 
         while (!tokens.peekIs(TokenType.RightParenthesis, true)) {
