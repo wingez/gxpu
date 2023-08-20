@@ -47,9 +47,11 @@ internal class FunctionSignatureTest {
         val function = compileFunctionBody(
             node.asFunction().body,
             definitionFromFunctionNode(node,"dummyfile", typeProvider),
-            emptyList(),
+            emptyMap(),
             functionProvider,
-            typeProvider
+            typeProvider,
+            "",
+            VariableType.Local,
         ).let {
             require(it.size == 1)
             it.first()

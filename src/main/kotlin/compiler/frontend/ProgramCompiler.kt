@@ -112,9 +112,11 @@ fun compileProgramFromSingleBody(body: String, builtIns: BuiltInCollection): Com
     val functionContents = compileFunctionBody(
         AstNode.fromBody(nodes),
         definition,
-        emptyList(),
+        emptyMap(),
         FunctionCollection(builtIns.functions),
-        TypeCollection(emptyList(), builtIns)
+        TypeCollection(emptyList(), builtIns),
+        "",
+        VariableType.Local,
     )
     return CompiledIntermediateProgram(
         types, functionContents, functionContents.find { it.definition == definition }!!, emptyList()

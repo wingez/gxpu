@@ -43,9 +43,9 @@ internal class FrontendTest {
             compileFunctionBody(
                 shouldHave.asFunction().body,
                 definitionFromFunctionNode(shouldHave, "dummyfile", dummyTypeContainer),
-                emptyList(),
+                emptyMap(),
                 emptyFunctions,
-                dummyTypeContainer
+                dummyTypeContainer, "", VariableType.Local,
             ).first().fields.compositeFields.size
         )
         assertEquals(
@@ -53,9 +53,9 @@ internal class FrontendTest {
             compileFunctionBody(
                 shouldNotHave.asFunction().body,
                 definitionFromFunctionNode(shouldNotHave, "dummyfile", dummyTypeContainer),
-                emptyList(),
+                emptyMap(),
                 emptyFunctions,
-                dummyTypeContainer
+                dummyTypeContainer, "", VariableType.Local,
             ).first().fields.compositeFields.size
         )
     }

@@ -80,7 +80,9 @@ fun compileFile(
             definition,
             globals.variables,
             functionSignatureResolver,
-            typeProvider
+            typeProvider,
+            "",
+            VariableType.Local,
         )
     } + globals.initialization
 
@@ -144,19 +146,28 @@ fun buildStruct(
 fun compileFunctionBody(
     body: AstNode,
     definition: FunctionDefinition,
-    globals: List<Variable>,
+    globals: Map<String, Variable>,
     functionProvider: FunctionSignatureResolver,
     typeProvider: TypeProvider,
-    treatNewVariablesAs: VariableType = VariableType.Local,
+    variablePrefix: String,
+    treatNewVariablesAs: VariableType,
 ): List<FunctionContent> {
-    return FunctionCompiler(body, definition, functionProvider, typeProvider, treatNewVariablesAs, globals)
+    return FunctionCompiler(
+        body,
+        definition,
+        functionProvider,
+        typeProvider,
+        treatNewVariablesAs,
+        variablePrefix,
+        globals
+    )
         .compileFunction()
 }
 
 data class GlobalsResult(
     val initialization: FunctionContent,
     val fields: CompositeDatatype,
-    val variables: List<Variable>,
+    val variables: Map<String, Variable>,
 ) {
     val needsInitialization
         get() = initialization.code.hasContent
@@ -176,12 +187,10 @@ fun compileGlobalAndInitialization(
 
     return compileFunctionBody(
         AstNode.fromBody(nodes),
-        initializeGlobalsDefinition, emptyList(), functionProvider, typeProvider, VariableType.Global,
+        initializeGlobalsDefinition, emptyMap(), functionProvider, typeProvider, "$filename-", VariableType.Global,
     ).let {
         require(it.size == 1) { "lambdas in globals initialization not supported yet" }
         val globalsInit = it.first()
-        GlobalsResult(globalsInit, globalsInit.fields, globalsInit.fields.compositeFields.map { field ->
-            Variable(field, VariableType.Global)
-        })
+        GlobalsResult(globalsInit, globalsInit.fields,  globalsInit.definedVariables)
     }
 }

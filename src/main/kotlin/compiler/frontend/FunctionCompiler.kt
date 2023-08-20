@@ -149,6 +149,7 @@ data class FunctionContent(
     val definition: FunctionDefinition,
     val code: IntermediateCode,
     val fields: CompositeDatatype,
+    val definedVariables: Map<String, Variable>,
 )
 
 
@@ -189,12 +190,13 @@ class FunctionCompiler(
     private val functionProvider: FunctionSignatureResolver,
     private val typeProvider: TypeProvider,
     private val treatNewVariablesAs: VariableType,
-    private val globalVariables: List<Variable>,
+    private val variableFieldPrefix: String,
+    private val globalVariables: Map<String, Variable>,
 ) {
     lateinit var fieldDatatype: CompositeDatatype
     lateinit var lambdas: List<FunctionContent>
 
-    val variables = mutableListOf<Variable>().apply { addAll(globalVariables) }
+    val variables = mutableMapOf<String, Variable>().apply { putAll(globalVariables) }
 
     var controlStatementCounter = 0
 
@@ -227,6 +229,7 @@ class FunctionCompiler(
             definition = definition,
             fields = fieldDatatype,
             code = codeContent,
+            definedVariables = variables,
         )
     }
 
@@ -251,6 +254,7 @@ class FunctionCompiler(
                     functionProvider,
                     typeProvider,
                     treatNewVariablesAs,
+                    variableFieldPrefix,
                     globalVariables
                 )
                     .compileFunction()
@@ -391,12 +395,14 @@ class FunctionCompiler(
                 }
                 DerefToValue(pointer)
             }
+
             NodeTypes.FunctionReference -> {
                 // TODO: this only applies to lambdas, make work for anything
                 val function = lambdas.find { it.definition.name == node.asIdentifier() }
                 require(function != null)
                 FunctionReference(function.definition)
             }
+
             else -> throw AssertionError("Cannot parse node ${node.type} yet")
         }
     }
@@ -569,26 +575,37 @@ class FunctionCompiler(
 
     private fun addVariables(): CompositeDatatype {
 
+        val fields = mutableListOf<CompositeDataTypeField>()
+
+        // Result variable
         if (definition.returnType != Primitives.Nothing) {
-            variables.add(
-                Variable(
-                    CompositeDataTypeField(
-                        RETURN_VALUE_NAME,
-                        definition.returnType,
-                    ),
-                    VariableType.Local,
-                )
+            require(treatNewVariablesAs == VariableType.Local)
+
+            val field = CompositeDataTypeField(
+                RETURN_VALUE_NAME,
+                definition.returnType,
             )
+            fields.add(field)
+
+            variables[RETURN_VALUE_NAME] = Variable(field, VariableType.Local)
         }
 
+        // Params
         for ((paramName, paramType) in definition.parameters) {
-            variables.add(Variable(CompositeDataTypeField(paramName, paramType), treatNewVariablesAs))
+            require(treatNewVariablesAs == VariableType.Local)
+            val field = CompositeDataTypeField(paramName, paramType)
+            fields.add(field)
+            variables[paramName] = Variable(field, treatNewVariablesAs)
         }
 
-
+        // VariableDeclarations
         for (node in iterateNodeRecursively(body)) {
             if (node.type == NodeTypes.NewVariable) {
                 val newVariable = node.asNewVariable()
+
+                val name = newVariable.name
+                val fieldName = variableFieldPrefix + newVariable.name
+
 
                 //TODO handle name clashes
                 val type: Datatype
@@ -600,16 +617,19 @@ class FunctionCompiler(
                     type = typeProvider.getType(newVariable.optionalTypeDefinition)
                         ?: throw FrontendCompilerError("No type of type ${newVariable.optionalTypeDefinition}")
                 }
-                variables.add(Variable(CompositeDataTypeField(newVariable.name, type), treatNewVariablesAs))
+                val field = CompositeDataTypeField(fieldName, type)
+                fields.add(field)
+                variables[name] = Variable(field, treatNewVariablesAs)
             }
         }
         return CompositeDatatype(
             definition.name,
-            variables.filter { it.type == treatNewVariablesAs }.map { it.field })
+            fields
+        )
     }
 
     private fun lookupVariable(name: String): Variable {
-        return variables.find { it.name == name }
+        return variables[name]
             ?: throw FrontendCompilerError("variable $name not found")
     }
 }
