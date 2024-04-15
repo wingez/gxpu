@@ -6,7 +6,7 @@ import ast.NodeTypes
 import compiler.frontend.*
 
 interface BackendCompiler {
-    fun buildAndRun(intermediateProgram: CompiledIntermediateProgram): List<Int>
+    fun buildAndRun(intermediateProgram: CompiledIntermediateProgram): List<String>
 }
 
 interface BuiltInCollection : TypeProvider, FunctionSignatureResolver {
@@ -76,7 +76,7 @@ fun compileAndRunProgram(
     fileName: String,
     backendCompiler: BackendCompiler,
     builtIns: BuiltInCollection
-): List<Int> {
+): List<String> {
     val compiledProgram = compileProgram(fileName, builtIns)
     return backendCompiler.buildAndRun(compiledProgram)
 }
@@ -85,7 +85,7 @@ fun compileAndRunBody(
     body: String,
     backendCompiler: BackendCompiler,
     builtIns: BuiltInCollection,
-): List<Int> {
+): List<String> {
     val f = compileProgramFromSingleBody(body, builtIns)
     return backendCompiler.buildAndRun(f)
 }

@@ -19,7 +19,7 @@ data class WalkConfig(
 
 class WalkerOutput {
 
-    val result = mutableListOf<Int>()
+    val result = mutableListOf<String>()
 }
 
 class WalkFrame(
@@ -36,7 +36,7 @@ enum class ControlFlow {
 class WalkerRunner(
     private val config: WalkConfig,
 ) : BackendCompiler {
-    override fun buildAndRun(intermediateProgram: CompiledIntermediateProgram): List<Int> {
+    override fun buildAndRun(intermediateProgram: CompiledIntermediateProgram): List<String> {
         return WalkerState(intermediateProgram, config).walk().result
     }
 }

@@ -94,15 +94,15 @@ internal class EmulatorBasicTest {
 
         assertIterableEquals(
             buildAndRun(
-                emulate(DefaultEmulator.print),
+                emulate(DefaultEmulator.printascii),
                 emulate(DefaultEmulator.exit)
             ), listOf(0)
         )
         assertIterableEquals(
             buildAndRun(
-                emulate(DefaultEmulator.print),
+                emulate(DefaultEmulator.printascii),
                 emulate(DefaultEmulator.lda_constant, "val" to 10),
-                emulate(DefaultEmulator.print),
+                emulate(DefaultEmulator.printascii),
                 emulate(DefaultEmulator.exit)
             ), listOf(0, 10)
         )
@@ -134,22 +134,22 @@ internal class EmulatorBasicTest {
     LDFP #25
     
     LDA #1
-    OUT
+    OUTascii
     
     CALL #func
     LDA #3
-    OUT
+    OUTascii
     EXIT
     :func
     ldfp sp
     LDA #2
-    OUT
+    OUTascii
     RET
     
     """
         val e = assembleLoadEmulator(program)
         e.run()
-        assertIterableEquals(e.outputStream, listOf(1, 2, 3))
+        assertIterableEquals(e.outputStream, listOf(1,2,3))
         assertEquals(e.fp, 25)
         assertEquals(e.sp, 25)
 
@@ -161,12 +161,12 @@ internal class EmulatorBasicTest {
         val program = """
     
     lda #5
-    out
+    outascii
     jmp #jumphere
     lda #7
     
     :jumphere
-    out
+    outascii
     exit
     """
         val e = assembleLoadEmulator(program)
@@ -214,7 +214,7 @@ internal class EmulatorBasicTest {
     lda #1
     tstz a
     jmpf #jumphere
-    out
+    outascii
     :jumphere
     lda #0
     tstz a

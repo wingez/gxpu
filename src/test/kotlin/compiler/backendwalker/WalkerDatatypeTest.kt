@@ -14,7 +14,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 
 
-internal fun run(program: String, maxLoopIterations: Int = 1000): List<Int> {
+internal fun run(program: String, maxLoopIterations: Int = 1000): List<String> {
     val runner = WalkerRunner(WalkConfig(maxLoopIterations = maxLoopIterations))
     val intermediate = ProgramCompiler(object : FileProvider {
         override fun getReader(filename: String): Reader {

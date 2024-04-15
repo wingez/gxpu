@@ -85,6 +85,12 @@ open class Emulator(
     }
 
     fun print(value: Int) {
+        for (letter in "$value\n") {
+            printascii(letter.code)
+        }
+    }
+
+    fun printascii(value: Int) {
         outputStream.add(value)
     }
 

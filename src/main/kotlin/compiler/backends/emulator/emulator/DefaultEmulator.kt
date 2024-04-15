@@ -24,6 +24,9 @@ class DefaultEmulator : Emulator(instructionSet) {
         val print = instructionSet.createInstruction("out", group = MISC) { em, _ ->
             em.print(em.a)
         }
+        val printascii = instructionSet.createInstruction("outascii", group = MISC) { em, _ ->
+            em.printascii(em.a)
+        }
         val lda_constant = instructionSet.createInstruction("LDA #val", group = LOAD_STORE) { em, params ->
             em.a = params.getValue("val")
         }

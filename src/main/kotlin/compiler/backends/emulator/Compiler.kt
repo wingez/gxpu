@@ -18,7 +18,7 @@ class EmulatorRunner(
 
     override fun buildAndRun(
         intermediateProgram: CompiledIntermediateProgram,
-    ): List<Int> {
+    ): List<String> {
         val program = compileIntermediate(intermediateProgram)
 
 
@@ -26,7 +26,7 @@ class EmulatorRunner(
         emulator.setProgram(program.instructions)
         emulator.run()
 
-        return emulator.outputStream
+        return emulator.outputStream.map { it.toChar() }.joinToString("").lines().filter { it.isNotBlank() }
     }
 }
 

@@ -76,7 +76,7 @@ class PrintIntArray : BuiltIn {
             //print
             LDA [FP #1]
             LDA [A #0]
-            out
+            outascii
             // increment pointer
             LDA [FP #1]
             ADDA #1
@@ -84,8 +84,10 @@ class PrintIntArray : BuiltIn {
             
             JMP #loop
             
-            
             :ret
+            // newline char
+            LDA #10
+            outascii
             ret
         """
         )

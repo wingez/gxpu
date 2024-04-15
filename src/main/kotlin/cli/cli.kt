@@ -37,5 +37,7 @@ fun main(args: Array<String>) {
 
     val result = compileAndRunProgram(filename, compiler, BuiltInSignatures())
 
-    println(result.map { Char(it) }.joinToString(""))
+    for (line in result){
+        println(line)
+    }
 }

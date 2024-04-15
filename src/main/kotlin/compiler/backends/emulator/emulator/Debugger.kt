@@ -174,7 +174,7 @@ class InteractiveDebugger(
         }
     }
 
-    override fun buildAndRun(intermediateProgram: CompiledIntermediateProgram): List<Int> {
+    override fun buildAndRun(intermediateProgram: CompiledIntermediateProgram): List<String> {
         val emulatorRunner = EmulatorRunner(BuiltInFunctions())
         instructions = emulatorRunner.compileIntermediate(intermediateProgram).instructions
 

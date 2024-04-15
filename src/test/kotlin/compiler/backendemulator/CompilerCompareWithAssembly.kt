@@ -81,7 +81,7 @@ private val noGlobals = LayedOutStruct(CompositeDatatype("noglobals", emptyList(
 private class GetInstructionsRunner : BackendCompiler {
 
     lateinit var compiledProgram: CompiledProgram
-    override fun buildAndRun(intermediateProgram: CompiledIntermediateProgram): List<Int> {
+    override fun buildAndRun(intermediateProgram: CompiledIntermediateProgram): List<String> {
         compiledProgram = EmulatorRunner(BuiltInFunctions()).compileIntermediate(intermediateProgram)
         return emptyList()
     }

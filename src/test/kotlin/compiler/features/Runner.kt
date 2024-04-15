@@ -10,9 +10,13 @@ import compiler.backends.emulator.EmulatorRunner
 import compiler.compileAndRunBody
 import compiler.frontend.FileProvider
 import compiler.frontend.ProgramCompiler
+import org.junit.jupiter.api.DynamicTest
+import org.junit.jupiter.api.TestFactory
+import java.io.File
 import java.io.Reader
 import java.io.StringReader
-import kotlin.streams.toList
+import java.nio.file.Path
+import kotlin.io.path.*
 import kotlin.test.assertEquals
 
 
@@ -38,7 +42,7 @@ private fun getRunner(type: CompilerBackend): BackendCompiler {
 }
 
 fun interface OutputMatcher {
-    fun assertOutputMatch(output: List<Int>)
+    fun assertOutputMatch(output: List<String>)
 }
 
 private fun intArrayToString(ints: List<Int>): String {
@@ -49,9 +53,9 @@ fun intMatcher(ints: List<Int>): OutputMatcher {
 
 
     return OutputMatcher { output ->
-        val message = "Expected: ${intArrayToString(ints)}, Actual: ${intArrayToString(output)}"
+        val message = "Expected: ${intArrayToString(ints)}, Actual: $output"
 
-        assertEquals(ints, output, message)
+        assertEquals(ints.map { it.toString() }, output, message)
     }
 }
 
@@ -60,7 +64,7 @@ fun intMatcher(vararg ints: Int): OutputMatcher {
 }
 
 fun matchString(string: String): OutputMatcher {
-    return intMatcher(string.chars().toList())
+    return matchLines(listOf(string))
 }
 
 fun matchLines(vararg lines: String): OutputMatcher {
@@ -68,7 +72,12 @@ fun matchLines(vararg lines: String): OutputMatcher {
 }
 
 fun matchLines(lines: List<String>): OutputMatcher {
-    return matchString(lines.joinToString(""))
+
+    return OutputMatcher { output ->
+        val message = "Expected: ${lines}, Actual: $output"
+
+        assertEquals(lines, output, message)
+    }
 }
 
 fun runBodyCheckOutput(type: CompilerBackend, body: String, resultMatcher: OutputMatcher) {
