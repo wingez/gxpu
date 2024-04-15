@@ -1,0 +1,14 @@
+
+def main():
+  val var:byte = 5
+  while bool(var):
+    print(var)
+    var=var-1
+
+
+-------------
+5
+4
+3
+2
+1

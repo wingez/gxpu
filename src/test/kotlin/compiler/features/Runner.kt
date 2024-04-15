@@ -113,3 +113,82 @@ fun runProgramCheckOutput(
     resultMatcher.assertOutputMatch(actual)
 
 }
+
+private data class FeatureTestcase(
+    val subject: String,
+    val name: String,
+    val path: Path,
+    val backend: CompilerBackend,
+)
+
+private fun discoverTests(): List<FeatureTestcase> {
+
+    val result = mutableListOf<FeatureTestcase>()
+
+    val p = Path("", "src", "test", "features")
+
+    for (testSubjectFolder in p.listDirectoryEntries()) {
+
+        if (!testSubjectFolder.isDirectory()){
+            continue
+        }
+
+        val subjectName = testSubjectFolder.name
+
+        for (testCasePath in testSubjectFolder.listDirectoryEntries()) {
+            assert(testCasePath.isRegularFile())
+            val testCase = testCasePath.name
+
+            result.addAll(CompilerBackend.values().map {
+                FeatureTestcase(subjectName, testCase, testCasePath, it)
+            })
+        }
+    }
+    return result
+}
+
+
+fun main() {
+    discoverTests().forEach { println(it) }
+}
+
+
+private fun executeTest(testcase: FeatureTestcase) {
+
+    val programLines = mutableListOf<String>()
+    val expectedLines = mutableListOf<String>()
+
+    var foundDelimiter = false
+    for (line in File(testcase.path.toUri()).readLines()) {
+        if (line.trimStart(' ').startsWith("-----")) {
+            foundDelimiter = true
+            continue
+        }
+        if (!foundDelimiter) {
+            programLines.add(line)
+        } else {
+            if (line.isNotBlank()) {
+                expectedLines.add(line)
+            }
+        }
+    }
+
+    val program = programLines.joinToString("\n")
+
+    runProgramCheckOutput(testcase.backend, program, matchLines(expectedLines))
+}
+
+
+class Runner {
+    @TestFactory
+    fun runAllFeatures(): List<DynamicTest> {
+
+        return discoverTests().map {
+            val name = "${it.subject}/${it.name} - ${it.backend}"
+            DynamicTest.dynamicTest(name) {
+                executeTest(it)
+            }
+        }
+
+    }
+}

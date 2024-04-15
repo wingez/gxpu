@@ -1,0 +1,12 @@
+
+def main():
+  if bool(10):
+    print(1)
+    if bool(0):
+      print(0)
+    print(2)
+
+
+-------------
+1
+2

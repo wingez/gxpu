@@ -1,0 +1,11 @@
+
+def main():
+  val var:byte=5
+  print(var)
+  var=3
+  print(var)
+
+
+-------------
+5
+3

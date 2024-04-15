@@ -1,0 +1,16 @@
+
+def main():
+  val a:byte=3
+  while bool(a):
+    if bool(a-2):
+      print(8)
+    print(a)
+    a=a-1
+
+
+-------------
+8
+3
+2
+8
+1
