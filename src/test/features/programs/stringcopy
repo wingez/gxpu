@@ -1,0 +1,16 @@
+def main():
+  val a = "abcd"
+  val b:int[] = createArray(a.size())
+
+  val index = 0
+  while index != a.size():
+    val letter = a[index]
+    letter = letter+1
+    b[index] = letter
+    index = index+1
+
+  print(a)
+  print(b)
+-------------
+abcd
+bcde

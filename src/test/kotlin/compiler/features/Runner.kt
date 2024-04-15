@@ -10,6 +10,7 @@ import compiler.backends.emulator.EmulatorRunner
 import compiler.compileAndRunBody
 import compiler.frontend.FileProvider
 import compiler.frontend.ProgramCompiler
+import org.junit.jupiter.api.Assumptions
 import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.TestFactory
 import java.io.File
@@ -129,7 +130,7 @@ private fun discoverTests(): List<FeatureTestcase> {
 
     for (testSubjectFolder in p.listDirectoryEntries()) {
 
-        if (!testSubjectFolder.isDirectory()){
+        if (!testSubjectFolder.isDirectory()) {
             continue
         }
 
@@ -156,7 +157,7 @@ fun main() {
 private fun executeTest(testcase: FeatureTestcase) {
 
     val programLines = mutableListOf<String>()
-    val expectedLines = mutableListOf<String>()
+    var expectedLines = mutableListOf<String>()
 
     var foundDelimiter = false
     for (line in File(testcase.path.toUri()).readLines()) {
@@ -172,6 +173,10 @@ private fun executeTest(testcase: FeatureTestcase) {
             }
         }
     }
+
+    val emulatorSkip = "disable emulator"
+    Assumptions.assumeFalse(expectedLines.any { it.startsWith(emulatorSkip) }, "skipped on emulator")
+    expectedLines = expectedLines.filter { it != emulatorSkip }.toMutableList()
 
     val program = programLines.joinToString("\n")
 
