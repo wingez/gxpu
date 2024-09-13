@@ -1,11 +1,11 @@
 package cli
 
-import compiler.BuiltInSignatures
 import compiler.backends.astwalker.WalkConfig
 import compiler.backends.astwalker.WalkerRunner
 import compiler.backends.emulator.BuiltInFunctions
 import compiler.backends.emulator.EmulatorRunner
 import compiler.backends.emulator.emulator.InteractiveDebugger
+import compiler.builtInSymbolTable
 import compiler.compileAndRunProgram
 
 fun main(args: Array<String>) {
@@ -35,7 +35,7 @@ fun main(args: Array<String>) {
         }
     }
 
-    val result = compileAndRunProgram(filename, compiler, BuiltInSignatures())
+    val result = compileAndRunProgram(filename, compiler, builtInSymbolTable())
 
     for (line in result){
         println(line)

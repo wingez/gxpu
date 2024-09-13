@@ -11,6 +11,7 @@ import compiler.backends.emulator.EmulatorInstruction
 import compiler.backends.emulator.Reference
 import compiler.backends.emulator.builtinInlinedSignatures
 import compiler.backends.emulator.emulate
+import compiler.builtInSymbolTable
 import compiler.compileAndRunProgram
 import compiler.frontend.*
 import java.io.Reader
@@ -18,63 +19,6 @@ import java.io.StringReader
 import kotlin.test.assertEquals
 
 
-class DummyBuiltInProvider(
-    private val builtIns: List<BuiltIn> = listOf(ByteAddition(), ByteSubtraction(), PrintIntArray())
-) : BuiltInProvider, FunctionSignatureResolver {
-    override fun getDefinitions(): List<FunctionDefinition> {
-        return builtIns.map { it.definition }
-    }
-
-
-    override fun buildDefinition(definition: FunctionDefinition): BuiltFunction {
-        for (builtIn in builtIns) {
-            if (builtIn.definition == definition) {
-
-                val instructions = builtIn.compile()
-                instructions.first().addReference(Reference(definition, functionEntryLabel))
-
-                val variables = mutableListOf<CompositeDataTypeField>()
-                if (builtIn.definition.returnType != Primitives.Nothing) {
-                    variables.add(
-                        CompositeDataTypeField(
-                            "result",
-                            builtIn.definition.returnType,
-                        )
-                    )
-                }
-                for ((index, parameterType) in builtIn.definition.parameterTypes.withIndex()) {
-                    variables.add(CompositeDataTypeField("param$index", parameterType))
-                }
-
-                val layout = calculateLayout(definition, CompositeDatatype(definition.name, variables))
-
-                return BuiltFunction(builtIn.definition, layout, instructions)
-            }
-        }
-        throw AssertionError()
-    }
-
-    override fun getFunctionDefinitionMatching(
-        name: String,
-        functionType: FunctionType,
-        parameterTypes: List<Datatype>
-    ): FunctionDefinition {
-
-        for (definition in builtinInlinedSignatures) {
-            if (definition.matches(name, functionType, parameterTypes)) {
-                return definition
-            }
-        }
-
-        for (builtIn in builtIns) {
-            if (builtIn.definition.matches(name, functionType, parameterTypes)) {
-                return builtIn.definition
-            }
-        }
-
-        throw AssertionError("No function matching: $name$parameterTypes")
-    }
-}
 
 private val noGlobals = LayedOutStruct(CompositeDatatype("noglobals", emptyList()))
 
@@ -97,7 +41,7 @@ fun buildSingleMainFunction(nodes: List<AstNode>): CompiledProgram {
 
 fun buildBody(body: String): List<EmulatorInstruction> {
 
-    val intermediate = compileProgramFromSingleBody(body, BuiltInSignatures())
+    val intermediate = compileProgramFromSingleBody(body, builtInSymbolTable())
 
     return intermediate.functions.flatMap { buildFunctionBody(it, noGlobals).instructions }
 }
@@ -111,7 +55,7 @@ fun buildProgram(body: String): CompiledProgram {
         override fun getReader(filename: String): Reader {
             return StringReader(body)
         }
-    }, "dummyfile", BuiltInSignatures()).compile()
+    }, "dummyfile", builtInSymbolTable()).compile()
 
     runner.buildAndRun(intermediate)
 

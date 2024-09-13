@@ -7,6 +7,7 @@ import compiler.backends.astwalker.WalkConfig
 import compiler.backends.astwalker.WalkerRunner
 import compiler.backends.emulator.BuiltInFunctions
 import compiler.backends.emulator.EmulatorRunner
+import compiler.builtInSymbolTable
 import compiler.compileAndRunBody
 import compiler.frontend.FileProvider
 import compiler.frontend.ProgramCompiler
@@ -82,7 +83,7 @@ fun matchLines(lines: List<String>): OutputMatcher {
 }
 
 fun runBodyCheckOutput(type: CompilerBackend, body: String, resultMatcher: OutputMatcher) {
-    val actual = compileAndRunBody(body, getRunner(type), BuiltInSignatures())
+    val actual = compileAndRunBody(body, getRunner(type), builtInSymbolTable())
 
     resultMatcher.assertOutputMatch(actual)
 }
@@ -107,7 +108,7 @@ fun runProgramCheckOutput(
 
             return program[filename]?.let { StringReader(it) }
         }
-    }, mainFilename, BuiltInSignatures()).compile()
+    }, mainFilename, builtInSymbolTable()).compile()
 
     val actual = getRunner(type).buildAndRun(intermediate)
 

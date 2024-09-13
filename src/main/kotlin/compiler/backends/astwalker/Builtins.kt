@@ -4,7 +4,6 @@ import ast.FunctionType
 import ast.expression.OperatorBuiltIns
 import compiler.BuiltInSignatures
 import compiler.BuiltInSourceFile
-import compiler.frontend.FunctionDatatype
 import compiler.frontend.FunctionDefinition
 import compiler.frontend.Primitives
 
@@ -161,7 +160,7 @@ class Run : Function(
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
         val functionReference = values[0]
-        require(functionReference.datatype is FunctionDatatype)
+        require(functionReference.datatype is FunctionDefinition)
 
         val index = functionReference.asPrimitive.integer
 

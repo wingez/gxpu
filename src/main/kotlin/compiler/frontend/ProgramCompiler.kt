@@ -18,7 +18,9 @@ interface FileProvider {
 private const val builtins = "Builtins"
 
 data class CompiledIntermediateProgram(
-    val types: List<Datatype>,
+    val symbolTable: SymbolTable,
+
+    //FIXME remove these
     val functions: List<FunctionContent>,
     val mainFunction: FunctionContent,
     val globals: List<GlobalsResult>,
@@ -34,7 +36,7 @@ private fun mainDefinitionInFile(filename: String): FunctionDefinition {
 class ProgramCompiler(
     private val fileProvider: FileProvider,
     private val mainFile: String,
-    private val builtInCollection: BuiltInCollection = BuiltInSignatures(),
+    private val symbolTable: MutableSymbolTable,
 ) {
 
     private val compiledFiles = mutableMapOf<String, CompiledIntermediateFile>()
@@ -45,27 +47,12 @@ class ProgramCompiler(
             val reader = fileProvider.getReader(filename)
                 ?: throw FrontendCompilerError("Cant find import: $filename")
 
-            val compiled = compileFile(filename, reader, this)
+            val compiled = compileFile(filename, reader, this,symbolTable)
 
             compiledFiles[filename] = compiled
         }
 
         return compiledFiles.getValue(filename)
-    }
-
-    fun import(file: String): Pair<List<Datatype>, List<FunctionDefinition>> {
-        if (file == builtins) {
-            return builtInCollection.types to builtInCollection.functions
-        }
-
-        //TODO: detect cyclic import
-
-        val compiled = compileFile(file)
-        return compiled.allTypes to compiled.functions.map { it.definition }
-    }
-
-    fun importBuiltins(): Pair<List<Datatype>, List<FunctionDefinition>> {
-        return import(builtins)
     }
 
 
@@ -80,12 +67,12 @@ class ProgramCompiler(
         val mainFunction = fileWithMain.functions.find { it.definition == mainDefinitionInFile(mainFile) }
             ?: throw FrontendCompilerError("missing main function")
 
-        return CompiledIntermediateProgram(allTypes, allFunctions, mainFunction, globals)
+        return CompiledIntermediateProgram(symbolTable, allFunctions, mainFunction, globals)
     }
 }
 
 
-fun compileProgram(filename: String, builtInCollection: BuiltInCollection): CompiledIntermediateProgram {
+fun compileProgram(filename: String, symbolTable: MutableSymbolTable): CompiledIntermediateProgram {
 
     val fileProvider = object : FileProvider {
         override fun getReader(f: String): Reader {
@@ -94,18 +81,16 @@ fun compileProgram(filename: String, builtInCollection: BuiltInCollection): Comp
         }
     }
 
-    return ProgramCompiler(fileProvider, filename, builtInCollection).compile()
+    return ProgramCompiler(fileProvider, filename, symbolTable).compile()
 }
 
 
-fun compileProgramFromSingleBody(body: String, builtIns: BuiltInCollection): CompiledIntermediateProgram {
+fun compileProgramFromSingleBody(body: String, symbolTable: SymbolTable): CompiledIntermediateProgram {
     //Used in testing
 
     val tokens =
         parseFile(StringReader(body), "dummyfile") + listOf(Token(TokenType.EndBlock, "", SourceInfo.notApplicable))
     val nodes = AstParser(tokens).parseStatementsUntilEndblock()
-
-    val types = builtIns.types
 
     val definition = mainDefinitionInFile("dummyfile")
 
@@ -113,12 +98,11 @@ fun compileProgramFromSingleBody(body: String, builtIns: BuiltInCollection): Com
         AstNode.fromBody(nodes),
         definition,
         emptyMap(),
-        FunctionCollection(builtIns.functions),
-        TypeCollection(emptyList(), builtIns),
+        symbolTable,
         "",
         VariableType.Local,
     )
     return CompiledIntermediateProgram(
-        types, functionContents, functionContents.find { it.definition == definition }!!, emptyList()
+        symbolTable, functionContents, functionContents.find { it.definition == definition }!!, emptyList()
     )
 }

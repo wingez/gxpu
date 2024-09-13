@@ -4,66 +4,61 @@ import ast.AstNode
 import ast.FunctionType
 import ast.NodeTypes
 
-data class Signature(
-    val parameterTypes: List<Datatype>,
-    val returnType: Datatype,
-)
-
 data class FunctionDefinition(
-    val name: String,
+    private val functionName: String,
     val sourceFile: String,
     val parameters: List<Pair<String, Datatype>>,
     val returnType: Datatype,
     val functionType: FunctionType,
 
-    ) {
+    ) : Datatype {
     fun matches(name: String, functionType: FunctionType, parameterTypes: List<Datatype>): Boolean {
-        return name == this.name && functionType == this.functionType && parameterTypes == this.parameterTypes
+        return name == this.functionName && functionType == this.functionType && parameterTypes == this.parameterTypes
     }
-
-    val signature = Signature(parameterTypes, returnType)
 
     val hasReturnType = returnType != Primitives.Nothing
 
     val parameterTypes get() = parameters.map { it.second }
     val parameterNames get() = parameters.map { it.first }
+
+    override val name: String
+        get() = generateSignatureName()
+
+    private fun generateSignatureName(): String {
+        val paramdescip = parameters.map { "${it.first}: ${it.second.name}" }
+        val params = paramdescip.joinToString { ", " }
+        return "fun $functionName($params): ${returnType.name}"
+
+    }
 }
 
 
-interface FunctionSignatureResolver {
-    fun getFunctionDefinitionMatching(
-        name: String,
-        functionType: FunctionType,
-        parameterTypes: List<Datatype>
-    ): FunctionDefinition
-}
-
-private fun parameters(functionNode: AstNode, typeProvider: TypeProvider): List<Pair<String, Datatype>> {
+private fun parameters(functionNode: AstNode, symbolTable: SymbolTable): List<Pair<String, Datatype>> {
     assert(functionNode.type == NodeTypes.Function)
 
     val function = functionNode.asFunction()
 
     return function.arguments.map {
-        it.asNewVariable().name to typeProvider.requireType(it.asNewVariable().optionalTypeDefinition!!)
+        it.asNewVariable().name to requireTypeFromTypeDefinition(it.asNewVariable().optionalTypeDefinition!!, symbolTable)
     }
 }
 
 fun definitionFromFunctionNode(
     functionNode: AstNode,
     sourceFile: String,
-    typeProvider: TypeProvider
+    symbolTable: SymbolTable,
 ): FunctionDefinition {
     assert(functionNode.type == NodeTypes.Function)
 
     val function = functionNode.asFunction()
 
-    val params = parameters(functionNode, typeProvider)
+    val params = parameters(functionNode, symbolTable)
 
     val returnType =
-        if (function.returnType != null) typeProvider.requireType(function.returnType) else Primitives.Nothing
+        if (function.returnType != null) requireTypeFromTypeDefinition(function.returnType, symbolTable) else Primitives.Nothing
 
     return FunctionDefinition(
-        name = function.name,
+        functionName = function.name,
         sourceFile = sourceFile,
         parameters = params,
         returnType = returnType,

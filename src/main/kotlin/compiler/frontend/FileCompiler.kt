@@ -1,8 +1,6 @@
 package compiler.frontend
 
-import ast.AstNode
-import ast.AstParser
-import ast.NodeTypes
+import ast.*
 import compiler.*
 import tokens.Token
 import tokens.TokenType
@@ -20,6 +18,7 @@ fun compileFile(
     filename: String,
     reader: Reader,
     programCompiler: ProgramCompiler,
+    symbolTable: SymbolTable,
 ): CompiledIntermediateFile {
     val tokens = parseFile(reader, filename)
     val nodes = AstParser(tokens).parse()
@@ -36,42 +35,34 @@ fun compileFile(
     val allAvailableFunctionDefinitions = mutableListOf<FunctionDefinition>()
 
     //Import builtins
-    val (builtInTypes, builtInFunctions) = programCompiler.importBuiltins()
-    types.addAll(builtInTypes)
-    allAvailableFunctionDefinitions.addAll(builtInFunctions)
+    //TODO
+    //val (builtInTypes, builtInFunctions) = programCompiler.importBuiltins()
+    //types.addAll(builtInTypes)
+    //allAvailableFunctionDefinitions.addAll(builtInFunctions)
 
     //Import
-    for (node in importNodes) {
-        val toImport = node.asIdentifier()
-        val (importedTypes, importedFunctions) = programCompiler.import(toImport)
-        types.addAll(importedTypes)
-        allAvailableFunctionDefinitions.addAll(importedFunctions)
-    }
+//    for (node in importNodes) {
+//        val toImport = node.asIdentifier()
+//        val (importedTypes, importedFunctions) = programCompiler.import(toImport)
+//        types.addAll(importedTypes)
+//        allAvailableFunctionDefinitions.addAll(importedFunctions)
+//    }
 
-    val foundStructs = buildAllStructs(structNodes, types)
+    val foundStructs = buildAllStructs(structNodes, symbolTable)
     types.addAll(foundStructs)
-
-
-    val typeProvider = object : TypeProvider {
-        override fun getType(name: String): Datatype? {
-            return types.find { it.name == name }
-        }
-    }
 
 
     val functionBodiesWithDefinitions = mutableListOf<Pair<AstNode, FunctionDefinition>>()
     for (node in functionNodes) {
-        val definition = definitionFromFunctionNode(node, filename, typeProvider)
+        val definition = definitionFromFunctionNode(node, filename, symbolTable)
         allAvailableFunctionDefinitions.add(definition)
         functionBodiesWithDefinitions.add(node to definition)
     }
 
 
-    val functionSignatureResolver = FunctionCollection(allAvailableFunctionDefinitions)
-
     val globals = compileGlobalAndInitialization(
         globalsAndInitializationNodes, filename,
-        functionSignatureResolver, typeProvider,
+        symbolTable,
     )
 
     val functions = functionBodiesWithDefinitions.flatMap { (node, definition) ->
@@ -79,8 +70,7 @@ fun compileFile(
             node.asFunction().body,
             definition,
             globals.variables,
-            functionSignatureResolver,
-            typeProvider,
+            symbolTable,
             "",
             VariableType.Local,
         )
@@ -93,25 +83,14 @@ fun compileFile(
 
 fun buildAllStructs(
     nodes: List<AstNode>,
-    existingTypes: List<Datatype>,
+    symbolTable: SymbolTable,
 ): List<Datatype> {
 
     val result = mutableListOf<Datatype>()
 
-    val all = mutableListOf<Datatype>()
-    all.addAll(existingTypes)
-
-
-    val typeProvider = object : TypeProvider {
-        override fun getType(name: String): Datatype? {
-            return all.find { it.name == name }
-        }
-    }
-
     for (node in nodes) {
-        val new = buildStruct(node, typeProvider)
+        val new = buildStruct(node, symbolTable)
         result.add(new)
-        all.add(new)
     }
 
     return result
@@ -119,7 +98,7 @@ fun buildAllStructs(
 
 fun buildStruct(
     structNode: AstNode,
-    typeProvider: TypeProvider,
+    symbolTable: SymbolTable,
 ): CompositeDatatype {
 
     require(structNode.type == NodeTypes.Struct)
@@ -131,8 +110,7 @@ fun buildStruct(
 
         val optionalTypeDef = newValue.optionalTypeDefinition
         checkNotNull(optionalTypeDef)
-        val fieldType = typeProvider.getType(optionalTypeDef)
-            ?: throw FrontendCompilerError("No type of type: $optionalTypeDef")
+        val fieldType = requireTypeFromTypeDefinition(optionalTypeDef, symbolTable)
 
         val fieldName = newValue.name
 
@@ -142,21 +120,37 @@ fun buildStruct(
     return CompositeDatatype(typeName, members)
 }
 
+fun requireTypeFromTypeDefinition(typeDefinition: TypeDefinition, symbolTable: SymbolTable): Datatype {
+    return when (typeDefinition.base) {
+        is StaticBase -> {
+            val typeName = typeDefinition.base.name
+            var type = symbolTable.getType(typeName) ?: throw FrontendCompilerError("No type of type: $typeDefinition")
+            if (typeDefinition.hasModifier(TypeDefinitionModifier.Array)) {
+                type = type.arrayOf()
+            }
+            if (typeDefinition.hasModifier(TypeDefinitionModifier.Pointer)) {
+                type = type.pointerOf()
+            }
+            type
+        }
+
+        else -> TODO(typeDefinition.base.toString())
+    }
+}
+
 
 fun compileFunctionBody(
     body: AstNode,
     definition: FunctionDefinition,
     globals: Map<String, Variable>,
-    functionProvider: FunctionSignatureResolver,
-    typeProvider: TypeProvider,
+    symbolTable: SymbolTable,
     variablePrefix: String,
     treatNewVariablesAs: VariableType,
 ): List<FunctionContent> {
     return FunctionCompiler(
         body,
         definition,
-        functionProvider,
-        typeProvider,
+        symbolTable,
         treatNewVariablesAs,
         variablePrefix,
         globals
@@ -176,8 +170,7 @@ data class GlobalsResult(
 fun compileGlobalAndInitialization(
     nodes: List<AstNode>,
     filename: String,
-    functionProvider: FunctionSignatureResolver,
-    typeProvider: TypeProvider,
+    symbolTable: SymbolTable,
 ): GlobalsResult {
 
 
@@ -187,10 +180,10 @@ fun compileGlobalAndInitialization(
 
     return compileFunctionBody(
         AstNode.fromBody(nodes),
-        initializeGlobalsDefinition, emptyMap(), functionProvider, typeProvider, "$filename-", VariableType.Global,
+        initializeGlobalsDefinition, emptyMap(), symbolTable, "$filename-", VariableType.Global,
     ).let {
         require(it.size == 1) { "lambdas in globals initialization not supported yet" }
         val globalsInit = it.first()
-        GlobalsResult(globalsInit, globalsInit.fields,  globalsInit.definedVariables)
+        GlobalsResult(globalsInit, globalsInit.fields, globalsInit.definedVariables)
     }
 }

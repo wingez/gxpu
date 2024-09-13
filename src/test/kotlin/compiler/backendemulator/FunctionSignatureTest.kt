@@ -4,35 +4,11 @@ import compiler.backends.emulator.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import ast.AstParser
-import ast.FunctionType
-import ast.expression.OperatorBuiltIns
-import compiler.BuiltInSignatures
-import compiler.FunctionCollection
-import compiler.TypeCollection
+import compiler.builtInSymbolTable
 import compiler.frontend.*
 import org.junit.jupiter.api.assertThrows
 import tokenizeLines
 
-class TypeContainer(
-    types: List<Datatype>,
-    aliases: Map<String, Datatype>
-) : TypeProvider {
-
-    private val allTypes = aliases + types.associateBy { it.name }
-    override fun getType(name: String): Datatype {
-        if (name.isEmpty())
-            return Primitives.Integer
-
-        return allTypes[name] ?: throw AssertionError("Did not find $name")
-
-    }
-}
-
-private val defaultTypes = listOf(Primitives.Nothing, Primitives.Integer)
-
-val dummyTypeContainer = TypeCollection(
-    emptyList(), BuiltInSignatures()
-)
 
 internal class FunctionSignatureTest {
 
@@ -40,16 +16,13 @@ internal class FunctionSignatureTest {
     fun getSignature(program: String): BuiltFunction {
         val node = AstParser(tokenizeLines(program)).parseFunctionDefinition()
 
-        val typeProvider = TypeCollection(emptyList(), BuiltInSignatures())
-        val functionProvider = FunctionCollection(BuiltInSignatures().functions)
-
+        val symbolTable = builtInSymbolTable()
 
         val function = compileFunctionBody(
             node.asFunction().body,
-            definitionFromFunctionNode(node,"dummyfile", typeProvider),
+            definitionFromFunctionNode(node,"dummyfile", symbolTable),
             emptyMap(),
-            functionProvider,
-            typeProvider,
+            symbolTable,
             "",
             VariableType.Local,
         ).let {
@@ -204,7 +177,7 @@ internal class FunctionSignatureTest {
         val layout = built.layout
         assertEquals(layout.size, 2)
         assertEquals(layout.sizeOfLocalVariables, 2)
-        assertEquals(StructDataField("var", dummyTypeContainer.requireType("intpair"), 0), layout.getField("var"))
+        assertEquals(StructDataField("var", Primitives.IntPair, 0), layout.getField("var"))
     }
 
 }

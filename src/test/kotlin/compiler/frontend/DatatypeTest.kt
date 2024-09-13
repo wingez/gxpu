@@ -1,14 +1,10 @@
 package compiler.frontend
 
 import ast.parserFromFile
+import compiler.builtInSymbolTable
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 
-private val builtInTypeProvider = object : TypeProvider {
-    override fun getType(name: String): Datatype? {
-        return builtInTypes[name]
-    }
-}
 
 class DatatypeTest {
 
@@ -21,7 +17,7 @@ class DatatypeTest {
              b:int
         """.trimIndent()
         ).parseStruct()
-        val type = buildStruct(node, builtInTypeProvider)
+        val type = buildStruct(node, builtInSymbolTable())
         assertEquals(
             listOf(
                 CompositeDataTypeField("a", Primitives.Integer),

@@ -28,7 +28,7 @@ data class Value(
 ) {
     val asPrimitive: PrimitiveValue
         get() {
-            require(datatype is PrimitiveDataType || datatype is PointerDatatype || datatype is FunctionDatatype)
+            require(datatype is PrimitiveDataType || datatype is PointerDatatype || datatype is FunctionDefinition)
             require(primitives.size == 1)
             return primitives.first()
         }

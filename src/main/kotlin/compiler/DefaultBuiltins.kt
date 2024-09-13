@@ -6,13 +6,33 @@ import compiler.frontend.*
 
 const val BuiltInSourceFile = "builtins"
 
-fun DefinitionBuilder.getBuiltInDefinition():FunctionDefinition{
+fun DefinitionBuilder.getBuiltInDefinition(): FunctionDefinition {
     this.setSourceFile(BuiltInSourceFile)
     return this.getDefinition()
 }
 
-class BuiltInSignatures : BuiltInCollection {
+
+fun builtInSymbolTable(): MutableSymbolTable {
+
+    val table = MutableSymbolTable()
+
+    for (func in BuiltInSignatures.functions) {
+        table.addFunction(func)
+    }
+
+    for (type in BuiltInSignatures.types) {
+        table.addType(type, BuiltInSourceFile)
+    }
+
+    return table
+}
+
+
+class BuiltInSignatures {
+
     companion object {
+
+
         val print = DefinitionBuilder("print")
             .addParameter("value", Primitives.Integer)
             .getBuiltInDefinition()
@@ -106,38 +126,33 @@ class BuiltInSignatures : BuiltInCollection {
         val run = DefinitionBuilder("run")
             .setFunctionType(FunctionType.Normal)
             .setReturnType(Primitives.Nothing)
-            .addParameter("function", FunctionDatatype(Signature(emptyList(), Primitives.Nothing)))
-            .getBuiltInDefinition()
-    }
-
-    override val functions = listOf(
-        print,
-        printString,
-        bool,
-        add,
-        sub,
-        arraySize,
-        createArray,
-        arrayRead,
-        arrayWrite,
-        notEquals,
-        equals,
-        lessThan,
-        greaterThan,
-        mod,
-        idiv,
-        run,
-    )
-
-    override val types = listOf(
-        Primitives.Integer, Primitives.Nothing,
-        //"byte" to Primitives.Integer,
-        CompositeDatatype(
-            "intpair",
-            listOf(
-                CompositeDataTypeField("first", Primitives.Integer),
-                CompositeDataTypeField("second", Primitives.Integer)
+            .addParameter(
+                "function",
+                FunctionDefinition("run", "builtin", emptyList(), Primitives.Nothing, FunctionType.Normal)
             )
+            .getBuiltInDefinition()
+
+        val functions = listOf(
+            print,
+            printString,
+            bool,
+            add,
+            sub,
+            arraySize,
+            createArray,
+            arrayRead,
+            arrayWrite,
+            notEquals,
+            equals,
+            lessThan,
+            greaterThan,
+            mod,
+            idiv,
+            run,
         )
-    )
+
+        val types = listOf(
+            Primitives.Integer, Primitives.Nothing, Primitives.IntPair
+        )
+    }
 }

@@ -102,7 +102,7 @@ data class FunctionReference(
     val function: FunctionDefinition,
 ) : ValueExpression {
     override val type: Datatype
-        get() = FunctionDatatype(function.signature)
+        get() = function
 }
 
 class Execute(
@@ -187,8 +187,7 @@ private data class LoopContext(
 class FunctionCompiler(
     private var body: AstNode,
     private val definition: FunctionDefinition,
-    private val functionProvider: FunctionSignatureResolver,
-    private val typeProvider: TypeProvider,
+    private val symbolTable: SymbolTable,
     private val treatNewVariablesAs: VariableType,
     private val variableFieldPrefix: String,
     private val globalVariables: Map<String, Variable>,
@@ -251,8 +250,7 @@ class FunctionCompiler(
                 FunctionCompiler(
                     node.child,
                     lambdaDefinition,
-                    functionProvider,
-                    typeProvider,
+                    symbolTable,
                     treatNewVariablesAs,
                     variableFieldPrefix,
                     globalVariables
@@ -566,7 +564,7 @@ class FunctionCompiler(
         val parameterTypes = parameters.map { it.type }
 
         val function =
-            functionProvider.getFunctionDefinitionMatching(callInfo.targetName, callInfo.functionType, parameterTypes)
+            symbolTable.getFunctionDefinitionMatching(callInfo.targetName, callInfo.functionType, parameterTypes)
 
 
         return CallExpression(function, parameters)
@@ -614,8 +612,7 @@ class FunctionCompiler(
                 } else {
                     checkNotNull(newVariable.optionalTypeDefinition)
 
-                    type = typeProvider.getType(newVariable.optionalTypeDefinition)
-                        ?: throw FrontendCompilerError("No type of type ${newVariable.optionalTypeDefinition}")
+                    type = requireTypeFromTypeDefinition(newVariable.optionalTypeDefinition, symbolTable)
                 }
                 val field = CompositeDataTypeField(fieldName, type)
                 fields.add(field)

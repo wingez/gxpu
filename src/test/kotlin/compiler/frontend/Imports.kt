@@ -1,6 +1,7 @@
 package compiler.frontend
 
 import compiler.BuiltInSignatures
+import compiler.builtInSymbolTable
 import org.junit.jupiter.api.assertThrows
 import requireNotReached
 import java.io.Reader
@@ -50,7 +51,7 @@ class Imports {
         }
 
 
-        assertThrows<FrontendCompilerError>("hello world") { ProgramCompiler(fileProvider, "missing").compile() }
+        assertThrows<FrontendCompilerError>("hello world") { ProgramCompiler(fileProvider, "missing", builtInSymbolTable()).compile() }
 
 
 

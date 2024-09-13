@@ -5,6 +5,7 @@ import ast.AstParser
 import compiler.BackendCompiler
 import compiler.BuiltInSignatures
 import compiler.backends.emulator.*
+import compiler.builtInSymbolTable
 import compiler.compileAndRunProgram
 import compiler.frontend.*
 import tokens.parseFile
@@ -191,5 +192,5 @@ fun main(array: Array<String>) {
     val fileName = array[0]
 
     val debugger = InteractiveDebugger()
-    compileAndRunProgram(fileName, debugger, BuiltInSignatures())
+    compileAndRunProgram(fileName, debugger, builtInSymbolTable())
 }

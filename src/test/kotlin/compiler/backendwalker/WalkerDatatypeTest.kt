@@ -3,6 +3,7 @@ package compiler.backendwalker
 import ast.expression.OperatorBuiltIns
 import compiler.BuiltInSignatures
 import compiler.backends.astwalker.*
+import compiler.builtInSymbolTable
 import compiler.compileAndRunProgram
 import compiler.features.intMatcher
 import compiler.frontend.*
@@ -20,7 +21,7 @@ internal fun run(program: String, maxLoopIterations: Int = 1000): List<String> {
         override fun getReader(filename: String): Reader {
             return StringReader(program)
         }
-    }, "dummyfile", BuiltInSignatures()).compile()
+    }, "dummyfile", builtInSymbolTable()).compile()
     return runner.buildAndRun(intermediate)
 }
 
