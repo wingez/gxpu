@@ -82,12 +82,13 @@ class WalkerState(
         }
 
         // setup global variables
-        val allGlobalsFields = CompositeDatatype("globals",
-            intermediateProgram.globals.flatMap { it.fields.compositeFields })
-        globalVariables = ValueHolder(allGlobalsFields)
-        for (global in intermediateProgram.globals) {
-            walkUserFunction(UserFunction(global.initialization), emptyList())
-        }
+        //TODO
+        //val allGlobalsFields = CompositeDatatype("globals",
+        //    intermediateProgram.globals.flatMap { it.fields.compositeFields })
+        //globalVariables = ValueHolder(allGlobalsFields)
+        //for (global in intermediateProgram.globals) {
+        //    walkUserFunction(UserFunction(global.initialization), emptyList())
+        //}
 
         //Call main
         val mainFunction = getFunctionFromSignature(

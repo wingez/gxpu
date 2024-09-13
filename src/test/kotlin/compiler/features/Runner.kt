@@ -104,9 +104,9 @@ fun runProgramCheckOutput(
 ) {
 
     val intermediate = ProgramCompiler(object : FileProvider {
-        override fun getReader(filename: String): Reader? {
+        override fun getReader(filename: String): Reader {
 
-            return program[filename]?.let { StringReader(it) }
+            return StringReader(program.getValue(filename))
         }
     }, mainFilename, builtInSymbolTable()).compile()
 

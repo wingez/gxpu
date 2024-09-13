@@ -32,7 +32,6 @@ internal class FrontendTest {
             compileFunctionBody(
                 shouldHave.asFunction().body,
                 definitionFromFunctionNode(shouldHave, "dummyfile", symbolTable),
-                emptyMap(),
                 symbolTable, "", VariableType.Local,
             ).first().fields.compositeFields.size
         )
@@ -43,7 +42,6 @@ internal class FrontendTest {
             compileFunctionBody(
                 shouldNotHave.asFunction().body,
                 definitionFromFunctionNode(shouldNotHave, "dummyfile", symbolTable),
-                emptyMap(),
                 symbolTable, "", VariableType.Local,
             ).first().fields.compositeFields.size
         )

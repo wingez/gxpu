@@ -26,9 +26,13 @@ data class FunctionDefinition(
 
     private fun generateSignatureName(): String {
         val paramdescip = parameters.map { "${it.first}: ${it.second.name}" }
-        val params = paramdescip.joinToString { ", " }
+        val params = paramdescip.joinToString ( ", " )
         return "fun $functionName($params): ${returnType.name}"
 
+    }
+
+    override fun toString(): String {
+        return name
     }
 }
 

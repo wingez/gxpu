@@ -88,8 +88,10 @@ class Compiler(
     fun buildProgram(): CompiledProgram {
 
         // Build the globals
+        // TODO
         val allGlobalsFields = CompositeDatatype("globals",
-            intermediateProgram.globals.flatMap { it.fields.compositeFields })
+            //intermediateProgram.globals.flatMap { it.fields.compositeFields })
+            emptyList())
         val globalsLayout = LayedOutStruct(allGlobalsFields)
 
         // the globals is placed at address 0
@@ -103,19 +105,20 @@ class Compiler(
 
         val toPlace = mutableListOf(intermediateProgram.mainFunction.definition)
 
-        for (global in intermediateProgram.globals) {
-            if (global.needsInitialization) {
-                toPlace.add(global.initialization.definition)
-                addInstruction(
-                    emulate(
-                        DefaultEmulator.call_addr, "addr" to Reference(
-                            global.initialization.definition,
-                            functionEntryLabel
-                        )
-                    )
-                )
-            }
-        }
+        // TODO
+//        for (global in intermediateProgram.globals) {
+//            if (global.needsInitialization) {
+//                toPlace.add(global.initialization.definition)
+//                addInstruction(
+//                    emulate(
+//                        DefaultEmulator.call_addr, "addr" to Reference(
+//                            global.initialization.definition,
+//                            functionEntryLabel
+//                        )
+//                    )
+//                )
+//            }
+//        }
         addInstruction(
             emulate(
                 DefaultEmulator.call_addr,

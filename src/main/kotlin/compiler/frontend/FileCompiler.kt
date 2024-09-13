@@ -9,56 +9,35 @@ import java.io.Reader
 import java.io.StringReader
 
 data class CompiledIntermediateFile(
-    val allTypes: List<Datatype>,
     val functions: List<FunctionContent>,
-    val globals: GlobalsResult
+    val globalInit: FunctionContent,
 )
 
 fun compileFile(
     filename: String,
-    reader: Reader,
-    programCompiler: ProgramCompiler,
-    symbolTable: SymbolTable,
+    nodes: List<AstNode>,
+    symbolTable: MutableSymbolTable,
 ): CompiledIntermediateFile {
-    val tokens = parseFile(reader, filename)
-    val nodes = AstParser(tokens).parse()
 
 
     val structNodes = nodes.filter { it.type == NodeTypes.Struct }
     val functionNodes = nodes.filter { it.type == NodeTypes.Function }
-    val importNodes = nodes.filter { it.type == NodeTypes.Import }
 
     val globalsAndInitializationNodes =
         nodes.filter { it.type !in listOf(NodeTypes.Struct, NodeTypes.Function, NodeTypes.Import) }
 
-    val types = mutableListOf<Datatype>()
-    val allAvailableFunctionDefinitions = mutableListOf<FunctionDefinition>()
 
-    //Import builtins
-    //TODO
-    //val (builtInTypes, builtInFunctions) = programCompiler.importBuiltins()
-    //types.addAll(builtInTypes)
-    //allAvailableFunctionDefinitions.addAll(builtInFunctions)
-
-    //Import
-//    for (node in importNodes) {
-//        val toImport = node.asIdentifier()
-//        val (importedTypes, importedFunctions) = programCompiler.import(toImport)
-//        types.addAll(importedTypes)
-//        allAvailableFunctionDefinitions.addAll(importedFunctions)
-//    }
-
-    val foundStructs = buildAllStructs(structNodes, symbolTable)
-    types.addAll(foundStructs)
+    buildAllStructs(structNodes, symbolTable, filename)
 
 
     val functionBodiesWithDefinitions = mutableListOf<Pair<AstNode, FunctionDefinition>>()
     for (node in functionNodes) {
         val definition = definitionFromFunctionNode(node, filename, symbolTable)
-        allAvailableFunctionDefinitions.add(definition)
+
+        symbolTable.addFunction(definition)
+
         functionBodiesWithDefinitions.add(node to definition)
     }
-
 
     val globals = compileGlobalAndInitialization(
         globalsAndInitializationNodes, filename,
@@ -69,31 +48,26 @@ fun compileFile(
         compileFunctionBody(
             node.asFunction().body,
             definition,
-            globals.variables,
             symbolTable,
             "",
             VariableType.Local,
         )
-    } + globals.initialization
+    } + globals
 
     return CompiledIntermediateFile(
-        foundStructs, functions, globals
+        functions, globals
     )
 }
 
 fun buildAllStructs(
     nodes: List<AstNode>,
-    symbolTable: SymbolTable,
-): List<Datatype> {
-
-    val result = mutableListOf<Datatype>()
-
+    symbolTable: MutableSymbolTable,
+    sourceFile: String,
+) {
     for (node in nodes) {
         val new = buildStruct(node, symbolTable)
-        result.add(new)
+        symbolTable.addType(new, sourceFile)
     }
-
-    return result
 }
 
 fun buildStruct(
@@ -142,7 +116,6 @@ fun requireTypeFromTypeDefinition(typeDefinition: TypeDefinition, symbolTable: S
 fun compileFunctionBody(
     body: AstNode,
     definition: FunctionDefinition,
-    globals: Map<String, Variable>,
     symbolTable: SymbolTable,
     variablePrefix: String,
     treatNewVariablesAs: VariableType,
@@ -153,25 +126,16 @@ fun compileFunctionBody(
         symbolTable,
         treatNewVariablesAs,
         variablePrefix,
-        globals
     )
         .compileFunction()
 }
 
-data class GlobalsResult(
-    val initialization: FunctionContent,
-    val fields: CompositeDatatype,
-    val variables: Map<String, Variable>,
-) {
-    val needsInitialization
-        get() = initialization.code.hasContent
-}
 
 fun compileGlobalAndInitialization(
     nodes: List<AstNode>,
     filename: String,
     symbolTable: SymbolTable,
-): GlobalsResult {
+): FunctionContent {
 
 
     val initializeGlobalsDefinition = DefinitionBuilder("initializeGlobals")
@@ -180,10 +144,9 @@ fun compileGlobalAndInitialization(
 
     return compileFunctionBody(
         AstNode.fromBody(nodes),
-        initializeGlobalsDefinition, emptyMap(), symbolTable, "$filename-", VariableType.Global,
+        initializeGlobalsDefinition, symbolTable, "$filename-", VariableType.Global,
     ).let {
         require(it.size == 1) { "lambdas in globals initialization not supported yet" }
-        val globalsInit = it.first()
-        GlobalsResult(globalsInit, globalsInit.fields, globalsInit.definedVariables)
+        it.first()
     }
 }

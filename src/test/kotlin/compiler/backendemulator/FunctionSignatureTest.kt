@@ -21,7 +21,6 @@ internal class FunctionSignatureTest {
         val function = compileFunctionBody(
             node.asFunction().body,
             definitionFromFunctionNode(node,"dummyfile", symbolTable),
-            emptyMap(),
             symbolTable,
             "",
             VariableType.Local,

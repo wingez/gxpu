@@ -3,6 +3,12 @@ package compiler.frontend
 import ast.*
 
 
+enum class VariableType {
+    Local,
+    Global,
+}
+
+
 interface SymbolTable {
 
     fun getType(name: String): Datatype?
@@ -32,13 +38,22 @@ private data class TypeEntry(
 }
 
 
+private data class VariableEntry(
+    val datatype: Datatype,
+    val variableType: VariableType,
+    val name: String,
+    val sourceFile: String,
+    val owner: FunctionDefinition?,
+)
+
 class MutableSymbolTable : SymbolTable {
 
 
-    private val entries = mutableListOf<TypeEntry>()
+    private val types = mutableListOf<TypeEntry>()
 
     private val functions = mutableListOf<FunctionDefinition>()
 
+    private val variables = mutableListOf<VariableEntry>()
 
     fun addType(type: Datatype, sourceFile: String) {
         if (getType(type.name) != null) {
@@ -46,13 +61,13 @@ class MutableSymbolTable : SymbolTable {
         }
 
         val entry = TypeEntry(type, sourceFile)
-        entries.add(entry)
+        types.add(entry)
     }
 
 
     override fun getType(name: String): Datatype? {
 
-        val matches = entries.filter { it.name == name }
+        val matches = types.filter { it.name == name }
 
         if (matches.isEmpty()) {
             return null
@@ -85,6 +100,17 @@ class MutableSymbolTable : SymbolTable {
 
         //TODO unique tests
         functions.add(func)
+    }
+
+
+    fun addVariable(
+        type: VariableType,
+        datatype: Datatype,
+        name: String,
+        sourceFile: String,
+        owner: FunctionDefinition?
+    ) {
+        variables.add(VariableEntry(datatype, type, name, sourceFile, owner))
     }
 }
 

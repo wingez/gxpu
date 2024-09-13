@@ -11,10 +11,6 @@ class FrontendCompilerError(message: String) : Error(message)
 
 interface Instruction
 
-enum class VariableType {
-    Local,
-    Global,
-}
 
 data class Variable(
     val field: CompositeDataTypeField,
@@ -190,12 +186,11 @@ class FunctionCompiler(
     private val symbolTable: SymbolTable,
     private val treatNewVariablesAs: VariableType,
     private val variableFieldPrefix: String,
-    private val globalVariables: Map<String, Variable>,
 ) {
     lateinit var fieldDatatype: CompositeDatatype
     lateinit var lambdas: List<FunctionContent>
 
-    val variables = mutableMapOf<String, Variable>().apply { putAll(globalVariables) }
+    val variables = mutableMapOf<String, Variable>()
 
     var controlStatementCounter = 0
 
@@ -253,7 +248,6 @@ class FunctionCompiler(
                     symbolTable,
                     treatNewVariablesAs,
                     variableFieldPrefix,
-                    globalVariables
                 )
                     .compileFunction()
                     .let { listOfExtractedLambdas.addAll(it) }

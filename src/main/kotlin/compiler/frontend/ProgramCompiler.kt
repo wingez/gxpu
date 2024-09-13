@@ -2,8 +2,7 @@ package compiler.frontend
 
 import ast.AstNode
 import ast.AstParser
-import compiler.*
-import compiler.backends.emulator.emulator.main
+import ast.NodeTypes
 import tokens.Token
 import tokens.TokenType
 import tokens.parseFile
@@ -23,7 +22,6 @@ data class CompiledIntermediateProgram(
     //FIXME remove these
     val functions: List<FunctionContent>,
     val mainFunction: FunctionContent,
-    val globals: List<GlobalsResult>,
 )
 
 private fun mainDefinitionInFile(filename: String): FunctionDefinition {
@@ -38,36 +36,73 @@ class ProgramCompiler(
     private val mainFile: String,
     private val symbolTable: MutableSymbolTable,
 ) {
+    fun compile(): CompiledIntermediateProgram {
 
-    private val compiledFiles = mutableMapOf<String, CompiledIntermediateFile>()
 
-    private fun compileFile(filename: String): CompiledIntermediateFile {
+        // Step 1
+        // Tokenize mainfile and all subsequent imports
 
-        if (filename !in compiledFiles) {
+        val nodesForFile = mutableMapOf<String, List<AstNode>>()
+        val importsForFile = mutableMapOf<String, List<String>>()
+
+        val filesToInclude = mutableListOf(mainFile)
+
+        while (filesToInclude.isNotEmpty()) {
+
+            val filename = filesToInclude.removeLast()
+            if (filename in nodesForFile) {
+                continue
+            }
+
             val reader = fileProvider.getReader(filename)
-                ?: throw FrontendCompilerError("Cant find import: $filename")
+                ?: throw FrontendCompilerError("File $filename not found.")
 
-            val compiled = compileFile(filename, reader, this,symbolTable)
+            val tokens = parseFile(reader, filename)
+            val nodes = AstParser(tokens).parse()
 
-            compiledFiles[filename] = compiled
+            nodesForFile[filename] = nodes
+
+
+            val importNodes = nodes.filter { it.type == NodeTypes.Import }
+            val imports = importNodes.map { it.asIdentifier() }
+
+            importsForFile[filename] = imports
+
+            filesToInclude.addAll(imports)
         }
 
-        return compiledFiles.getValue(filename)
-    }
+        // Step 2. Determine compilation order. First compile file with the least dependents
+        // TODO: Remove recursion I dont like it
+        val compilationOrder = mutableListOf<String>()
+
+        fun recursiveAddToCompilationOrder(filename: String) {
+            if (filename in compilationOrder) {
+                return
+            }
+            for (dependent in importsForFile.getValue(filename)) {
+                recursiveAddToCompilationOrder(dependent)
+            }
+            compilationOrder.add(filename)
+        }
+
+        recursiveAddToCompilationOrder(mainFile)
+
+        // Step 3
+        // Compile each file in order
+
+        val compiledFunctions = mutableListOf<FunctionContent>()
+
+        for (filename in compilationOrder) {
+            val output = compileFile(filename, nodesForFile.getValue(filename), symbolTable)
+            compiledFunctions.addAll(output.functions)
+        }
 
 
-    fun compile(): CompiledIntermediateProgram {
-        val fileWithMain = compileFile(mainFile)
-
-        val allTypes = compiledFiles.values.flatMap { it.allTypes }
-        val allFunctions = compiledFiles.values.flatMap { it.functions }
-
-        val globals = compiledFiles.values.map { it.globals }
-
-        val mainFunction = fileWithMain.functions.find { it.definition == mainDefinitionInFile(mainFile) }
+        // Extract results
+        val mainFunction = compiledFunctions.find { it.definition == mainDefinitionInFile(mainFile) }
             ?: throw FrontendCompilerError("missing main function")
 
-        return CompiledIntermediateProgram(symbolTable, allFunctions, mainFunction, globals)
+        return CompiledIntermediateProgram(symbolTable, compiledFunctions, mainFunction)
     }
 }
 
@@ -97,12 +132,11 @@ fun compileProgramFromSingleBody(body: String, symbolTable: SymbolTable): Compil
     val functionContents = compileFunctionBody(
         AstNode.fromBody(nodes),
         definition,
-        emptyMap(),
         symbolTable,
         "",
         VariableType.Local,
     )
     return CompiledIntermediateProgram(
-        symbolTable, functionContents, functionContents.find { it.definition == definition }!!, emptyList()
+        symbolTable, functionContents, functionContents.find { it.definition == definition }!!,
     )
 }
