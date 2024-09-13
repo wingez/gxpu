@@ -1,6 +1,5 @@
 package compiler.backends.emulator
 
-import ast.FunctionType
 import compiler.BackendCompiler
 import compiler.backends.emulator.emulator.DefaultEmulator
 import compiler.frontend.*
@@ -64,10 +63,11 @@ private class BuiltinSource(
 private class CodeSource(
     private val functionContent: FunctionContent,
     private val globals: LayedOutDatatype,
+    val fields: CompositeDatatype,
 ) : FunctionSource {
     override val definition = functionContent.definition
     override fun build(): BuiltFunction {
-        return buildFunctionBody(functionContent, globals)
+        return buildFunctionBody(functionContent, globals, fields)
     }
 }
 
@@ -88,10 +88,9 @@ class Compiler(
     fun buildProgram(): CompiledProgram {
 
         // Build the globals
-        // TODO
+        val allGlobals = intermediateProgram.symbolTable.getAllGlobalVariables()
         val allGlobalsFields = CompositeDatatype("globals",
-            //intermediateProgram.globals.flatMap { it.fields.compositeFields })
-            emptyList())
+            allGlobals.map { CompositeDataTypeField(it.name, it.datatype) })
         val globalsLayout = LayedOutStruct(allGlobalsFields)
 
         // the globals is placed at address 0
@@ -105,20 +104,6 @@ class Compiler(
 
         val toPlace = mutableListOf(intermediateProgram.mainFunction.definition)
 
-        // TODO
-//        for (global in intermediateProgram.globals) {
-//            if (global.needsInitialization) {
-//                toPlace.add(global.initialization.definition)
-//                addInstruction(
-//                    emulate(
-//                        DefaultEmulator.call_addr, "addr" to Reference(
-//                            global.initialization.definition,
-//                            functionEntryLabel
-//                        )
-//                    )
-//                )
-//            }
-//        }
         addInstruction(
             emulate(
                 DefaultEmulator.call_addr,
@@ -140,8 +125,14 @@ class Compiler(
         availableFunctionSignatures.addAll(builtinInlinedSignatures)
 
         for (f in intermediateProgram.functions) {
+
+            val localVariables = intermediateProgram.symbolTable.getVariablesForFunction(f.definition)
+
+            val fields = CompositeDatatype("fields", localVariables.map { CompositeDataTypeField(it.name, it.datatype) })
+
+
             availableFunctionSignatures.add(f.definition)
-            functionSources.add(CodeSource(f, globalsLayout))
+            functionSources.add(CodeSource(f, globalsLayout, fields))
         }
 
         /// Compile all functions

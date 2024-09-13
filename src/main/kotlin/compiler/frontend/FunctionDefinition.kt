@@ -5,7 +5,7 @@ import ast.FunctionType
 import ast.NodeTypes
 
 data class FunctionDefinition(
-    private val functionName: String,
+    val functionName: String,
     val sourceFile: String,
     val parameters: List<Pair<String, Datatype>>,
     val returnType: Datatype,

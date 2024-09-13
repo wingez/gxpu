@@ -43,7 +43,7 @@ fun tryGetValueWhere(expr: ValueExpression, where: WhereToPutResult, context: Fu
         }
 
         is VariableExpression -> {
-            when (expr.variable.type) {
+            when (expr.variable.variableType) {
                 VariableType.Local -> {
                     val field = context.localsLayout.getField(expr.variable.name)
                     FpField(field)
@@ -463,7 +463,7 @@ fun getAddressOf(expr: AddressExpression, context: FunctionContext): GetAddressR
 
     return when (expr) {
         is VariableExpression -> {
-            when (expr.variable.type) {
+            when (expr.variable.variableType) {
                 VariableType.Local -> {
                     val field = context.localsLayout.getField(expr.variable.name)
                     FpField(field)

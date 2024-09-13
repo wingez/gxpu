@@ -47,6 +47,7 @@ class WalkerState(
     private val config: WalkConfig,
 ) {
 
+    val symbolTable = intermediateProgram.symbolTable
 
     val output = WalkerOutput()
     val frameStack = mutableListOf<WalkFrame>()
@@ -82,13 +83,12 @@ class WalkerState(
         }
 
         // setup global variables
-        //TODO
-        //val allGlobalsFields = CompositeDatatype("globals",
-        //    intermediateProgram.globals.flatMap { it.fields.compositeFields })
-        //globalVariables = ValueHolder(allGlobalsFields)
-        //for (global in intermediateProgram.globals) {
-        //    walkUserFunction(UserFunction(global.initialization), emptyList())
-        //}
+        val globals = symbolTable.getAllGlobalVariables()
+
+        val allGlobalsFields = CompositeDatatype("fields", globals.map { CompositeDataTypeField(it.name, it.datatype) })
+
+        globalVariables = ValueHolder(allGlobalsFields)
+
 
         //Call main
         val mainFunction = getFunctionFromSignature(
@@ -104,32 +104,36 @@ class WalkerState(
         return function.execute(parameters, this)
     }
 
-    fun setVariable(variable: Variable, value: Value) {
-        getVariableView(variable).applyValue(value)
+    fun setVariable(variableType: VariableType, name: String, value: Value) {
+        getVariableView(variableType, name).applyValue(value)
     }
 
 
-    fun getVariableView(variable: Variable): ValueHolder.View {
-        return when (variable.type) {
+    fun getVariableView(variableType: VariableType, name: String): ValueHolder.View {
+        return when (variableType) {
             VariableType.Local -> {
-                currentFrame.localVariableHolder.viewEntire().viewField(variable.name)
+                currentFrame.localVariableHolder.viewEntire().viewField(name)
 
             }
+
             VariableType.Global -> {
-                globalVariables.viewEntire().viewField(variable.name)
+                globalVariables.viewEntire().viewField(name)
             }
+
             else -> TODO()
         }
     }
 
-    fun getVariable(variable: Variable): Value {
-        return getVariableView(variable).getValue()
+    fun getVariable(variableType: VariableType, name: String): Value {
+        return getVariableView(variableType, name).getValue()
     }
 
     fun walkUserFunction(userFunction: UserFunction, parameters: List<Value>): Value {
 
+        val localVariables = symbolTable.getVariablesForFunction(userFunction.definition)
 
-        val fields = userFunction.functionContent.fields
+        val fields = CompositeDatatype("fields", localVariables.map { CompositeDataTypeField(it.name, it.datatype) })
+
 
         // Push new frame
         frameStack.add(WalkFrame(ValueHolder(fields)))
@@ -138,7 +142,7 @@ class WalkerState(
         userFunction.functionContent.definition.parameterNames.zip(parameters)
             .forEach { (paramName, value) ->
                 assert(fields.fieldType(paramName) == value.datatype)
-                setVariable(Variable(fields.getField(paramName), VariableType.Local), value)
+                setVariable(VariableType.Local, fields.getField(paramName).name, value)
             }
 
         // Walk the function
@@ -174,7 +178,7 @@ class WalkerState(
         val result = if (userFunction.definition.returnType == Primitives.Nothing) {
             Value.nothing
         } else {
-            getVariable(Variable(fields.getField(RETURN_VALUE_NAME), VariableType.Local))
+            getVariable(VariableType.Local, fields.getField(RETURN_VALUE_NAME).name)
         }
 
         // Pop frame
@@ -259,7 +263,7 @@ class WalkerState(
 
         return when (addressExpression) {
             is VariableExpression -> {
-                return getVariableView(addressExpression.variable)
+                return getVariableView(addressExpression.variable.variableType, addressExpression.variable.name)
             }
 
             is DerefToAddress -> {
@@ -280,7 +284,7 @@ class WalkerState(
         return when (valueExpression) {
             is ConstantExpression -> Value.primitive(Primitives.Integer, valueExpression.value)
             is CallExpression -> handleCall(valueExpression)
-            is VariableExpression -> getVariable(valueExpression.variable)
+            is VariableExpression -> getVariable(valueExpression.variable.variableType, valueExpression.variable.name)
             is StringExpression -> createFromString(valueExpression.string)
 
             is AddressOf -> {

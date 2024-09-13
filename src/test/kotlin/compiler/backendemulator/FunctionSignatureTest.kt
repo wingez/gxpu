@@ -20,18 +20,25 @@ internal class FunctionSignatureTest {
 
         val function = compileFunctionBody(
             node.asFunction().body,
-            definitionFromFunctionNode(node,"dummyfile", symbolTable),
+            definitionFromFunctionNode(node, "dummyfile", symbolTable),
             symbolTable,
-            "",
             VariableType.Local,
+            emptyList(),
         ).let {
             require(it.size == 1)
             it.first()
         }
 
+
+        val localVariables = symbolTable.getVariablesForFunction(function.definition)
+
+        val fields = CompositeDatatype("fields", localVariables.map { CompositeDataTypeField(it.name, it.datatype) })
+
+
         val builder = FunctionBuilder(
             function,
-            LayedOutStruct(CompositeDatatype("dummy", emptyList()))
+            LayedOutStruct(CompositeDatatype("dummy", emptyList())),
+            fields,
         )
 
         return builder.buildBody()

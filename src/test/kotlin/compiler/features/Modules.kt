@@ -56,11 +56,11 @@ class Modules {
     fun testNeverImportGlobal(compilerBackend: CompilerBackend) {
         val files = mapOf(
             "main" to """
-            import other
             
             def main():
               print(j)
         """.trimIndent(),
+
             "other" to """
             val j=7
         """.trimIndent()
@@ -108,11 +108,14 @@ class Modules {
             def main():
               print1()
               print2()
-        """.trimIndent(),
-            "other1" to """
+              
+        """.trimIndent(), "other1" to """
+                
             val j=7
             def print1():
               print(j)
+              
+              
         """.trimIndent(), "other2" to """
             val j=5
             def print2():

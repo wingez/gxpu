@@ -19,13 +19,15 @@ data class BuiltFunction(
 fun buildFunctionBody(
     intermediateFunction: FunctionContent,
     globals: LayedOutDatatype,
+    fields: CompositeDatatype,
 ): BuiltFunction {
-    return FunctionBuilder(intermediateFunction, globals).buildBody()
+    return FunctionBuilder(intermediateFunction, globals, fields).buildBody()
 }
 
 class FunctionBuilder(
     private val intermediateFunction: FunctionContent,
     override val globalsLayout: LayedOutDatatype,
+    val fields: CompositeDatatype,
 ) : CodeGenerator, FunctionContext {
     val definition = intermediateFunction.definition
 
@@ -69,6 +71,7 @@ class FunctionBuilder(
 
                 addInstruction(emulate(DefaultEmulator.pop_fp_offset, "offset" to field.offset))
             }
+
             is GlobalsField -> {
                 val field = targetAddress.field
                 assert(field.type is PrimitiveDataType)
@@ -156,7 +159,7 @@ class FunctionBuilder(
 
     fun buildBody(): BuiltFunction {
 
-        layout = calculateLayout(intermediateFunction.definition, intermediateFunction.fields)
+        layout = calculateLayout(intermediateFunction.definition, fields)
 
         buildCodeBody(intermediateFunction.code)
 

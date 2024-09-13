@@ -3,6 +3,7 @@ package compiler.frontend
 import ast.AstNode
 import ast.AstParser
 import ast.NodeTypes
+import compiler.BuiltInSourceFile
 import tokens.Token
 import tokens.TokenType
 import tokens.parseFile
@@ -91,18 +92,47 @@ class ProgramCompiler(
         // Compile each file in order
 
         val compiledFunctions = mutableListOf<FunctionContent>()
+        val globalsInitFunctions = mutableListOf<FunctionContent>()
 
         for (filename in compilationOrder) {
-            val output = compileFile(filename, nodesForFile.getValue(filename), symbolTable)
+            val output =
+                compileFile(filename, nodesForFile.getValue(filename), symbolTable, importsForFile.getValue(filename))
             compiledFunctions.addAll(output.functions)
+            globalsInitFunctions.add(output.globalInit)
         }
-
 
         // Extract results
         val mainFunction = compiledFunctions.find { it.definition == mainDefinitionInFile(mainFile) }
             ?: throw FrontendCompilerError("missing main function")
 
-        return CompiledIntermediateProgram(symbolTable, compiledFunctions, mainFunction)
+        // Create entry function setting up globals and calling main
+
+        val entryCodeContent = mutableListOf<Instruction>()
+
+        for (global in globalsInitFunctions) {
+            if (global.code.hasContent) {
+                entryCodeContent.add(Execute(CallExpression(global.definition, emptyList())))
+            }
+        }
+
+        val entryFunction: FunctionContent
+
+        if (entryCodeContent.isNotEmpty()) {
+            entryCodeContent.add(Execute(CallExpression(mainFunction.definition, emptyList())))
+            entryCodeContent.add(Return())
+
+            entryFunction = FunctionContent(
+                DefinitionBuilder("entry")
+                    .setSourceFile(BuiltInSourceFile)
+                    .getDefinition(),
+                IntermediateCode(entryCodeContent, mapOf(functionEntryLabel to 0))
+            )
+            compiledFunctions.add(entryFunction)
+        } else {
+            entryFunction = mainFunction
+        }
+
+        return CompiledIntermediateProgram(symbolTable, compiledFunctions, entryFunction)
     }
 }
 
@@ -120,7 +150,7 @@ fun compileProgram(filename: String, symbolTable: MutableSymbolTable): CompiledI
 }
 
 
-fun compileProgramFromSingleBody(body: String, symbolTable: SymbolTable): CompiledIntermediateProgram {
+fun compileProgramFromSingleBody(body: String, symbolTable: MutableSymbolTable): CompiledIntermediateProgram {
     //Used in testing
 
     val tokens =
@@ -133,8 +163,8 @@ fun compileProgramFromSingleBody(body: String, symbolTable: SymbolTable): Compil
         AstNode.fromBody(nodes),
         definition,
         symbolTable,
-        "",
         VariableType.Local,
+        emptyList(),
     )
     return CompiledIntermediateProgram(
         symbolTable, functionContents, functionContents.find { it.definition == definition }!!,

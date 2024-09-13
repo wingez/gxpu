@@ -5,19 +5,15 @@ import compiler.backends.emulator.emulator.DefaultEmulator
 import org.junit.jupiter.api.Test
 import ast.*
 import compiler.BackendCompiler
-import compiler.BuiltInSignatures
 import compiler.backends.emulator.CompiledProgram
 import compiler.backends.emulator.EmulatorInstruction
 import compiler.backends.emulator.Reference
-import compiler.backends.emulator.builtinInlinedSignatures
 import compiler.backends.emulator.emulate
 import compiler.builtInSymbolTable
-import compiler.compileAndRunProgram
 import compiler.frontend.*
 import java.io.Reader
 import java.io.StringReader
 import kotlin.test.assertEquals
-
 
 
 private val noGlobals = LayedOutStruct(CompositeDatatype("noglobals", emptyList()))
@@ -41,9 +37,17 @@ fun buildSingleMainFunction(nodes: List<AstNode>): CompiledProgram {
 
 fun buildBody(body: String): List<EmulatorInstruction> {
 
-    val intermediate = compileProgramFromSingleBody(body, builtInSymbolTable())
+    val symbolTable = builtInSymbolTable()
 
-    return intermediate.functions.flatMap { buildFunctionBody(it, noGlobals).instructions }
+    val intermediate = compileProgramFromSingleBody(body, symbolTable)
+
+    val localVariables = symbolTable.getVariablesForFunction(intermediate.mainFunction.definition)
+
+    val fields = CompositeDatatype("fields", localVariables.map { CompositeDataTypeField(it.name, it.datatype) })
+
+
+
+    return intermediate.functions.flatMap { buildFunctionBody(it, noGlobals, fields).instructions }
 }
 
 
@@ -499,18 +503,20 @@ class CompilerCompareWithAssembly {
         val expected = """
           LDFP #1
           LDSP #1
+          CALL #entry
+          exit
+          :entry
           CALL #initglobals
           CALL #main
-          exit
-          
-          :initglobals
-          ADDSP #1
-          LDA #5
-          STA [#0]
           RET
           :main
           LDA [#0] 
           out
+          RET
+          :initglobals
+          ADDSP #1
+          LDA #5
+          STA [#0]
           RET
         """
         val program = """

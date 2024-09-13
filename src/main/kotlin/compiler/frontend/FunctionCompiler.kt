@@ -12,14 +12,6 @@ class FrontendCompilerError(message: String) : Error(message)
 interface Instruction
 
 
-data class Variable(
-    val field: CompositeDataTypeField,
-    val type: VariableType,
-) {
-    val name get() = field.name
-    val datatype get() = field.type
-}
-
 interface ValueExpression {
     val type: Datatype
 }
@@ -144,8 +136,6 @@ data class IntermediateCode(
 data class FunctionContent(
     val definition: FunctionDefinition,
     val code: IntermediateCode,
-    val fields: CompositeDatatype,
-    val definedVariables: Map<String, Variable>,
 )
 
 
@@ -183,14 +173,12 @@ private data class LoopContext(
 class FunctionCompiler(
     private var body: AstNode,
     private val definition: FunctionDefinition,
-    private val symbolTable: SymbolTable,
+    private val symbolTable: MutableSymbolTable,
     private val treatNewVariablesAs: VariableType,
-    private val variableFieldPrefix: String,
+    private val imports: List<String>,
 ) {
-    lateinit var fieldDatatype: CompositeDatatype
     lateinit var lambdas: List<FunctionContent>
 
-    val variables = mutableMapOf<String, Variable>()
 
     var controlStatementCounter = 0
 
@@ -203,7 +191,7 @@ class FunctionCompiler(
 
         // Step 2
         // Extract all variables
-        fieldDatatype = addVariables()
+        addVariables()
 
         //TODO: Perhaps handle inlining here?
 
@@ -221,9 +209,7 @@ class FunctionCompiler(
         // Return
         return lambdas + FunctionContent(
             definition = definition,
-            fields = fieldDatatype,
             code = codeContent,
-            definedVariables = variables,
         )
     }
 
@@ -247,7 +233,7 @@ class FunctionCompiler(
                     lambdaDefinition,
                     symbolTable,
                     treatNewVariablesAs,
-                    variableFieldPrefix,
+                    imports,
                 )
                     .compileFunction()
                     .let { listOfExtractedLambdas.addAll(it) }
@@ -390,7 +376,7 @@ class FunctionCompiler(
 
             NodeTypes.FunctionReference -> {
                 // TODO: this only applies to lambdas, make work for anything
-                val function = lambdas.find { it.definition.name == node.asIdentifier() }
+                val function = lambdas.find { it.definition.functionName == node.asIdentifier() }
                 require(function != null)
                 FunctionReference(function.definition)
             }
@@ -565,29 +551,27 @@ class FunctionCompiler(
     }
 
 
-    private fun addVariables(): CompositeDatatype {
-
-        val fields = mutableListOf<CompositeDataTypeField>()
+    private fun addVariables(
+    ) {
 
         // Result variable
         if (definition.returnType != Primitives.Nothing) {
             require(treatNewVariablesAs == VariableType.Local)
 
-            val field = CompositeDataTypeField(
-                RETURN_VALUE_NAME,
+            symbolTable.addVariable(
+                treatNewVariablesAs,
                 definition.returnType,
+                RETURN_VALUE_NAME,
+                definition,
             )
-            fields.add(field)
-
-            variables[RETURN_VALUE_NAME] = Variable(field, VariableType.Local)
         }
 
         // Params
         for ((paramName, paramType) in definition.parameters) {
             require(treatNewVariablesAs == VariableType.Local)
-            val field = CompositeDataTypeField(paramName, paramType)
-            fields.add(field)
-            variables[paramName] = Variable(field, treatNewVariablesAs)
+
+            symbolTable.addVariable(VariableType.Local, paramType, paramName, definition)
+
         }
 
         // VariableDeclarations
@@ -596,7 +580,7 @@ class FunctionCompiler(
                 val newVariable = node.asNewVariable()
 
                 val name = newVariable.name
-                val fieldName = variableFieldPrefix + newVariable.name
+                val fieldName = newVariable.name
 
 
                 //TODO handle name clashes
@@ -608,19 +592,14 @@ class FunctionCompiler(
 
                     type = requireTypeFromTypeDefinition(newVariable.optionalTypeDefinition, symbolTable)
                 }
-                val field = CompositeDataTypeField(fieldName, type)
-                fields.add(field)
-                variables[name] = Variable(field, treatNewVariablesAs)
+                symbolTable.addVariable(treatNewVariablesAs, type, name, definition)
             }
         }
-        return CompositeDatatype(
-            definition.name,
-            fields
-        )
     }
 
+
     private fun lookupVariable(name: String): Variable {
-        return variables[name]
+        return symbolTable.findScopedVariable(name, definition, imports)
             ?: throw FrontendCompilerError("variable $name not found")
     }
 }

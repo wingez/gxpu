@@ -24,26 +24,32 @@ internal class FrontendTest {
      """.trimIndent().let { parserFromFile(it).parseFunctionDefinition() }
 
 
-        val symbolTable = builtInSymbolTable()
+        var symbolTable = builtInSymbolTable()
+
+        var result = compileFunctionBody(
+            shouldHave.asFunction().body,
+            definitionFromFunctionNode(shouldHave, "dummyfile", symbolTable),
+            symbolTable, VariableType.Local, emptyList(),
+        ).first()
 
 
         assertEquals(
             1,
-            compileFunctionBody(
-                shouldHave.asFunction().body,
-                definitionFromFunctionNode(shouldHave, "dummyfile", symbolTable),
-                symbolTable, "", VariableType.Local,
-            ).first().fields.compositeFields.size
+            symbolTable.getVariablesForFunction(result.definition).size
         )
 
 
+        symbolTable = builtInSymbolTable()
+
+        result = compileFunctionBody(
+            shouldNotHave.asFunction().body,
+            definitionFromFunctionNode(shouldNotHave, "dummyfile", symbolTable),
+            symbolTable, VariableType.Local, emptyList(),
+        ).first()
+
         assertEquals(
             0,
-            compileFunctionBody(
-                shouldNotHave.asFunction().body,
-                definitionFromFunctionNode(shouldNotHave, "dummyfile", symbolTable),
-                symbolTable, "", VariableType.Local,
-            ).first().fields.compositeFields.size
+            symbolTable.getVariablesForFunction(result.definition).size
         )
     }
 }

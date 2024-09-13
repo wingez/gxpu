@@ -17,6 +17,7 @@ fun compileFile(
     filename: String,
     nodes: List<AstNode>,
     symbolTable: MutableSymbolTable,
+    imports: List<String>,
 ): CompiledIntermediateFile {
 
 
@@ -41,7 +42,7 @@ fun compileFile(
 
     val globals = compileGlobalAndInitialization(
         globalsAndInitializationNodes, filename,
-        symbolTable,
+        symbolTable, imports,
     )
 
     val functions = functionBodiesWithDefinitions.flatMap { (node, definition) ->
@@ -49,8 +50,8 @@ fun compileFile(
             node.asFunction().body,
             definition,
             symbolTable,
-            "",
             VariableType.Local,
+            imports,
         )
     } + globals
 
@@ -116,16 +117,16 @@ fun requireTypeFromTypeDefinition(typeDefinition: TypeDefinition, symbolTable: S
 fun compileFunctionBody(
     body: AstNode,
     definition: FunctionDefinition,
-    symbolTable: SymbolTable,
-    variablePrefix: String,
+    symbolTable: MutableSymbolTable,
     treatNewVariablesAs: VariableType,
+    imports: List<String>,
 ): List<FunctionContent> {
     return FunctionCompiler(
         body,
         definition,
         symbolTable,
         treatNewVariablesAs,
-        variablePrefix,
+        imports,
     )
         .compileFunction()
 }
@@ -134,7 +135,8 @@ fun compileFunctionBody(
 fun compileGlobalAndInitialization(
     nodes: List<AstNode>,
     filename: String,
-    symbolTable: SymbolTable,
+    symbolTable: MutableSymbolTable,
+    imports: List<String>,
 ): FunctionContent {
 
 
@@ -144,7 +146,7 @@ fun compileGlobalAndInitialization(
 
     return compileFunctionBody(
         AstNode.fromBody(nodes),
-        initializeGlobalsDefinition, symbolTable, "$filename-", VariableType.Global,
+        initializeGlobalsDefinition, symbolTable, VariableType.Global, imports
     ).let {
         require(it.size == 1) { "lambdas in globals initialization not supported yet" }
         it.first()

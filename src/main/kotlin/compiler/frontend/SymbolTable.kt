@@ -27,6 +27,12 @@ interface SymbolTable {
         functionType: FunctionType,
         parameterTypes: List<Datatype>
     ): FunctionDefinition
+
+    fun findScopedVariable(name: String, owner: FunctionDefinition, imports: List<String>): Variable?
+
+    fun getVariablesForFunction(owner: FunctionDefinition): List<Variable>
+
+    fun getAllGlobalVariables(): List<Variable>
 }
 
 
@@ -38,13 +44,15 @@ private data class TypeEntry(
 }
 
 
-private data class VariableEntry(
+data class Variable(
     val datatype: Datatype,
     val variableType: VariableType,
     val name: String,
-    val sourceFile: String,
-    val owner: FunctionDefinition?,
-)
+    val owner: FunctionDefinition,
+) {
+    val sourceFile = owner.sourceFile
+
+}
 
 class MutableSymbolTable : SymbolTable {
 
@@ -53,7 +61,7 @@ class MutableSymbolTable : SymbolTable {
 
     private val functions = mutableListOf<FunctionDefinition>()
 
-    private val variables = mutableListOf<VariableEntry>()
+    private val variables = mutableListOf<Variable>()
 
     fun addType(type: Datatype, sourceFile: String) {
         if (getType(type.name) != null) {
@@ -107,10 +115,42 @@ class MutableSymbolTable : SymbolTable {
         type: VariableType,
         datatype: Datatype,
         name: String,
-        sourceFile: String,
-        owner: FunctionDefinition?
+        owner: FunctionDefinition
     ) {
-        variables.add(VariableEntry(datatype, type, name, sourceFile, owner))
+
+        variables.add(Variable(datatype, type, name, owner))
+    }
+
+    override fun findScopedVariable(name: String, owner: FunctionDefinition, imports: List<String>): Variable? {
+
+        //First search local
+        var match = variables.find { it.name == name && it.owner == owner && it.variableType == VariableType.Local }
+        if (match != null)
+            return match
+
+        // Then global in same file
+
+        match =
+            variables.find { it.name == name && it.sourceFile == owner.sourceFile && it.variableType == VariableType.Global }
+        if (match != null)
+            return match
+
+        for (import in imports) {
+            match =
+                variables.find { it.name == name && it.sourceFile == import && it.variableType == VariableType.Global }
+            if (match != null)
+                return match
+        }
+
+        return null
+    }
+
+    override fun getVariablesForFunction(owner: FunctionDefinition): List<Variable> {
+        return variables.filter { it.owner == owner }
+    }
+
+    override fun getAllGlobalVariables(): List<Variable> {
+        return variables.filter { it.variableType == VariableType.Global }
     }
 }
 
