@@ -108,7 +108,7 @@ class Array {
     @EnumSource
     fun testArrayReadOutOfBounds(compiler: CompilerBackend) {
 
-        Assumptions.assumeTrue(compiler != CompilerBackend.Emulator)
+//        Assumptions.assumeTrue(compiler != CompilerBackend.Emulator)
 
         val program = """
           def main():

@@ -3,7 +3,6 @@ package ast
 import SourceInfo
 import ast.expression.parseExpressionUntil
 import TokenEndBlock
-import compiler.backends.emulator.emulator.Emulator
 import tokenizeLine
 import tokenizeLines
 import tokens.Token

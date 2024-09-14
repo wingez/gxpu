@@ -112,7 +112,7 @@ class Structs {
     @EnumSource
     @Disabled
     fun testStructResult(compiler: CompilerBackend) {
-        Assumptions.assumeTrue(compiler != CompilerBackend.Emulator)
+//        Assumptions.assumeTrue(compiler != CompilerBackend.Emulator)
 
         val program = """
           def f():intpair

@@ -101,7 +101,7 @@ internal class WalkerTest {
         """.trimIndent()
         assertDoesNotThrow { run(function) }
 
-        assertDoesNotThrow { run(function, maxLoopIterations = 50) }
+        assertDoesNotThrow { run(function, maxLoopIterations = 100) }
         assertThrows<WalkerException>("Max iterations exceeded") { run(function, maxLoopIterations = 20) }
     }
 

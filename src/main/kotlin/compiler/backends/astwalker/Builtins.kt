@@ -21,66 +21,66 @@ class BuiltInPrintInteger : Function(
     BuiltInSignatures.print,
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
-        state.output.result.add(values[0].asPrimitive.integer.toString())
+        state.output.result.add(values[0].primitive.toString())
         return Value.nothing
     }
 }
 
-class BuiltInPrintString : Function(
-    BuiltInSignatures.printString,
-) {
-    override fun execute(values: List<Value>, state: WalkerState): Value {
+//class BuiltInPrintString : Function(
+//    BuiltInSignatures.printString,
+//) {
+//    override fun execute(values: List<Int>, state: WalkerState): Int {
+//
+//        val arrayView = values[0].asPrimitive.pointer
+//
+//        val chars = mutableListOf<Char>()
+//
+//        for (i in 0 until arrayView.arraySize()) {
+//            chars.add(arrayView.arrayRead(i).getPrimitiveValue().integer.toChar())
+//        }
+//
+//        state.output.result.add(chars.joinToString(""))
+//        return Value.nothing
+//    }
+//}
 
-        val arrayView = values[0].asPrimitive.pointer
+//class BuiltInArraySize : Function(
+//    BuiltInSignatures.arraySize,
+//) {
+//    override fun execute(values: List<Value>, state: WalkerState): Value {
+//        val arrayView = values[0].asPrimitive.pointer
+//        return Value.primitive(Primitives.Integer, arrayView.arraySize())
+//    }
+//}
 
-        val chars = mutableListOf<Char>()
+//class BuiltInArrayRead : Function(
+//    BuiltInSignatures.arrayRead
+//) {
+//    override fun execute(values: List<Value>, state: WalkerState): Value {
+//        val arrayView = values[0].asPrimitive.pointer
+//        val index = values[1].primitive
+//
+//        val arraySize = arrayView.arraySize()
+//        if (index !in 0 until arraySize) {
+//            throw WalkerException("trying to read at index $index which is outside array bounds($arraySize)")
+//        }
+//
+//        return arrayView.arrayRead(index).getValue()
+//    }
+//}
 
-        for (i in 0 until arrayView.arraySize()) {
-            chars.add(arrayView.arrayRead(i).getPrimitiveValue().integer.toChar())
-        }
-
-        state.output.result.add(chars.joinToString(""))
-        return Value.nothing
-    }
-}
-
-class BuiltInArraySize : Function(
-    BuiltInSignatures.arraySize,
-) {
-    override fun execute(values: List<Value>, state: WalkerState): Value {
-        val arrayView = values[0].asPrimitive.pointer
-        return Value.primitive(Primitives.Integer, arrayView.arraySize())
-    }
-}
-
-class BuiltInArrayRead : Function(
-    BuiltInSignatures.arrayRead
-) {
-    override fun execute(values: List<Value>, state: WalkerState): Value {
-        val arrayView = values[0].asPrimitive.pointer
-        val index = values[1].asPrimitive.integer
-
-        val arraySize = arrayView.arraySize()
-        if (index !in 0 until arraySize) {
-            throw WalkerException("trying to read at index $index which is outside array bounds($arraySize)")
-        }
-
-        return arrayView.arrayRead(index).getValue()
-    }
-}
-
-class BuiltInArrayWrite : Function(
-    BuiltInSignatures.arrayWrite
-) {
-    override fun execute(values: List<Value>, state: WalkerState): Value {
-
-        val arrayView = values[0].asPrimitive.pointer
-        val index = values[1].asPrimitive.integer
-
-        arrayView.arrayRead(index).applyValue(values[2])
-        return Value.nothing
-    }
-}
+//class BuiltInArrayWrite : Function(
+//    BuiltInSignatures.arrayWrite
+//) {
+//    override fun execute(values: List<Value>, state: WalkerState): Value {
+//
+//        val arrayView = values[0].asPrimitive.pointer
+//        val index = values[1].primitive
+//
+//        arrayView.arrayRead(index).applyValue(values[2])
+//        return Value.nothing
+//    }
+//}
 
 class IntegerComparator(
     functionName: String,
@@ -95,14 +95,14 @@ class IntegerComparator(
     ),
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
-        val value1 = values[0].asPrimitive.integer
-        val value2 = values[1].asPrimitive.integer
+        val value1 = values[0].primitive
+        val value2 = values[1].primitive
 
         val result = when (compareFunction.invoke(value1, value2)) {
             true -> 1
             false -> 0
         }
-        return Value.primitive(Primitives.Boolean, result)
+        return Value(Primitives.Boolean, result)
     }
 }
 
@@ -120,30 +120,32 @@ class IntegerArithmetic(
     ),
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
-        val value1 = values[0].asPrimitive.integer
-        val value2 = values[1].asPrimitive.integer
+        val value1 = values[0].primitive
+        val value2 = values[1].primitive
 
         val result = arithmeticFunction.invoke(value1, value2)
 
-        return Value.primitive(Primitives.Integer, result)
+        return Value(Primitives.Integer, primitive = result)
     }
 }
 
 
-class BuiltInCreateArray : Function(
-    BuiltInSignatures.createArray
-) {
-    override fun execute(values: List<Value>, state: WalkerState): Value {
-        val size = values[0].asPrimitive.integer
-        return createArray(Primitives.Integer, size)
-    }
-}
+//class BuiltInCreateArray : Function(
+//    BuiltInSignatures.createArray
+//) {
+//    override fun execute(values: List<Value>, state: WalkerState): Value {
+//        val size = values[0].primitive
+//        return createArray(Primitives.Integer, size)
+//    }
+//}
 
 class BoolConverter : Function(
     BuiltInSignatures.bool
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
-        return Value(Primitives.Boolean, values[0].primitives)
+         if (values[0].primitive == 0)
+             return Value(Primitives.Boolean, primitive = 0)
+        return Value(Primitives.Boolean, primitive = 1)
     }
 }
 
@@ -160,9 +162,9 @@ class Run : Function(
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
         val functionReference = values[0]
-        require(functionReference.datatype is FunctionDefinition)
+        require(functionReference.type is FunctionDefinition)
 
-        val index = functionReference.asPrimitive.integer
+        val index = functionReference.primitive
 
         val toCall = state.availableFunctions[index]
 
@@ -174,10 +176,10 @@ class Run : Function(
 
 val builtInList = listOf(
     BuiltInPrintInteger(),
-    BuiltInPrintString(),
-    BuiltInArraySize(),
-    BuiltInArrayRead(),
-    BuiltInArrayWrite(),
+//    BuiltInPrintString(),
+//    BuiltInArraySize(),
+//    BuiltInArrayRead(),
+//    BuiltInArrayWrite(),
 
     IntegerArithmetic(OperatorBuiltIns.Addition, FunctionType.Operator) { val1, val2 -> val1 + val2 },
     IntegerArithmetic(OperatorBuiltIns.Subtraction, FunctionType.Operator) { val1, val2 -> val1 - val2 },
@@ -190,7 +192,7 @@ val builtInList = listOf(
     IntegerComparator(OperatorBuiltIns.GreaterThan) { val1, val2 -> val1 > val2 },
     BoolConverter(),
 
-    BuiltInCreateArray(),
+//    BuiltInCreateArray(),
 
     Run(),
 )

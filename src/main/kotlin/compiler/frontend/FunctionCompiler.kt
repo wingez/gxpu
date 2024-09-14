@@ -1,7 +1,6 @@
 package compiler.frontend
 
 import ast.*
-import compiler.BuiltInSignatures
 
 const val RETURN_VALUE_NAME = "result"
 
@@ -9,135 +8,17 @@ val functionEntryLabel = Label("function_entry")
 
 class FrontendCompilerError(message: String) : Error(message)
 
-interface Instruction
 
-
-interface ValueExpression {
-    val type: Datatype
-}
-
-interface AddressExpression {
-    val type: Datatype
-}
-
-class ConstantExpression(
-    val value: Int,
-) : ValueExpression {
-    override val type: Datatype = Primitives.Integer
-}
-
-class VariableExpression(
-    val variable: Variable,
-) : ValueExpression, AddressExpression {
-    override val type = variable.datatype
-}
-
-
-class AddressMemberAccess(
-    val of: AddressExpression,
-    val memberName: String,
-) : AddressExpression {
-
-    init {
-        require(of.type is CompositeDatatype)
-    }
-
-    override val type: Datatype
-        get() = (of.type as CompositeDatatype).fieldType(memberName)
-}
-
-class AddressOf(
-    val value: AddressExpression
-) : ValueExpression {
-    override val type: Datatype
-        get() = value.type.pointerOf()
-}
-
-
-class DerefToAddress(
-    val value: ValueExpression
-) : AddressExpression {
-    override val type: Datatype
-        get() = (value.type as PointerDatatype).pointerType
-}
-
-class ValueMemberAccess(val of: ValueExpression, val memberName: String) : ValueExpression {
-    override val type: Datatype
-        get() = (of.type as CompositeDatatype).fieldType(memberName)
-}
-
-class DerefToValue(
-    val value: AddressExpression
-) : ValueExpression {
-    override val type: Datatype
-        get() = (value.type as PointerDatatype).pointerType
-}
-
-class CallExpression(
-    val function: FunctionDefinition,
-    val parameters: List<ValueExpression>
-) : ValueExpression {
-    override val type: Datatype = function.returnType
-}
-
-class StringExpression(
-    val string: String
-) : ValueExpression {
-    override val type: Datatype = Primitives.Str
-}
-
-data class FunctionReference(
-    val function: FunctionDefinition,
-) : ValueExpression {
-    override val type: Datatype
-        get() = function
-}
-
-class Execute(
-    val expression: ValueExpression
-) : Instruction
-
-class Assign(
-    val target: AddressExpression,
-    val value: ValueExpression,
-) : Instruction
-
-class Jump(
-    val label: Label
-) : Instruction
-
-class JumpOnTrue(
-    val condition: ValueExpression,
-    val label: Label,
-) : Instruction
-
-
-class JumpOnFalse(
-    val condition: ValueExpression,
-    val label: Label,
-) : Instruction
-
-class Return : Instruction
-
-data class Label(
-    val identifier: String
-)
-
-data class IntermediateCode(
+data class FunctionContent(
+    val definition: FunctionDefinition,
     val instructions: List<Instruction>,
-    val labels: Map<Label, Int>
+    val labels: Map<Label, Int>,
 ) {
     val hasContent
         get() =
             // Check if instructions are empty or only contains a return statement
             instructions.any { it !is Return }// every function  has an implicit return. Ignore that
 }
-
-data class FunctionContent(
-    val definition: FunctionDefinition,
-    val code: IntermediateCode,
-)
-
 
 private class CodeBlock(
     val label: Label,
@@ -181,6 +62,7 @@ class FunctionCompiler(
 
 
     var controlStatementCounter = 0
+    var tempBlockCounter = 0
 
     fun compileFunction(): List<FunctionContent> {
         require(body.type == NodeTypes.Body)
@@ -204,13 +86,10 @@ class FunctionCompiler(
 
         // Step 4
         // Flatten the nested code blocks and place labels
-        val codeContent = flattenCodeBlock(functionCodeBlock)
+        val codeContent = flattenCodeBlock(definition, functionCodeBlock)
 
         // Return
-        return lambdas + FunctionContent(
-            definition = definition,
-            code = codeContent,
-        )
+        return lambdas + codeContent
     }
 
     private fun extractLambdas(): List<FunctionContent> {
@@ -292,8 +171,7 @@ class FunctionCompiler(
             NodeTypes.Return -> parseReturn(node, codeBlock)
 
             else -> {
-                val valueExpression = parseValueExpression(node)
-                codeBlock.addInstruction(Execute(valueExpression))
+                parseValueExpression(node, codeBlock, null)
             }
         }
     }
@@ -312,96 +190,118 @@ class FunctionCompiler(
     }
 
     private fun addReturn(codeBlock: CodeBlock) {
-        codeBlock.addInstruction(Return())
+        codeBlock.addInstruction(ReturnNothing())
     }
 
-    private fun parseAddressExpression(
-        node: AstNode,
-    ): AddressExpression {
-        return when (node.type) {
-            NodeTypes.Identifier -> VariableExpression(lookupVariable(node.asIdentifier()))
-
-            NodeTypes.Deref -> {
-                DerefToAddress(parseValueExpression(node.child))
-            }
-
-            NodeTypes.MemberAccess -> {
-                val structAddress = parseAddressExpression(node.child)
-                val name = node.data as String
-                val type = structAddress.type
-                if (!(type is CompositeDatatype && type.containsField(name))) {
-                    throw FrontendCompilerError("Type ${structAddress.type} contains no field \"$name\"")
-                }
-
-                AddressMemberAccess(structAddress, name)
-            }
-
-            else -> throw FrontendCompilerError("Cannot get address of  ${node.type}")
-        }
-    }
+//    private fun parseAddressExpression(
+//        node: AstNode,
+//    ): AddressExpression {
+//        return when (node.type) {
+//            NodeTypes.Identifier -> VariableExpression(lookupVariable(node.asIdentifier()))
+//
+//            NodeTypes.Deref -> {
+//                DerefToAddress(parseValueExpression(node.child))
+//            }
+//
+//            NodeTypes.MemberAccess -> {
+//                val structAddress = parseAddressExpression(node.child)
+//                val name = node.data as String
+//                val type = structAddress.type
+//                if (!(type is CompositeDatatype && type.containsField(name))) {
+//                    throw FrontendCompilerError("Type ${structAddress.type} contains no field \"$name\"")
+//                }
+//
+//                AddressMemberAccess(structAddress, name)
+//            }
+//
+//            else -> throw FrontendCompilerError("Cannot get address of  ${node.type}")
+//        }
+//    }
 
     private fun parseValueExpression(
         node: AstNode,
-    ): ValueExpression {
+        currentCodeBlock: CodeBlock,
+        placeCallResultIn: String?
+    ): ValueExpr {
         return when (node.type) {
             NodeTypes.Call -> {
-                flattenCall(node)
+                handleCall(node, currentCodeBlock, placeCallResultIn)
             }
 
-            NodeTypes.Constant -> ConstantExpression(node.asConstant())
-            NodeTypes.Identifier -> VariableExpression(lookupVariable(node.asIdentifier()))
-            NodeTypes.String -> StringExpression(node.asString())
-            NodeTypes.MemberAccess -> parseMemberAccess(node)
-            NodeTypes.ArrayAccess -> {
-                val member = parseValueExpression(node.asArrayAccess().parent)
-                val index = parseValueExpression(node.asArrayAccess().index)
+            NodeTypes.Constant -> IntConstant(node.asConstant())
+            NodeTypes.Identifier -> parseIdentifier(node.asIdentifier())
+            //NodeTypes.String -> StringExpression(node.asString())
+            //NodeTypes.MemberAccess -> parseMemberAccess(node)
+//            NodeTypes.ArrayAccess -> {
+//                val member = parseValueExpression(node.asArrayAccess().parent)
+//                val index = parseValueExpression(node.asArrayAccess().index)
+//
+//                //TODO: generic-ify
+//                val definition = BuiltInSignatures.arrayRead
+//                CallExpression(definition, listOf(member, index))
+//            }
 
-                //TODO: generic-ify
-                val definition = BuiltInSignatures.arrayRead
-                CallExpression(definition, listOf(member, index))
-            }
+//            NodeTypes.AddressOf -> {
+//                val pointerTo = parseAddressExpression(node.child)
+//                AddressOf(pointerTo)
+//            }
 
-            NodeTypes.AddressOf -> {
-                val pointerTo = parseAddressExpression(node.child)
-                AddressOf(pointerTo)
-            }
+//            NodeTypes.Deref -> {
+//                val pointer = parseAddressExpression(node.child)
+//                if (pointer.type !is PointerDatatype) {
+//                    throw FrontendCompilerError("Must be a pointer")
+//                }
+//                DerefToValue(pointer)
+//            }
 
-            NodeTypes.Deref -> {
-                val pointer = parseAddressExpression(node.child)
-                if (pointer.type !is PointerDatatype) {
-                    throw FrontendCompilerError("Must be a pointer")
-                }
-                DerefToValue(pointer)
-            }
-
-            NodeTypes.FunctionReference -> {
-                // TODO: this only applies to lambdas, make work for anything
-                val function = lambdas.find { it.definition.functionName == node.asIdentifier() }
-                require(function != null)
-                FunctionReference(function.definition)
-            }
+//            NodeTypes.FunctionReference -> {
+//                // TODO: this only applies to lambdas, make work for anything
+//                val function = lambdas.find { it.definition.functionName == node.asIdentifier() }
+//                require(function != null)
+//                FunctionReference(function.definition)
+//            }
 
             else -> throw AssertionError("Cannot parse node ${node.type} yet")
         }
     }
 
-    private fun parseMemberAccess(node: AstNode): ValueExpression {
-        val value = parseValueExpression(node.childNodes.first())
-        val memberName = node.asIdentifier()
-
-        val type = value.type
-
-        if (!(type is CompositeDatatype && type.containsField(memberName))) {
-            throw FrontendCompilerError("Type ${value.type} has no field $memberName")
-        }
-
-        return ValueMemberAccess(value, memberName)
-    }
+//    private fun parseMemberAccess(node: AstNode): ValueExpression {
+//        val value = parseValueExpression(node.childNodes.first())
+//        val memberName = node.asIdentifier()
+//
+//        val type = value.type
+//
+//        if (!(type is CompositeDatatype && type.containsField(memberName))) {
+//            throw FrontendCompilerError("Type ${value.type} has no field $memberName")
+//        }
+//
+//        return ValueMemberAccess(value, memberName)
+//    }
 
     private fun findTypeOfExpression(
         node: AstNode,
-    ): Datatype {
-        return parseValueExpression(node).type
+
+        ): Datatype {
+        return when (node.type) {
+            NodeTypes.Constant -> Primitives.Integer
+            NodeTypes.Identifier -> parseIdentifier(node.asIdentifier()).type
+
+            NodeTypes.Call -> {
+                val callInfo = node.asCall()
+                val parameterTypes = callInfo.parameters.map { findTypeOfExpression(it) }
+
+                val function =
+                    symbolTable.getFunctionDefinitionMatching(
+                        callInfo.targetName,
+                        callInfo.functionType,
+                        parameterTypes
+                    )
+
+                return function.returnType
+            }
+
+            else -> TODO(node.type.toString())
+        }
     }
 
     private fun parseIf(
@@ -409,10 +309,9 @@ class FunctionCompiler(
         currentCodeBlock: CodeBlock,
         loopContext: LoopContext?
     ) {
-
         val ifNode = node.asIf()
 
-        val condition = parseValueExpression(ifNode.condition)
+        val condition = parseValueExpression(ifNode.condition, currentCodeBlock, null)
         if (condition.type != Primitives.Boolean) {
             throw FrontendCompilerError("type of condition must be bool")
         }
@@ -444,7 +343,7 @@ class FunctionCompiler(
 
             currentCodeBlock.addInstruction(
                 JumpOnFalse(
-                    parseValueExpression(ifNode.condition),
+                    parseValueExpression(ifNode.condition, currentCodeBlock, null),
                     elseLabel
                 )
             )
@@ -467,10 +366,6 @@ class FunctionCompiler(
 
         val whileNode = node.asWhile()
 
-        val condition = parseValueExpression(whileNode.condition)
-        if (condition.type != Primitives.Boolean) {
-            throw FrontendCompilerError("type of condition must be bool, not ${condition.type}")
-        }
 
         val id = controlStatementCounter++
 
@@ -479,6 +374,12 @@ class FunctionCompiler(
         val loopContext = LoopContext(endLabel)
 
         val bodyCodeBlock = currentCodeBlock.newCodeBlock(whileBodyLabel)
+
+
+        val condition = parseValueExpression(whileNode.condition, bodyCodeBlock, null)
+        if (condition.type != Primitives.Boolean) {
+            throw FrontendCompilerError("type of condition must be bool, not ${condition.type}")
+        }
 
 
         bodyCodeBlock.addInstruction(
@@ -500,54 +401,89 @@ class FunctionCompiler(
     ) {
         val assign = node.asAssign()
 
-        val value = parseValueExpression(assign.value)
+
+        assert(assign.target.type == NodeTypes.Identifier)
+
+        val targetVariableName = assign.target.asIdentifier()
+        val targetVariable = symbolTable.findScopedVariable(targetVariableName, definition, imports)!!
 
 
-        if (assign.target.type == NodeTypes.ArrayAccess) {
-            // Special case for writing to array
-            // TODO: generic-ify this
-
-            val arrayAccess = assign.target.asArrayAccess()
-
-            val array = parseValueExpression(arrayAccess.parent)
-            if (array.type != Primitives.Integer.arrayPointerOf())
-                TODO(array.type.toString())
-
-            val index = parseValueExpression(arrayAccess.index)
-
-
-            currentCodeBlock.addInstruction(
-                Execute(
-                    CallExpression(
-                        BuiltInSignatures.arrayWrite, listOf(array, index, value)
-                    )
-                )
-            )
-            return
+        val placeCallResultIn = when (targetVariable.variableType) {
+            VariableType.Local -> targetVariableName
+            VariableType.Global -> nextTempValue()
         }
 
-        val target = parseAddressExpression(assign.target)
+
+        val valueIsIn = parseValueExpression(assign.value, currentCodeBlock, placeCallResultIn)
+
+        currentCodeBlock.addInstruction(TempValue(placeCallResultIn, valueIsIn))
 
 
-        currentCodeBlock.addInstruction(Assign(target, value))
+        assert(targetVariable.datatype == valueIsIn.type)
+
+        if (targetVariable.variableType == VariableType.Global) {
+            TODO("STORE")
+        }
+//        if (targetVariable.variableType == VariableType.Local) {
+//            currentCodeBlock.addInstruction(TempValue(placeCallResultIn, valueIsIn))
+//        }
+
+
+//
+//        if (assign.target.type == NodeTypes.ArrayAccess) {
+//            // Special case for writing to array
+//            // TODO: generic-ify this
+//
+//            val arrayAccess = assign.target.asArrayAccess()
+//
+//            val array = parseValueExpression(arrayAccess.parent)
+//            if (array.type != Primitives.Integer.arrayPointerOf())
+//                TODO(array.type.toString())
+//
+//            val index = parseValueExpression(arrayAccess.index)
+//
+//
+//            currentCodeBlock.addInstruction(
+//                Execute(
+//                    CallExpression(
+//                        BuiltInSignatures.arrayWrite, listOf(array, index, value)
+//                    )
+//                )
+//            )
+//            return
+//        }
+//
+//        val target = parseAddressExpression(assign.target)
+//
+//
+//        currentCodeBlock.addInstruction(Assign(target, value))
     }
 
-    private fun flattenCall(
+    private fun nextTempValue(): String {
+        return (tempBlockCounter++).toString()
+    }
+
+    private fun handleCall(
         callNode: AstNode,
-    ): ValueExpression {
+        currentCodeBlock: CodeBlock,
+        placeCallResultIn: String?,
+    ): ValueExpr {
         assert(callNode.type == NodeTypes.Call)
 
         val callInfo = callNode.asCall()
 
-        val parameters = callNode.childNodes.map { parseValueExpression(it) }
+        val parameters = callNode.childNodes.map { parseValueExpression(it, currentCodeBlock, null) }
 
         val parameterTypes = parameters.map { it.type }
 
         val function =
             symbolTable.getFunctionDefinitionMatching(callInfo.targetName, callInfo.functionType, parameterTypes)
 
+        val tempValName = placeCallResultIn ?: nextTempValue()
 
-        return CallExpression(function, parameters)
+        currentCodeBlock.addInstruction(TempValue(tempValName, Call(function, parameters)))
+
+        return LocalValueRef(tempValName, function.returnType)
     }
 
 
@@ -598,14 +534,26 @@ class FunctionCompiler(
     }
 
 
-    private fun lookupVariable(name: String): Variable {
-        return symbolTable.findScopedVariable(name, definition, imports)
+    private fun parseIdentifier(name: String): ValueExpr {
+
+
+        val variable = symbolTable.findScopedVariable(name, definition, imports)
             ?: throw FrontendCompilerError("variable $name not found")
+
+        return when (variable.variableType) {
+            VariableType.Local -> {
+                LocalValueRef(variable.name, variable.datatype)
+            }
+
+            else -> TODO(variable.variableType.toString())
+        }
+
+
     }
 }
 
 
-private fun flattenCodeBlock(codeBlock: CodeBlock): IntermediateCode {
+private fun flattenCodeBlock(definition: FunctionDefinition, codeBlock: CodeBlock): FunctionContent {
 
     val labels = mutableMapOf<Label, Int>()
     val instructions = mutableListOf<Instruction>()
@@ -628,7 +576,7 @@ private fun flattenCodeBlock(codeBlock: CodeBlock): IntermediateCode {
 
     placeCodeBlockRecursive(codeBlock)
 
-    return IntermediateCode(instructions, labels)
+    return FunctionContent(definition, instructions, labels)
 
 }
 

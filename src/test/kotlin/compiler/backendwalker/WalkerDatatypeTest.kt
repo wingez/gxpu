@@ -1,10 +1,8 @@
 package compiler.backendwalker
 
 import ast.expression.OperatorBuiltIns
-import compiler.BuiltInSignatures
 import compiler.backends.astwalker.*
 import compiler.builtInSymbolTable
-import compiler.compileAndRunProgram
 import compiler.features.intMatcher
 import compiler.frontend.*
 import org.junit.jupiter.api.Test
@@ -99,66 +97,4 @@ internal class WalkerDatatypeTest {
     """
         intMatcher(11, 1).assertOutputMatch(run(program))
     }
-}
-
-class NewTest {
-
-    @Test
-    fun test() {
-        val myDatatype = CompositeDatatype(
-            "test", listOf(
-                CompositeDataTypeField("field1", Primitives.Integer),
-                CompositeDataTypeField("field2", Primitives.Integer),
-                CompositeDataTypeField("field3", Primitives.Integer),
-            )
-        )
-        val holder = ValueHolder(myDatatype)
-
-        assertNotEquals(holder, ValueHolder(myDatatype))
-
-
-        val entireView = holder.viewEntire()
-
-        assertEquals(
-            ValueHolder.View(
-                holder, myDatatype, 0 until 3
-            ), entireView
-        )
-
-        val viewField1 = entireView.viewField("field1")
-        val viewField2 = entireView.viewField("field2")
-        val viewField3 = entireView.viewField("field3")
-        assertEquals(
-            ValueHolder.View(
-                holder, Primitives.Integer, 0 until 1
-            ), viewField1
-        )
-        assertEquals(
-            ValueHolder.View(
-                holder, Primitives.Integer, 2 until 3
-            ), viewField3
-        )
-
-        assertEquals(PrimitiveValue.integer(0), viewField1.getPrimitiveValue())
-        assertEquals(PrimitiveValue.integer(0), viewField3.getPrimitiveValue())
-
-        // Set field3 to 5
-        viewField3.setPrimitiveValue(PrimitiveValue.integer(5))
-        assertEquals(PrimitiveValue.integer(0), viewField1.getPrimitiveValue())
-        assertEquals(PrimitiveValue.integer(5), viewField3.getPrimitiveValue())
-
-        //Set field3 to 2 and field2 to 8
-        val fields = entireView.getValue().primitives.toMutableList().apply {
-            this[2] = PrimitiveValue.integer(2)
-            this[1] = PrimitiveValue.integer(8)
-        }
-
-        entireView.applyValue(Value(entireView.datatype, fields))
-        assertEquals(PrimitiveValue.integer(0), viewField1.getPrimitiveValue())
-        assertEquals(PrimitiveValue.integer(8), viewField2.getPrimitiveValue())
-        assertEquals(PrimitiveValue.integer(2), viewField3.getPrimitiveValue())
-
-
-    }
-
 }

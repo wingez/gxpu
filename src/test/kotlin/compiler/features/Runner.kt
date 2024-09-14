@@ -5,8 +5,6 @@ import compiler.BackendCompiler
 import compiler.BuiltInSignatures
 import compiler.backends.astwalker.WalkConfig
 import compiler.backends.astwalker.WalkerRunner
-import compiler.backends.emulator.BuiltInFunctions
-import compiler.backends.emulator.EmulatorRunner
 import compiler.builtInSymbolTable
 import compiler.compileAndRunBody
 import compiler.frontend.FileProvider
@@ -23,7 +21,7 @@ import kotlin.test.assertEquals
 
 
 enum class CompilerBackend {
-    Emulator,
+    //Emulator,
     Walker,
 }
 
@@ -38,7 +36,6 @@ private class Source(val program: String) : SourceProvider {
 
 private fun getRunner(type: CompilerBackend): BackendCompiler {
     return when (type) {
-        CompilerBackend.Emulator -> EmulatorRunner(BuiltInFunctions())
         CompilerBackend.Walker -> WalkerRunner(WalkConfig(1000))
     }
 }
@@ -140,6 +137,10 @@ private fun discoverTests(): List<FeatureTestcase> {
         for (testCasePath in testSubjectFolder.listDirectoryEntries()) {
             assert(testCasePath.isRegularFile())
             val testCase = testCasePath.name
+
+//            if (testCase!="testNested2"){
+//                continue
+//            }
 
             result.addAll(CompilerBackend.values().map {
                 FeatureTestcase(subjectName, testCase, testCasePath, it)

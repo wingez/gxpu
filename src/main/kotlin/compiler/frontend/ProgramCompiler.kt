@@ -4,6 +4,7 @@ import ast.AstNode
 import ast.AstParser
 import ast.NodeTypes
 import compiler.BuiltInSourceFile
+import compiler.Filename
 import tokens.Token
 import tokens.TokenType
 import tokens.parseFile
@@ -18,9 +19,6 @@ interface FileProvider {
 private const val builtins = "Builtins"
 
 data class CompiledIntermediateProgram(
-    val symbolTable: SymbolTable,
-
-    //FIXME remove these
     val functions: List<FunctionContent>,
     val mainFunction: FunctionContent,
 )
@@ -110,34 +108,34 @@ class ProgramCompiler(
         val entryCodeContent = mutableListOf<Instruction>()
 
         for (global in globalsInitFunctions) {
-            if (global.code.hasContent) {
-                entryCodeContent.add(Execute(CallExpression(global.definition, emptyList())))
+            if (global.hasContent) {
+                //entryCodeContent.add(Execute(CallExpression(global.definition, emptyList())))
             }
         }
 
         val entryFunction: FunctionContent
 
         if (entryCodeContent.isNotEmpty()) {
-            entryCodeContent.add(Execute(CallExpression(mainFunction.definition, emptyList())))
-            entryCodeContent.add(Return())
-
+//            entryCodeContent.add(Execute(CallExpression(mainFunction.definition, emptyList())))
+//            entryCodeContent.add(Return())
+//
             entryFunction = FunctionContent(
                 DefinitionBuilder("entry")
                     .setSourceFile(BuiltInSourceFile)
                     .getDefinition(),
-                IntermediateCode(entryCodeContent, mapOf(functionEntryLabel to 0))
+                emptyList(), emptyMap()
             )
             compiledFunctions.add(entryFunction)
         } else {
             entryFunction = mainFunction
         }
 
-        return CompiledIntermediateProgram(symbolTable, compiledFunctions, entryFunction)
+        return CompiledIntermediateProgram(compiledFunctions, entryFunction)
     }
 }
 
 
-fun compileProgram(filename: String, symbolTable: MutableSymbolTable): CompiledIntermediateProgram {
+fun compileProgram(filename: Filename, symbolTable: MutableSymbolTable): CompiledIntermediateProgram {
 
     val fileProvider = object : FileProvider {
         override fun getReader(f: String): Reader {
@@ -167,6 +165,6 @@ fun compileProgramFromSingleBody(body: String, symbolTable: MutableSymbolTable):
         emptyList(),
     )
     return CompiledIntermediateProgram(
-        symbolTable, functionContents, functionContents.find { it.definition == definition }!!,
+        functionContents, functionContents.find { it.definition == definition }!!,
     )
 }

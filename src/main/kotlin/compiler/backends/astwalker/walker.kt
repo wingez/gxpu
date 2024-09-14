@@ -1,6 +1,5 @@
 package compiler.backends.astwalker
 
-import ast.FunctionType
 import compiler.BackendCompiler
 import compiler.frontend.*
 
@@ -17,14 +16,80 @@ data class WalkConfig(
     }
 }
 
+
 class WalkerOutput {
 
     val result = mutableListOf<String>()
 }
 
-class WalkFrame(
-    val localVariableHolder: ValueHolder,
-)
+class Value(val type: Datatype, val primitive: Int = 0, val array: IntArray? = null) {
+    companion object {
+        val nothing = Value(Primitives.Nothing)
+    }
+}
+
+
+private fun sizeOf(datatype: Datatype): Int {
+    return when (datatype) {
+        is PrimitiveDataType -> 1
+        else -> TODO(datatype.toString())
+    }
+}
+
+private fun createTemplate(functionContent: FunctionContent): Template {
+
+
+    var totalSize = 0
+    val variableMap = mutableMapOf<String, Pair<Datatype, Int>>()
+
+    for ((paramName, paramType) in functionContent.definition.parameters) {
+        variableMap[paramName] = paramType to totalSize
+        totalSize += sizeOf(paramType)
+    }
+
+    for (instr in functionContent.instructions) {
+        if (instr !is TempValue) {
+            continue
+        }
+
+        variableMap[instr.name] = instr.type to totalSize
+        totalSize += sizeOf(instr.type)
+
+    }
+
+    return Template(totalSize, variableMap)
+}
+
+private class Template(val totalSize: Int, val variableMap: Map<String, Pair<Datatype, Int>>)
+
+private class WalkFrame(private val template: Template) {
+
+    private val data = IntArray(template.totalSize)
+
+    fun setVariable(name: String, value: Value) {
+        val (type, offset) = template.variableMap.getValue(name)
+
+        assert(type == value.type)
+
+        if (type is PrimitiveDataType) {
+            data[offset] = value.primitive
+        } else {
+            value.array!!.copyInto(data, offset)
+        }
+
+    }
+
+    fun getVariable(name: String): Value {
+        val (type, offset) = template.variableMap.getValue(name)
+
+        if (type is PrimitiveDataType) {
+            return Value(type, primitive = data[offset])
+        }
+
+        val size = sizeOf(type)
+        return Value(type, array = data.copyOfRange(offset, offset + size))
+    }
+}
 
 enum class ControlFlow {
     Normal,
@@ -46,18 +111,15 @@ class WalkerState(
     val intermediateProgram: CompiledIntermediateProgram,
     private val config: WalkConfig,
 ) {
-
-    val symbolTable = intermediateProgram.symbolTable
-
     val output = WalkerOutput()
-    val frameStack = mutableListOf<WalkFrame>()
+    private val frameStack = mutableListOf<WalkFrame>()
 
-    val currentFrame
+    private val currentFrame
         get() = frameStack.last()
 
     val availableFunctions = mutableListOf<IWalkerFunction>()
 
-    lateinit var globalVariables: ValueHolder
+    //lateinit var globalVariables: ValueHolder
 
     fun getFunctionFromSignature(functionDefinition: FunctionDefinition): IWalkerFunction {
         return availableFunctions.find { it.definition == functionDefinition }
@@ -83,11 +145,11 @@ class WalkerState(
         }
 
         // setup global variables
-        val globals = symbolTable.getAllGlobalVariables()
+//        val globals = symbolTable.getAllGlobalVariables()
 
-        val allGlobalsFields = CompositeDatatype("fields", globals.map { CompositeDataTypeField(it.name, it.datatype) })
-
-        globalVariables = ValueHolder(allGlobalsFields)
+//        val allGlobalsFields = CompositeDatatype("fields", globals.map { CompositeDataTypeField(it.name, it.datatype) })
+//
+//        globalVariables = ValueHolder(allGlobalsFields)
 
 
         //Call main
@@ -104,45 +166,44 @@ class WalkerState(
         return function.execute(parameters, this)
     }
 
-    fun setVariable(variableType: VariableType, name: String, value: Value) {
-        getVariableView(variableType, name).applyValue(value)
-    }
+//    fun setVariable(variableType: VariableType, name: String, value: Value) {
+//        getVariableView(variableType, name).applyValue(value)
+//    }
 
 
-    fun getVariableView(variableType: VariableType, name: String): ValueHolder.View {
-        return when (variableType) {
-            VariableType.Local -> {
-                currentFrame.localVariableHolder.viewEntire().viewField(name)
+//    fun getVariableView(variableType: VariableType, name: String): ValueHolder.View {
+//        return when (variableType) {
+//            VariableType.Local -> {
+//                currentFrame.localVariableHolder.viewEntire().viewField(name)
+//
+//            }
+//
+//            VariableType.Global -> {
+//                globalVariables.viewEntire().viewField(name)
+//            }
+//
+//            else -> TODO()
+//        }
+//    }
 
-            }
-
-            VariableType.Global -> {
-                globalVariables.viewEntire().viewField(name)
-            }
-
-            else -> TODO()
-        }
-    }
-
-    fun getVariable(variableType: VariableType, name: String): Value {
-        return getVariableView(variableType, name).getValue()
-    }
+//    fun getVariable(variableType: VariableType, name: String): Value {
+//        return getVariableView(variableType, name).getValue()
+//    }
 
     fun walkUserFunction(userFunction: UserFunction, parameters: List<Value>): Value {
 
-        val localVariables = symbolTable.getVariablesForFunction(userFunction.definition)
+//        val localVariables = symbolTable.getVariablesForFunction(userFunction.definition)
 
-        val fields = CompositeDatatype("fields", localVariables.map { CompositeDataTypeField(it.name, it.datatype) })
+//        val fields = CompositeDatatype("fields", localVariables.map { CompositeDataTypeField(it.name, it.datatype) })
 
 
         // Push new frame
-        frameStack.add(WalkFrame(ValueHolder(fields)))
+        frameStack.add(WalkFrame(createTemplate(userFunction.functionContent)))
 
         // Add arguments as local variables
         userFunction.functionContent.definition.parameterNames.zip(parameters)
             .forEach { (paramName, value) ->
-                assert(fields.fieldType(paramName) == value.datatype)
-                setVariable(VariableType.Local, fields.getField(paramName).name, value)
+                currentFrame.setVariable(paramName, value)
             }
 
         // Walk the function
@@ -178,7 +239,7 @@ class WalkerState(
         val result = if (userFunction.definition.returnType == Primitives.Nothing) {
             Value.nothing
         } else {
-            getVariable(VariableType.Local, fields.getField(RETURN_VALUE_NAME).name)
+            currentFrame.getVariable(RETURN_VALUE_NAME)
         }
 
         // Pop frame
@@ -197,6 +258,11 @@ class WalkerState(
                 return ControlFlow.Jump to instruction.label
             }
 
+            is TempValue -> {
+                val value = getValueOf(instruction.value)
+                currentFrame.setVariable(instruction.name, value)
+            }
+
             is JumpOnTrue -> {
                 return jumpHelper(instruction.condition, jumpOn = true, instruction.label)
             }
@@ -204,16 +270,16 @@ class WalkerState(
             is JumpOnFalse -> {
                 return jumpHelper(instruction.condition, jumpOn = false, instruction.label)
             }
+//
+//            is Execute -> {
+//                getValueOf(instruction.expression)
+//            }
+//
+//            is Assign -> {
+//                handleAssign(instruction)
+//            }
 
-            is Execute -> {
-                getValueOf(instruction.expression)
-            }
-
-            is Assign -> {
-                handleAssign(instruction)
-            }
-
-            is Return -> {
+            is ReturnNothing -> {
                 return ControlFlow.Return to null
             }
 
@@ -223,111 +289,124 @@ class WalkerState(
         return ControlFlow.Normal to null
     }
 
-    private fun jumpHelper(condition: ValueExpression, jumpOn: Boolean, label: Label): Pair<ControlFlow, Label?> {
+    private fun jumpHelper(
+        condition: compiler.frontend.ValueExpr,
+        jumpOn: Boolean,
+        label: Label
+    ): Pair<ControlFlow, Label?> {
         require(condition.type == Primitives.Boolean)
         val value = getValueOf(condition)
-        assert(value.datatype == Primitives.Boolean)
+        assert(value.type == Primitives.Boolean)
 
         val compareValue = if (jumpOn) 1 else 0
-        if (value.asPrimitive == PrimitiveValue.integer(compareValue)) {
+        if (value.primitive == compareValue) {
             return ControlFlow.Jump to label
         } else {
             return ControlFlow.Normal to null
         }
     }
+//
+//    private fun handleAssign(instr: Assign) {
+//
+//        val valueToAssign = getValueOf(instr.value)
+//        val holderToAssignTo = getValueView(instr.target)
+//
+//        if (valueToAssign.datatype != holderToAssignTo.datatype) {
+//            throw WalkerException("Type mismatch. Expected ${holderToAssignTo.datatype}, got ${valueToAssign.datatype}")
+//        }
+//
+//        holderToAssignTo.applyValue(valueToAssign)
+//    }
 
-    private fun handleAssign(instr: Assign) {
 
-        val valueToAssign = getValueOf(instr.value)
-        val holderToAssignTo = getValueView(instr.target)
+    //    fun handleCall(callExpression: CallExpression): Value {
+//
+//        val arguments = callExpression.parameters
+//            .map { getValueOf(it) }
+//
+//        val function = getFunctionFromSignature(callExpression.function)
+//
+//        return call(function, arguments)
+//    }
+//
+//    fun getValueView(addressExpression: AddressExpression): ValueHolder.View {
+//
+//        return when (addressExpression) {
+//            is VariableExpression -> {
+//                return getVariableView(addressExpression.variable.variableType, addressExpression.variable.name)
+//            }
+//
+//            is DerefToAddress -> {
+//                getValueOf(addressExpression.value).asPrimitive.pointer
+//            }
+//
+//            is AddressMemberAccess -> {
+//                val existing = getValueView(addressExpression.of)
+//                return existing.viewField(addressExpression.memberName)
+//            }
+//
+//            else -> TODO(addressExpression.toString())
+//        }
+//    }
+//
 
-        if (valueToAssign.datatype != holderToAssignTo.datatype) {
-            throw WalkerException("Type mismatch. Expected ${holderToAssignTo.datatype}, got ${valueToAssign.datatype}")
-        }
+    private fun getValueOf(value: ValueExpr): Value {
 
-        holderToAssignTo.applyValue(valueToAssign)
-    }
+        return when (value) {
+            is IntConstant -> Value(Primitives.Integer, primitive = value.value)
+            is LocalValueRef -> currentFrame.getVariable(value.name)
+            is Call -> {
+                val arguments = value.params.map { getValueOf(it) }
 
+                val function = getFunctionFromSignature(value.func)
 
-    fun handleCall(callExpression: CallExpression): Value {
-
-        val arguments = callExpression.parameters
-            .map { getValueOf(it) }
-
-        val function = getFunctionFromSignature(callExpression.function)
-
-        return call(function, arguments)
-    }
-
-    fun getValueView(addressExpression: AddressExpression): ValueHolder.View {
-
-        return when (addressExpression) {
-            is VariableExpression -> {
-                return getVariableView(addressExpression.variable.variableType, addressExpression.variable.name)
+                return call(function, arguments)
             }
+//            is CallExpression -> handleCall(valueExpression)
+//            is VariableExpression -> getVariable(valueExpression.variable.variableType, valueExpression.variable.name)
+//            is StringExpression -> createFromString(valueExpression.string)
+//
+//            is AddressOf -> {
+//                val compositeHolder = getValueView(valueExpression.value)
+//                Value.pointer(compositeHolder)
+//            }
+//
+//            is DerefToValue -> {
+//                getValueView(valueExpression.value).getPrimitiveValue().pointer.getValue()
+//            }
+//
+//            is ValueMemberAccess -> {
+//                val existing = getValueOf(valueExpression.of)
+//                existing.getField(valueExpression.memberName)
+//            }
+//
+//            is FunctionReference -> {
+//                val index =
+//                    availableFunctions.withIndex().find { it.value.definition == valueExpression.function }?.index
+//                require(index != null)
+//                Value.primitive(valueExpression.type, index)
+//            }
 
-            is DerefToAddress -> {
-                getValueOf(addressExpression.value).asPrimitive.pointer
-            }
-
-            is AddressMemberAccess -> {
-                val existing = getValueView(addressExpression.of)
-                return existing.viewField(addressExpression.memberName)
-            }
-
-            else -> TODO(addressExpression.toString())
-        }
-    }
-
-    fun getValueOf(valueExpression: ValueExpression): Value {
-
-        return when (valueExpression) {
-            is ConstantExpression -> Value.primitive(Primitives.Integer, valueExpression.value)
-            is CallExpression -> handleCall(valueExpression)
-            is VariableExpression -> getVariable(valueExpression.variable.variableType, valueExpression.variable.name)
-            is StringExpression -> createFromString(valueExpression.string)
-
-            is AddressOf -> {
-                val compositeHolder = getValueView(valueExpression.value)
-                Value.pointer(compositeHolder)
-            }
-
-            is DerefToValue -> {
-                getValueView(valueExpression.value).getPrimitiveValue().pointer.getValue()
-            }
-
-            is ValueMemberAccess -> {
-                val existing = getValueOf(valueExpression.of)
-                existing.getField(valueExpression.memberName)
-            }
-
-            is FunctionReference -> {
-                val index =
-                    availableFunctions.withIndex().find { it.value.definition == valueExpression.function }?.index
-                require(index != null)
-                Value.primitive(valueExpression.type, index)
-            }
-
-            else -> TODO(valueExpression.toString())
+            else -> TODO(value.toString())
         }
     }
 }
 
-fun createArray(type: Datatype, size: Int): Value = createArray(type, size) { 0 }
-fun createArray(type: Datatype, size: Int, init: (Int) -> Int): Value {
+//fun createArray(type: Datatype, size: Int): ValueExpr = createArray(type, size) { 0 }
+//fun createArray(type: Datatype, size: Int, init: (Int) -> Int): ValueExpr {
+//
+//    val arrayType = type.arrayOf()
+//
+//    val holder = ValueHolder(arrayType, size)
+//
+//    for (i in 0 until size) {
+//        holder.primitives[i] = PrimitiveValue.integer(init.invoke(i))
+//    }
+//
+//    return ValueExpr.pointer(holder.viewEntire())
+//}
 
-    val arrayType = type.arrayOf()
-
-    val holder = ValueHolder(arrayType, size)
-
-    for (i in 0 until size) {
-        holder.primitives[i] = PrimitiveValue.integer(init.invoke(i))
-    }
-
-    return Value.pointer(holder.viewEntire())
-}
-
-fun createFromString(string: String): Value {
-    return createArray(Primitives.Integer, string.length) { i -> string[i].code }
-}
+//fun createFromString(string: String): ValueExpr {
+//    return createArray(Primitives.Integer, string.length) { i -> string[i].code }
+//}
 

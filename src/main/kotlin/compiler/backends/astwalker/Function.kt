@@ -12,7 +12,7 @@ class UserFunction(
     val functionContent: FunctionContent
 ) : IWalkerFunction {
     override val definition: FunctionDefinition = functionContent.definition
-    val code = functionContent.code
+    val code = functionContent
 
     override fun execute(values: List<Value>, state: WalkerState): Value {
         return state.walkUserFunction(this, values)

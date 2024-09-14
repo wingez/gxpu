@@ -5,13 +5,15 @@ import ast.FunctionType
 import ast.NodeTypes
 import compiler.frontend.*
 
+typealias Filename = String
+
 interface BackendCompiler {
     fun buildAndRun(intermediateProgram: CompiledIntermediateProgram): List<String>
 }
 
 
 fun compileAndRunProgram(
-    fileName: String,
+    fileName: Filename,
     backendCompiler: BackendCompiler,
     symbolTable: MutableSymbolTable,
 ): List<String> {
