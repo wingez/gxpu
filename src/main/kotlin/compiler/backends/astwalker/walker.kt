@@ -22,12 +22,6 @@ class WalkerOutput {
     val result = mutableListOf<String>()
 }
 
-class Value(val type: Datatype, val primitive: Int = 0, val array: IntArray? = null) {
-    companion object {
-        val nothing = Value(Primitives.Nothing)
-    }
-}
-
 
 private fun sizeOf(datatype: Datatype): Int {
     return when (datatype) {
@@ -36,58 +30,118 @@ private fun sizeOf(datatype: Datatype): Int {
     }
 }
 
-private fun createTemplate(functionContent: FunctionContent): Template {
+private fun createTemplate(variables: List<Pair<String, Datatype>>): Template {
 
 
     var totalSize = 0
     val variableMap = mutableMapOf<String, Pair<Datatype, Int>>()
 
-    for ((paramName, paramType) in functionContent.definition.parameters) {
+    for ((paramName, paramType) in variables) {
         variableMap[paramName] = paramType to totalSize
         totalSize += sizeOf(paramType)
-    }
-
-    for (instr in functionContent.instructions) {
-        if (instr !is TempValue) {
-            continue
-        }
-
-        variableMap[instr.name] = instr.type to totalSize
-        totalSize += sizeOf(instr.type)
-
     }
 
     return Template(totalSize, variableMap)
 }
 
-private class Template(val totalSize: Int, val variableMap: Map<String, Pair<Datatype, Int>>)
+private fun createTemplate(functionContent: FunctionContent): Template {
 
-private class WalkFrame(private val template: Template) {
+    val list = mutableListOf<Pair<String, Datatype>>()
+    list.addAll(functionContent.definition.parameters)
+
+    for (instr in functionContent.instructions) {
+        if (instr !is TempValue) {
+            continue
+        }
+        list.add(instr.name to instr.type)
+    }
+    return createTemplate(list)
+}
+
+class Template(val totalSize: Int, val variableMap: Map<String, Pair<Datatype, Int>>)
+
+class Value(
+    val type: Datatype,
+    val primitive: Int = 0,
+    val pointer: WalkFrame.Pointer? = null,
+    val primitiveArray: IntArray? = null,
+    val pointerArray: Array<WalkFrame.Pointer?>? = null,
+) {
+    companion object {
+        val nothing = Value(Primitives.Nothing)
+    }
+}
+
+class WalkFrame(private val template: Template) {
 
     private val data = IntArray(template.totalSize)
+    private val pointers = Array<Pointer?>(template.totalSize) { null }
 
-    fun setVariable(name: String, value: Value) {
+    fun pointer(name: String): Value {
+        val pointer = pointerToVariable(name)
+        return Value(pointer.type, pointer = pointer)
+    }
+
+    private fun pointerToVariable(name: String): Pointer {
         val (type, offset) = template.variableMap.getValue(name)
 
-        assert(type == value.type)
+        return Pointer(type.pointerOf(), this, offset)
+    }
 
-        if (type is PrimitiveDataType) {
-            data[offset] = value.primitive
-        } else {
-            value.array!!.copyInto(data, offset)
-        }
+    fun setVariable(name: String, value: Value) {
+        val pointer = pointerToVariable(name)
+        pointer.setValue(value)
 
     }
 
     fun getVariable(name: String): Value {
-        val (type, offset) = template.variableMap.getValue(name)
+        val pointer = pointerToVariable(name)
+        return pointer.getDeref()
+    }
 
-        if (type is PrimitiveDataType) {
-            return Value(type, primitive = data[offset])
+
+    class Pointer(val type: PointerDatatype, private val frame: WalkFrame, private val offset: Int) {
+        fun getDeref(): Value {
+
+            when (type.pointerType) {
+                is PrimitiveDataType -> {
+                    return Value(type.pointerType, primitive = frame.data[offset])
+                }
+
+                is PointerDatatype -> {
+                    return Value(type.pointerType, pointer = frame.pointers[offset])
+                }
+
+                else -> {
+                    val size = sizeOf(type.pointerType)
+                    return Value(
+                        type.pointerType,
+                        primitiveArray = frame.data.copyOfRange(offset, offset + size),
+                        pointerArray = frame.pointers.copyOfRange(offset, offset + size),
+                    )
+                }
+            }
         }
 
-        val size = sizeOf(type)
-        return Value(type, array = data.copyOfRange(offset, offset + size))
+        fun setValue(value: Value) {
+
+            assert(type.pointerType == value.type)
+
+            when (type.pointerType) {
+                is PrimitiveDataType -> {
+                    frame.data[offset] = value.primitive
+                }
+
+                is PointerDatatype -> {
+                    frame.pointers[offset] = value.pointer!!
+                }
+
+                else -> {
+                    value.primitiveArray!!.copyInto(frame.data, offset)
+                    value.pointerArray!!.copyInto(frame.pointers, offset)
+                }
+            }
+        }
     }
 }
 
@@ -119,7 +173,7 @@ class WalkerState(
 
     val availableFunctions = mutableListOf<IWalkerFunction>()
 
-    //lateinit var globalVariables: ValueHolder
+    lateinit var globalVariables: WalkFrame
 
     fun getFunctionFromSignature(functionDefinition: FunctionDefinition): IWalkerFunction {
         return availableFunctions.find { it.definition == functionDefinition }
@@ -145,12 +199,10 @@ class WalkerState(
         }
 
         // setup global variables
-//        val globals = symbolTable.getAllGlobalVariables()
+        val globals = intermediateProgram.symbolTable.getAllGlobalVariables()
+        val allGlobalsFields = globals.map { it.name to it.datatype }
 
-//        val allGlobalsFields = CompositeDatatype("fields", globals.map { CompositeDataTypeField(it.name, it.datatype) })
-//
-//        globalVariables = ValueHolder(allGlobalsFields)
-
+        globalVariables = WalkFrame(createTemplate(allGlobalsFields))
 
         //Call main
         val mainFunction = getFunctionFromSignature(
@@ -270,14 +322,16 @@ class WalkerState(
             is JumpOnFalse -> {
                 return jumpHelper(instruction.condition, jumpOn = false, instruction.label)
             }
-//
-//            is Execute -> {
-//                getValueOf(instruction.expression)
-//            }
-//
-//            is Assign -> {
-//                handleAssign(instruction)
-//            }
+
+            is Store -> {
+                val value = getValueOf(instruction.value)
+
+                val destination = getValueOf(instruction.destination)
+                assert(destination.type is PointerDatatype)
+
+                destination.pointer!!.setValue(value)
+
+            }
 
             is ReturnNothing -> {
                 return ControlFlow.Return to null
@@ -290,7 +344,7 @@ class WalkerState(
     }
 
     private fun jumpHelper(
-        condition: compiler.frontend.ValueExpr,
+        condition: ValueExpr,
         jumpOn: Boolean,
         label: Label
     ): Pair<ControlFlow, Label?> {
@@ -355,12 +409,18 @@ class WalkerState(
         return when (value) {
             is IntConstant -> Value(Primitives.Integer, primitive = value.value)
             is LocalValueRef -> currentFrame.getVariable(value.name)
+            is GlobalValueRef -> globalVariables.pointer(value.name)
             is Call -> {
                 val arguments = value.params.map { getValueOf(it) }
 
                 val function = getFunctionFromSignature(value.func)
 
                 return call(function, arguments)
+            }
+
+            is Load -> {
+                val pointer = getValueOf(value.value)
+                return pointer.pointer!!.getDeref()
             }
 //            is CallExpression -> handleCall(valueExpression)
 //            is VariableExpression -> getVariable(valueExpression.variable.variableType, valueExpression.variable.name)

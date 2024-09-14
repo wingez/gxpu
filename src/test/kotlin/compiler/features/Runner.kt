@@ -177,7 +177,7 @@ private fun executeTest(testcase: FeatureTestcase) {
     }
 
     val emulatorSkip = "disable emulator"
-    Assumptions.assumeFalse(expectedLines.any { it.startsWith(emulatorSkip) }, "skipped on emulator")
+//    Assumptions.assumeFalse(testcase.backend == expectedLines.any { it.startsWith(emulatorSkip) }, "skipped on emulator")
     expectedLines = expectedLines.filter { it != emulatorSkip }.toMutableList()
 
     val program = programLines.joinToString("\n")

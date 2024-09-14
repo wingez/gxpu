@@ -229,7 +229,7 @@ class FunctionCompiler(
             }
 
             NodeTypes.Constant -> IntConstant(node.asConstant())
-            NodeTypes.Identifier -> parseIdentifier(node.asIdentifier())
+            NodeTypes.Identifier -> parseIdentifierAsValue(node.asIdentifier(), currentCodeBlock, placeCallResultIn)
             //NodeTypes.String -> StringExpression(node.asString())
             //NodeTypes.MemberAccess -> parseMemberAccess(node)
 //            NodeTypes.ArrayAccess -> {
@@ -284,7 +284,7 @@ class FunctionCompiler(
         ): Datatype {
         return when (node.type) {
             NodeTypes.Constant -> Primitives.Integer
-            NodeTypes.Identifier -> parseIdentifier(node.asIdentifier()).type
+            NodeTypes.Identifier -> findTypeOfIdentifier(node.asIdentifier())
 
             NodeTypes.Call -> {
                 val callInfo = node.asCall()
@@ -422,7 +422,12 @@ class FunctionCompiler(
         assert(targetVariable.datatype == valueIsIn.type)
 
         if (targetVariable.variableType == VariableType.Global) {
-            TODO("STORE")
+            currentCodeBlock.addInstruction(
+                Store(
+                    LocalValueRef(placeCallResultIn, targetVariable.datatype),
+                    GlobalValueRef(targetVariableName, targetVariable.datatype.pointerOf())
+                )
+            )
         }
 //        if (targetVariable.variableType == VariableType.Local) {
 //            currentCodeBlock.addInstruction(TempValue(placeCallResultIn, valueIsIn))
@@ -534,7 +539,11 @@ class FunctionCompiler(
     }
 
 
-    private fun parseIdentifier(name: String): ValueExpr {
+    private fun parseIdentifierAsValue(
+        name: String,
+        currentCodeBlock: CodeBlock,
+        placeCallResultIn: String?
+    ): ValueExpr {
 
 
         val variable = symbolTable.findScopedVariable(name, definition, imports)
@@ -545,10 +554,27 @@ class FunctionCompiler(
                 LocalValueRef(variable.name, variable.datatype)
             }
 
-            else -> TODO(variable.variableType.toString())
+            VariableType.Global -> {
+
+                val tempValue = placeCallResultIn ?: nextTempValue()
+
+                val load = Load(GlobalValueRef(variable.name, variable.datatype))
+
+                currentCodeBlock.addInstruction(TempValue(tempValue, load))
+                LocalValueRef(tempValue, load.type)
+            }
         }
+    }
 
+    private fun findTypeOfIdentifier(name: String): Datatype {
+        val variable = symbolTable.findScopedVariable(name, definition, imports)
+            ?: throw FrontendCompilerError("variable $name not found")
 
+        if (variable.variableType == VariableType.Local)
+            return variable.datatype
+        else {
+            return variable.datatype.pointerOf()
+        }
     }
 }
 

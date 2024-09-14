@@ -82,7 +82,14 @@ class Comparison(val comparison: ComparisonType, val left: ValueExpr, val right:
 class Store(val value: ValueExpr, val destination: ValueExpr) : Instruction {
     override val type = null
     override fun debugString(): String {
-        TODO("Not yet implemented")
+        return "STORE ${value.debugString()} IN ${destination.debugString()}"
+    }
+}
+
+class Load(val value: ValueExpr) : ValueExpr {
+    override val type = (value.type as PointerDatatype).pointerType
+    override fun debugString(): String {
+        return "LOAD ${value.debugString()}"
     }
 }
 
@@ -121,7 +128,7 @@ class JumpOnFalse(
 
 data class Label(
     val identifier: String
-){
+) {
     override fun toString(): String {
         return ".$identifier"
     }

@@ -5,6 +5,7 @@ import ast.AstParser
 import ast.NodeTypes
 import compiler.BuiltInSourceFile
 import compiler.Filename
+import compiler.backends.astwalker.Template
 import tokens.Token
 import tokens.TokenType
 import tokens.parseFile
@@ -19,6 +20,7 @@ interface FileProvider {
 private const val builtins = "Builtins"
 
 data class CompiledIntermediateProgram(
+    val symbolTable: SymbolTable,
     val functions: List<FunctionContent>,
     val mainFunction: FunctionContent,
 )
@@ -106,31 +108,34 @@ class ProgramCompiler(
         // Create entry function setting up globals and calling main
 
         val entryCodeContent = mutableListOf<Instruction>()
-
+        var counter = 0
         for (global in globalsInitFunctions) {
             if (global.hasContent) {
-                //entryCodeContent.add(Execute(CallExpression(global.definition, emptyList())))
+
+                val instr = TempValue((counter++).toString(), Call(global.definition, emptyList()))
+                entryCodeContent.add(instr)
             }
         }
 
         val entryFunction: FunctionContent
 
         if (entryCodeContent.isNotEmpty()) {
-//            entryCodeContent.add(Execute(CallExpression(mainFunction.definition, emptyList())))
-//            entryCodeContent.add(Return())
-//
+            val instr = TempValue((counter++).toString(), Call(mainFunction.definition, emptyList()))
+            entryCodeContent.add(instr)
+            entryCodeContent.add(ReturnNothing())
+
             entryFunction = FunctionContent(
                 DefinitionBuilder("entry")
                     .setSourceFile(BuiltInSourceFile)
                     .getDefinition(),
-                emptyList(), emptyMap()
+                entryCodeContent, emptyMap()
             )
             compiledFunctions.add(entryFunction)
         } else {
             entryFunction = mainFunction
         }
 
-        return CompiledIntermediateProgram(compiledFunctions, entryFunction)
+        return CompiledIntermediateProgram(symbolTable, compiledFunctions, entryFunction)
     }
 }
 
@@ -165,6 +170,6 @@ fun compileProgramFromSingleBody(body: String, symbolTable: MutableSymbolTable):
         emptyList(),
     )
     return CompiledIntermediateProgram(
-        functionContents, functionContents.find { it.definition == definition }!!,
+        symbolTable, functionContents, functionContents.find { it.definition == definition }!!,
     )
 }

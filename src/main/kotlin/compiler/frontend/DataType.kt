@@ -90,11 +90,11 @@ fun Datatype.arrayOf(): Datatype {
     return ArrayDatatype(this)
 }
 
-fun Datatype.arrayPointerOf(): Datatype {
+fun Datatype.arrayPointerOf(): PointerDatatype {
     return this.arrayOf().pointerOf()
 }
 
-fun Datatype.pointerOf(): Datatype {
+fun Datatype.pointerOf(): PointerDatatype {
     return PointerDatatype(this)
 }
 
