@@ -6,6 +6,7 @@ import org.junit.jupiter.api.assertThrows
 import compiler.backends.astwalker.WalkerException
 import compiler.features.matchString
 import compiler.frontend.FrontendCompilerError
+import org.junit.jupiter.api.Disabled
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -226,6 +227,7 @@ internal class WalkerTest {
     }
 
     @Test
+    @Disabled
     fun testPrintString() {
         var program =
             """

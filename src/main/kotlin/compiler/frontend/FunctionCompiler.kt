@@ -570,7 +570,7 @@ class FunctionCompiler(
                 LocalValueRef(tempValue, type.pointerType.fieldType(name).pointerOf())
             }
 
-            else -> TODO()
+            else -> TODO(targetNode.type.toString())
         }
 
     }

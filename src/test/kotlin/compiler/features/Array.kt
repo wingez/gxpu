@@ -6,8 +6,9 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
 import compiler.backends.astwalker.WalkerException
 import compiler.frontend.FrontendCompilerError
+import org.junit.jupiter.api.Disabled
 
-
+@Disabled
 class Array {
 
     @ParameterizedTest

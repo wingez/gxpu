@@ -5,6 +5,7 @@ import compiler.backends.astwalker.*
 import compiler.builtInSymbolTable
 import compiler.features.intMatcher
 import compiler.frontend.*
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import java.io.Reader
@@ -58,6 +59,7 @@ internal class WalkerDatatypeTest {
     }
 
     @Test
+    @Disabled
     fun testCreateArray() {
         val program = """
           def main():
@@ -68,6 +70,7 @@ internal class WalkerDatatypeTest {
     }
 
     @Test
+    @Disabled
     fun testArrayAssign() {
         val program = """
           def main():

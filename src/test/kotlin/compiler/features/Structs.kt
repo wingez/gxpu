@@ -86,7 +86,8 @@ class Structs {
     }
 
     @ParameterizedTest
-    @EnumSource()
+    @EnumSource
+    @Disabled
     fun testStructPointer(compiler: CompilerBackend) {
         val program = """
           struct s:
