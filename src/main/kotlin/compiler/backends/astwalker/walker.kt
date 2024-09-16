@@ -2,6 +2,7 @@ package compiler.backends.astwalker
 
 import compiler.BackendCompiler
 import compiler.frontend.*
+import requireNotReached
 
 class WalkerException(msg: String = "") : Exception(msg)
 
@@ -26,8 +27,21 @@ class WalkerOutput {
 private fun sizeOf(datatype: Datatype): Int {
     return when (datatype) {
         is PrimitiveDataType -> 1
+        is PointerDatatype -> 1
+        is CompositeDatatype -> datatype.compositeFields.sumOf { sizeOf(it.type) }
         else -> TODO(datatype.toString())
     }
+}
+
+private fun fieldOffset(datatype: CompositeDatatype, name: String): Int {
+    var offset = 0
+    for (field in datatype.compositeFields) {
+        if (field.name == name) {
+            return offset
+        }
+        offset += sizeOf(field.type)
+    }
+    requireNotReached()
 }
 
 private fun createTemplate(variables: List<Pair<String, Datatype>>): Template {
@@ -74,8 +88,14 @@ class Value(
 
 class WalkFrame(private val template: Template) {
 
-    private val data = IntArray(template.totalSize)
-    private val pointers = Array<Pointer?>(template.totalSize) { null }
+    private val dynamicStackSize = 100
+
+    private val totalStackSize = template.totalSize + dynamicStackSize
+
+    private val data = IntArray(totalStackSize)
+    private val pointers = Array<Pointer?>(totalStackSize) { null }
+
+    private var stackposition = template.totalSize
 
     fun pointer(name: String): Value {
         val pointer = pointerToVariable(name)
@@ -97,6 +117,19 @@ class WalkFrame(private val template: Template) {
     fun getVariable(name: String): Value {
         val pointer = pointerToVariable(name)
         return pointer.getDeref()
+    }
+
+    fun stackDynamicAlloc(type: Datatype): Value {
+        val size = sizeOf(type)
+
+        if (stackposition + size >= totalStackSize) {
+            throw WalkerException("Out of stack size")
+        }
+        val pos = stackposition
+        stackposition += size
+
+        val pointer = Pointer(type.pointerOf(), this, pos)
+        return Value(pointer.type, pointer = pointer)
     }
 
 
@@ -141,6 +174,17 @@ class WalkFrame(private val template: Template) {
                     value.pointerArray!!.copyInto(frame.pointers, offset)
                 }
             }
+        }
+
+        fun readField(memberName: String): Value {
+            val compositeDatatype = type.pointerType
+
+            require(compositeDatatype is CompositeDatatype)
+
+            val memberOffset = fieldOffset(compositeDatatype, memberName)
+
+            val newPointer = Pointer(compositeDatatype.fieldType(memberName).pointerOf(), frame, offset + memberOffset)
+            return Value(newPointer.type, pointer = newPointer)
         }
     }
 }
@@ -421,6 +465,21 @@ class WalkerState(
             is Load -> {
                 val pointer = getValueOf(value.value)
                 return pointer.pointer!!.getDeref()
+            }
+
+            is AllocStack -> {
+                val pointer = currentFrame.stackDynamicAlloc(value.allocType)
+                return pointer
+            }
+
+            is GetElementPtr -> {
+                val pointer = getValueOf(value.value)
+
+                val newPointer = pointer.pointer!!.readField(value.memberName)
+
+                return newPointer
+
+
             }
 //            is CallExpression -> handleCall(valueExpression)
 //            is VariableExpression -> getVariable(valueExpression.variable.variableType, valueExpression.variable.name)

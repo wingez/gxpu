@@ -1,6 +1,7 @@
 package compiler.frontend
 
 import ast.*
+import kotlin.math.exp
 
 const val RETURN_VALUE_NAME = "result"
 
@@ -17,7 +18,7 @@ data class FunctionContent(
     val hasContent
         get() =
             // Check if instructions are empty or only contains a return statement
-            instructions.any { it !is Return }// every function  has an implicit return. Ignore that
+            instructions.any { it !is Return && it !is ReturnNothing }// every function  has an implicit return. Ignore that
 }
 
 private class CodeBlock(
@@ -156,10 +157,7 @@ class FunctionCompiler(
 
         when (node.type) {
 
-            NodeTypes.NewVariable -> {
-                //Do nothing
-            }
-
+            NodeTypes.NewVariable -> initializeVariable(node, codeBlock)
             NodeTypes.Assign -> parseAssign(node, codeBlock)
             NodeTypes.If -> parseIf(node, codeBlock, loopContext)
             NodeTypes.While -> parseWhile(node, codeBlock)
@@ -170,10 +168,21 @@ class FunctionCompiler(
 
             NodeTypes.Return -> parseReturn(node, codeBlock)
 
+            NodeTypes.Call -> callAndIgnoreResult(node, codeBlock)
+
             else -> {
                 parseValueExpression(node, codeBlock, null)
             }
         }
+    }
+
+    private fun callAndIgnoreResult(node: AstNode, codeBlock: CodeBlock) {
+        require(node.type == NodeTypes.Call)
+
+        val destination = nextTempValue()
+
+        val call = parseValueExpression(node, codeBlock, null)
+        codeBlock.addInstruction(TempValue(destination, call))
     }
 
     private fun parseReturn(node: AstNode, codeBlock: CodeBlock) {
@@ -187,6 +196,20 @@ class FunctionCompiler(
             )
         }
         addReturn(codeBlock)
+    }
+
+    private fun initializeVariable(node: AstNode, currentCodeBlock: CodeBlock) {
+        assert(node.type == NodeTypes.NewVariable)
+
+        val variableName = node.asNewVariable().name
+        val variable = symbolTable.findScopedVariable(variableName, definition, imports)
+        requireNotNull(variable)
+
+        if (variable.datatype is PointerDatatype && variable.datatype.pointerType is CompositeDatatype) {
+
+            assignToTempValue(variableName, AllocStack(variable.datatype.pointerType), currentCodeBlock)
+
+        }
     }
 
     private fun addReturn(codeBlock: CodeBlock) {
@@ -218,18 +241,31 @@ class FunctionCompiler(
 //        }
 //    }
 
-    private fun parseValueExpression(
-        node: AstNode,
-        currentCodeBlock: CodeBlock,
-        placeCallResultIn: String?
-    ): ValueExpr {
+    private fun parseValueRecursive(node: AstNode, currentCodeBlock: CodeBlock): ValueExpr {
+
         return when (node.type) {
             NodeTypes.Call -> {
-                handleCall(node, currentCodeBlock, placeCallResultIn)
+                handleCall(node, currentCodeBlock)
             }
 
             NodeTypes.Constant -> IntConstant(node.asConstant())
-            NodeTypes.Identifier -> parseIdentifierAsValue(node.asIdentifier(), currentCodeBlock, placeCallResultIn)
+            NodeTypes.Identifier -> parseIdentifierAsValue(node.asIdentifier())
+
+            NodeTypes.MemberAccess -> {
+                val baseMember = parseValueRecursive(node.child, currentCodeBlock)
+
+                val name = node.data as String
+                val type = baseMember.type
+                require(type is PointerDatatype)
+                if (!(type.pointerType is CompositeDatatype && type.pointerType.containsField(name))) {
+                    throw FrontendCompilerError("Type $type contains no field \"$name\"")
+                }
+
+                val tempValue = nextTempValue()
+                currentCodeBlock.addInstruction(TempValue(tempValue, GetElementPtr(baseMember, name)))
+                LocalValueRef(tempValue, type.pointerType.fieldType(name).pointerOf())
+            }
+
             //NodeTypes.String -> StringExpression(node.asString())
             //NodeTypes.MemberAccess -> parseMemberAccess(node)
 //            NodeTypes.ArrayAccess -> {
@@ -263,6 +299,34 @@ class FunctionCompiler(
 
             else -> throw AssertionError("Cannot parse node ${node.type} yet")
         }
+
+
+    }
+
+    private fun parseValueExpression(
+        node: AstNode,
+        currentCodeBlock: CodeBlock,
+        placeCallResultIn: String?
+    ): ValueExpr {
+
+        val expectedType = findTypeOfExpression(node)
+
+        val value = parseValueRecursive(node, currentCodeBlock)
+
+        if (value.type == expectedType) {
+            // ok
+            return value
+        }
+
+        //We got a pointer
+
+        val recievedType = value.type
+        require(recievedType is PointerDatatype && recievedType.pointerType == expectedType)
+
+        val whereToPut = placeCallResultIn ?: nextTempValue()
+        currentCodeBlock.addInstruction(TempValue(whereToPut, Load(value)))
+
+        return LocalValueRef(whereToPut, expectedType)
     }
 
 //    private fun parseMemberAccess(node: AstNode): ValueExpression {
@@ -298,6 +362,20 @@ class FunctionCompiler(
                     )
 
                 return function.returnType
+            }
+
+            NodeTypes.MemberAccess -> {
+                val baseType = findTypeOfExpression(node.child)
+                when (baseType){
+                    is PointerDatatype -> {
+                        require(baseType.pointerType is CompositeDatatype)
+                        baseType.pointerType.fieldType(node.data as String)
+                    }
+                    is CompositeDatatype -> {
+                        baseType.fieldType(node.data as String)
+                    }
+                    else -> TODO()
+                }
             }
 
             else -> TODO(node.type.toString())
@@ -394,6 +472,13 @@ class FunctionCompiler(
 
     }
 
+    private fun assignToTempValue(destination: String, valueExpr: ValueExpr, currentCodeBlock: CodeBlock) {
+
+        currentCodeBlock.addInstruction(TempValue(destination, valueExpr))
+
+
+    }
+
 
     private fun parseAssign(
         node: AstNode,
@@ -401,34 +486,25 @@ class FunctionCompiler(
     ) {
         val assign = node.asAssign()
 
+        if (assign.target.type != NodeTypes.Identifier) {
+            return handleDynamicAssign(node, currentCodeBlock)
+        }
 
         assert(assign.target.type == NodeTypes.Identifier)
 
         val targetVariableName = assign.target.asIdentifier()
         val targetVariable = symbolTable.findScopedVariable(targetVariableName, definition, imports)!!
 
-
-        val placeCallResultIn = when (targetVariable.variableType) {
-            VariableType.Local -> targetVariableName
-            VariableType.Global -> nextTempValue()
+        if (targetVariable.variableType != VariableType.Local) {
+            return handleDynamicAssign(node, currentCodeBlock)
         }
 
+        assignToTempValue(
+            targetVariableName,
+            parseValueExpression(assign.value, currentCodeBlock, targetVariableName),
+            currentCodeBlock
+        )
 
-        val valueIsIn = parseValueExpression(assign.value, currentCodeBlock, placeCallResultIn)
-
-        currentCodeBlock.addInstruction(TempValue(placeCallResultIn, valueIsIn))
-
-
-        assert(targetVariable.datatype == valueIsIn.type)
-
-        if (targetVariable.variableType == VariableType.Global) {
-            currentCodeBlock.addInstruction(
-                Store(
-                    LocalValueRef(placeCallResultIn, targetVariable.datatype),
-                    GlobalValueRef(targetVariableName, targetVariable.datatype.pointerOf())
-                )
-            )
-        }
 //        if (targetVariable.variableType == VariableType.Local) {
 //            currentCodeBlock.addInstruction(TempValue(placeCallResultIn, valueIsIn))
 //        }
@@ -464,6 +540,68 @@ class FunctionCompiler(
 //        currentCodeBlock.addInstruction(Assign(target, value))
     }
 
+
+    private fun getDynamicAddress(targetNode: AstNode, currentCodeBlock: CodeBlock): ValueExpr {
+
+        return when (targetNode.type) {
+            NodeTypes.Identifier -> {
+                val targetVariableName = targetNode.asIdentifier()
+                val targetVariable = symbolTable.findScopedVariable(targetVariableName, definition, imports)!!
+
+                when (targetVariable.variableType) {
+                    VariableType.Global -> GlobalValueRef(targetVariableName, targetVariable.datatype.pointerOf())
+                    VariableType.Local -> LocalValueRef(targetVariableName, targetVariable.datatype)
+                }
+
+            }
+
+            NodeTypes.MemberAccess -> {
+                val baseMember = getDynamicAddress(targetNode.child, currentCodeBlock)
+
+                val name = targetNode.data as String
+                val type = baseMember.type
+                require(type is PointerDatatype)
+                if (!(type.pointerType is CompositeDatatype && type.pointerType.containsField(name))) {
+                    throw FrontendCompilerError("Type $type contains no field \"$name\"")
+                }
+
+                val tempValue = nextTempValue()
+                currentCodeBlock.addInstruction(TempValue(tempValue, GetElementPtr(baseMember, name)))
+                LocalValueRef(tempValue, type.pointerType.fieldType(name).pointerOf())
+            }
+
+            else -> TODO()
+        }
+
+    }
+
+    private fun handleDynamicAssign(node: AstNode, currentCodeBlock: CodeBlock) {
+
+
+        val assign = node.asAssign()
+
+
+        val destination = getDynamicAddress(assign.target, currentCodeBlock)
+
+
+        val valueTempVariable = nextTempValue()
+
+
+        val value = parseValueExpression(assign.value, currentCodeBlock, valueTempVariable)
+
+        currentCodeBlock.addInstruction(TempValue(valueTempVariable, value))
+
+
+
+        currentCodeBlock.addInstruction(
+            Store(
+                LocalValueRef(valueTempVariable, value.type),
+                destination
+            )
+        )
+
+    }
+
     private fun nextTempValue(): String {
         return (tempBlockCounter++).toString()
     }
@@ -471,7 +609,6 @@ class FunctionCompiler(
     private fun handleCall(
         callNode: AstNode,
         currentCodeBlock: CodeBlock,
-        placeCallResultIn: String?,
     ): ValueExpr {
         assert(callNode.type == NodeTypes.Call)
 
@@ -484,11 +621,7 @@ class FunctionCompiler(
         val function =
             symbolTable.getFunctionDefinitionMatching(callInfo.targetName, callInfo.functionType, parameterTypes)
 
-        val tempValName = placeCallResultIn ?: nextTempValue()
-
-        currentCodeBlock.addInstruction(TempValue(tempValName, Call(function, parameters)))
-
-        return LocalValueRef(tempValName, function.returnType)
+        return Call(function, parameters)
     }
 
 
@@ -525,7 +658,7 @@ class FunctionCompiler(
 
 
                 //TODO handle name clashes
-                val type: Datatype
+                var type: Datatype
                 if (newVariable.hasTypeFromAssignment) {
                     type = findTypeOfExpression(newVariable.assignmentType)
                 } else {
@@ -533,6 +666,11 @@ class FunctionCompiler(
 
                     type = requireTypeFromTypeDefinition(newVariable.optionalTypeDefinition, symbolTable)
                 }
+
+                if (type is CompositeDatatype) {
+                    type = type.pointerOf()
+                }
+
                 symbolTable.addVariable(treatNewVariablesAs, type, name, definition)
             }
         }
@@ -541,8 +679,6 @@ class FunctionCompiler(
 
     private fun parseIdentifierAsValue(
         name: String,
-        currentCodeBlock: CodeBlock,
-        placeCallResultIn: String?
     ): ValueExpr {
 
 
@@ -555,13 +691,7 @@ class FunctionCompiler(
             }
 
             VariableType.Global -> {
-
-                val tempValue = placeCallResultIn ?: nextTempValue()
-
-                val load = Load(GlobalValueRef(variable.name, variable.datatype))
-
-                currentCodeBlock.addInstruction(TempValue(tempValue, load))
-                LocalValueRef(tempValue, load.type)
+                GlobalValueRef(variable.name, variable.datatype)
             }
         }
     }
@@ -573,7 +703,7 @@ class FunctionCompiler(
         if (variable.variableType == VariableType.Local)
             return variable.datatype
         else {
-            return variable.datatype.pointerOf()
+            return variable.datatype
         }
     }
 }

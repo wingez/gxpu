@@ -93,8 +93,25 @@ class Load(val value: ValueExpr) : ValueExpr {
     }
 }
 
-class GetElementPtr() {
+class AllocStack(val allocType: Datatype) : ValueExpr {
+    override val type = allocType.pointerOf()
+    override fun debugString(): String {
+        return "ALLOC STACK $allocType"
+    }
+}
 
+class GetElementPtr(val value: ValueExpr, val memberName: String) : ValueExpr {
+    override val type: Datatype
+        get() {
+            val baseType = value.type
+            require(baseType is PointerDatatype)
+            require(baseType.pointerType is CompositeDatatype)
+            return baseType.pointerType.fieldType(memberName).pointerOf()
+        }
+
+    override fun debugString(): String {
+        return "GetElementPtr ${value.debugString()} $memberName"
+    }
 }
 
 
@@ -133,3 +150,5 @@ data class Label(
         return ".$identifier"
     }
 }
+
+
