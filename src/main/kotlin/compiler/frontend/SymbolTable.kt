@@ -5,6 +5,7 @@ import ast.*
 
 enum class VariableType {
     Local,
+    LocalParameter,
     Global,
 }
 
@@ -124,7 +125,8 @@ class MutableSymbolTable : SymbolTable {
     override fun findScopedVariable(name: String, owner: FunctionDefinition, imports: List<String>): Variable? {
 
         //First search local
-        var match = variables.find { it.name == name && it.owner == owner && it.variableType == VariableType.Local }
+        var match =
+            variables.find { it.name == name && it.owner == owner && (it.variableType == VariableType.Local || it.variableType == VariableType.LocalParameter) }
         if (match != null)
             return match
 

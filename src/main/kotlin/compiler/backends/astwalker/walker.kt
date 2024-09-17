@@ -335,7 +335,10 @@ class WalkerState(
         val result = if (userFunction.definition.returnType == Primitives.Nothing) {
             Value.nothing
         } else {
-            currentFrame.getVariable(RETURN_VALUE_NAME)
+            val resultPointer = currentFrame.getVariable(RETURN_VALUE_NAME).pointer!!
+            require(resultPointer.type.pointerType == userFunction.definition.returnType)
+
+            resultPointer.getDeref()
         }
 
         // Pop frame

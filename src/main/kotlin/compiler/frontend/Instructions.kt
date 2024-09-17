@@ -19,8 +19,7 @@ data class LocalValueRef(val name: String, override val type: Datatype) : ValueE
     }
 }
 
-data class GlobalValueRef(val name: String, private val typ: Datatype) : ValueExpr {
-    override val type = typ.pointerOf()
+data class GlobalValueRef(val name: String, override val type: Datatype) : ValueExpr {
     override fun debugString(): String {
         return "@$name*"
     }

@@ -1,6 +1,7 @@
 package compiler.frontend
 
 import ast.*
+import requireNotReached
 import kotlin.math.exp
 
 const val RETURN_VALUE_NAME = "result"
@@ -130,6 +131,12 @@ class FunctionCompiler(
     private fun flattenFunction(): CodeBlock {
         val mainCodeBlock = CodeBlock(functionEntryLabel)
 
+        for (param in symbolTable.getVariablesForFunction(definition)) {
+            if (param.variableType == VariableType.Local){
+                mainCodeBlock.addInstruction(TempValue(param.name, AllocStack(param.datatype)))
+            }
+        }
+
         flattenStatements(body, mainCodeBlock, loopContext = null)
 
         addReturn(mainCodeBlock) //TODO: only add return if needed
@@ -157,7 +164,10 @@ class FunctionCompiler(
 
         when (node.type) {
 
-            NodeTypes.NewVariable -> initializeVariable(node, codeBlock)
+            NodeTypes.NewVariable -> {
+              //initializeVariable(node, codeBlock)
+                //            NodeTypes.
+            }
             NodeTypes.Assign -> parseAssign(node, codeBlock)
             NodeTypes.If -> parseIf(node, codeBlock, loopContext)
             NodeTypes.While -> parseWhile(node, codeBlock)
@@ -171,7 +181,7 @@ class FunctionCompiler(
             NodeTypes.Call -> callAndIgnoreResult(node, codeBlock)
 
             else -> {
-                parseValueExpression(node, codeBlock, null)
+                parseValueExpression(node, codeBlock)
             }
         }
     }
@@ -179,10 +189,7 @@ class FunctionCompiler(
     private fun callAndIgnoreResult(node: AstNode, codeBlock: CodeBlock) {
         require(node.type == NodeTypes.Call)
 
-        val destination = nextTempValue()
-
-        val call = parseValueExpression(node, codeBlock, null)
-        codeBlock.addInstruction(TempValue(destination, call))
+        parseValueExpression(node, codeBlock)
     }
 
     private fun parseReturn(node: AstNode, codeBlock: CodeBlock) {
@@ -306,7 +313,6 @@ class FunctionCompiler(
     private fun parseValueExpression(
         node: AstNode,
         currentCodeBlock: CodeBlock,
-        placeCallResultIn: String?
     ): ValueExpr {
 
         val expectedType = findTypeOfExpression(node)
@@ -323,7 +329,7 @@ class FunctionCompiler(
         val recievedType = value.type
         require(recievedType is PointerDatatype && recievedType.pointerType == expectedType)
 
-        val whereToPut = placeCallResultIn ?: nextTempValue()
+        val whereToPut = nextTempValue()
         currentCodeBlock.addInstruction(TempValue(whereToPut, Load(value)))
 
         return LocalValueRef(whereToPut, expectedType)
@@ -366,14 +372,16 @@ class FunctionCompiler(
 
             NodeTypes.MemberAccess -> {
                 val baseType = findTypeOfExpression(node.child)
-                when (baseType){
+                when (baseType) {
                     is PointerDatatype -> {
                         require(baseType.pointerType is CompositeDatatype)
                         baseType.pointerType.fieldType(node.data as String)
                     }
+
                     is CompositeDatatype -> {
                         baseType.fieldType(node.data as String)
                     }
+
                     else -> TODO()
                 }
             }
@@ -389,7 +397,7 @@ class FunctionCompiler(
     ) {
         val ifNode = node.asIf()
 
-        val condition = parseValueExpression(ifNode.condition, currentCodeBlock, null)
+        val condition = parseValueExpression(ifNode.condition, currentCodeBlock)
         if (condition.type != Primitives.Boolean) {
             throw FrontendCompilerError("type of condition must be bool")
         }
@@ -421,7 +429,7 @@ class FunctionCompiler(
 
             currentCodeBlock.addInstruction(
                 JumpOnFalse(
-                    parseValueExpression(ifNode.condition, currentCodeBlock, null),
+                    parseValueExpression(ifNode.condition, currentCodeBlock),
                     elseLabel
                 )
             )
@@ -454,7 +462,7 @@ class FunctionCompiler(
         val bodyCodeBlock = currentCodeBlock.newCodeBlock(whileBodyLabel)
 
 
-        val condition = parseValueExpression(whileNode.condition, bodyCodeBlock, null)
+        val condition = parseValueExpression(whileNode.condition, bodyCodeBlock)
         if (condition.type != Primitives.Boolean) {
             throw FrontendCompilerError("type of condition must be bool, not ${condition.type}")
         }
@@ -486,23 +494,22 @@ class FunctionCompiler(
     ) {
         val assign = node.asAssign()
 
-        if (assign.target.type != NodeTypes.Identifier) {
-            return handleDynamicAssign(node, currentCodeBlock)
-        }
 
-        assert(assign.target.type == NodeTypes.Identifier)
+        val destination = getDynamicAddress(assign.target, currentCodeBlock)
 
-        val targetVariableName = assign.target.asIdentifier()
-        val targetVariable = symbolTable.findScopedVariable(targetVariableName, definition, imports)!!
 
-        if (targetVariable.variableType != VariableType.Local) {
-            return handleDynamicAssign(node, currentCodeBlock)
-        }
+        val valueTempVariable = nextTempValue()
 
-        assignToTempValue(
-            targetVariableName,
-            parseValueExpression(assign.value, currentCodeBlock, targetVariableName),
-            currentCodeBlock
+
+        val value = parseValueExpression(assign.value, currentCodeBlock)
+
+        currentCodeBlock.addInstruction(TempValue(valueTempVariable, value))
+
+        currentCodeBlock.addInstruction(
+            Store(
+                LocalValueRef(valueTempVariable, value.type),
+                destination
+            )
         )
 
 //        if (targetVariable.variableType == VariableType.Local) {
@@ -550,7 +557,8 @@ class FunctionCompiler(
 
                 when (targetVariable.variableType) {
                     VariableType.Global -> GlobalValueRef(targetVariableName, targetVariable.datatype.pointerOf())
-                    VariableType.Local -> LocalValueRef(targetVariableName, targetVariable.datatype)
+                    VariableType.Local -> LocalValueRef(targetVariableName, targetVariable.datatype.pointerOf())
+                    VariableType.LocalParameter -> requireNotReached()
                 }
 
             }
@@ -575,33 +583,6 @@ class FunctionCompiler(
 
     }
 
-    private fun handleDynamicAssign(node: AstNode, currentCodeBlock: CodeBlock) {
-
-
-        val assign = node.asAssign()
-
-
-        val destination = getDynamicAddress(assign.target, currentCodeBlock)
-
-
-        val valueTempVariable = nextTempValue()
-
-
-        val value = parseValueExpression(assign.value, currentCodeBlock, valueTempVariable)
-
-        currentCodeBlock.addInstruction(TempValue(valueTempVariable, value))
-
-
-
-        currentCodeBlock.addInstruction(
-            Store(
-                LocalValueRef(valueTempVariable, value.type),
-                destination
-            )
-        )
-
-    }
-
     private fun nextTempValue(): String {
         return (tempBlockCounter++).toString()
     }
@@ -614,14 +595,21 @@ class FunctionCompiler(
 
         val callInfo = callNode.asCall()
 
-        val parameters = callNode.childNodes.map { parseValueExpression(it, currentCodeBlock, null) }
+        val parameters = callNode.childNodes.map { parseValueExpression(it, currentCodeBlock) }
 
         val parameterTypes = parameters.map { it.type }
 
         val function =
             symbolTable.getFunctionDefinitionMatching(callInfo.targetName, callInfo.functionType, parameterTypes)
 
-        return Call(function, parameters)
+        val tempValue = nextTempValue()
+
+        val call = Call(function, parameters)
+
+        currentCodeBlock.addInstruction(TempValue(tempValue,call))
+
+
+        return LocalValueRef(tempValue,call.type )
     }
 
 
@@ -644,7 +632,7 @@ class FunctionCompiler(
         for ((paramName, paramType) in definition.parameters) {
             require(treatNewVariablesAs == VariableType.Local)
 
-            symbolTable.addVariable(VariableType.Local, paramType, paramName, definition)
+            symbolTable.addVariable(VariableType.LocalParameter, paramType, paramName, definition)
 
         }
 
@@ -667,10 +655,6 @@ class FunctionCompiler(
                     type = requireTypeFromTypeDefinition(newVariable.optionalTypeDefinition, symbolTable)
                 }
 
-                if (type is CompositeDatatype) {
-                    type = type.pointerOf()
-                }
-
                 symbolTable.addVariable(treatNewVariablesAs, type, name, definition)
             }
         }
@@ -687,11 +671,14 @@ class FunctionCompiler(
 
         return when (variable.variableType) {
             VariableType.Local -> {
+                LocalValueRef(variable.name, variable.datatype.pointerOf())
+            }
+            VariableType.LocalParameter -> {
                 LocalValueRef(variable.name, variable.datatype)
             }
 
             VariableType.Global -> {
-                GlobalValueRef(variable.name, variable.datatype)
+                GlobalValueRef(variable.name, variable.datatype.pointerOf())
             }
         }
     }
@@ -700,11 +687,7 @@ class FunctionCompiler(
         val variable = symbolTable.findScopedVariable(name, definition, imports)
             ?: throw FrontendCompilerError("variable $name not found")
 
-        if (variable.variableType == VariableType.Local)
-            return variable.datatype
-        else {
-            return variable.datatype
-        }
+        return variable.datatype
     }
 }
 

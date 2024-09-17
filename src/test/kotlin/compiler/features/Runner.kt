@@ -36,7 +36,7 @@ private class Source(val program: String) : SourceProvider {
 
 private fun getRunner(type: CompilerBackend): BackendCompiler {
     return when (type) {
-        CompilerBackend.Walker -> WalkerRunner(WalkConfig(1000))
+        CompilerBackend.Walker -> WalkerRunner(WalkConfig(10000))
     }
 }
 
@@ -137,8 +137,8 @@ private fun discoverTests(): List<FeatureTestcase> {
         for (testCasePath in testSubjectFolder.listDirectoryEntries()) {
             assert(testCasePath.isRegularFile())
             val testCase = testCasePath.name
-
-//            if (testCase!="testNested2"){
+//
+//            if (testCase!="printVariable"){
 //                continue
 //            }
 

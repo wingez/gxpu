@@ -1,8 +1,9 @@
 def mul(a:int,b:int):int
   result=0
-  while bool(b):
+  val counter = b
+  while counter!=0:
     result=result+a
-    b=b-1
+    counter=counter-1
 
 def main():
   print(mul(0,10))

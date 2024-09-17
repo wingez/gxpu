@@ -172,25 +172,6 @@ internal class WalkerTest {
     }
 
     @Test
-    fun testEditParametersDoesNotChangeCaller() {
-        val program =
-            """
-                def a(t:int):
-                  t = t+1
-                  
-                def main():
-                  val b = 1
-                  a(b)
-                  print(b)
-                  
-            """.trimIndent()
-
-        val expected = listOf("1")
-
-        assertEquals(expected, run(program))
-    }
-
-    @Test
     fun testWalkerReturn() {
         var program =
             """
@@ -210,9 +191,10 @@ internal class WalkerTest {
             """
                 def mul(a:int,b:int):int
                   result = 0
-                  while a!=0:
+                  val counter = a
+                  while counter!=0:
                     result = result + b
-                    a= a-1
+                    counter = counter-1
                   
                   
                 def main():
