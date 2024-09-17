@@ -2,10 +2,13 @@ package cli
 
 import compiler.backends.astwalker.WalkConfig
 import compiler.backends.astwalker.WalkerRunner
+import compiler.backends.machineCode.buildToAssembly
+import compiler.backends.machineCode.writeToFileAndRun
 import compiler.builtInSymbolTable
 import compiler.compileAndRunProgram
 import compiler.frontend.compileProgram
 import compiler.frontend.compileProgramFromSingleBody
+import kotlin.io.path.Path
 
 fun main(args: Array<String>) {
 
@@ -32,4 +35,17 @@ fun main(args: Array<String>) {
             println(instr.debugString())
         }
     }
+
+
+    println("ASSEMBLY")
+
+    val lines = buildToAssembly(result)
+
+    lines.forEach { println(it) }
+
+    val output = writeToFileAndRun(lines)
+    println("OUTPUT")
+    println(output)
+
+
 }

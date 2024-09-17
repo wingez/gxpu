@@ -355,7 +355,7 @@ class WalkerState(
     /**
     A non-null value represents the next label we should go to
      **/
-    private fun walkInstruction(instruction: Instruction): Pair<ControlFlow, Label?> {
+    private fun walkInstruction(instruction: IRinstruction): Pair<ControlFlow, Label?> {
 
         when (instruction) {
             is Jump -> {

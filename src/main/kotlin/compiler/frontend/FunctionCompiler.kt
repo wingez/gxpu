@@ -12,7 +12,7 @@ class FrontendCompilerError(message: String) : Error(message)
 
 data class FunctionContent(
     val definition: FunctionDefinition,
-    val instructions: List<Pair<Instruction, List<Label>>>,
+    val instructions: List<Pair<IRinstruction, List<Label>>>,
 ) {
     val hasContent
         get() =
@@ -25,13 +25,13 @@ private class CodeBlock(
 ) {
 
     data class Content(
-        val instruction: Instruction? = null,
+        val instruction: IRinstruction? = null,
         val codeBlock: CodeBlock? = null,
     )
 
     val contents = mutableListOf<Content>()
 
-    fun addInstruction(instruction: Instruction) {
+    fun addInstruction(instruction: IRinstruction) {
         contents.add(Content(instruction = instruction))
     }
 
@@ -693,7 +693,7 @@ class FunctionCompiler(
 private fun flattenCodeBlock(definition: FunctionDefinition, codeBlock: CodeBlock): FunctionContent {
 
     val labels = mutableMapOf<Label, Int>()
-    val instructions = mutableListOf<Instruction>()
+    val instructions = mutableListOf<IRinstruction>()
 
 
     fun placeCodeBlockRecursive(block: CodeBlock) {

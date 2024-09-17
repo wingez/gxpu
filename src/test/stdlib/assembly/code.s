@@ -34,15 +34,15 @@
 # -msse -msse2 -mstv -mtls-direct-seg-refs -mvzeroupper
 
 	.text
-	.globl	gustavprint
-	.type	gustavprint, @function
-gustavprint:
+	.globl	print
+	.type	print, @function
+print:
 	endbr64	
 	pushq	%rbp	#
 	movq	%rsp, %rbp	#,
 	subq	$32, %rsp	#,
 	movl	%edi, -20(%rbp)	# i, i
-# code.c:6: void gustavprint(int i){
+# code.c:6: void print(int i){
 	movq	%fs:40, %rax	# MEM[(<address-space-1> long unsigned int *)40B], tmp87
 	movq	%rax, -8(%rbp)	# tmp87, D.2595
 	xorl	%eax, %eax	# tmp87
@@ -68,7 +68,7 @@ gustavprint:
 .L2:
 	leave	
 	ret	
-	.size	gustavprint, .-gustavprint
+	.size	print, .-print
 0:
 	.string	 "GNU"
 1:

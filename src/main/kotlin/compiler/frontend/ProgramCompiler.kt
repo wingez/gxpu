@@ -5,7 +5,6 @@ import ast.AstParser
 import ast.NodeTypes
 import compiler.BuiltInSourceFile
 import compiler.Filename
-import compiler.backends.astwalker.Template
 import tokens.Token
 import tokens.TokenType
 import tokens.parseFile
@@ -107,7 +106,7 @@ class ProgramCompiler(
 
         // Create entry function setting up globals and calling main
 
-        val entryCodeContent = mutableListOf<Instruction>()
+        val entryCodeContent = mutableListOf<IRinstruction>()
         var counter = 0
         for (global in globalsInitFunctions) {
             if (global.hasContent) {

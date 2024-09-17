@@ -33,13 +33,13 @@ class Call(val func: FunctionDefinition, val params: List<ValueExpr>) : ValueExp
     }
 }
 
-interface Instruction {
+interface IRinstruction {
     val type: Datatype?
 
     fun debugString(): String
 }
 
-class Return(val value: ValueExpr) : Instruction {
+class Return(val value: ValueExpr) : IRinstruction {
     override val type = null
 
     override fun debugString(): String {
@@ -47,14 +47,14 @@ class Return(val value: ValueExpr) : Instruction {
     }
 }
 
-class ReturnNothing : Instruction {
+class ReturnNothing : IRinstruction {
     override val type = null
     override fun debugString(): String {
         return "RETURN NULL"
     }
 }
 
-class TempValue(val name: String, val value: ValueExpr) : Instruction {
+class TempValue(val name: String, val value: ValueExpr) : IRinstruction {
     override val type: Datatype
         get() = value.type
 
@@ -73,7 +73,7 @@ enum class ComparisonType {
     NotEquals
 }
 
-class Comparison(val comparison: ComparisonType, val left: ValueExpr, val right: ValueExpr) : Instruction {
+class Comparison(val comparison: ComparisonType, val left: ValueExpr, val right: ValueExpr) : IRinstruction {
 
     override val type = Primitives.Boolean
     override fun debugString(): String {
@@ -82,7 +82,7 @@ class Comparison(val comparison: ComparisonType, val left: ValueExpr, val right:
 }
 
 
-class Store(val value: ValueExpr, val destination: ValueExpr) : Instruction {
+class Store(val value: ValueExpr, val destination: ValueExpr) : IRinstruction {
     override val type = null
     override fun debugString(): String {
         return "STORE ${value.debugString()} IN ${destination.debugString()}"
@@ -146,7 +146,7 @@ class GetElementPtr(val value: ValueExpr, val index: ValueExpr) : ValueExpr {
 
 class Jump(
     val label: Label
-) : Instruction {
+) : IRinstruction {
     override val type = null
     override fun debugString(): String {
         return "JMP $label"
@@ -155,7 +155,7 @@ class Jump(
 
 class JumpOnTrue(
     val condition: ValueExpr, val label: Label
-) : Instruction {
+) : IRinstruction {
     override val type = null
     override fun debugString(): String {
         return "JMP TRUE ${condition.debugString()} $label"
@@ -164,7 +164,7 @@ class JumpOnTrue(
 
 class JumpOnFalse(
     val condition: ValueExpr, val label: Label
-) : Instruction {
+) : IRinstruction {
     override val type = null
     override fun debugString(): String {
         return "JMP FALSE ${condition.debugString()} $label"
