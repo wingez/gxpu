@@ -39,19 +39,6 @@ fun writeToFileAndRun(lines: List<String>): String {
 }
 
 
-class MachineCodeRunner(
-) : BackendCompiler {
-    override fun buildAndRun(intermediateProgram: CompiledIntermediateProgram): List<String> {
-
-        val lines = buildToAssembly(intermediateProgram)
-
-        val result = writeToFileAndRun(lines)
-
-        return listOf(result)
-
-    }
-}
-
 private fun runCommand(command: List<String>, location: Path): String {
     return runCatching {
         ProcessBuilder(command)
@@ -62,4 +49,22 @@ private fun runCommand(command: List<String>, location: Path): String {
             .inputStream.bufferedReader().readText()
     }.onFailure { it.printStackTrace() }.getOrThrow()
 
+}
+
+
+class MachineCodeRunner(
+) : BackendCompiler {
+    override fun buildAndRun(intermediateProgram: CompiledIntermediateProgram): List<String> {
+
+        val lines = buildToAssembly(intermediateProgram)
+
+        val result = writeToFileAndRun(lines)
+
+        val resultLines = result.split("\n")
+            .filter { it.isNotBlank() }
+
+
+        return resultLines
+
+    }
 }
