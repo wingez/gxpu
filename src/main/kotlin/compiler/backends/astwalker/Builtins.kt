@@ -26,61 +26,29 @@ class BuiltInPrintInteger : Function(
     }
 }
 
-//class BuiltInPrintString : Function(
-//    BuiltInSignatures.printString,
-//) {
-//    override fun execute(values: List<Int>, state: WalkerState): Int {
-//
-//        val arrayView = values[0].asPrimitive.pointer
-//
-//        val chars = mutableListOf<Char>()
-//
-//        for (i in 0 until arrayView.arraySize()) {
-//            chars.add(arrayView.arrayRead(i).getPrimitiveValue().integer.toChar())
-//        }
-//
-//        state.output.result.add(chars.joinToString(""))
-//        return Value.nothing
-//    }
-//}
+class BuiltInPrintString : Function(
+    BuiltInSignatures.printString,
+) {
+    override fun execute(values: List<Value>, state: WalkerState): Value {
 
-//class BuiltInArraySize : Function(
-//    BuiltInSignatures.arraySize,
-//) {
-//    override fun execute(values: List<Value>, state: WalkerState): Value {
-//        val arrayView = values[0].asPrimitive.pointer
-//        return Value.primitive(Primitives.Integer, arrayView.arraySize())
-//    }
-//}
+        val arrayPointer = values[0].pointer!!
 
-//class BuiltInArrayRead : Function(
-//    BuiltInSignatures.arrayRead
-//) {
-//    override fun execute(values: List<Value>, state: WalkerState): Value {
-//        val arrayView = values[0].asPrimitive.pointer
-//        val index = values[1].primitive
-//
-//        val arraySize = arrayView.arraySize()
-//        if (index !in 0 until arraySize) {
-//            throw WalkerException("trying to read at index $index which is outside array bounds($arraySize)")
-//        }
-//
-//        return arrayView.arrayRead(index).getValue()
-//    }
-//}
+        val size = arrayPointer.readField("size").pointer!!.getDeref().primitive
 
-//class BuiltInArrayWrite : Function(
-//    BuiltInSignatures.arrayWrite
-//) {
-//    override fun execute(values: List<Value>, state: WalkerState): Value {
-//
-//        val arrayView = values[0].asPrimitive.pointer
-//        val index = values[1].primitive
-//
-//        arrayView.arrayRead(index).applyValue(values[2])
-//        return Value.nothing
-//    }
-//}
+        val rawArray = arrayPointer.readField("array").pointer!!
+
+
+        val chars = mutableListOf<Char>()
+
+        for (i in 0 until size) {
+            chars.add(rawArray.arrayIndex(i).pointer!!.getDeref().primitive.toChar())
+        }
+
+        state.output.result.add(chars.joinToString(""))
+        return Value.nothing
+    }
+}
+
 
 class IntegerComparator(
     functionName: String,
@@ -129,22 +97,12 @@ class IntegerArithmetic(
     }
 }
 
-
-//class BuiltInCreateArray : Function(
-//    BuiltInSignatures.createArray
-//) {
-//    override fun execute(values: List<Value>, state: WalkerState): Value {
-//        val size = values[0].primitive
-//        return createArray(Primitives.Integer, size)
-//    }
-//}
-
 class BoolConverter : Function(
     BuiltInSignatures.bool
 ) {
     override fun execute(values: List<Value>, state: WalkerState): Value {
-         if (values[0].primitive == 0)
-             return Value(Primitives.Boolean, primitive = 0)
+        if (values[0].primitive == 0)
+            return Value(Primitives.Boolean, primitive = 0)
         return Value(Primitives.Boolean, primitive = 1)
     }
 }
@@ -176,10 +134,7 @@ class Run : Function(
 
 val builtInList = listOf(
     BuiltInPrintInteger(),
-//    BuiltInPrintString(),
-//    BuiltInArraySize(),
-//    BuiltInArrayRead(),
-//    BuiltInArrayWrite(),
+    BuiltInPrintString(),
 
     IntegerArithmetic(OperatorBuiltIns.Addition, FunctionType.Operator) { val1, val2 -> val1 + val2 },
     IntegerArithmetic(OperatorBuiltIns.Subtraction, FunctionType.Operator) { val1, val2 -> val1 - val2 },
@@ -191,8 +146,6 @@ val builtInList = listOf(
     IntegerComparator(OperatorBuiltIns.LessThan) { val1, val2 -> val1 < val2 },
     IntegerComparator(OperatorBuiltIns.GreaterThan) { val1, val2 -> val1 > val2 },
     BoolConverter(),
-
-//    BuiltInCreateArray(),
 
     Run(),
 )

@@ -11,7 +11,8 @@ def array_slice(arr:*int[], from:int, to:int):*int[]
 def format_int(value:int):*int[]
 
   if value ==0:
-    result = "0"
+    result = createArray(1)
+    result[0] = 48
     return
 
 
@@ -20,9 +21,11 @@ def format_int(value:int):*int[]
 
   result = createArray(max_size)
 
-  while bool(value):
-    result[max_size-1-result_size] = 48+ mod(value,10)
-    value = idiv(value,10)
+  val temp = value
+
+  while bool(temp):
+    result[max_size-1-result_size] = 48+ mod(temp,10)
+    temp = idiv(temp,10)
     result_size = result_size +1
 
 

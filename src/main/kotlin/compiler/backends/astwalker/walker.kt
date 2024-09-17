@@ -288,36 +288,7 @@ class WalkerState(
         return function.execute(parameters, this)
     }
 
-//    fun setVariable(variableType: VariableType, name: String, value: Value) {
-//        getVariableView(variableType, name).applyValue(value)
-//    }
-
-
-//    fun getVariableView(variableType: VariableType, name: String): ValueHolder.View {
-//        return when (variableType) {
-//            VariableType.Local -> {
-//                currentFrame.localVariableHolder.viewEntire().viewField(name)
-//
-//            }
-//
-//            VariableType.Global -> {
-//                globalVariables.viewEntire().viewField(name)
-//            }
-//
-//            else -> TODO()
-//        }
-//    }
-
-//    fun getVariable(variableType: VariableType, name: String): Value {
-//        return getVariableView(variableType, name).getValue()
-//    }
-
     fun walkUserFunction(userFunction: UserFunction, parameters: List<Value>): Value {
-
-//        val localVariables = symbolTable.getVariablesForFunction(userFunction.definition)
-
-//        val fields = CompositeDatatype("fields", localVariables.map { CompositeDataTypeField(it.name, it.datatype) })
-
 
         // Push new frame
         frameStack.add(WalkFrame(createTemplate(userFunction.functionContent)))
@@ -432,50 +403,6 @@ class WalkerState(
             return ControlFlow.Normal to null
         }
     }
-//
-//    private fun handleAssign(instr: Assign) {
-//
-//        val valueToAssign = getValueOf(instr.value)
-//        val holderToAssignTo = getValueView(instr.target)
-//
-//        if (valueToAssign.datatype != holderToAssignTo.datatype) {
-//            throw WalkerException("Type mismatch. Expected ${holderToAssignTo.datatype}, got ${valueToAssign.datatype}")
-//        }
-//
-//        holderToAssignTo.applyValue(valueToAssign)
-//    }
-
-
-    //    fun handleCall(callExpression: CallExpression): Value {
-//
-//        val arguments = callExpression.parameters
-//            .map { getValueOf(it) }
-//
-//        val function = getFunctionFromSignature(callExpression.function)
-//
-//        return call(function, arguments)
-//    }
-//
-//    fun getValueView(addressExpression: AddressExpression): ValueHolder.View {
-//
-//        return when (addressExpression) {
-//            is VariableExpression -> {
-//                return getVariableView(addressExpression.variable.variableType, addressExpression.variable.name)
-//            }
-//
-//            is DerefToAddress -> {
-//                getValueOf(addressExpression.value).asPrimitive.pointer
-//            }
-//
-//            is AddressMemberAccess -> {
-//                val existing = getValueView(addressExpression.of)
-//                return existing.viewField(addressExpression.memberName)
-//            }
-//
-//            else -> TODO(addressExpression.toString())
-//        }
-//    }
-//
 
     private fun getValueOf(value: ValueExpr): Value {
 
@@ -524,31 +451,6 @@ class WalkerState(
 
                 return pointer.arrayIndex(index.primitive)
             }
-
-//            is CallExpression -> handleCall(valueExpression)
-//            is VariableExpression -> getVariable(valueExpression.variable.variableType, valueExpression.variable.name)
-//            is StringExpression -> createFromString(valueExpression.string)
-//
-//            is AddressOf -> {
-//                val compositeHolder = getValueView(valueExpression.value)
-//                Value.pointer(compositeHolder)
-//            }
-//
-//            is DerefToValue -> {
-//                getValueView(valueExpression.value).getPrimitiveValue().pointer.getValue()
-//            }
-//
-//            is ValueMemberAccess -> {
-//                val existing = getValueOf(valueExpression.of)
-//                existing.getField(valueExpression.memberName)
-//            }
-//
-//            is FunctionReference -> {
-//                val index =
-//                    availableFunctions.withIndex().find { it.value.definition == valueExpression.function }?.index
-//                require(index != null)
-//                Value.primitive(valueExpression.type, index)
-//            }
 
             else -> TODO(value.toString())
         }
