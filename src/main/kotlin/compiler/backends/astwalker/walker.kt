@@ -63,7 +63,7 @@ private fun createTemplate(functionContent: FunctionContent): Template {
     val list = mutableListOf<Pair<String, Datatype>>()
     list.addAll(functionContent.definition.parameters)
 
-    for (instr in functionContent.instructions) {
+    for ((instr, _) in functionContent.instructions) {
         if (instr !is TempValue) {
             continue
         }
@@ -316,13 +316,21 @@ class WalkerState(
                 throw WalkerException("Missing return??")
             }
 
-            val toExecute = code.instructions[currentInstructionIndex]
+            val toExecute = code.instructions[currentInstructionIndex].first
             val (controlFlow, jumpLabel) = walkInstruction(toExecute)
 
             when (controlFlow) {
                 ControlFlow.Normal -> currentInstructionIndex++
                 ControlFlow.Jump -> {
-                    currentInstructionIndex = code.labels.getValue(jumpLabel!!)
+                    var found = false
+                    for ((index, instr) in code.instructions.withIndex()) {
+                        if (jumpLabel!! in instr.second) {
+                            currentInstructionIndex = index
+                            found = true
+                            break
+                        }
+                    }
+                    require(found)
                 }
 
                 ControlFlow.Return -> break

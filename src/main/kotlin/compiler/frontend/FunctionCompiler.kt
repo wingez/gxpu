@@ -12,13 +12,12 @@ class FrontendCompilerError(message: String) : Error(message)
 
 data class FunctionContent(
     val definition: FunctionDefinition,
-    val instructions: List<Instruction>,
-    val labels: Map<Label, Int>,
+    val instructions: List<Pair<Instruction, List<Label>>>,
 ) {
     val hasContent
         get() =
             // Check if instructions are empty or only contains a return statement
-            instructions.any { it !is Return && it !is ReturnNothing }// every function  has an implicit return. Ignore that
+            instructions.any { it.first !is Return && it.first !is ReturnNothing }// every function  has an implicit return. Ignore that
 }
 
 private class CodeBlock(
@@ -495,10 +494,9 @@ class FunctionCompiler(
         val destination = getDynamicAddress(assign.target, currentCodeBlock)
 
 
-        val value = nextTempValue(parseValueExpression(assign.value, currentCodeBlock))
+        val value = parseValueExpression(assign.value, currentCodeBlock)
 
-        currentCodeBlock.addInstruction(value)
-        currentCodeBlock.addInstruction(Store(value.referTo(), destination))
+        currentCodeBlock.addInstruction(Store(value, destination))
 
 //        if (targetVariable.variableType == VariableType.Local) {
 //            currentCodeBlock.addInstruction(TempValue(placeCallResultIn, valueIsIn))
@@ -700,7 +698,7 @@ private fun flattenCodeBlock(definition: FunctionDefinition, codeBlock: CodeBloc
 
     fun placeCodeBlockRecursive(block: CodeBlock) {
 
-        assert(!labels.contains(block.label))
+        require(!labels.contains(block.label))
         labels[block.label] = instructions.size
 
         for (content in block.contents) {
@@ -715,8 +713,21 @@ private fun flattenCodeBlock(definition: FunctionDefinition, codeBlock: CodeBloc
 
     placeCodeBlockRecursive(codeBlock)
 
-    return FunctionContent(definition, instructions, labels)
+    val labelsForIndex = mutableMapOf<Int, MutableList<Label>>()
 
+    for ((label, index) in labels.entries) {
+        if (index !in labelsForIndex) {
+            labelsForIndex[index] = mutableListOf(label)
+        } else {
+            labelsForIndex.getValue(index).add(label)
+        }
+    }
+
+    return FunctionContent(definition,
+        instructions.withIndex().map { (index, instr) ->
+            instr to (labelsForIndex[index] ?: emptyList())
+        }
+    )
 }
 
 

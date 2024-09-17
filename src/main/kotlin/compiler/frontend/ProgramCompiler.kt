@@ -128,7 +128,7 @@ class ProgramCompiler(
                 DefinitionBuilder("entry")
                     .setSourceFile(BuiltInSourceFile)
                     .getDefinition(),
-                entryCodeContent, emptyMap()
+                entryCodeContent.map { it to emptyList() }
             )
             compiledFunctions.add(entryFunction)
         } else {

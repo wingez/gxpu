@@ -24,18 +24,12 @@ fun main(args: Array<String>) {
     for (func in result.functions) {
         println(func.definition)
 
-        for ((index, instr) in func.instructions.withIndex()) {
-            for ((label,labelindex) in func.labels.entries){
-                if (index==labelindex){
-                    println(label)
-                }
+        for ((instr, labels) in func.instructions) {
+            for (label in labels) {
+                println(label)
             }
 
             println(instr.debugString())
         }
-
-
     }
-
-
 }
