@@ -1,9 +1,5 @@
 package compiler.frontend
 
-import ast.StaticBase
-import ast.TypeDefinition
-import ast.TypeDefinitionModifier
-
 interface Datatype {
     val name: String
 }
@@ -43,7 +39,7 @@ data class PointerDatatype(
     override fun toString(): String = name
 }
 
-data class ArrayDatatype(
+data class RawArrayDatatype(
     val arrayType: Datatype
 ) : Datatype {
     override val name: String
@@ -87,7 +83,13 @@ data class CompositeDatatype(
 }
 
 fun Datatype.arrayOf(): Datatype {
-    return ArrayDatatype(this)
+    return CompositeDatatype(
+        "array",
+        listOf(
+            CompositeDataTypeField("size", Primitives.Integer),
+            CompositeDataTypeField("array", RawArrayDatatype(this))
+        )
+    )
 }
 
 fun Datatype.arrayPointerOf(): PointerDatatype {

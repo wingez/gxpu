@@ -61,6 +61,10 @@ class TempValue(val name: String, val value: ValueExpr) : Instruction {
     override fun debugString(): String {
         return "%$name = ${value.debugString()}"
     }
+
+    fun referTo(): ValueExpr {
+        return LocalValueRef(name, type)
+    }
 }
 
 
@@ -99,7 +103,15 @@ class AllocStack(val allocType: Datatype) : ValueExpr {
     }
 }
 
-class GetElementPtr(val value: ValueExpr, val memberName: String) : ValueExpr {
+class AllocStackArray(val arrayType: Datatype, val size: ValueExpr) : ValueExpr {
+    override val type = arrayType.arrayPointerOf()
+
+    override fun debugString(): String {
+        return "ALLOC STACK ARRAY $arrayType [${size.debugString()}]"
+    }
+}
+
+class GetMemberPtr(val value: ValueExpr, val memberName: String) : ValueExpr {
     override val type: Datatype
         get() {
             val baseType = value.type
@@ -109,7 +121,25 @@ class GetElementPtr(val value: ValueExpr, val memberName: String) : ValueExpr {
         }
 
     override fun debugString(): String {
-        return "GetElementPtr ${value.debugString()} $memberName"
+        return "GetMemberPtr ${value.debugString()} .$memberName"
+    }
+}
+
+class GetElementPtr(val value: ValueExpr, val index: ValueExpr) : ValueExpr {
+    init {
+        require(index.type == Primitives.Integer)
+    }
+
+    override val type: Datatype
+        get() {
+            val baseType = value.type
+            require(baseType is PointerDatatype)
+            require(baseType.pointerType is RawArrayDatatype)
+            return baseType.pointerType.arrayType.pointerOf()
+        }
+
+    override fun debugString(): String {
+        return "GetElementPtr ${value.debugString()} [${index.debugString()}]"
     }
 }
 

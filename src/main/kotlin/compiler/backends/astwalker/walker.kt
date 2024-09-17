@@ -132,6 +132,20 @@ class WalkFrame(private val template: Template) {
         return Value(pointer.type, pointer = pointer)
     }
 
+    fun stackDynamicArrayAlloc(arrayType: Datatype, arraySize: Int): Value {
+        val size = sizeOf(Primitives.Integer) + sizeOf(arrayType) * arraySize
+
+
+        if (stackposition + size >= totalStackSize) {
+            throw WalkerException("Out of stack size")
+        }
+        val pos = stackposition
+        stackposition += size
+
+        val pointer = Pointer(arrayType.arrayPointerOf(), this, pos)
+        return Value(pointer.type, pointer = pointer)
+    }
+
 
     class Pointer(val type: PointerDatatype, private val frame: WalkFrame, private val offset: Int) {
         fun getDeref(): Value {
@@ -184,6 +198,18 @@ class WalkFrame(private val template: Template) {
             val memberOffset = fieldOffset(compositeDatatype, memberName)
 
             val newPointer = Pointer(compositeDatatype.fieldType(memberName).pointerOf(), frame, offset + memberOffset)
+            return Value(newPointer.type, pointer = newPointer)
+        }
+
+        fun arrayIndex(index: Int): Value {
+
+            val rawArrayType = type.pointerType
+            require(rawArrayType is RawArrayDatatype)
+
+            val arrayElementType = rawArrayType.arrayType
+            val elementOffset = sizeOf(arrayElementType) * index
+
+            val newPointer = Pointer(arrayElementType.pointerOf(), frame, offset + elementOffset)
             return Value(newPointer.type, pointer = newPointer)
         }
     }
@@ -475,15 +501,30 @@ class WalkerState(
                 return pointer
             }
 
-            is GetElementPtr -> {
+            is AllocStackArray -> {
+                val arraySize = getValueOf(value.size)
+                require(arraySize.type == Primitives.Integer)
+
+                return currentFrame.stackDynamicArrayAlloc(value.arrayType, arraySize.primitive)
+            }
+
+            is GetMemberPtr -> {
                 val pointer = getValueOf(value.value)
 
                 val newPointer = pointer.pointer!!.readField(value.memberName)
 
                 return newPointer
-
-
             }
+
+            is GetElementPtr -> {
+                val pointer = getValueOf(value.value).pointer!!
+
+                val index = getValueOf(value.index)
+                require(index.type == Primitives.Integer)
+
+                return pointer.arrayIndex(index.primitive)
+            }
+
 //            is CallExpression -> handleCall(valueExpression)
 //            is VariableExpression -> getVariable(valueExpression.variable.variableType, valueExpression.variable.name)
 //            is StringExpression -> createFromString(valueExpression.string)
@@ -513,22 +554,3 @@ class WalkerState(
         }
     }
 }
-
-//fun createArray(type: Datatype, size: Int): ValueExpr = createArray(type, size) { 0 }
-//fun createArray(type: Datatype, size: Int, init: (Int) -> Int): ValueExpr {
-//
-//    val arrayType = type.arrayOf()
-//
-//    val holder = ValueHolder(arrayType, size)
-//
-//    for (i in 0 until size) {
-//        holder.primitives[i] = PrimitiveValue.integer(init.invoke(i))
-//    }
-//
-//    return ValueExpr.pointer(holder.viewEntire())
-//}
-
-//fun createFromString(string: String): ValueExpr {
-//    return createArray(Primitives.Integer, string.length) { i -> string[i].code }
-//}
-

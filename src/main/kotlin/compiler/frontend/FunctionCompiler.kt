@@ -1,8 +1,7 @@
 package compiler.frontend
 
 import ast.*
-import requireNotReached
-import kotlin.math.exp
+import compiler.BuiltInSignatures
 
 const val RETURN_VALUE_NAME = "result"
 
@@ -132,7 +131,7 @@ class FunctionCompiler(
         val mainCodeBlock = CodeBlock(functionEntryLabel)
 
         for (param in symbolTable.getVariablesForFunction(definition)) {
-            if (param.variableType == VariableType.Local){
+            if (param.variableType == VariableType.Local) {
                 mainCodeBlock.addInstruction(TempValue(param.name, AllocStack(param.datatype)))
             }
         }
@@ -165,9 +164,8 @@ class FunctionCompiler(
         when (node.type) {
 
             NodeTypes.NewVariable -> {
-              //initializeVariable(node, codeBlock)
-                //            NodeTypes.
             }
+
             NodeTypes.Assign -> parseAssign(node, codeBlock)
             NodeTypes.If -> parseIf(node, codeBlock, loopContext)
             NodeTypes.While -> parseWhile(node, codeBlock)
@@ -203,20 +201,6 @@ class FunctionCompiler(
             )
         }
         addReturn(codeBlock)
-    }
-
-    private fun initializeVariable(node: AstNode, currentCodeBlock: CodeBlock) {
-        assert(node.type == NodeTypes.NewVariable)
-
-        val variableName = node.asNewVariable().name
-        val variable = symbolTable.findScopedVariable(variableName, definition, imports)
-        requireNotNull(variable)
-
-        if (variable.datatype is PointerDatatype && variable.datatype.pointerType is CompositeDatatype) {
-
-            assignToTempValue(variableName, AllocStack(variable.datatype.pointerType), currentCodeBlock)
-
-        }
     }
 
     private fun addReturn(codeBlock: CodeBlock) {
@@ -268,9 +252,31 @@ class FunctionCompiler(
                     throw FrontendCompilerError("Type $type contains no field \"$name\"")
                 }
 
-                val tempValue = nextTempValue()
-                currentCodeBlock.addInstruction(TempValue(tempValue, GetElementPtr(baseMember, name)))
-                LocalValueRef(tempValue, type.pointerType.fieldType(name).pointerOf())
+                val memberPtr = nextTempValue(GetMemberPtr(baseMember, name))
+
+                currentCodeBlock.addInstruction(memberPtr)
+                memberPtr.referTo()
+            }
+
+            NodeTypes.ArrayAccess -> {
+
+                val arrayPointer = parseValueExpression(node.asArrayAccess().parent, currentCodeBlock)
+                val index = parseValueExpression(node.asArrayAccess().index, currentCodeBlock)
+
+
+                val arrayPointerType = arrayPointer.type
+                require(arrayPointerType is PointerDatatype)
+                require(index.type == Primitives.Integer)
+
+                require(arrayPointerType.pointerType is CompositeDatatype)
+
+                val rawArrayPointer = nextTempValue(GetMemberPtr(arrayPointer, "array"))
+                currentCodeBlock.addInstruction(rawArrayPointer)
+
+                val indexPtr = nextTempValue(GetElementPtr(rawArrayPointer.referTo(), index))
+                currentCodeBlock.addInstruction(indexPtr)
+
+                return indexPtr.referTo()
             }
 
             //NodeTypes.String -> StringExpression(node.asString())
@@ -329,24 +335,11 @@ class FunctionCompiler(
         val recievedType = value.type
         require(recievedType is PointerDatatype && recievedType.pointerType == expectedType)
 
-        val whereToPut = nextTempValue()
-        currentCodeBlock.addInstruction(TempValue(whereToPut, Load(value)))
+        val load = nextTempValue(Load(value))
+        currentCodeBlock.addInstruction(load)
 
-        return LocalValueRef(whereToPut, expectedType)
+        return load.referTo()
     }
-
-//    private fun parseMemberAccess(node: AstNode): ValueExpression {
-//        val value = parseValueExpression(node.childNodes.first())
-//        val memberName = node.asIdentifier()
-//
-//        val type = value.type
-//
-//        if (!(type is CompositeDatatype && type.containsField(memberName))) {
-//            throw FrontendCompilerError("Type ${value.type} has no field $memberName")
-//        }
-//
-//        return ValueMemberAccess(value, memberName)
-//    }
 
     private fun findTypeOfExpression(
         node: AstNode,
@@ -371,19 +364,30 @@ class FunctionCompiler(
             }
 
             NodeTypes.MemberAccess -> {
-                val baseType = findTypeOfExpression(node.child)
-                when (baseType) {
-                    is PointerDatatype -> {
-                        require(baseType.pointerType is CompositeDatatype)
-                        baseType.pointerType.fieldType(node.data as String)
-                    }
+                var baseType = findTypeOfExpression(node.child)
 
-                    is CompositeDatatype -> {
-                        baseType.fieldType(node.data as String)
-                    }
-
-                    else -> TODO()
+                if (baseType is PointerDatatype) {
+                    baseType = baseType.pointerType
                 }
+
+                require(baseType is CompositeDatatype)
+
+                baseType.fieldType(node.data as String)
+            }
+
+            NodeTypes.ArrayAccess -> {
+                val arrayAccess = node.asArrayAccess()
+                var baseType = findTypeOfExpression(arrayAccess.parent)
+
+                if (baseType is PointerDatatype) {
+                    baseType = baseType.pointerType
+                }
+
+                require(baseType is CompositeDatatype)
+                baseType = baseType.fieldType("array")
+                require(baseType is RawArrayDatatype)
+
+                baseType.arrayType
             }
 
             else -> TODO(node.type.toString())
@@ -480,13 +484,6 @@ class FunctionCompiler(
 
     }
 
-    private fun assignToTempValue(destination: String, valueExpr: ValueExpr, currentCodeBlock: CodeBlock) {
-
-        currentCodeBlock.addInstruction(TempValue(destination, valueExpr))
-
-
-    }
-
 
     private fun parseAssign(
         node: AstNode,
@@ -498,19 +495,10 @@ class FunctionCompiler(
         val destination = getDynamicAddress(assign.target, currentCodeBlock)
 
 
-        val valueTempVariable = nextTempValue()
+        val value = nextTempValue(parseValueExpression(assign.value, currentCodeBlock))
 
-
-        val value = parseValueExpression(assign.value, currentCodeBlock)
-
-        currentCodeBlock.addInstruction(TempValue(valueTempVariable, value))
-
-        currentCodeBlock.addInstruction(
-            Store(
-                LocalValueRef(valueTempVariable, value.type),
-                destination
-            )
-        )
+        currentCodeBlock.addInstruction(value)
+        currentCodeBlock.addInstruction(Store(value.referTo(), destination))
 
 //        if (targetVariable.variableType == VariableType.Local) {
 //            currentCodeBlock.addInstruction(TempValue(placeCallResultIn, valueIsIn))
@@ -549,42 +537,18 @@ class FunctionCompiler(
 
 
     private fun getDynamicAddress(targetNode: AstNode, currentCodeBlock: CodeBlock): ValueExpr {
+        val allowedNodes = listOf(NodeTypes.Identifier, NodeTypes.MemberAccess, NodeTypes.ArrayAccess)
 
-        return when (targetNode.type) {
-            NodeTypes.Identifier -> {
-                val targetVariableName = targetNode.asIdentifier()
-                val targetVariable = symbolTable.findScopedVariable(targetVariableName, definition, imports)!!
-
-                when (targetVariable.variableType) {
-                    VariableType.Global -> GlobalValueRef(targetVariableName, targetVariable.datatype.pointerOf())
-                    VariableType.Local -> LocalValueRef(targetVariableName, targetVariable.datatype.pointerOf())
-                    VariableType.LocalParameter -> requireNotReached()
-                }
-
-            }
-
-            NodeTypes.MemberAccess -> {
-                val baseMember = getDynamicAddress(targetNode.child, currentCodeBlock)
-
-                val name = targetNode.data as String
-                val type = baseMember.type
-                require(type is PointerDatatype)
-                if (!(type.pointerType is CompositeDatatype && type.pointerType.containsField(name))) {
-                    throw FrontendCompilerError("Type $type contains no field \"$name\"")
-                }
-
-                val tempValue = nextTempValue()
-                currentCodeBlock.addInstruction(TempValue(tempValue, GetElementPtr(baseMember, name)))
-                LocalValueRef(tempValue, type.pointerType.fieldType(name).pointerOf())
-            }
-
-            else -> TODO(targetNode.type.toString())
+        if (targetNode.type in allowedNodes) {
+            return parseValueRecursive(targetNode, currentCodeBlock)
         }
 
+        throw FrontendCompilerError("Cannot parse node of type ${targetNode.type} to address")
     }
 
-    private fun nextTempValue(): String {
-        return (tempBlockCounter++).toString()
+    private fun nextTempValue(value: ValueExpr): TempValue {
+        val name = (tempBlockCounter++).toString()
+        return TempValue(name, value)
     }
 
     private fun handleCall(
@@ -592,6 +556,7 @@ class FunctionCompiler(
         currentCodeBlock: CodeBlock,
     ): ValueExpr {
         assert(callNode.type == NodeTypes.Call)
+
 
         val callInfo = callNode.asCall()
 
@@ -602,14 +567,48 @@ class FunctionCompiler(
         val function =
             symbolTable.getFunctionDefinitionMatching(callInfo.targetName, callInfo.functionType, parameterTypes)
 
-        val tempValue = nextTempValue()
+        if (function == BuiltInSignatures.createArray) {
+            return createArray(Primitives.Integer, parameters.first(), currentCodeBlock)
+        }
+        if (function == BuiltInSignatures.arraySize) {
+            return getArraySize(parameters.first(), currentCodeBlock)
+        }
+
 
         val call = Call(function, parameters)
 
-        currentCodeBlock.addInstruction(TempValue(tempValue,call))
+        val result = nextTempValue(call)
 
+        currentCodeBlock.addInstruction(result)
 
-        return LocalValueRef(tempValue,call.type )
+        return result.referTo()
+    }
+
+    private fun createArray(type: Datatype, size: ValueExpr, currentCodeBlock: CodeBlock): ValueExpr {
+
+        //Create the array
+        val arrayPointer = nextTempValue(AllocStackArray(type, size))
+        currentCodeBlock.addInstruction(arrayPointer)
+
+        //Pointer to size
+        val arraySizePointer = nextTempValue(GetMemberPtr(arrayPointer.referTo(), "size"))
+        currentCodeBlock.addInstruction(arraySizePointer)
+        currentCodeBlock.addInstruction(Store(size, arraySizePointer.referTo()))
+
+        return arrayPointer.referTo()
+    }
+
+    private fun getArraySize(array: ValueExpr, currentCodeBlock: CodeBlock): ValueExpr {
+
+        val arrayPointerType = array.type
+
+        require(arrayPointerType is PointerDatatype)
+        require(arrayPointerType.pointerType is CompositeDatatype)
+
+        val sizePointer = nextTempValue(GetMemberPtr(array, "size"))
+        currentCodeBlock.addInstruction(sizePointer)
+
+        return sizePointer.referTo()
     }
 
 
@@ -673,6 +672,7 @@ class FunctionCompiler(
             VariableType.Local -> {
                 LocalValueRef(variable.name, variable.datatype.pointerOf())
             }
+
             VariableType.LocalParameter -> {
                 LocalValueRef(variable.name, variable.datatype)
             }

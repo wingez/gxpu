@@ -8,7 +8,6 @@ import compiler.backends.astwalker.WalkerException
 import compiler.frontend.FrontendCompilerError
 import org.junit.jupiter.api.Disabled
 
-@Disabled
 class Array {
 
     @ParameterizedTest
@@ -107,9 +106,8 @@ class Array {
 
     @ParameterizedTest
     @EnumSource
+    @Disabled
     fun testArrayReadOutOfBounds(compiler: CompilerBackend) {
-
-//        Assumptions.assumeTrue(compiler != CompilerBackend.Emulator)
 
         val program = """
           def main():

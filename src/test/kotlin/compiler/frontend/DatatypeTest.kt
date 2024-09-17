@@ -33,8 +33,8 @@ class DatatypeTest {
         assertEquals("int", myType.toString())
         assertEquals("int", myType.name)
 
-        assertEquals("array[int]", myType.arrayOf().toString())
-        assertEquals("array[int]", myType.arrayOf().name)
+        assertEquals("array{size:int, array:array[int]}", myType.arrayOf().toString())
+        assertEquals("array", myType.arrayOf().name)
 
         assertEquals("pointer[int]", myType.pointerOf().toString())
         assertEquals("pointer[int]", myType.pointerOf().name)
