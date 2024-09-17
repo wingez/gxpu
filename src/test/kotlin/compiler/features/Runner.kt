@@ -2,15 +2,14 @@ package compiler.features
 
 import SourceProvider
 import compiler.BackendCompiler
-import compiler.BuiltInSignatures
 import compiler.backends.astwalker.WalkConfig
 import compiler.backends.astwalker.WalkerRunner
+import compiler.backends.machineCode.MachineCodeRunner
 import compiler.builtInSymbolTable
 import compiler.compileAndRunBody
 import compiler.frontend.FileProvider
 import compiler.frontend.FrontendCompilerError
 import compiler.frontend.ProgramCompiler
-import org.junit.jupiter.api.Assumptions
 import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.assertThrows
@@ -26,7 +25,7 @@ import kotlin.test.assertTrue
 
 
 enum class CompilerBackend {
-    //Emulator,
+    MachineCode,
     Walker,
 }
 
@@ -42,6 +41,7 @@ private class Source(val program: String) : SourceProvider {
 private fun getRunner(type: CompilerBackend): BackendCompiler {
     return when (type) {
         CompilerBackend.Walker -> WalkerRunner(WalkConfig(10000))
+        CompilerBackend.MachineCode -> MachineCodeRunner()
     }
 }
 
