@@ -3,8 +3,6 @@ package compiler.frontend
 import ast.*
 import compiler.BuiltInSignatures
 
-const val RETURN_VALUE_NAME = "result"
-
 val functionEntryLabel = Label("function_entry")
 
 class FrontendCompilerError(message: String) : Error(message)
@@ -88,9 +86,15 @@ class FunctionCompiler(
         // Flatten the nested code blocks and place labels
         val codeContent = flattenCodeBlock(definition, functionCodeBlock)
 
+        // Step 5
+        // Assert function ends with a return
+
+        assertEndsWithReturn(codeContent)
+
         // Return
         return lambdas + codeContent
     }
+
 
     private fun extractLambdas(): List<FunctionContent> {
 
@@ -137,7 +141,9 @@ class FunctionCompiler(
 
         flattenStatements(body, mainCodeBlock, loopContext = null)
 
-        addReturn(mainCodeBlock) //TODO: only add return if needed
+        if (definition.returnType==Primitives.Nothing){
+            mainCodeBlock.addInstruction(ReturnNothing())
+        }
 
         return mainCodeBlock
     }
@@ -190,20 +196,24 @@ class FunctionCompiler(
     }
 
     private fun parseReturn(node: AstNode, codeBlock: CodeBlock) {
-        if (node.asReturn().hasValue()) {
-            parseAssign(
-                AstNode.fromAssign(
-                    AstNode.fromIdentifier(RETURN_VALUE_NAME, node.sourceInfo),
-                    node.child,
-                    node.sourceInfo
-                ), codeBlock
-            )
-        }
-        addReturn(codeBlock)
-    }
+        val returnNode = node.asReturn()
 
-    private fun addReturn(codeBlock: CodeBlock) {
-        codeBlock.addInstruction(ReturnNothing())
+        val shouldHaveValue = definition.returnType != Primitives.Nothing
+
+        if (shouldHaveValue) {
+            if (!returnNode.hasValue()) {
+                throw FrontendCompilerError("Return missing value")
+            }
+            val returnValue = parseValueExpression(returnNode.value, codeBlock)
+            require(returnValue.type == definition.returnType)
+            codeBlock.addInstruction(Return(returnValue))
+        } else {
+
+            if (returnNode.hasValue()) {
+                throw FrontendCompilerError("Cannot return value")
+            }
+            codeBlock.addInstruction(ReturnNothing())
+        }
     }
 
 //    private fun parseAddressExpression(
@@ -613,18 +623,6 @@ class FunctionCompiler(
     private fun addVariables(
     ) {
 
-        // Result variable
-        if (definition.returnType != Primitives.Nothing) {
-            require(treatNewVariablesAs == VariableType.Local)
-
-            symbolTable.addVariable(
-                treatNewVariablesAs,
-                definition.returnType,
-                RETURN_VALUE_NAME,
-                definition,
-            )
-        }
-
         // Params
         for ((paramName, paramType) in definition.parameters) {
             require(treatNewVariablesAs == VariableType.Local)
@@ -730,4 +728,9 @@ private fun flattenCodeBlock(definition: FunctionDefinition, codeBlock: CodeBloc
     )
 }
 
-
+private fun assertEndsWithReturn(codeContent: FunctionContent) {
+    val lastInstr = codeContent.instructions.last().first
+    if (lastInstr !is Return && lastInstr !is ReturnNothing) {
+        throw FrontendCompilerError("missing return")
+    }
+}

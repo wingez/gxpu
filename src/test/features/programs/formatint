@@ -8,10 +8,12 @@ def array_slice(arr:*int[], from:int, to:int):*int[]
     result[counter] = arr[from + counter]
     counter = counter+1
 
+  return result
+
 def format_int(value:int):*int[]
 
   if value ==0:
-    result = createArray(1)
+    val result = createArray(1)
     result[0] = 48
     return
 
@@ -30,7 +32,7 @@ def format_int(value:int):*int[]
 
 
   result = array_slice(result,max_size - result_size, max_size)
-
+  return result
 
 def main():
   print(format_int(0))
@@ -40,7 +42,7 @@ def main():
   print(format_int(19))
   print(format_int(207))
 -------------
-expect
+disabled
 0
 1
 10

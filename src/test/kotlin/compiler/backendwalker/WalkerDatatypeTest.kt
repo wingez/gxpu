@@ -93,7 +93,7 @@ internal class WalkerDatatypeTest {
         assertEquals("add", OperatorBuiltIns.Addition)
         val program = """
           def add(a:int,b:int):int
-            result = a-b
+            return a-b
           def main():
             print(6+5)
             print(add(6,5))

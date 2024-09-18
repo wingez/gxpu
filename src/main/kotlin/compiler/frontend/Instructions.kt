@@ -43,7 +43,7 @@ class Return(val value: ValueExpr) : IRinstruction {
     override val type = null
 
     override fun debugString(): String {
-        return "RETURN"
+        return "RETURN  ${value.debugString()}"
     }
 }
 

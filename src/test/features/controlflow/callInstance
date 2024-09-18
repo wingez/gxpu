@@ -1,5 +1,5 @@
 def  int.add(b:int):int
-  result = this+b
+  return this+b
 
 def main():
   print(5.add(6))

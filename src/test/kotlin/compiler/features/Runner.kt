@@ -10,6 +10,7 @@ import compiler.compileAndRunBody
 import compiler.frontend.FileProvider
 import compiler.frontend.FrontendCompilerError
 import compiler.frontend.ProgramCompiler
+import org.junit.jupiter.api.Assumptions
 import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.assertThrows
@@ -228,4 +229,10 @@ class Runner {
     fun walker(): List<DynamicTest> {
         return getTestCases(CompilerBackend.Walker)
     }
+
+    @TestFactory
+    fun machineCode(): List<DynamicTest> {
+        return getTestCases(CompilerBackend.MachineCode)
+    }
+
 }

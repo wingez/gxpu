@@ -37,6 +37,8 @@ fun main(args: Array<String>) {
     }
 
 
+//    WalkerRunner(WalkConfig.default).buildAndRun(result)
+
     println("ASSEMBLY")
 
     val lines = buildToAssembly(result)

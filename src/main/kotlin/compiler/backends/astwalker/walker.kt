@@ -306,6 +306,9 @@ class WalkerState(
         var currentInstructionIndex = 0
 
         var totalInstructionsCounter = 0
+
+        var resultValue: Value? = null
+
         while (true) {
             if (totalInstructionsCounter++ > config.maxLoopIterations) {
                 throw WalkerException("Maximum instructions exceeded")
@@ -317,14 +320,14 @@ class WalkerState(
             }
 
             val toExecute = code.instructions[currentInstructionIndex].first
-            val (controlFlow, jumpLabel) = walkInstruction(toExecute)
+            val executionResult = walkInstruction(toExecute)
 
-            when (controlFlow) {
+            when (executionResult.controlFlow) {
                 ControlFlow.Normal -> currentInstructionIndex++
                 ControlFlow.Jump -> {
                     var found = false
                     for ((index, instr) in code.instructions.withIndex()) {
-                        if (jumpLabel!! in instr.second) {
+                        if (executionResult.jumpLabel!! in instr.second) {
                             currentInstructionIndex = index
                             found = true
                             break
@@ -333,33 +336,36 @@ class WalkerState(
                     require(found)
                 }
 
-                ControlFlow.Return -> break
+                ControlFlow.Return -> {
+                    resultValue = executionResult.returnValue
+                    break
+                }
             }
         }
 
-        val result = if (userFunction.definition.returnType == Primitives.Nothing) {
-            Value.nothing
-        } else {
-            val resultPointer = currentFrame.getVariable(RETURN_VALUE_NAME).pointer!!
-            require(resultPointer.type.pointerType == userFunction.definition.returnType)
-
-            resultPointer.getDeref()
-        }
+        requireNotNull(resultValue)
 
         // Pop frame
         frameStack.removeLast()
 
-        return result
+        return resultValue
     }
+
+    private data class InstructionResult(
+        val controlFlow: ControlFlow,
+        val jumpLabel: Label? = null,
+        val returnValue: Value? = null,
+    )
 
     /**
     A non-null value represents the next label we should go to
      **/
-    private fun walkInstruction(instruction: IRinstruction): Pair<ControlFlow, Label?> {
+
+    private fun walkInstruction(instruction: IRinstruction): InstructionResult {
 
         when (instruction) {
             is Jump -> {
-                return ControlFlow.Jump to instruction.label
+                return InstructionResult(ControlFlow.Jump, jumpLabel = instruction.label)
             }
 
             is TempValue -> {
@@ -386,29 +392,35 @@ class WalkerState(
             }
 
             is ReturnNothing -> {
-                return ControlFlow.Return to null
+                return InstructionResult(ControlFlow.Return, returnValue = Value.nothing)
+            }
+
+            is Return -> {
+                val value = getValueOf(instruction.value)
+                return InstructionResult(ControlFlow.Return, returnValue = value)
             }
 
             else -> throw NotImplementedError(instruction.toString())
         }
 
-        return ControlFlow.Normal to null
+        return InstructionResult(ControlFlow.Normal)
     }
 
     private fun jumpHelper(
         condition: ValueExpr,
         jumpOn: Boolean,
         label: Label
-    ): Pair<ControlFlow, Label?> {
+    ): InstructionResult {
         require(condition.type == Primitives.Boolean)
         val value = getValueOf(condition)
         assert(value.type == Primitives.Boolean)
 
         val compareValue = if (jumpOn) 1 else 0
-        if (value.primitive == compareValue) {
-            return ControlFlow.Jump to label
+
+        return if (value.primitive == compareValue) {
+            InstructionResult(ControlFlow.Jump, jumpLabel = label)
         } else {
-            return ControlFlow.Normal to null
+            InstructionResult(ControlFlow.Normal)
         }
     }
 
