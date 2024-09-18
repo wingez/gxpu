@@ -1,12 +1,15 @@
 package compiler.backends.machineCode
 
 import compiler.frontend.*
+import requireNotReached
 
 
 enum class Register {
     RDI, RSI,
     RDX, RCX,
 
+    R8, R9, R10, R11,
+    RAX, RBX,
 }
 
 
@@ -14,14 +17,23 @@ class RegisterData(private val register: Register) : DataItem {
     override fun generateAssembly(): String {
         val label = when (register) {
             Register.RDI -> "edi"
-            else -> TODO()
+            Register.RSI -> "esi"
+            Register.RAX -> "eax"
+            Register.RBX -> "rbx"
+            Register.R8 -> "r8d"
+            Register.R9 -> "r9d"
+            Register.R10 -> "r10d"
+            Register.R11 -> "r11d"
+            else -> TODO(register.toString())
         }
         return "%$label"
     }
 }
 
 private val callRegisterOrder = listOf(Register.RDI, Register.RSI, Register.RDX, Register.RCX)
-    .map { RegisterData(it) }
+
+private val temporaryRegisters = listOf(Register.R8, Register.R9, Register.R10, Register.R11)
+
 
 class Constant(val value: Int) : DataItem {
     override fun generateAssembly(): String {
@@ -95,6 +107,15 @@ private class StackVariable(val offset: Int) : ValueState, DataItem {
     }
 }
 
+private class InRegister(val register: Register) : ValueState, DataItem {
+    override fun debugMsg(): String {
+        return "In register ${register.name}"
+    }
+
+    override fun generateAssembly(): String {
+        return RegisterData(register).generateAssembly()
+    }
+}
 
 class Emitter(val function: FunctionContent) {
 
@@ -104,10 +125,20 @@ class Emitter(val function: FunctionContent) {
 
     private var staticStackSize = 0
 
+    private var numUsedLocalRegisters = 0
+
+
     fun emit(instruction: Instruction) {
         generatedInstructions.add(instruction)
         instruction.generateAssembly()
             .forEach { println(it) }
+    }
+
+    private fun nextTemporaryRegister(): Register {
+        if (numUsedLocalRegisters >= temporaryRegisters.size) {
+            requireNotReached()
+        }
+        return temporaryRegisters[numUsedLocalRegisters++]
     }
 
     private fun setValueState(value: String, state: ValueState) {
@@ -156,33 +187,17 @@ class Emitter(val function: FunctionContent) {
 
                             val destination = callRegisterOrder[index]
 
-                            when (parameter) {
-                                is LocalValueRef -> {
-                                    when (val state = tempValueStates.getValue(parameter.name)) {
-                                        is StackVariable -> {
-                                            emit(MoveInstruction(state, destination))
-                                        }
-
-                                        else -> TODO()
-                                    }
-                                }
-
-                                is IntConstant -> {
-                                    emit(MoveInstruction(Constant(parameter.value), destination))
-                                }
-
-                                else -> TODO()
-                            }
-
+                            moveToRegister(parameter, destination)
                         }
 
                         emit(CallInstruction(call.func))
 
 
-                        //TODO store result if needed
-
+                        //TODO do only if needed
+                        val whereToStore = nextTemporaryRegister()
+                        emit(MoveInstruction(RegisterData(Register.RAX), RegisterData(whereToStore)))
+                        setValueState(tempValue, InRegister(whereToStore))
                     }
-
 
                     else -> TODO()
                 }
@@ -218,13 +233,51 @@ class Emitter(val function: FunctionContent) {
                 emit(ReturnInstruction())
             }
 
+            is Return -> {
+                moveToRegister(instruction.value, Register.RAX)
+                emit(ReturnInstruction())
+            }
+
+            else -> TODO(instruction.toString())
+        }
+    }
+
+    private fun moveToRegister(valueExpr: ValueExpr, register: Register) {
+
+        val destination = RegisterData(register)
+
+        when (valueExpr) {
+            is LocalValueRef -> {
+                when (val state = tempValueStates.getValue(valueExpr.name)) {
+                    is StackVariable -> {
+                        emit(MoveInstruction(state, destination))
+                    }
+
+                    is InRegister -> {
+                        emit(MoveInstruction(state, destination))
+                    }
+
+                    else -> TODO(state.toString())
+                }
+            }
+
+            is IntConstant -> {
+                emit(MoveInstruction(Constant(valueExpr.value), destination))
+            }
+
             else -> TODO()
         }
-
-
     }
 
     fun build(): List<String> {
+
+
+        for ((index, param) in function.definition.parameters.withIndex()) {
+
+            val destination = nextTemporaryRegister()
+            emit(MoveInstruction(RegisterData(callRegisterOrder[index]), RegisterData(destination)))
+            setValueState(param.first, InRegister(destination))
+        }
 
 
         for ((instr, label) in function.instructions) {
