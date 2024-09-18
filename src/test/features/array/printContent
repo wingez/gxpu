@@ -1,0 +1,21 @@
+def printArray(arr:*int[]):
+  val counter=0
+  while (counter) != arr.size():
+    print(arr[counter])
+    counter = counter+1
+
+
+
+def main():
+  val arr:*byte[] = createArray(3)
+  arr[0]=5
+  arr[1]=10
+  arr[2]=15
+
+  printArray(arr)
+
+-------------
+expect
+5
+10
+15

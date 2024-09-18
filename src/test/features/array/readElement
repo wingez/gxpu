@@ -1,0 +1,10 @@
+
+def main():
+  val arr:*int[] = createArray(3)
+
+  print(arr[0])
+
+
+-------------
+expect
+0

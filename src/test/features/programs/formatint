@@ -40,7 +40,7 @@ def main():
   print(format_int(19))
   print(format_int(207))
 -------------
-disable emulator
+expect
 0
 1
 10

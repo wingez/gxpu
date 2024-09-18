@@ -8,16 +8,21 @@ import compiler.backends.astwalker.WalkerRunner
 import compiler.builtInSymbolTable
 import compiler.compileAndRunBody
 import compiler.frontend.FileProvider
+import compiler.frontend.FrontendCompilerError
 import compiler.frontend.ProgramCompiler
 import org.junit.jupiter.api.Assumptions
 import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.TestFactory
+import org.junit.jupiter.api.assertThrows
+import requireNotReached
 import java.io.File
 import java.io.Reader
 import java.io.StringReader
 import java.nio.file.Path
 import kotlin.io.path.*
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 
 enum class CompilerBackend {
@@ -156,7 +161,7 @@ fun main() {
 private fun executeTest(testcase: FeatureTestcase, backend: CompilerBackend) {
 
     val programLines = mutableListOf<String>()
-    var expectedLines = mutableListOf<String>()
+    val expectedLines = mutableListOf<String>()
 
     var foundDelimiter = false
     for (line in File(testcase.path.toUri()).readLines()) {
@@ -173,13 +178,35 @@ private fun executeTest(testcase: FeatureTestcase, backend: CompilerBackend) {
         }
     }
 
-    val emulatorSkip = "disable emulator"
-//    Assumptions.assumeFalse(testcase.backend == expectedLines.any { it.startsWith(emulatorSkip) }, "skipped on emulator")
-    expectedLines = expectedLines.filter { it != emulatorSkip }.toMutableList()
+    val command = expectedLines[0]
+
 
     val program = programLines.joinToString("\n")
 
-    runProgramCheckOutput(backend, program, matchLines(expectedLines))
+
+
+    if (command == "disabled") {
+        Assumptions.assumeTrue(false, "disabled")
+        requireNotReached()
+    }
+    if (command == "fail") {
+
+        assertThrows<FrontendCompilerError> {
+            runProgramCheckOutput(backend, program, matchString("dummy value"))
+        }
+        return
+
+    }
+
+    val expected = matchLines(expectedLines.subList(1, expectedLines.indices.last + 1))
+
+    if (command == "expect") {
+        runProgramCheckOutput(backend, program, expected)
+        return
+    }
+
+    assertTrue(false, "command is $command")
+
 }
 
 
@@ -188,8 +215,8 @@ class Runner {
     private val testCases = discoverTests()
 
 
-    private fun getTestCases(compiler:CompilerBackend): List<DynamicTest> {
-        return discoverTests().map {
+    private fun getTestCases(compiler: CompilerBackend): List<DynamicTest> {
+        return testCases.map {
             val name = "${it.subject}/${it.name}"
             DynamicTest.dynamicTest(name) {
                 executeTest(it, compiler)
@@ -198,11 +225,7 @@ class Runner {
     }
 
     @TestFactory
-    fun machineCode(): List<DynamicTest> {
-        return getTestCases(CompilerBackend.MachineCode)
-    }
-    @TestFactory
-    fun walker(): List<DynamicTest>{
+    fun walker(): List<DynamicTest> {
         return getTestCases(CompilerBackend.Walker)
     }
 }

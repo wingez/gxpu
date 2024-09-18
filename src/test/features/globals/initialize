@@ -1,7 +1,8 @@
 
+val i=5
+
 def main():
-  val var:byte=5
-  print(var)
+  print(i)
 
 -------------
 expect

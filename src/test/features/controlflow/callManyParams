@@ -1,0 +1,16 @@
+
+def test(param1:int,param2:int):
+  print(param2+1)
+  print(param1)
+
+def main():
+  print(5)
+  test(10,6)
+  print(7)
+
+-------------
+expect
+5
+7
+10
+7

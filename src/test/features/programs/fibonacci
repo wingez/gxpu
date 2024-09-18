@@ -12,6 +12,7 @@ def main():
 
     counter = counter+1
 -------------
+expect
 
 1
 1

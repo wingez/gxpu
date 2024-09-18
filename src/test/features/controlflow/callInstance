@@ -1,0 +1,10 @@
+def  int.add(b:int):int
+  result = this+b
+
+def main():
+  print(5.add(6))
+  print((5+6).add(7))
+-------------
+expect
+11
+18

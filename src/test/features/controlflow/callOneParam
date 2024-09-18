@@ -1,0 +1,12 @@
+
+def test(var:int):
+  print(var)
+
+def main():
+  test(5)
+  print(1)
+
+-------------
+expect
+5
+1

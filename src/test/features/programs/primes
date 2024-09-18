@@ -17,7 +17,7 @@ def main():
     number = number+1
 
 -------------
-disable emulator
+expect
 2
 3
 5
