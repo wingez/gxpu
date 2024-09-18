@@ -117,7 +117,6 @@ private data class FeatureTestcase(
     val subject: String,
     val name: String,
     val path: Path,
-    val backend: CompilerBackend,
 )
 
 private fun discoverTests(): List<FeatureTestcase> {
@@ -141,10 +140,8 @@ private fun discoverTests(): List<FeatureTestcase> {
 //            if (testCase!="printVariable"){
 //                continue
 //            }
+            result.add(FeatureTestcase(subjectName, testCase, testCasePath))
 
-            result.addAll(CompilerBackend.values().map {
-                FeatureTestcase(subjectName, testCase, testCasePath, it)
-            })
         }
     }
     return result
@@ -156,7 +153,7 @@ fun main() {
 }
 
 
-private fun executeTest(testcase: FeatureTestcase) {
+private fun executeTest(testcase: FeatureTestcase, backend: CompilerBackend) {
 
     val programLines = mutableListOf<String>()
     var expectedLines = mutableListOf<String>()
@@ -182,20 +179,30 @@ private fun executeTest(testcase: FeatureTestcase) {
 
     val program = programLines.joinToString("\n")
 
-    runProgramCheckOutput(testcase.backend, program, matchLines(expectedLines))
+    runProgramCheckOutput(backend, program, matchLines(expectedLines))
 }
 
 
 class Runner {
-    @TestFactory
-    fun runAllFeatures(): List<DynamicTest> {
 
+    private val testCases = discoverTests()
+
+
+    private fun getTestCases(compiler:CompilerBackend): List<DynamicTest> {
         return discoverTests().map {
-            val name = "${it.subject}/${it.name} - ${it.backend}"
+            val name = "${it.subject}/${it.name}"
             DynamicTest.dynamicTest(name) {
-                executeTest(it)
+                executeTest(it, compiler)
             }
         }
+    }
 
+    @TestFactory
+    fun machineCode(): List<DynamicTest> {
+        return getTestCases(CompilerBackend.MachineCode)
+    }
+    @TestFactory
+    fun walker(): List<DynamicTest>{
+        return getTestCases(CompilerBackend.Walker)
     }
 }
