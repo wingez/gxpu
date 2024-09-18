@@ -6,6 +6,6 @@ def a():int
 def main():
   print(a())
 
--------------
-expect
-3
+#########
+# expect
+# 3

@@ -3,5 +3,5 @@ def main():
   val a = createArray(5)
   a.size = 10
 
--------------
-fail
+#########
+# fail

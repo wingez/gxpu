@@ -4,6 +4,6 @@ val i:int
 def main():
   print(i)
 
--------------
-expect
-0
+#########
+# expect
+# 0

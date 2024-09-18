@@ -5,5 +5,5 @@ def a():int
 def main():
   print(a())
 
--------------
-fail
+#########
+# fail

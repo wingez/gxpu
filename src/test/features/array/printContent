@@ -14,8 +14,8 @@ def main():
 
   printArray(arr)
 
--------------
-expect
-5
-10
-15
+#########
+# expect
+# 5
+# 10
+# 15

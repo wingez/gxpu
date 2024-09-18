@@ -17,8 +17,9 @@ def main():
   print(a.parent1)
   print((a.child).child1)
   print((a.child).child2)
--------------
-expect
-1
-2
-3
+
+#########
+# expect
+# 1
+# 2
+# 3

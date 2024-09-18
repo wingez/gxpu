@@ -3,7 +3,7 @@ def a():int
 
 def main():
   print(a())
--------------
-expect
-5
+#########
+# expect
+# 5
 

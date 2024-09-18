@@ -1,11 +1,11 @@
-val i=callme()
-
-def callme():int
-  return 6
+import other
+val i=6
 
 def main():
+  callme()
   print(i)
 
 #########
 # expect
+# 7
 # 6

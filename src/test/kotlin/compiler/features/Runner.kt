@@ -7,6 +7,7 @@ import compiler.backends.astwalker.WalkerRunner
 import compiler.backends.machineCode.MachineCodeRunner
 import compiler.builtInSymbolTable
 import compiler.compileAndRunBody
+import compiler.frontend.CompiledIntermediateProgram
 import compiler.frontend.FileProvider
 import compiler.frontend.FrontendCompilerError
 import compiler.frontend.ProgramCompiler
@@ -23,6 +24,7 @@ import kotlin.io.path.*
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.test.fail
 
 
 enum class CompilerBackend {
@@ -94,8 +96,17 @@ fun runBodyCheckOutput(type: CompilerBackend, body: String, resultMatcher: Outpu
 fun runProgramCheckOutput(type: CompilerBackend, program: String, resultMatcher: OutputMatcher) {
 
     runProgramCheckOutput(type, mapOf("dummyfile" to program), "dummyfile", resultMatcher)
+}
 
 
+fun runCompiledProgramCheckOutput(
+    type: CompilerBackend,
+    program: CompiledIntermediateProgram,
+    resultMatcher: OutputMatcher
+) {
+    val actual = getRunner(type).buildAndRun(program)
+
+    resultMatcher.assertOutputMatch(actual)
 }
 
 
@@ -106,17 +117,13 @@ fun runProgramCheckOutput(
     resultMatcher: OutputMatcher
 ) {
 
-    val intermediate = ProgramCompiler(object : FileProvider {
-        override fun getReader(filename: String): Reader {
+    val intermediate = ProgramCompiler(
+        { filename -> StringReader(program.getValue(filename)) },
+        mainFilename,
+        builtInSymbolTable()
+    ).compile()
 
-            return StringReader(program.getValue(filename))
-        }
-    }, mainFilename, builtInSymbolTable()).compile()
-
-    val actual = getRunner(type).buildAndRun(intermediate)
-
-    resultMatcher.assertOutputMatch(actual)
-
+    runCompiledProgramCheckOutput(type, intermediate, resultMatcher)
 }
 
 private data class FeatureTestcase(
@@ -140,7 +147,6 @@ private fun discoverTests(): List<FeatureTestcase> {
         val subjectName = testSubjectFolder.name
 
         for (testCasePath in testSubjectFolder.listDirectoryEntries()) {
-            assert(testCasePath.isRegularFile())
             val testCase = testCasePath.name
 //
 //            if (testCase!="printVariable"){
@@ -161,48 +167,69 @@ fun main() {
 
 private fun executeTest(testcase: FeatureTestcase, backend: CompilerBackend) {
 
-    val programLines = mutableListOf<String>()
     val expectedLines = mutableListOf<String>()
 
     var foundDelimiter = false
-    for (line in File(testcase.path.toUri()).readLines()) {
-        if (line.trimStart(' ').startsWith("-----")) {
-            foundDelimiter = true
-            continue
-        }
-        if (!foundDelimiter) {
-            programLines.add(line)
-        } else {
-            if (line.isNotBlank()) {
-                expectedLines.add(line)
+
+    val mainFile: Path
+    val fileProvider: FileProvider
+
+
+    if (testcase.path.isRegularFile()) {
+        mainFile = testcase.path
+        fileProvider = FileProvider { filename ->
+            if (filename != mainFile.name) {
+                requireNotReached()
             }
+            mainFile.reader()
+        }
+    } else {
+        mainFile = testcase.path.resolve("main")
+        require(mainFile.exists())
+        fileProvider = FileProvider { filename ->
+            testcase.path.resolve(filename).reader()
         }
     }
 
+
+    val symbolTable = builtInSymbolTable()
+    val frontendCompiler = ProgramCompiler(fileProvider, mainFile.name, symbolTable)
+
+
+
+
+    for (line in mainFile.readLines()) {
+        if (line.trimStart(' ').startsWith("#####")) {
+            foundDelimiter = true
+            continue
+        }
+        if (foundDelimiter && line.isNotBlank()) {
+            expectedLines.add(line.trimStart('#', ' '))
+        }
+    }
+
+    if (expectedLines.size < 1) {
+        fail("missing test template")
+    }
+
     val command = expectedLines[0]
-
-
-    val program = programLines.joinToString("\n")
-
-
 
     if (command == "disabled") {
         Assumptions.assumeTrue(false, "disabled")
         requireNotReached()
     }
     if (command == "fail") {
-
         assertThrows<FrontendCompilerError> {
-            runProgramCheckOutput(backend, program, matchString("dummy value"))
+            frontendCompiler.compile()
         }
         return
-
     }
 
     val expected = matchLines(expectedLines.subList(1, expectedLines.indices.last + 1))
 
     if (command == "expect") {
-        runProgramCheckOutput(backend, program, expected)
+        val intermediate = frontendCompiler.compile()
+        runCompiledProgramCheckOutput(backend, intermediate, expected)
         return
     }
 

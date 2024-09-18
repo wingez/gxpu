@@ -10,7 +10,8 @@ def main():
 
   print((a.member1)+2)
   print((a.member2)+(a.member1))
--------------
-expect
-4
-7
+
+#########
+# expect
+# 4
+# 7

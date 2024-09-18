@@ -7,7 +7,7 @@ def main():
   print(var1)
 
 
--------------
-expect
-2
-1
+#########
+# expect
+# 2
+# 1

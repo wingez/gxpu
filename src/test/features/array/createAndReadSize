@@ -5,6 +5,6 @@ def main():
   print(arr.size())
 
 
--------------
-expect
-3
+#########
+# expect
+# 3

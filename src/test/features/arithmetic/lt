@@ -15,8 +15,8 @@ def main():
   else:
     print(0)
 
--------------
-expect
-1
-0
-0
+#########
+# expect
+# 1
+# 0
+# 0

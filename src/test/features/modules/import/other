@@ -1,0 +1,2 @@
+def callme():int
+  return 4

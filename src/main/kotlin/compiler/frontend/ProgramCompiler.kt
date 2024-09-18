@@ -12,7 +12,7 @@ import java.io.File
 import java.io.Reader
 import java.io.StringReader
 
-interface FileProvider {
+fun interface FileProvider {
     fun getReader(filename: String): Reader?
 }
 

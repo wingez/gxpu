@@ -1,0 +1,11 @@
+import other1
+import other2
+
+def main():
+  print1()
+  print2()
+
+##########
+# expect
+# 7
+# 5

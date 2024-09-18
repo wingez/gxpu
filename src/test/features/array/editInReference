@@ -9,7 +9,7 @@ def main():
   editArray(arr)
   print(arr[0])
 
--------------
-expect
-100
+#########
+# expect
+# 100
 

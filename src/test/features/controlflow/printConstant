@@ -2,6 +2,6 @@
 def main():
   print(5)
 
--------------
-expect
-5
+#########
+# expect
+# 5
