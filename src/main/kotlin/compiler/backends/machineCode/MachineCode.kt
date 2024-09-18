@@ -30,9 +30,9 @@ class RegisterData(private val register: Register) : DataItem {
     }
 }
 
-private val callRegisterOrder = listOf(Register.RDI, Register.RSI, Register.RDX, Register.RCX)
+val callRegisterOrder = listOf(Register.RDI, Register.RSI, Register.RDX, Register.RCX)
 
-private val temporaryRegisters = listOf(Register.R8, Register.R9, Register.R10, Register.R11)
+val temporaryRegisters = listOf(Register.R8, Register.R9, Register.R10, Register.R11)
 
 
 class Constant(val value: Int) : DataItem {
