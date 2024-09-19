@@ -4,7 +4,7 @@ def main():
   val c:byte=0
 
   val counter:byte=0
-  while bool(10-counter):
+  while counter<10:
     print(a)
     c=a+b
     b=a

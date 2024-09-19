@@ -489,8 +489,20 @@ class Emitter(val function: FunctionContent) {
 
                 require(op.right is Constant || op.right is InRegister || op.right is StackVariable)
                 val src: DataItem = op.right as DataItem
-                emit(BinaryOpInstruction(op.type, target, src))
 
+                if (src is StackVariable && target is StackVariable) {
+                    // Only one memory address allowed
+                    // TODO We can make this look more nice by first loading LEFT to RAX and performing the operation there and then moving back
+
+                    generateMoveData(src, InRegister(Register.RAX))
+                    emit(BinaryOpInstruction(op.type, target, InRegister(Register.RAX)))
+
+
+
+                } else {
+                    emit(BinaryOpInstruction(op.type, target, src))
+
+                }
             }
 
 
