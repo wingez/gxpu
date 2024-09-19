@@ -32,9 +32,12 @@ fun main(args: Array<String>) {
         return
     }
 
-    val parentFolder = path.parent
     val fileProvider = FileProvider {
-        parentFolder.resolve(it).reader()
+        if (it == path.name){
+            path.reader()
+        }        else{
+            path.resolveSibling(it).reader()
+        }
     }
 
     val symbolTable = builtInSymbolTable()
