@@ -117,6 +117,16 @@ fun doInitialPass(
                 }
             }
 
+            is Return -> {
+                val value = instr.value
+                if (value is LocalValueRef) {
+                    val state = valueStates.getValue(value.name)
+                    state.use(actions.size)
+                    state.registerWishList.add(Register.RAX)
+                }
+                actions.add(Action(CallType.Return, null))
+            }
+
             is ReturnNothing -> {
                 actions.add(Action(CallType.Return, null))
             }
@@ -151,7 +161,11 @@ enum class AllocationResultType {
 data class AllocationResult(val type: AllocationResultType, val register: Register?)
 
 
-private fun allocate(actions: List<Action>, toAllocate: Map<String, TempValueState>, func: FunctionDefinition): MutableMap<String, AllocationResult> {
+private fun allocate(
+    actions: List<Action>,
+    toAllocate: Map<String, TempValueState>,
+    func: FunctionDefinition
+): MutableMap<String, AllocationResult> {
 
     val allocations = mutableMapOf<String, AllocationResult>()
 
@@ -275,7 +289,7 @@ private fun allocate(actions: List<Action>, toAllocate: Map<String, TempValueSta
 }
 
 fun isExternal(functionDefinition: FunctionDefinition): Boolean {
-    return functionDefinition !in listOf(BuiltInSignatures.add,BuiltInSignatures.sub)
+    return functionDefinition !in listOf(BuiltInSignatures.add, BuiltInSignatures.sub)
 }
 
 

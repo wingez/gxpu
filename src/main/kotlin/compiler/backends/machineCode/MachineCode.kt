@@ -126,6 +126,8 @@ private data class InRegister(val register: Register) : ValueState, DataItem {
         val label = when (register) {
             Register.RDI -> "edi"
             Register.RSI -> "esi"
+            Register.RDX -> "edx"
+            Register.RCX -> "ecx"
             Register.RAX -> "eax"
             Register.RBX -> "rbx"
             Register.R8 -> "r8d"
@@ -136,7 +138,6 @@ private data class InRegister(val register: Register) : ValueState, DataItem {
             Register.R13 -> "r13d"
             Register.R14 -> "r14d"
             Register.R15 -> "r15d"
-            else -> TODO(register.toString())
         }
         return "%$label"
     }
@@ -347,11 +348,9 @@ class Emitter(val function: FunctionContent) {
                 val op = sourceSimplified
 
                 //TODO
-                require(target is InRegister)
+                require(target is InRegister || target is StackVariable)
 
-                val destinationRegister = target.register
-
-                generateMoveData(op.left, InRegister(destinationRegister))
+                generateMoveData(op.left, target)
 
 
                 //TODO
