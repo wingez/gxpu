@@ -69,6 +69,8 @@ private class BinaryOpInstruction(val type: BinaryOpType, val dest: DataItem, va
     private fun instr(): String {
         return when (type) {
             BinaryOpType.Add -> "add"
+            BinaryOpType.Sub -> "sub"
+
         }
     }
 
@@ -141,7 +143,8 @@ private data class InRegister(val register: Register) : ValueState, DataItem {
 }
 
 private enum class BinaryOpType {
-    Add
+    Add,
+    Sub,
 }
 
 private class BinaryOp(val type: BinaryOpType, val left: ValueState, val right: ValueState) : ValueState {
@@ -149,6 +152,7 @@ private class BinaryOp(val type: BinaryOpType, val left: ValueState, val right: 
 
         val op = when (type) {
             BinaryOpType.Add -> "+"
+            BinaryOpType.Sub -> "-"
         }
 
         return "(${left.debugMsg()} $op ${right.debugMsg()})"
@@ -174,7 +178,6 @@ class Emitter(val function: FunctionContent) {
         instruction.generateAssembly()
             .forEach { println(it) }
     }
-
 
 
     private fun setValueState(value: String, state: ValueState) {
@@ -205,6 +208,7 @@ class Emitter(val function: FunctionContent) {
                         val size = sizeOf(allocType)
 
                         staticStackSize += size
+
                         StackVariable(staticStackSize)
                     }
 
@@ -231,41 +235,35 @@ class Emitter(val function: FunctionContent) {
                     else -> TODO()
                 }
 
-                val allocation = allocations.getValue(tempValue)
+                val resultState: ValueState
 
-                val resultState = when (allocation.type) {
-                    AllocationResultType.Unused -> {
-                        valueState
+                if (tempValue in allocations) {
+
+                    val allocation = allocations.getValue(tempValue)
+
+                    resultState = when (allocation.type) {
+                        AllocationResultType.Unused -> {
+                            valueState
+                        }
+
+                        AllocationResultType.InRegister -> {
+                            val register = InRegister(allocation.register!!)
+                            generateMoveData(valueState, register)
+                            register
+                        }
+
+                        else -> TODO(allocation.type.toString())
                     }
-
-                    AllocationResultType.InRegister -> {
-                        val register = InRegister(allocation.register!!)
-                        generateMoveData(valueState, register)
-                        register
-                    }
-
-                    else -> TODO(allocation.type.toString())
+                } else {
+                    resultState = valueState
                 }
 
+                println("SetvalueState: $tempValue")
                 setValueState(tempValue, resultState)
-
             }
 
             is Store -> {
-//                "movl $8 -4(%rbp)"
-
-                val toStore = when (instruction.value) {
-                    is IntConstant -> {
-                        Constant(instruction.value.value)
-                    }
-
-                    else -> TODO()
-                }
-
-                require(instruction.destination is LocalValueRef)
-                val destinationName = instruction.destination.name
-
-                val destination = when (val state = tempValueStates.getValue(destinationName)) {
+                val destination = when (val state = getValueState(instruction.destination)) {
                     is StackVariable -> {
                         state
                     }
@@ -273,8 +271,7 @@ class Emitter(val function: FunctionContent) {
                     else -> TODO()
                 }
 
-                emit(MoveInstruction(toStore, destination))
-
+                generateMoveData(getValueState(instruction.value), destination)
             }
 
             is ReturnNothing -> {
@@ -317,6 +314,7 @@ class Emitter(val function: FunctionContent) {
                 if (left is Constant && right is Constant) {
                     val result = when (toSimplify.type) {
                         BinaryOpType.Add -> left.value + right.value
+                        BinaryOpType.Sub -> left.value - right.value
                     }
                     return Constant(result)
                 }
@@ -340,6 +338,10 @@ class Emitter(val function: FunctionContent) {
                 emitMove(sourceSimplified, target)
             }
 
+            is StackVariable -> {
+                emitMove(sourceSimplified, target)
+            }
+
             is BinaryOp -> {
 
                 val op = sourceSimplified
@@ -354,11 +356,12 @@ class Emitter(val function: FunctionContent) {
 
                 //TODO
 
-                require(op.right is Constant || op.right is InRegister)
+                require(op.right is Constant || op.right is InRegister || op.right is StackVariable)
                 val src: DataItem = op.right as DataItem
                 emit(BinaryOpInstruction(op.type, target, src))
 
             }
+
 
             else -> TODO(sourceSimplified.toString())
         }
@@ -487,6 +490,7 @@ fun mapBuiltIn(functionDefinition: FunctionDefinition, values: List<ValueState>)
 
     val binary = when (functionDefinition) {
         BuiltInSignatures.add -> BinaryOpType.Add
+        BuiltInSignatures.sub -> BinaryOpType.Sub
         else -> null
     }
 

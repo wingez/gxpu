@@ -275,7 +275,7 @@ private fun allocate(actions: List<Action>, toAllocate: Map<String, TempValueSta
 }
 
 fun isExternal(functionDefinition: FunctionDefinition): Boolean {
-    return functionDefinition !in listOf(BuiltInSignatures.add)
+    return functionDefinition !in listOf(BuiltInSignatures.add,BuiltInSignatures.sub)
 }
 
 
