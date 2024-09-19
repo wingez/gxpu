@@ -32,7 +32,15 @@ data class Constant(val value: Int) : DataItem, ValueState {
 }
 
 interface Instruction {
+    fun isIndent(): Boolean = true
     fun generateAssembly(): List<String>
+
+    fun generateWithIndent(): List<String> {
+        if (isIndent()) {
+            return generateAssembly().map { "\t$it" }
+        }
+        return generateAssembly()
+    }
 }
 
 
@@ -40,6 +48,12 @@ interface DataItem {
     fun generateAssembly(): String
 }
 
+class LabelInstruction(val label: String) : Instruction {
+    override fun isIndent(): Boolean = false
+    override fun generateAssembly(): List<String> {
+        return listOf("$label:")
+    }
+}
 
 class MoveInstruction(private val from: DataItem, val to: DataItem) : Instruction {
 
@@ -62,6 +76,35 @@ class ReturnInstruction() : Instruction {
             "popq\t%rbp",
             "ret",
         )
+    }
+}
+
+class CompareInstruction(val left: DataItem, val right: DataItem) : Instruction {
+    override fun generateAssembly(): List<String> {
+        return listOf("cmp\t${left.generateAssembly()}, ${right.generateAssembly()}")
+    }
+}
+
+class JumpInstruction(val label: String) : Instruction {
+    override fun generateAssembly(): List<String> {
+        return listOf("jmp $label")
+    }
+}
+
+enum class JumpCondition {
+    NE,
+    EQ,
+}
+
+class JumpIf(val condition: JumpCondition, val label: String) : Instruction {
+    override fun generateAssembly(): List<String> {
+        val inst = when (condition) {
+            JumpCondition.NE -> "jne"
+            JumpCondition.EQ -> "je"
+        }
+
+        return listOf("$inst $label")
+
     }
 }
 
@@ -284,10 +327,35 @@ class Emitter(val function: FunctionContent) {
                 emit(ReturnInstruction())
             }
 
+            is JumpOnFalse -> {
+
+                val condition = getValueState(instruction.condition)
+
+                generateMoveData(condition, InRegister(Register.RAX))
+
+                emit(CompareInstruction(Constant(0), InRegister(Register.RAX)))
+                emit(JumpIf(JumpCondition.EQ, getLabel(instruction.label)))
+            }
+
+            is Jump -> {
+                emit(JumpInstruction(getLabel(instruction.label)))
+            }
+
             else -> TODO(instruction.toString())
         }
     }
 
+    private fun getLabel(label: Label): String {
+        return ".${function.definition.functionName}_${label.identifier}"
+    }
+
+    private fun moveToDataItem(value: ValueState): DataItem {
+        return when (value) {
+            is Constant -> value
+            is StackVariable -> value
+            else -> TODO(value.toString())
+        }
+    }
 
     private fun doExternalCall(func: FunctionDefinition, parameters: List<ValueState>): ValueState {
         for ((index, parameter) in parameters.withIndex()) {
@@ -446,7 +514,10 @@ class Emitter(val function: FunctionContent) {
         }
 
 
-        for ((instr, label) in function.instructions) {
+        for ((instr, labels) in function.instructions) {
+            for (label in labels) {
+                emit(LabelInstruction(getLabel(label)))
+            }
             handleInstruction(instr)
 
         }
@@ -463,7 +534,7 @@ class Emitter(val function: FunctionContent) {
         result.addAll(generateHeader(function.definition.functionName, staticStackSize))
 
 
-        result.addAll(generatedInstructions.flatMap { it.generateAssembly() }.map { "\t" + it })
+        result.addAll(generatedInstructions.flatMap { it.generateWithIndent() })
 
 
         return result
@@ -487,6 +558,8 @@ fun buildToAssembly(intermediateProgram: CompiledIntermediateProgram): List<Stri
 
 fun mapBuiltIn(functionDefinition: FunctionDefinition, values: List<ValueState>): ValueState {
 
+
+    // Check binary
     val binary = when (functionDefinition) {
         BuiltInSignatures.add -> BinaryOpType.Add
         BuiltInSignatures.sub -> BinaryOpType.Sub
@@ -498,7 +571,14 @@ fun mapBuiltIn(functionDefinition: FunctionDefinition, values: List<ValueState>)
         return BinaryOp(binary, values[0], values[1])
     }
 
-    requireNotReached()
+    // Check bool
+    if (functionDefinition == BuiltInSignatures.bool) {
+        require(values.size == 1)
+        return values[0]
+    }
+
+
+    requireNotReached(functionDefinition.toString())
 }
 
 

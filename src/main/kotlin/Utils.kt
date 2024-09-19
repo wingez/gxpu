@@ -39,6 +39,10 @@ open class PeekIterator<T>(
     }
 }
 
-fun requireNotReached():Nothing{
+fun requireNotReached(message: String): Nothing {
+    throw AssertionError(message)
+}
+
+fun requireNotReached(): Nothing {
     throw AssertionError("This should never be reached")
 }

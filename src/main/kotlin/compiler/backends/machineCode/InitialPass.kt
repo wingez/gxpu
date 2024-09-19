@@ -8,7 +8,8 @@ import requireNotReached
 enum class CallType {
     External,
     WeShouldOptimize,
-    Return
+    Return,
+    Jump,
 }
 
 private class Action(
@@ -133,6 +134,30 @@ fun doInitialPass(
 
             is Store -> {
 
+            }
+
+            is Jump -> {
+
+            }
+
+            is JumpOnTrue -> {
+                val value = instr.condition
+                if (value is LocalValueRef) {
+                    val state = valueStates.getValue(value.name)
+                    state.use(actions.size)
+                    state.registerWishList.add(Register.RAX)
+                }
+                actions.add(Action(CallType.Jump, null))
+            }
+
+            is JumpOnFalse -> {
+                val value = instr.condition
+                if (value is LocalValueRef) {
+                    val state = valueStates.getValue(value.name)
+                    state.use(actions.size)
+                    state.registerWishList.add(Register.RAX)
+                }
+                actions.add(Action(CallType.Jump, null))
             }
 
             else -> TODO(instr.toString())
@@ -289,7 +314,12 @@ private fun allocate(
 }
 
 fun isExternal(functionDefinition: FunctionDefinition): Boolean {
-    return functionDefinition !in listOf(BuiltInSignatures.add, BuiltInSignatures.sub)
+
+    if (functionDefinition == BuiltInSignatures.print) {
+        return true
+    }
+
+    return functionDefinition !in BuiltInSignatures.functions
 }
 
 

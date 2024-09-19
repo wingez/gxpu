@@ -141,7 +141,7 @@ class FunctionCompiler(
 
         flattenStatements(body, mainCodeBlock, loopContext = null)
 
-        if (definition.returnType==Primitives.Nothing){
+        if (definition.returnType == Primitives.Nothing) {
             mainCodeBlock.addInstruction(ReturnNothing())
         }
 
@@ -418,9 +418,9 @@ class FunctionCompiler(
 
         val id = controlStatementCounter++
 
-        val trueLabel = Label("if-$id-true")
-        val elseLabel = Label("if-$id-else")
-        val endLabel = Label("if-$id-end")
+        val trueLabel = Label("if_${id}_true")
+        val elseLabel = Label("if_${id}_else")
+        val endLabel = Label("if_${id}_end")
 
 
         if (!ifNode.hasElse) {
@@ -468,8 +468,8 @@ class FunctionCompiler(
 
         val id = controlStatementCounter++
 
-        val whileBodyLabel = Label("while-$id-begin")
-        val endLabel = Label("while-$id-end")
+        val whileBodyLabel = Label("while_${id}_begin")
+        val endLabel = Label("while_${id}_end")
         val loopContext = LoopContext(endLabel)
 
         val bodyCodeBlock = currentCodeBlock.newCodeBlock(whileBodyLabel)
