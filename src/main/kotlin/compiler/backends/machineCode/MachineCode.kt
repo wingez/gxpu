@@ -91,16 +91,16 @@ class JumpInstruction(val label: String) : Instruction {
     }
 }
 
-enum class JumpCondition {
-    NE,
-    EQ,
-}
-
-class JumpIf(val condition: JumpCondition, val label: String) : Instruction {
+private class JumpIf(val condition: BinaryOpType, val label: String) : Instruction {
     override fun generateAssembly(): List<String> {
         val inst = when (condition) {
-            JumpCondition.NE -> "jne"
-            JumpCondition.EQ -> "je"
+            BinaryOpType.NotEquals -> "jne"
+            BinaryOpType.Equals -> "je"
+            BinaryOpType.Greater -> "jg"
+            BinaryOpType.GreaterOrEqual -> "jge"
+            BinaryOpType.Less -> "jl"
+            BinaryOpType.LessOrEqual -> "jle"
+            else -> requireNotReached(condition.toString())
         }
 
         return listOf("$inst $label")
@@ -114,6 +114,8 @@ private class BinaryOpInstruction(val type: BinaryOpType, val dest: DataItem, va
             BinaryOpType.Add -> "add"
             BinaryOpType.Sub -> "sub"
 
+
+            BinaryOpType.Equals, BinaryOpType.NotEquals, BinaryOpType.Greater, BinaryOpType.GreaterOrEqual, BinaryOpType.Less, BinaryOpType.LessOrEqual -> requireNotReached()
         }
     }
 
@@ -189,6 +191,13 @@ private data class InRegister(val register: Register) : ValueState, DataItem {
 private enum class BinaryOpType {
     Add,
     Sub,
+
+    Equals,
+    NotEquals,
+    Greater,
+    Less,
+    GreaterOrEqual,
+    LessOrEqual,
 }
 
 private class BinaryOp(val type: BinaryOpType, val left: ValueState, val right: ValueState) : ValueState {
@@ -197,6 +206,12 @@ private class BinaryOp(val type: BinaryOpType, val left: ValueState, val right: 
         val op = when (type) {
             BinaryOpType.Add -> "+"
             BinaryOpType.Sub -> "-"
+            BinaryOpType.Equals -> "-"
+            BinaryOpType.NotEquals -> "-"
+            BinaryOpType.Greater -> ">"
+            BinaryOpType.GreaterOrEqual -> ">="
+            BinaryOpType.Less -> "<"
+            BinaryOpType.LessOrEqual -> "<="
         }
 
         return "(${left.debugMsg()} $op ${right.debugMsg()})"
@@ -226,9 +241,10 @@ class Emitter(val function: FunctionContent) {
 
     private fun setValueState(value: String, state: ValueState) {
         require(value !in tempValueStates)
-        tempValueStates[value] = state
+        val simplifiedState = simplify(state)
+        tempValueStates[value] = simplifiedState
 
-        println("Set value '$value' to ${state.debugMsg()}")
+        println("Set value '$value' to ${simplifiedState.debugMsg()}")
     }
 
     private fun getValueState(valueExpr: ValueExpr): ValueState {
@@ -327,15 +343,9 @@ class Emitter(val function: FunctionContent) {
                 emit(ReturnInstruction())
             }
 
-            is JumpOnFalse -> {
+            is JumpOnFalse -> jumpHelper(instruction.condition, instruction.label, false)
+            is JumpOnTrue -> jumpHelper(instruction.condition, instruction.label, true)
 
-                val condition = getValueState(instruction.condition)
-
-                generateMoveData(condition, InRegister(Register.RAX))
-
-                emit(CompareInstruction(Constant(0), InRegister(Register.RAX)))
-                emit(JumpIf(JumpCondition.EQ, getLabel(instruction.label)))
-            }
 
             is Jump -> {
                 emit(JumpInstruction(getLabel(instruction.label)))
@@ -343,6 +353,54 @@ class Emitter(val function: FunctionContent) {
 
             else -> TODO(instruction.toString())
         }
+    }
+
+    private fun jumpHelper(condition: ValueExpr, label: Label, jumpOn: Boolean) {
+
+        val conditionState = getValueState(condition)
+
+        //If constant we can just skip it altogether
+        if (conditionState is Constant) {
+            if (conditionState.value.toBool() == jumpOn) {
+                emit(JumpInstruction(getLabel(label)))
+            }
+            return
+        }
+
+        //Check if value is a binaryOp we can generate
+        if (conditionState is BinaryOp && conditionState.type in listOf(
+                BinaryOpType.Equals,
+                BinaryOpType.NotEquals,
+                BinaryOpType.Greater,
+                BinaryOpType.GreaterOrEqual,
+                BinaryOpType.Less,
+                BinaryOpType.LessOrEqual
+            )
+        ) {
+            //
+            var left = conditionState.left
+            var right = conditionState.right
+            var type = conditionState.type
+
+            if (right is Constant) {
+                val temp = left
+                left = right
+                right = temp
+                type = type.invertComparison()
+            }
+
+            generateMoveData(right, InRegister(Register.RAX))
+
+            require(left is DataItem)
+
+            emit(CompareInstruction(left, InRegister(Register.RAX)))
+            emit(JumpIf(type, getLabel(label)))
+            return
+        }
+
+        generateMoveData(conditionState, InRegister(Register.RAX))
+        emit(CompareInstruction(Constant(0), InRegister(Register.RAX)))
+        emit(JumpIf(BinaryOpType.Equals, getLabel(label)))
     }
 
     private fun getLabel(label: Label): String {
@@ -384,6 +442,12 @@ class Emitter(val function: FunctionContent) {
                     val result = when (toSimplify.type) {
                         BinaryOpType.Add -> left.value + right.value
                         BinaryOpType.Sub -> left.value - right.value
+                        BinaryOpType.Equals -> (left.value == right.value).toInt()
+                        BinaryOpType.NotEquals -> (left.value != right.value).toInt()
+                        BinaryOpType.Greater -> (left.value > right.value).toInt()
+                        BinaryOpType.GreaterOrEqual -> (left.value >= right.value).toInt()
+                        BinaryOpType.Less -> (left.value < right.value).toInt()
+                        BinaryOpType.LessOrEqual -> (left.value <= right.value).toInt()
                     }
                     return Constant(result)
                 }
@@ -471,6 +535,14 @@ class Emitter(val function: FunctionContent) {
         if (from == to) {
             return
         }
+
+        if (from is StackVariable && to is StackVariable) {
+            // Cannot move between memory adresses
+            emitMove(from, InRegister(Register.RAX))
+            emitMove(InRegister(Register.RAX), to)
+            return
+        }
+
         emit(MoveInstruction(from, to))
     }
 
@@ -563,6 +635,10 @@ fun mapBuiltIn(functionDefinition: FunctionDefinition, values: List<ValueState>)
     val binary = when (functionDefinition) {
         BuiltInSignatures.add -> BinaryOpType.Add
         BuiltInSignatures.sub -> BinaryOpType.Sub
+        BuiltInSignatures.equals -> BinaryOpType.Equals
+        BuiltInSignatures.notEquals -> BinaryOpType.NotEquals
+        BuiltInSignatures.greaterThan -> BinaryOpType.Greater
+        BuiltInSignatures.lessThan -> BinaryOpType.Less
         else -> null
     }
 
@@ -581,6 +657,23 @@ fun mapBuiltIn(functionDefinition: FunctionDefinition, values: List<ValueState>)
     requireNotReached(functionDefinition.toString())
 }
 
+private fun Boolean.toInt(): Int {
+    return if (this) 1 else 0
+}
 
+private fun Int.toBool(): Boolean {
+    return this != 0
+}
 
+private fun BinaryOpType.invertComparison(): BinaryOpType {
+    return when (this) {
+        BinaryOpType.Equals -> BinaryOpType.NotEquals
+        BinaryOpType.NotEquals -> BinaryOpType.Equals
+        BinaryOpType.Greater -> BinaryOpType.LessOrEqual
+        BinaryOpType.GreaterOrEqual -> BinaryOpType.Less
+        BinaryOpType.Less -> BinaryOpType.GreaterOrEqual
+        BinaryOpType.LessOrEqual -> BinaryOpType.Greater
+        else -> requireNotReached(this.toString())
+    }
+}
 
