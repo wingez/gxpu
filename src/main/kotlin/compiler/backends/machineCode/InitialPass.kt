@@ -37,8 +37,8 @@ private class TempValueState(
         usedIn.add(atIndex)
     }
 
-    private fun calcLifeSpan():String{
-        if (usedIn.isEmpty()){
+    private fun calcLifeSpan(): String {
+        if (usedIn.isEmpty()) {
             return "unused"
         }
         return "$declared to ${usedIn.maxOrNull()}"
@@ -51,7 +51,10 @@ private class TempValueState(
 }
 
 
-fun doInitialPass(functionDefinition: FunctionDefinition, instructions: List<IRinstruction>) {
+fun doInitialPass(
+    functionDefinition: FunctionDefinition,
+    instructions: List<IRinstruction>
+): Map<String, AllocationResult> {
 
     val actions = mutableListOf<Action>()
     val valueStates = mutableMapOf<String, TempValueState>()
@@ -102,7 +105,7 @@ fun doInitialPass(functionDefinition: FunctionDefinition, instructions: List<IRi
                                 continue
                             }
                             val state = valueStates.getValue(param.name)
-                            if (isExternal || true)
+                            if (isExternal)
                                 state.use(actions.size)
                             state.registerWishList.add(callRegisterOrder[paramIndex])
                         }
@@ -136,8 +139,7 @@ fun doInitialPass(functionDefinition: FunctionDefinition, instructions: List<IRi
         println("$value: $state")
     }
 
-    allocate(actions, valueStates, functionDefinition)
-
+    return allocate(actions, valueStates, functionDefinition)
 }
 
 enum class AllocationResultType {
@@ -149,7 +151,7 @@ enum class AllocationResultType {
 data class AllocationResult(val type: AllocationResultType, val register: Register?)
 
 
-private fun allocate(actions: List<Action>, toAllocate: Map<String, TempValueState>, func: FunctionDefinition) {
+private fun allocate(actions: List<Action>, toAllocate: Map<String, TempValueState>, func: FunctionDefinition): MutableMap<String, AllocationResult> {
 
     val allocations = mutableMapOf<String, AllocationResult>()
 
@@ -269,6 +271,7 @@ private fun allocate(actions: List<Action>, toAllocate: Map<String, TempValueSta
         println(name)
     }
 
+    return allocations
 }
 
 fun isExternal(functionDefinition: FunctionDefinition): Boolean {
