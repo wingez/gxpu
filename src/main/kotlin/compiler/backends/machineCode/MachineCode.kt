@@ -31,6 +31,16 @@ data class Constant(val value: Int) : DataItem, ValueState {
     }
 }
 
+data class GlobalVariable(val name: String) : DataItem, ValueState {
+    override fun generateAssembly(): String {
+        return "$name(%rip)"
+    }
+
+    override fun debugMsg(): String {
+        return "Global: \"$name\""
+    }
+}
+
 interface Instruction {
     fun isIndent(): Boolean = true
     fun generateAssembly(): List<String>
@@ -65,7 +75,7 @@ class MoveInstruction(private val from: DataItem, val to: DataItem) : Instructio
 
 class CallInstruction(val toCall: FunctionDefinition) : Instruction {
     override fun generateAssembly(): List<String> {
-        return listOf("call ${toCall.functionName}")
+        return listOf("call function_${toCall.functionName}")
     }
 }
 
@@ -125,10 +135,9 @@ private class BinaryOpInstruction(val type: BinaryOpType, val dest: DataItem, va
 }
 
 fun generateHeader(functionName: String, staticStackSize: Int): List<String> {
+    val label = "function_$functionName"
     return listOf(
-        "\t.text",
-        "\t.globl $functionName",
-        "$functionName:",
+        "$label:",
         "\tpushq\t%rbp",
         "\tmovq\t%rsp, %rbp",
         "\tsubq\t$$staticStackSize, %rsp"
@@ -252,6 +261,7 @@ class Emitter(val function: FunctionContent) {
         return when (valueExpr) {
             is LocalValueRef -> tempValueStates.getValue(valueExpr.name)
             is IntConstant -> Constant(valueExpr.value)
+            is GlobalValueRef -> GlobalVariable(valueExpr.name)
             else -> TODO(valueExpr.toString())
         }
     }
@@ -274,7 +284,7 @@ class Emitter(val function: FunctionContent) {
 
                     is Load -> {
                         val toLoad = instruction.value.value
-                        require(toLoad is LocalValueRef)
+                        require(toLoad is LocalValueRef || toLoad is GlobalValueRef)
                         getValueState(toLoad)
                     }
 
@@ -324,10 +334,7 @@ class Emitter(val function: FunctionContent) {
 
             is Store -> {
                 val destination = when (val state = getValueState(instruction.destination)) {
-                    is StackVariable -> {
-                        state
-                    }
-
+                    is StackVariable, is GlobalVariable -> state as DataItem
                     else -> TODO()
                 }
 
@@ -475,6 +482,10 @@ class Emitter(val function: FunctionContent) {
                 emitMove(sourceSimplified, target)
             }
 
+            is GlobalVariable -> {
+                emitMove(sourceSimplified, target)
+            }
+
             is BinaryOp -> {
 
                 val op = sourceSimplified
@@ -498,7 +509,6 @@ class Emitter(val function: FunctionContent) {
                     emit(BinaryOpInstruction(op.type, target, InRegister(Register.RAX)))
 
 
-
                 } else {
                     emit(BinaryOpInstruction(op.type, target, src))
 
@@ -510,33 +520,6 @@ class Emitter(val function: FunctionContent) {
         }
     }
 
-
-//    private fun moveToRegister(valueExpr: ValueExpr, register: Register) {
-//
-//        val destination = RegisterData(register)
-//
-//        when (valueExpr) {
-//            is LocalValueRef -> {
-//                when (val state = tempValueStates.getValue(valueExpr.name)) {
-//                    is StackVariable -> {
-//                        emit(MoveInstruction(state, destination))
-//                    }
-//
-//                    is InRegister -> {
-//                        emit(MoveInstruction(state, destination))
-//                    }
-//
-//                    else -> TODO(state.toString())
-//                }
-//            }
-//
-//            is IntConstant -> {
-//                emit(MoveInstruction(Constant(valueExpr.value), destination))
-//            }
-//
-//            else -> TODO()
-//        }
-//    }
 
     fun emitMove(from: Register, to: Register) {
 
@@ -632,8 +615,23 @@ fun buildToAssembly(intermediateProgram: CompiledIntermediateProgram): List<Stri
 
     val lines = mutableListOf<String>()
 
+    // space for globals
+    lines.add("\t.data")
+    for (globalVar in intermediateProgram.symbolTable.getAllGlobalVariables()) {
+        lines.add("${globalVar.name}:")
+        val size = sizeOf(globalVar.datatype)
+        lines.add("\t.zero $size")
+    }
+
+    lines.add("\t.text")
 
     for (func in intermediateProgram.functions) {
+        if (func == intermediateProgram.mainFunction){
+
+            lines.add("\t.globl main")
+
+            lines.add("main:")
+        }
         lines.addAll(Emitter(func).build())
     }
 

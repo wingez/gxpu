@@ -1,7 +1,7 @@
 #include <unistd.h>
 
 
-void print(int i){
+void function_print(int i){
 
     int maxsize = 10;
 

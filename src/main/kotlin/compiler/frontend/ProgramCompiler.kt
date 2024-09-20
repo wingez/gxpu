@@ -97,7 +97,9 @@ class ProgramCompiler(
             val output =
                 compileFile(filename, nodesForFile.getValue(filename), symbolTable, importsForFile.getValue(filename))
             compiledFunctions.addAll(output.functions)
-            globalsInitFunctions.add(output.globalInit)
+            if (output.globalInit != null) {
+                globalsInitFunctions.add(output.globalInit)
+            }
         }
 
         // Extract results
@@ -109,11 +111,8 @@ class ProgramCompiler(
         val entryCodeContent = mutableListOf<IRinstruction>()
         var counter = 0
         for (global in globalsInitFunctions) {
-            if (global.hasContent) {
-
-                val instr = TempValue((counter++).toString(), Call(global.definition, emptyList()))
-                entryCodeContent.add(instr)
-            }
+            val instr = TempValue((counter++).toString(), Call(global.definition, emptyList()))
+            entryCodeContent.add(instr)
         }
 
         val entryFunction: FunctionContent

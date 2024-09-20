@@ -3,8 +3,6 @@ package compiler.frontend
 import ast.*
 import compiler.BuiltInSignatures
 
-val functionEntryLabel = Label("function_entry")
-
 class FrontendCompilerError(message: String) : Error(message)
 
 
@@ -19,7 +17,7 @@ data class FunctionContent(
 }
 
 private class CodeBlock(
-    val label: Label,
+    val label: Label?,
 ) {
 
     data class Content(
@@ -131,7 +129,7 @@ class FunctionCompiler(
     }
 
     private fun flattenFunction(): CodeBlock {
-        val mainCodeBlock = CodeBlock(functionEntryLabel)
+        val mainCodeBlock = CodeBlock(null)
 
         for (param in symbolTable.getVariablesForFunction(definition)) {
             if (param.variableType == VariableType.Local) {
@@ -697,7 +695,9 @@ private fun flattenCodeBlock(definition: FunctionDefinition, codeBlock: CodeBloc
     fun placeCodeBlockRecursive(block: CodeBlock) {
 
         require(!labels.contains(block.label))
-        labels[block.label] = instructions.size
+        if (block.label != null) {
+            labels[block.label] = instructions.size
+        }
 
         for (content in block.contents) {
 

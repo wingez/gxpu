@@ -10,7 +10,7 @@ import java.io.StringReader
 
 data class CompiledIntermediateFile(
     val functions: List<FunctionContent>,
-    val globalInit: FunctionContent,
+    val globalInit: FunctionContent?,
 )
 
 fun compileFile(
@@ -45,7 +45,7 @@ fun compileFile(
         symbolTable, imports,
     )
 
-    val functions = functionBodiesWithDefinitions.flatMap { (node, definition) ->
+    var functions = functionBodiesWithDefinitions.flatMap { (node, definition) ->
         compileFunctionBody(
             node.asFunction().body,
             definition,
@@ -53,8 +53,10 @@ fun compileFile(
             VariableType.Local,
             imports,
         )
-    } + globals
-
+    }
+    if (globals != null) {
+        functions = functions + globals
+    }
     return CompiledIntermediateFile(
         functions, globals
     )
@@ -137,18 +139,23 @@ fun compileGlobalAndInitialization(
     filename: String,
     symbolTable: MutableSymbolTable,
     imports: List<String>,
-): FunctionContent {
+): FunctionContent? {
 
 
-    val initializeGlobalsDefinition = DefinitionBuilder("initializeGlobals")
+    val initializeGlobalsDefinition = DefinitionBuilder("${filename}_initializeGlobals")
         .setSourceFile(filename)
         .getDefinition()
 
-    return compileFunctionBody(
+    val body = compileFunctionBody(
         AstNode.fromBody(nodes),
         initializeGlobalsDefinition, symbolTable, VariableType.Global, imports
     ).let {
         require(it.size == 1) { "lambdas in globals initialization not supported yet" }
         it.first()
     }
+
+    if (body.hasContent) {
+        return body
+    }
+    return null
 }

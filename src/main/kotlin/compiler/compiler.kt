@@ -12,15 +12,6 @@ interface BackendCompiler {
 }
 
 
-fun compileAndRunProgram(
-    fileName: Filename,
-    backendCompiler: BackendCompiler,
-    symbolTable: MutableSymbolTable,
-): List<String> {
-    val compiledProgram = compileProgram(fileName, symbolTable)
-    return backendCompiler.buildAndRun(compiledProgram)
-}
-
 fun compileAndRunBody(
     body: String,
     backendCompiler: BackendCompiler,

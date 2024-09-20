@@ -1,0 +1,8 @@
+
+val i:int
+
+def main():
+  5
+
+##########
+# expect

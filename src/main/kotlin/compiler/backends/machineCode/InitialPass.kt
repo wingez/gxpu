@@ -24,6 +24,7 @@ private class Action(
 private enum class ValueType {
     InSomeRegister,
     StackVariable,
+    GlobalVariable,
 }
 
 private class TempValueState(
@@ -83,15 +84,20 @@ fun doInitialPass(
 
                     is Load -> {
                         val toLoad = instr.value.value
-                        require(toLoad is LocalValueRef)
-                        val state = valueStates.getValue(toLoad.name)
 
-                        when (state.type) {
-                            ValueType.StackVariable -> {
-                                valueStates[value] = TempValueState(ValueType.StackVariable, actions.size)
+                        if (toLoad is LocalValueRef) {
+
+                            val state = valueStates.getValue(toLoad.name)
+
+                            when (state.type) {
+                                ValueType.StackVariable -> {
+                                    valueStates[value] = TempValueState(ValueType.StackVariable, actions.size)
+                                }
+
+                                else -> TODO()
                             }
-
-                            else -> TODO()
+                        } else if (toLoad is GlobalValueRef){
+                            valueStates[value] = TempValueState(ValueType.GlobalVariable, actions.size)
                         }
                     }
 
@@ -133,7 +139,7 @@ fun doInitialPass(
             }
 
             is Store -> {
-
+                //TODO
             }
 
             is Jump -> {

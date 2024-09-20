@@ -1,14 +1,14 @@
 package cli
 
+import compiler.backends.astwalker.Function
 import compiler.backends.astwalker.WalkConfig
 import compiler.backends.astwalker.WalkerRunner
 import compiler.backends.machineCode.MachineCodeRunner
 import compiler.backends.machineCode.buildToAssembly
+import compiler.backends.machineCode.doInitialPass
 import compiler.backends.machineCode.writeToFileAndRun
 import compiler.builtInSymbolTable
-import compiler.frontend.FileProvider
-import compiler.frontend.ProgramCompiler
-import compiler.frontend.compileProgram
+import compiler.frontend.*
 import kotlin.io.path.Path
 import kotlin.io.path.exists
 import kotlin.io.path.name
@@ -33,9 +33,9 @@ fun main(args: Array<String>) {
     }
 
     val fileProvider = FileProvider {
-        if (it == path.name){
+        if (it == path.name) {
             path.reader()
-        }        else{
+        } else {
             path.resolveSibling(it).reader()
         }
     }
@@ -62,18 +62,21 @@ fun main(args: Array<String>) {
                 .forEach { println(it) }
         }
 
-        "dump" -> {
+        "dump" -> dumpIntermediate(intermediate)
+
+        "test" -> {
+
+
             for (func in intermediate.functions) {
-                println(func.definition)
 
-                for ((instr, labels) in func.instructions) {
-                    for (label in labels) {
-                        println(label)
-                    }
+                dumpIntermediateFunction(func)
 
-                    println(instr.debugString())
-                }
+
+                println()
+                doInitialPass(func.definition, func.instructions.map { it.first })
+                println()
             }
+
         }
 
         "symbols" -> {
@@ -83,5 +86,24 @@ fun main(args: Array<String>) {
         else -> {
             println(help)
         }
+    }
+}
+
+fun dumpIntermediateFunction(func: FunctionContent) {
+    println(func.definition)
+
+    for ((instr, labels) in func.instructions) {
+        for (label in labels) {
+            println(label)
+        }
+
+        println(instr.debugString())
+    }
+    println()
+}
+
+fun dumpIntermediate(intermediate: CompiledIntermediateProgram) {
+    for (func in intermediate.functions) {
+        dumpIntermediateFunction(func)
     }
 }
