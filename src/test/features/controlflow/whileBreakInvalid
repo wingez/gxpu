@@ -1,0 +1,9 @@
+
+def main():
+  val i=0
+  print(i)
+  if i==0:
+    break
+  i=i+1
+#########
+# fail

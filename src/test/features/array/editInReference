@@ -1,0 +1,15 @@
+def editArray(arr:*int[]):
+  arr[0]=100
+
+def main():
+  val arr:*int[]
+  arr = createArray(3)
+  arr[0]=5
+
+  editArray(arr)
+  print(arr[0])
+
+#########
+# expect
+# 100
+

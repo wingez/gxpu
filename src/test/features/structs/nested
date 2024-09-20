@@ -1,0 +1,25 @@
+struct children:
+  child1:int
+  child2:int
+
+struct parent:
+  parent1:int
+  child:children
+
+def main():
+  val a:parent
+
+  a.parent1=1
+  (a.child).child1=2
+  (a.child).child2=3
+
+
+  print(a.parent1)
+  print((a.child).child1)
+  print((a.child).child2)
+
+#########
+# expect
+# 1
+# 2
+# 3

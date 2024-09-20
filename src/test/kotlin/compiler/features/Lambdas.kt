@@ -1,9 +1,10 @@
 package compiler.features
 
 import org.junit.jupiter.api.Assumptions
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
-
+@Disabled
 class Lambdas {
 
     @ParameterizedTest

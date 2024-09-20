@@ -161,7 +161,7 @@ data class AstNode(
         return ReturnNode(this)
     }
 
-    class ArrayAccess(val node: AstNode) {
+    class ArrayAccess(private val node: AstNode) {
         val parent get() = node.childNodes[0]
         val index get() = node.childNodes[1]
     }

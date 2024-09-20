@@ -1,0 +1,9 @@
+
+def main():
+  val a:int[] = createArray(10)
+  print(a.size())
+  print(a[10])
+
+
+#########
+# disabled

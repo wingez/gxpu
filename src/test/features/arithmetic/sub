@@ -1,0 +1,8 @@
+
+def main():
+  val var:byte =5
+  print(8-var)
+
+#########
+#expect
+#3

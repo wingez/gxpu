@@ -1,0 +1,11 @@
+
+def a():int
+  val a=3
+  return a
+
+def main():
+  print(a())
+
+#########
+# expect
+# 3

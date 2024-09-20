@@ -3,5 +3,6 @@ def main():
   val var:byte=5
   print(var)
 
--------------
-5
+#########
+# expect
+# 5

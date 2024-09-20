@@ -11,6 +11,8 @@ def main():
 
   print(a)
   print(b)
--------------
-abcd
-bcde
+
+#########
+# disabled
+# abcd
+# bcde

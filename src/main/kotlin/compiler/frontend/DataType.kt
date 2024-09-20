@@ -1,9 +1,5 @@
 package compiler.frontend
 
-import ast.StaticBase
-import ast.TypeDefinition
-import ast.TypeDefinitionModifier
-
 interface Datatype {
     val name: String
 }
@@ -19,6 +15,14 @@ object Primitives {
     val Integer = PrimitiveDataType("int")
     val Boolean = PrimitiveDataType("bool")
     val Str = Integer.arrayPointerOf()
+
+    val IntPair = CompositeDatatype(
+        "intpair",
+        listOf(
+            CompositeDataTypeField("first", Integer),
+            CompositeDataTypeField("second", Integer)
+        )
+    )
 }
 
 data class CompositeDataTypeField(
@@ -35,7 +39,7 @@ data class PointerDatatype(
     override fun toString(): String = name
 }
 
-data class ArrayDatatype(
+data class RawArrayDatatype(
     val arrayType: Datatype
 ) : Datatype {
     override val name: String
@@ -78,53 +82,22 @@ data class CompositeDatatype(
     }
 }
 
-data class FunctionDatatype(
-    val signature: Signature
-):Datatype {
-    override val name: String
-        get() = "Function{$signature}"
-}
-
 fun Datatype.arrayOf(): Datatype {
-    return ArrayDatatype(this)
+    return CompositeDatatype(
+        "array",
+        listOf(
+            CompositeDataTypeField("size", Primitives.Integer),
+            CompositeDataTypeField("array", RawArrayDatatype(this))
+        )
+    )
 }
 
-fun Datatype.arrayPointerOf(): Datatype {
+fun Datatype.arrayPointerOf(): PointerDatatype {
     return this.arrayOf().pointerOf()
 }
 
-fun Datatype.pointerOf(): Datatype {
+fun Datatype.pointerOf(): PointerDatatype {
     return PointerDatatype(this)
 }
 
 
-interface TypeProvider {
-    fun getType(name: String): Datatype?
-    fun getType(typeDefinition: TypeDefinition): Datatype? {
-
-        return when (typeDefinition.base) {
-            is StaticBase -> {
-                val typeName = typeDefinition.base.name
-                var type = getType(typeName) ?: return null
-                if (typeDefinition.hasModifier(TypeDefinitionModifier.Array)) {
-                    type = type.arrayOf()
-                }
-                if (typeDefinition.hasModifier(TypeDefinitionModifier.Pointer)) {
-                    type = type.pointerOf()
-                }
-                type
-            }
-            else -> TODO(typeDefinition.base.toString())
-        }
-    }
-
-    fun requireType(name: String): Datatype {
-        return getType(name)
-            ?: throw FrontendCompilerError("Could not find type: $name")
-    }
-
-    fun requireType(typeDefinition: TypeDefinition): Datatype {
-        return getType(typeDefinition)
-            ?: throw FrontendCompilerError("Could not find type: ${typeDefinition}")
-    }
-}

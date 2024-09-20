@@ -1,0 +1,3 @@
+val j=7
+def callme():
+  print(j)

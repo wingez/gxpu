@@ -1,0 +1,17 @@
+struct type1:
+  member1:int
+  member2:int
+
+def main():
+  val a:type1
+
+  a.member2=5
+  a.member1=2
+
+  print((a.member1)+2)
+  print((a.member2)+(a.member1))
+
+#########
+# expect
+# 4
+# 7

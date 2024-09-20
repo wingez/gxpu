@@ -1,0 +1,7 @@
+# import other
+
+def main():
+  print(j)
+
+#########
+# fail

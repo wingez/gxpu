@@ -1,0 +1,11 @@
+import other
+val i=6
+
+def main():
+  callme()
+  print(i)
+
+#########
+# expect
+# 7
+# 6

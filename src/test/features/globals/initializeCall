@@ -1,0 +1,11 @@
+val i=callme()
+
+def callme():int
+  return 6
+
+def main():
+  print(i)
+
+#########
+# expect
+# 6

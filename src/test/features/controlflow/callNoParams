@@ -1,0 +1,16 @@
+def test1():
+  print(5)
+
+def test2():
+  print(10)
+
+def main():
+  test1()
+  test2()
+  print(3)
+#########
+# expect
+# 5
+# 10
+# 3
+
